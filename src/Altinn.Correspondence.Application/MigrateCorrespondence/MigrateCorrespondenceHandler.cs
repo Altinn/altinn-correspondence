@@ -131,70 +131,42 @@ public class MigrateCorrespondenceHandler(
                 }
                 return response;
             }
-            var batchLimit = 999;
-            if (request.BatchSize > batchLimit)
-            {
-                var currentBatch = batchLimit;
+            var currentBatch = 999;
 
-                var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
-                if (enqueuedJobs > batchLimit * 20)
+            var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
+            if (enqueuedJobs > currentBatch * 20)
+            {
+                var migrateRequest = new MakeCorrespondenceAvailableRequest()
                 {
-                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
-                    {
-                        AsyncProcessing = true,
-                        BatchSize = currentBatch,
-                        CreateEvents = request.CreateEvents,
-                        CursorCreated = request.CursorCreated,
-                        CursorId = request.CursorId,
-                        CreatedFrom = request.CreatedFrom,
-                        CreatedTo = request.CreatedTo
-                    };
-                    logger.LogInformation("Delaying scheduling of migration jobs as there are currently {EnqueuedJobs} jobs in the queue", enqueuedJobs);
-                    backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
-                } 
-                else
-                {
-                    var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
-                    var last = correspondences.Last();
-                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
-                    {
-                        AsyncProcessing = true,
-                        BatchSize = request.BatchSize,
-                        CreateEvents = request.CreateEvents,
-                        CursorCreated = last.Created,
-                        CursorId = last.Id,
-                        CreatedFrom = request.CreatedFrom,
-                        CreatedTo = request.CreatedTo
-                    };
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
-                    foreach (var correspondence in correspondences)
-                    {
-                        backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
-                    }
-                }
+                    AsyncProcessing = true,
+                    BatchSize = currentBatch,
+                    CreateEvents = request.CreateEvents,
+                    CursorCreated = request.CursorCreated,
+                    CursorId = request.CursorId,
+                    CreatedFrom = request.CreatedFrom,
+                    CreatedTo = request.CreatedTo
+                };
+                logger.LogInformation("Delaying scheduling of migration jobs as there are currently {EnqueuedJobs} jobs in the queue", enqueuedJobs);
+                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
             } 
             else
             {
                 var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
+                var last = correspondences.Last();
+                var migrateRequest = new MakeCorrespondenceAvailableRequest()
+                {
+                    AsyncProcessing = true,
+                    BatchSize = request.BatchSize,
+                    CreateEvents = request.CreateEvents,
+                    CursorCreated = last.Created,
+                    CursorId = last.Id,
+                    CreatedFrom = request.CreatedFrom,
+                    CreatedTo = request.CreatedTo
+                };
+                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                 foreach (var correspondence in correspondences)
                 {
                     backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
-                }
-                // If we filled the window, continue with next cursor
-                if (correspondences.Count == (request.BatchSize ?? 0) && correspondences.Count > 0)
-                {
-                    var last = correspondences.Last();
-                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
-                    {
-                        AsyncProcessing = true,
-                        BatchSize = request.BatchSize,
-                        CreateEvents = request.CreateEvents,
-                        CursorCreated = last.Created,
-                        CursorId = last.Id,
-                        CreatedFrom = request.CreatedFrom,
-                        CreatedTo = request.CreatedTo
-                    };
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                 }
             }
         }
