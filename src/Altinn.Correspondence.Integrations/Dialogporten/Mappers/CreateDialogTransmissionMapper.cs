@@ -2,6 +2,7 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -104,10 +105,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static TransmissionSender CreateTransmissionSender(CorrespondenceEntity correspondence)
         {
+            if (!string.IsNullOrWhiteSpace(correspondence.MessageSender))
+            {
+                return new TransmissionSender
+                {
+                    ActorName = correspondence.MessageSender,
+                    ActorType = nameof(DialogportenActorType.PartyRepresentative)
+                };
+            }
             return new TransmissionSender
             {
-                ActorId = correspondence.GetRecipientUrn(),
-                ActorType = "PartyRepresentative",
+                ActorType = nameof(DialogportenActorType.ServiceOwner),
 
             };
         }
