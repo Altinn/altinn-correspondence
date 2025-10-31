@@ -18,6 +18,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<CorrespondenceNotificationEntity?> GetPrimaryNotification(Guid correspondenceId, CancellationToken cancellationToken)
         {
             return await _context.CorrespondenceNotifications
+                .AsNoTracking()
                 .Where(n => n.CorrespondenceId == correspondenceId && !n.IsReminder)
                 .OrderByDescending(n => n.RequestedSendTime)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -26,6 +27,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<CorrespondenceNotificationEntity?> GetNotificationById(Guid notificationId, CancellationToken cancellationToken)
         {
             return await _context.CorrespondenceNotifications
+                .AsNoTracking()
                 .Include(n => n.Correspondence)
                 .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
         }

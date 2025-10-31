@@ -11,7 +11,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<NotificationTemplateEntity>> GetNotificationTemplates(NotificationTemplate template, CancellationToken cancellationToken, string? language = null)
         {
-            return await _context.NotificationTemplates.Where(a => a.Template == template && (a.Language == null || a.Language.ToLower() == language.ToLower())).ToListAsync(cancellationToken);
+            return await _context.NotificationTemplates
+                .AsNoTracking()
+                .Where(a => a.Template == template && (a.Language == null || a.Language.ToLower() == language.ToLower()))
+                .ToListAsync(cancellationToken);
         }
     }
 }
