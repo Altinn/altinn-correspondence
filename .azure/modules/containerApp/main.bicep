@@ -16,6 +16,7 @@ param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
 param eventGridIps array
+param migrationWorkerCountPerReplica string
 
 @secure()
 param sblBridgeBaseUrl string
@@ -47,8 +48,8 @@ param containerAppResources object = prodLikeEnvironment ? {
   memory: '1.0Gi'
 }
 param containerAppScale ContainerAppScale = prodLikeEnvironment ? {
-  minReplicas: 3
-  maxReplicas:10
+  minReplicas: 5
+  maxReplicas: 5
 } : {
   minReplicas: 1
   maxReplicas: 1
@@ -117,13 +118,13 @@ var containerAppEnvVarsDefault = [
   { name: 'GeneralSettings__BrregBaseUrl', value: brregBaseUrl }
   { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
   { name: 'GeneralSettings__AltinnSblBridgeBaseUrl', value: sblBridgeBaseUrl }
-  { name: 'GeneralSettings__ResourceWhitelist', secretRef: 'resource-whitelist' }
   { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
   { name: 'IdportenSettings__Issuer', value: idportenIssuer }
   { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
   { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
+  { name: 'GeneralSettings__MigrationWorkerCountPerReplica', value: int(migrationWorkerCountPerReplica) }
 ]
 
 var containerAppEnvVars = concat(
@@ -224,11 +225,6 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/redis-connection-string'
           name: 'redis-connection-string'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/resource-whitelist'
-          name: 'resource-whitelist'
         }
         {
           identity: principal_id

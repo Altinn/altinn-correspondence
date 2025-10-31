@@ -21,10 +21,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Correspondence.Commo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Correspondence.LoadTests.DatabasePopulater", "Test\Altinn.Correspondence.LoadTests.DatabasePopulater\Altinn.Correspondence.LoadTests.DatabasePopulater.csproj", "{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{C20EA94C-2635-4683-8EF4-E98C6EBF811F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Correspondence.Dashboard", "tools\Altinn.Correspondence.Dashboard\Altinn.Correspondence.Dashboard.csproj", "{11558171-1B06-40A8-A230-3E136B9F187A}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,10 +59,6 @@ Global
 		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{11558171-1B06-40A8-A230-3E136B9F187A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{11558171-1B06-40A8-A230-3E136B9F187A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{11558171-1B06-40A8-A230-3E136B9F187A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{11558171-1B06-40A8-A230-3E136B9F187A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -74,7 +66,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{D78A36B1-D457-4FF7-B01E-82A0C3C64EDC} = {DC791FEF-108F-4773-8B84-56986CB90767}
 		{3E5EEBF3-366E-48F8-9D57-1975F95D4FAD} = {DC791FEF-108F-4773-8B84-56986CB90767}
-		{11558171-1B06-40A8-A230-3E136B9F187A} = {C20EA94C-2635-4683-8EF4-E98C6EBF811F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3508DF12-D3DE-4956-ABAB-31D7321B72C7}

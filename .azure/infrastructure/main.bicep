@@ -29,8 +29,6 @@ param idportenClientSecret string
 param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
-param resourceWhiteList string
-@secure()
 param statisticsApiKey string
 
 @secure()
@@ -98,10 +96,6 @@ var secrets = [
     value: idportenClientSecret
   }
   {
-    name: 'resource-whitelist'
-    value: resourceWhiteList
-  }
-  {
     name: 'statistics-api-key'
     value: statisticsApiKey
   }
@@ -160,6 +154,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
     logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
+    auditLogAnalyticsWorkspaceId: containerAppEnv.outputs.auditLogAnalyticsWorkspaceId
     environment: environment
   }
 }

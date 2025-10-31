@@ -7,6 +7,7 @@ param tenantId string
 
 param prodLikeEnvironment bool
 param logAnalyticsWorkspaceId string = ''
+param auditLogAnalyticsWorkspaceId string = ''
 param environment string
 
 var databaseName = 'correspondence'
@@ -59,7 +60,7 @@ resource extensionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/conf
   parent: postgres
   dependsOn: [database]
   properties: {
-    value: 'UUID-OSSP,HSTORE,PG_CRON,PG_STAT_STATEMENTS'
+    value: 'UUID-OSSP,HSTORE,PG_CRON,PG_STAT_STATEMENTS,PGAUDIT'
     source: 'user-override'
   }
 }
@@ -170,10 +171,52 @@ resource sharedPreloadLibraries 'Microsoft.DBforPostgreSQL/flexibleServers/confi
   parent: postgres
   dependsOn: [database, cronDatabaseName]
   properties: {
-    value: 'pg_stat_statements,pg_cron'
+    value: 'pg_stat_statements,pg_cron,pgaudit'
     source: 'user-override'
   }
 }
+
+// Disable connection/disconnection logging and pgaudit catalog logging
+resource logConnections 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'log_connections'
+  parent: postgres
+  dependsOn: [database, sharedPreloadLibraries]
+  properties: {
+    value: 'off'
+    source: 'user-override'
+  }
+}
+
+resource logDisconnections 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'log_disconnections'
+  parent: postgres
+  dependsOn: [database, logConnections]
+  properties: {
+    value: 'off'
+    source: 'user-override'
+  }
+}
+
+resource pgauditLogCatalog 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'pgaudit.log_catalog'
+  parent: postgres
+  dependsOn: [database, logDisconnections]
+  properties: {
+    value: 'off'
+    source: 'user-override'
+  }
+}
+
+resource logLinePrefix 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'log_line_prefix'
+  parent: postgres
+  dependsOn: [database, pgauditLogCatalog]
+  properties: {
+    value: 't=%m u=%u db=%d pid=[%p]:'
+    source: 'user-override'
+  }
+}
+
 resource pgStatStatementsTrack 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'pg_stat_statements.track'
   parent: postgres
@@ -271,6 +314,21 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
       }
       {
         category: 'PostgreSQLFlexSessions'
+        enabled: true
+      }
+    ]
+  }
+}
+
+// Diagnostic settings for PostgreSQL Server Logs (PGAUDIT)
+resource postgreSqlAuditDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (auditLogAnalyticsWorkspaceId != '') {
+  name: 'PostgreSQLAuditLogs'
+  scope: postgres
+  properties: {
+    workspaceId: auditLogAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'PostgreSQLLogs'
         enabled: true
       }
     ]

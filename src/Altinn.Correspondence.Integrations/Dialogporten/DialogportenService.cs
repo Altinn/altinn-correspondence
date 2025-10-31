@@ -36,6 +36,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            var errorMessage = await response.Content.ReadAsStringAsync();
+            logger.LogError(errorMessage);
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
 
@@ -547,6 +549,44 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             logger.LogError(($"Response from Dialogporten when removing markdown and html from summary for {dialogId} was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"));
             return false;
+        }
+        return true;
+    }
+
+    public async Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+    {
+        
+        CreateDialogRequest? dialog = null;
+        try
+        {
+            dialog = await GetDialog(dialogId);
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("not found"))
+            {
+                return null;
+            }
+            logger.LogError(ex, "Error retrieving dialog {dialogId} for recipient validation", dialogId);
+            throw;
+        }
+        return dialog.Party == expectedRecipient ? true : false;
+    }
+
+    public async Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var dialog = await GetDialog(dialogId);
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("not found"))
+            {
+                return false;
+            }
+            logger.LogError(ex, "Error retrieving dialog {dialogId} for existence check", dialogId);
+            throw;
         }
         return true;
     }

@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -17,9 +16,7 @@ using OneOf;
 using Slack.Webhooks;
 using System.Security.Claims;
 using Altinn.Correspondence.Integrations.Redlock;
-using Altinn.Correspondence.Core.Models.Brreg;
-using Altinn.Correspondence.Core.Exceptions;
-using Altinn.Correspondence.Application.Settings;
+using Altinn.Correspondence.Application.SendNotificationOrder;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -29,15 +26,12 @@ public class PublishCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IContactReservationRegistryService contactReservationRegistryService,
-    IDialogportenService dialogportenService,
     IHostEnvironment hostEnvironment,
     ISlackClient slackClient,
     SlackSettings slackSettings,
     IBackgroundJobClient backgroundJobClient,
-    IBrregService brregService,
     IDistributedLockHelper distributedLockHelper) : IHandler<Guid, Task>
 {
-
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting publish process for correspondence {CorrespondenceId}", correspondenceId);
@@ -81,51 +75,47 @@ public class PublishCorrespondenceHandler(
     public async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
-        var operationTimestamp = DateTimeOffset.UtcNow;
-
+        var operationTimestamp = DateTimeOffset.UtcNow;        
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        var party = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
-        {
-            logger.LogError("Could not find party UUID for sender {Sender}", correspondence.Sender);
-            return AuthorizationErrors.CouldNotFindPartyUuid;
-        }
-        bool hasDialogportenDialog = correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
+        var senderParty = await altinnRegisterService.LookUpPartyById(correspondence!.Sender, cancellationToken);
+        var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence!.Recipient, cancellationToken);
+        var senderPartyUuid = senderParty?.PartyUuid;
+        var recipientPartyUuid = recipientParty?.PartyUuid;
+        bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
-
-        OrganizationDetails? details = null;
-        OrganizationRoles? roles = null;
-        bool OrganizationNotFoundInBrreg = false;
-        if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
-        {
-            (details, roles, OrganizationNotFoundInBrreg) = await GetOrganizationDetailsAndRoles(correspondence, cancellationToken);
-        }
 
         var errorMessage = "";
         if (correspondence == null)
         {
             errorMessage = "Correspondence " + correspondenceId + " not found when publishing";
-            logger.LogError(errorMessage);
         }
-        else if (!await IsCorrespondenceReadyForPublish(correspondence, partyUuid, cancellationToken))
+        else if (senderPartyUuid is not Guid)
+        {
+            errorMessage = $"Party for sender {correspondence.Sender} not found in Altinn Register when publishing";
+        }
+        else if (recipientPartyUuid is not Guid)
+        {
+            errorMessage = $"Party for recipient {correspondence.Recipient} not found in Altinn Register when publishing";
+        }
+        else if (!await IsCorrespondenceReadyForPublish(correspondence, senderPartyUuid.Value, cancellationToken))
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
         else if (!hasDialogportenDialog)
         {
             errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
-            logger.LogError(errorMessage);
         }
         else if (await HasRecipientBeenSetToReservedInKRR(correspondence, cancellationToken))
         {
             errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";
         }
-        else if (roles != null && !roles.HasAnyOfRolesOnPerson(
-            correspondence.IsConfidential
-                ? ApplicationConstants.RequiredOrganizationRolesForConfidentialCorrespondenceRecipient
-                : ApplicationConstants.RequiredOrganizationRolesForCorrespondenceRecipient))
+        else if (
+            !string.IsNullOrEmpty(recipientParty!.OrgNumber) && 
+            !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken) && 
+            correspondence.IsConfidential) 
         {
-            errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondences. Consider sending physical mail to this recipient instead.";
+            // Only check for confidential pending #1444. Remove IsConfidential condition after Register has been updated.
+            errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
         }
         CorrespondenceStatusEntity status;
         AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
@@ -141,7 +131,7 @@ public class PublishCorrespondenceHandler(
                     Status = CorrespondenceStatus.Failed,
                     StatusChanged = DateTimeOffset.UtcNow,
                     StatusText = errorMessage,
-                    PartyUuid = partyUuid
+                    PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
                 var slackSent = await SlackHelper.SendSlackNotificationWithMessage("Correspondence failed", errorMessage, slackClient, slackSettings.NotificationChannel, hostEnvironment.EnvironmentName);
                 if (!slackSent)
@@ -149,12 +139,10 @@ public class PublishCorrespondenceHandler(
                     logger.LogError("Failed to send Slack notification for failed correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
-                logger.LogInformation("Cancelling notifications for failed correspondence {CorrespondenceId}", correspondenceId);
-                var cancelNotificationJob = backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 if (hasDialogportenDialog)
                 {
                     logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
-                    backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
                 }
             }
             else
@@ -166,18 +154,19 @@ public class PublishCorrespondenceHandler(
                     Status = CorrespondenceStatus.Published,
                     StatusChanged = DateTimeOffset.UtcNow,
                     StatusText = CorrespondenceStatus.Published.ToString(),
-                    PartyUuid = partyUuid
+                    PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
-                backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence.Recipient, null, cancellationToken));
+                backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, operationTimestamp));
+                backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             if (status.Status == CorrespondenceStatus.Published)
             {
-                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
             }
             logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
             return Task.CompletedTask;
@@ -221,41 +210,5 @@ public class PublishCorrespondenceHandler(
             }
         }
         return false;
-    }
-
-    private async Task<(OrganizationDetails?, OrganizationRoles?, bool)> GetOrganizationDetailsAndRoles(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
-    {
-        OrganizationDetails? details = null;
-        OrganizationRoles? roles = null;
-        bool OrganizationNotFoundInBrreg = false;
-        if (correspondence.GetRecipientUrn().WithoutPrefix().IsOrganizationNumber())
-        {
-            try
-            {
-                details = await brregService.GetOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                roles = await brregService.GetOrganizationRoles(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-            }
-            catch (BrregNotFoundException)
-            {
-                try
-                {
-                    var subOrganizationDetails = await brregService.GetSubOrganizationDetails(correspondence.Recipient.WithoutPrefix(), cancellationToken);
-                    details = subOrganizationDetails;
-                    if (subOrganizationDetails.ParentOrganizationNumber != null)
-                    {
-                        roles = await brregService.GetOrganizationRoles(subOrganizationDetails.ParentOrganizationNumber, cancellationToken);
-                    }
-                    else
-                    {
-                        roles = new OrganizationRoles();
-                    }
-                }
-                catch (BrregNotFoundException)
-                {
-                    OrganizationNotFoundInBrreg = true;
-                }
-            }
-        }
-        return (details, roles, OrganizationNotFoundInBrreg);
     }
 }

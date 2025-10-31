@@ -40,7 +40,7 @@ public static class CorrespondenceErrors
     public static Error InvalidIdempotencyKey = new Error(1033, "The idempotency key must be a valid non-empty GUID", HttpStatusCode.BadRequest);
     public static Error DuplicateInitCorrespondenceRequest = new Error(1034, "A correspondence with the same idempotent key already exists", HttpStatusCode.Conflict);
     public static Error InvalidReplyOptions = new Error(1035, "Reply options must be well-formed URIs and HTTPS with a max length of 255 characters", HttpStatusCode.BadRequest);
-    public static Error ServiceOwnerOrgNumberNotFound = new Error(1036, "Service owner/sender's organization number (9 digits) not found for resource", HttpStatusCode.InternalServerError);
+    public static Error InvalidResource = new Error(1036, "ResourceId must match an existing resource in the resource registry", HttpStatusCode.BadRequest);
     public static Error MessageTitleTooLong = new Error(1037, "Message title cannot exceed 255 characters", HttpStatusCode.BadRequest);
     public static Error AttachmentCountExceeded = new Error(1038, "A correspondence cannot contain more than 100 attachments in total", HttpStatusCode.BadRequest);
     public static Error MessageSenderIsNotPlainText = new Error(1039, "Message sender must be plain text", HttpStatusCode.BadRequest);
@@ -48,6 +48,13 @@ public static class CorrespondenceErrors
     public static Error CorrespondenceAlreadyConfirmed = new Error(1041, "Correspondence has already been confirmed", HttpStatusCode.BadRequest);
     public static Error MessageSummaryWrongLength = new Error(1042, "Message summary, if not null, must be between 0 and 255 characters long", HttpStatusCode.BadRequest);
     public static Error CannotPurgeCorrespondenceLinkedToDialogportenTransmission = new Error(1043, "Cannot purge correspondence linked to a Dialogporten Transmission", HttpStatusCode.BadRequest);
+    public static Error RecipientLacksRequiredRolesForCorrespondence(List<string> recipients) { return new Error(1044, $"The following recipients lack required roles to read the correspondence: {string.Join(", ", recipients)}", HttpStatusCode.BadRequest); }
+    public static Error TransmissionOnlyAllowsOneRecipient = new Error(1045, "Transmission correspondences only support one recipient", HttpStatusCode.BadRequest);
+    public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the party of the dialog of the transmission", HttpStatusCode.BadRequest);
+    public static Error IdempotencyKeyNotAllowedWithMultipleRecipients = new Error(1047, "Idempotency key is not supported for requests with multiple recipients", HttpStatusCode.BadRequest);
+    public static Error InvalidCorrespondenceDialogId = new Error(1048, "DialogId must be a valid non-empty GUID", HttpStatusCode.BadRequest);
+    public static Error DialogNotFoundWithDialogId = new Error(1049, "Could not find dialog in Dialogporten with the given DialogId", HttpStatusCode.BadRequest);
+    public static Error AttachmentExpirationTooSoonAfterRequestedPublishTime = new Error(1050, "The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
@@ -69,6 +76,7 @@ public static class AttachmentErrors
     public static Error ServiceOwnerNotFound = new Error(2014, "Service owner not setup in this environment. You need a service owner agreement to use Correspondence. Please contact us at Slack.", HttpStatusCode.UnavailableForLegalReasons);
     public static Error AttachmentAlreadyMigrated = new Error(2015, "Attachment has already been migrated", HttpStatusCode.Conflict);
     public static Error AttachedToAPublishedCorrespondence = new Error(2016, "This attachment is associated with a published correspondence and can no longer be accessed by service owner", HttpStatusCode.BadRequest);
+    public static Error AttachmentExpirationPriorTwoWeeksFromNow = new Error(2017, "Attachment expirationTime must be at least 14 days from now", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {
@@ -88,6 +96,7 @@ public static class NotificationErrors
     public static Error NotificationNotFound = new Error(3020, "Notification not found in the database", HttpStatusCode.NotFound);
     public static Error NotificationDetailsNotFound = new Error(3021, "Cannot retrieve notification details from Altinn Notification API", HttpStatusCode.NotFound);
     public static Error OverrideRegisteredContactInformationRequiresCustomRecipients = new Error(3022, "OverrideRegisteredContactInformation flag can only be used when CustomRecipients is provided", HttpStatusCode.BadRequest);
+    public static Error InvalidNotificationTemplate = new Error(3023, "Invalid notification template", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {
@@ -98,7 +107,6 @@ public static class AuthorizationErrors
     public static Error LegacyNotAccessToOwner(int partyId) { return new Error(4005, $"User does not have access to party with partyId {partyId}", HttpStatusCode.Unauthorized); }
     public static Error CouldNotDetermineCaller = new Error(4006, "Could not determine caller", HttpStatusCode.Unauthorized);
     public static Error CouldNotFindOrgNo = new Error(4007, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
-    public static Error ResourceNotWhitelisted = new Error(4008, "Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no.", HttpStatusCode.Forbidden);
     public static Error IncorrectResourceType = new Error(4009, "Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService.", HttpStatusCode.BadRequest);
 }
 

@@ -482,5 +482,22 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
+
+        public Error? ValidateAttachmentsExpiration(List<AttachmentEntity> attachments, DateTimeOffset requestedPublishTime)
+        {
+            if (attachments != null && attachments.Count > 0)
+            {
+                var publishTime = requestedPublishTime > DateTimeOffset.UtcNow ? requestedPublishTime : DateTimeOffset.UtcNow;
+                var minimumExpiration = publishTime.AddDays(14);
+                foreach (var attachment in attachments)
+                {
+                    if (attachment.ExpirationTime < minimumExpiration)
+                    {
+                        return CorrespondenceErrors.AttachmentExpirationTooSoonAfterRequestedPublishTime;
+                    }
+                }
+            }
+            return null;
+        }
     }
 }

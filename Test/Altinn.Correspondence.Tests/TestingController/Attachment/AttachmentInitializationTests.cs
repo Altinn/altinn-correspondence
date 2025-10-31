@@ -79,5 +79,29 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var initializeAttachmentResponse = await _wrongSenderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.Unauthorized, initializeAttachmentResponse.StatusCode);
         }
+
+        [Fact]
+        public async Task InitializeAttachment_WithExpirationBeforeNowPlus14_ReturnsBadRequest()
+        {
+            var attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithExpirationTime(DateTimeOffset.UtcNow.AddDays(13))
+                .Build();
+            
+            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeAttachment_WithExpirationAtOrAfterNowPlus14_ReturnsOk()
+        {
+            var attachment = new AttachmentBuilder()
+                .CreateAttachment()
+                .WithExpirationTime(DateTimeOffset.UtcNow.AddDays(15))
+                .Build();
+            
+            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.OK, initializeAttachmentResponse.StatusCode);
+        }
     }
 }

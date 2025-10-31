@@ -83,12 +83,12 @@ jobs:
           PLATFORM_SUBSCRIPTION_KEY: ${{ secrets.PLATFORM_SUBSCRIPTION_KEY }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
-          RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
+          MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
 
   deploy-at22:
     name: deploy at22
@@ -133,12 +133,12 @@ jobs:
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-          RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
+          MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
   deploy-staging:
     name: Internal staging
     runs-on: ubuntu-latest
@@ -185,12 +185,12 @@ jobs:
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-          RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
+          MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
   deploy-production:
     name: Production
     runs-on: ubuntu-latest
@@ -237,12 +237,12 @@ jobs:
           SLACK_URL: ${{ secrets.SLACK_URL }}
           SBL_BRIDGE_BASE_URL: ${{ secrets.SBL_BRIDGE_BASE_URL }}
           MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ secrets.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-          RESOURCE_WHITELIST: ${{ secrets.RESOURCE_WHITELIST }}
           MASKINPORTEN_ENVIRONMENT: ${{ secrets.MASKINPORTEN_ENVIRONMENT }}
           APIM_IP: ${{ secrets.APIM_IP }}
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
+          MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
   check-version-bump:
     name: Check if version was bumped
     runs-on: ubuntu-latest

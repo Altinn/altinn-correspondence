@@ -28,7 +28,7 @@ internal static class CorrespondenceAttachmentMapper
             StatusText = attachment.Attachment.GetLatestStatus()!.StatusText,
             StatusChanged = attachment.Attachment.GetLatestStatus()!.StatusChanged,
             Created = attachment.Created,
-            ExpirationTime = attachment.ExpirationTime
+            ExpirationTime = attachment.Attachment.ExpirationTime
         };
         return content;
     }

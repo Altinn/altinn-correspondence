@@ -186,6 +186,52 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task UploadCorrespondence_WithAttachmentExpirationTimeBeforeMinimum_GivesBadRequest()
+        {
+            using var stream = File.OpenRead("./Data/Markdown.txt");
+            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            using var fileStream = file.OpenReadStream();
+
+            var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
+            attachmentMetaData.ExpirationTime = DateTimeOffset.UtcNow.AddDays(13);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
+                .WithAttachments([attachmentMetaData])
+                .Build();
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            formData.Add(new StringContent(attachmentMetaData.ExpirationTime!.Value.ToString("o")), "correspondence.content.attachments[0].expirationTime");
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            Assert.Equal(HttpStatusCode.BadRequest, uploadCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task UploadCorrespondence_WithAttachmentExpirationTimeAfterMinimum_GivesOk()
+        {
+            using var stream = File.OpenRead("./Data/Markdown.txt");
+            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            using var fileStream = file.OpenReadStream();
+
+            var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
+            attachmentMetaData.ExpirationTime = DateTimeOffset.UtcNow.AddDays(15);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
+                .WithAttachments([attachmentMetaData])
+                .Build();
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            formData.Add(new StringContent(attachmentMetaData.ExpirationTime!.Value.ToString("o")), "correspondence.content.attachments[0].expirationTime");
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            Assert.Equal(HttpStatusCode.OK, uploadCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
         public async Task UploadCorrespondence_WithNoFiles_GivesBadrequest()
         {
             var payload = new CorrespondenceBuilder()

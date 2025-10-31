@@ -50,6 +50,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Required]
         public long AttachmentSize { get; set; }
 
+        public DateTimeOffset? ExpirationTime { get; set; }
+
         public StorageProviderEntity? StorageProvider { get; set; }
 
         public string? Altinn2AttachmentId { get; set; }

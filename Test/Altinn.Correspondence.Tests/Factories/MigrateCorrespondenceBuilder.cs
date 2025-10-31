@@ -101,6 +101,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public MigrateCorrespondenceBuilder WithMessageTitle(string messageTitle)
+        {
+            _migratedCorrespondence.CorrespondenceData.Correspondence.Content.MessageTitle = messageTitle;
+            return this;
+        }
+
         public MigrateCorrespondenceBuilder WithSummary(string summary)
         {
             _migratedCorrespondence.CorrespondenceData.Correspondence.Content.MessageSummary = summary;

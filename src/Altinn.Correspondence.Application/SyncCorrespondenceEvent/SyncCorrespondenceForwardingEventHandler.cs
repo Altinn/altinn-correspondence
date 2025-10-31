@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -13,13 +14,10 @@ public class SyncCorrespondenceForwardingEventHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceForwardingEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(
+        var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
-            includeStatus: false,
-            includeContent: false,
-            includeForwardingEvents: true,
-            cancellationToken,
-            includeIsMigrating: true);
+            CorrespondenceSyncType.ForwardingEvents,
+            cancellationToken);
 
         if (correspondence == null)
         {

@@ -53,6 +53,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<DateTimeOffset?>("ExpirationTime")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");

@@ -11,6 +11,33 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithStatuses =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.Statuses)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
+
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithNotifications =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.Notifications)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
+
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithForwardingEvents =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.ForwardingEvents)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
+
         public async Task<CorrespondenceEntity> CreateCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
@@ -81,6 +108,24 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
             return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+        }
+
+        public async Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
+            Guid guid,
+            CorrespondenceSyncType syncType,
+            CancellationToken cancellationToken)
+        {
+            logger.LogDebug("GetCorrespondenceByIdForSync {Id} syncType={syncType}", guid, syncType);
+
+            Task<CorrespondenceEntity?> correspondence = syncType switch
+            {
+                CorrespondenceSyncType.StatusEvents => _getForSyncWithStatuses(_context, guid),
+                CorrespondenceSyncType.NotificationEvents => _getForSyncWithNotifications(_context, guid),
+                CorrespondenceSyncType.ForwardingEvents => _getForSyncWithForwardingEvents(_context, guid),
+                _ => throw new NotImplementedException($"Unsupported sync type: {syncType}")
+            };
+
+            return await correspondence;
         }
 
         public async Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(int altinn2Id, CancellationToken cancellationToken)

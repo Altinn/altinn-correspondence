@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
@@ -140,5 +141,39 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             }
         }
         return Task.FromResult<List<Party>?>(parties);
+    }
+
+    public Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken)
+    {
+        var roles = new List<RoleItem>();
+        var ToPartyUuid = Guid.NewGuid();
+        if (partyUuid == _digdirPartyUuid.ToString())
+        {
+            roles.Add(new RoleItem
+            {
+                Role = new RoleDescriptor { Source = "ccr", Identifier = "daglig-leder", Urn = "urn:altinn:external-role:ccr:daglig-leder" },
+                From = new RoleParty { PartyUuid = _digdirPartyUuid, Urn = $"urn:altinn:party:uuid:{_digdirPartyUuid}" },
+                To = new RoleParty { PartyUuid = ToPartyUuid, Urn = $"urn:altinn:party:uuid:{ToPartyUuid}" },
+            });
+        }
+        return Task.FromResult(roles);
+    }
+
+    public Task<List<MainUnitItem>> LookUpMainUnits(string urn, CancellationToken cancellationToken)
+    {
+        var items = new List<MainUnitItem>
+        {
+            new MainUnitItem
+            {
+                PartyType = "organization",
+                OrganizationIdentifier = "991825827",
+                PartyUuid = _digdirPartyUuid,
+                VersionId = 1,
+                Urn = $"urn:altinn:party:uuid:{_digdirPartyUuid}",
+                PartyId = _digdirPartyId,
+                DisplayName = "Digitaliseringsdirektoratet"
+            }
+        };
+        return Task.FromResult(items);
     }
 }

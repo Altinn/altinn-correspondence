@@ -42,6 +42,11 @@ namespace Altinn.Correspondence.Core.Repositories
             CancellationToken cancellationToken,
             bool includeIsMigrating = false);
 
+        Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
+            Guid guid,
+            CorrespondenceSyncType syncType,
+            CancellationToken cancellationToken);
+
         Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(
             int altinn2Id,
             CancellationToken cancellationToken);
