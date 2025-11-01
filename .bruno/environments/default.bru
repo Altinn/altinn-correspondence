@@ -1,0 +1,16 @@
+vars {
+  base_url: {{process.env.BASE_URL}}
+  resource_id: {{process.env.RESOURCE_ID}}
+  serviceowner_orgnumber: {{process.env.serviceowner_orgNUMBER}}
+  recipient_orgnumber: {{process.env.RECIPIENT_ORGNUMBER}}
+  recipient_ssn: {{process.env.RECIPIENT_SSN}}
+  client_id: {{process.env.CLIENT_ID}}
+  client_kid: {{process.env.CLIENT_KID}}
+  client_pem: {{process.env.CLIENT_PEM}}
+}
+
+vars:secret [
+  client_pem
+  serviceowner_altinn_token
+  recipient_altinn_token
+]

@@ -1,0 +1,19 @@
+meta {
+  name: Exchange Maskinporten token to Altinn token
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{platform_base_url}}/authentication/api/v1/exchange/maskinporten
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_maskinporten_token}}
+}
+
+script:post-response {
+  bru.setVar("serviceowner_altinn_token", res.body);
+}
