@@ -18,4 +18,10 @@ public class MakeCorrespondenceAvailableRequestExt
 
     [JsonPropertyName("batchSize")]
     public int? BatchSize { get; set; }
+
+    [JsonPropertyName("createdFrom")] // inclusive
+    public DateTimeOffset? CreatedFrom { get; set; }
+
+    [JsonPropertyName("createdTo")] // exclusive
+    public DateTimeOffset? CreatedTo { get; set; }
 }

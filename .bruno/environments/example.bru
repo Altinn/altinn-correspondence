@@ -1,0 +1,16 @@
+vars {
+  base_url: https://platform.tt02.altinn.no
+  resource_id: your-resource-id
+  serviceowner_orgnumber: 123456789
+  recipient_orgnumber: 987654321
+  recipient_ssn: 12345678901
+  client_id: your-maskinporten-integration-id
+  client_kid: your-maskinporten-key-id
+  client_pem: -----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----
+}
+
+vars:secret [
+  client_pem
+  serviceowner_altinn_token
+  recipient_altinn_token
+]

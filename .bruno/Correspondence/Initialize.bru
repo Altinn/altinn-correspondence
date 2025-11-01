@@ -1,0 +1,68 @@
+meta {
+  name: Initialize
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+body:json {
+  {
+    "correspondence": {
+      "resourceId": "{{resource_id}}",
+      "sendersReference": "1",
+      "content": {
+        "language": "nb",
+        "messageTitle": "Testmelding tittel",
+        "messageSummary": "Ett sammendrag for meldingen",
+        "messageBody": "Som kan være plain text eller **markdown**",
+        "attachments": []
+      },
+      "RequestedPublishTime": "2024-09-28T12:44:28.290518+00:00",
+      "allowSystemDeleteAfter": "2026-08-29T13:31:28.290518+00:00",
+      "dueDateTime": "2026-05-29T13:31:28.290518+00:00",
+      "externalReferences": [],
+      "propertyList": {
+        "caseNumber": "123",
+        "etc": "can-use-for-anything"
+      },
+      "replyOptions": [
+        {
+          "linkURL": "https://digdir-samarbeid.slack.com/",
+          "linkText": "Slack"
+        }
+      ],
+      "notification": {
+        "notificationTemplate": "CustomMessage",
+        "notificationChannel": "EmailAndSms",
+        "SendReminder": true,
+        "EmailSubject": "Test av Correspondence: E-post varsel",
+        "ReminderEmailSubject": "Test av Correspondence: E-post påminnelse",
+        "SmsBody": "Dette er SMS-en som sendes ut ved varsling",
+        "ReminderSmsBody": "Dette er SMS-en som sendes ut ved påminnelse",
+        "EmailBody": "Dette er mailteksten som sendes ut",
+        "ReminderEmailBody": "Dette er eposten som sendes ut ved påminnelse"
+      },
+      "IgnoreReservation": false,
+      "IsConfirmationNeeded": true
+    },
+    "Recipients": [
+      "urn:altinn:organization:identifier-no:{{recipient_orgnumber}}",
+      "urn:altinn:person:identifier-no:{{recipient_ssn}}"
+    ],
+    "existingAttachments": []
+  }
+}
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("correspondenceId", responseData.correspondences[0].correspondenceId);
+}
