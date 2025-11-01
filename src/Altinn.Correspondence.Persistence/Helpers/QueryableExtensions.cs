@@ -78,7 +78,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
                     statusesToFilter.Add(CorrespondenceStatus.Read);
                     statusesToFilter.Add(CorrespondenceStatus.Confirmed);
                     statusesToFilter.Add(CorrespondenceStatus.Replied);
-                    //statusesToFilter.Add(CorrespondenceStatus.AttachmentsDownloaded);
+                    statusesToFilter.Add(CorrespondenceStatus.AttachmentsDownloaded);
                 }
 
                 if (includeArchived) // Include correspondences with active status
@@ -88,7 +88,11 @@ namespace Altinn.Correspondence.Persistence.Helpers
             }
 
             return query.Where(cs =>
-                statusesToFilter.Contains(cs.Statuses.Max(s => s.Status)));
+                cs.Statuses.Any() && statusesToFilter.Contains(
+                    cs.Statuses
+                        .OrderBy(s => s.StatusChanged)
+                        .ThenBy(s => s.Id)
+                        .Last().Status));
         }
 
         public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
