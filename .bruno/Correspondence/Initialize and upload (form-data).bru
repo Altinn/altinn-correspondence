@@ -1,5 +1,5 @@
 meta {
-  name: Initialize and upload (FORM)
+  name: Initialize and upload (form-data)
   type: http
   seq: 3
 }
@@ -41,6 +41,10 @@ body:multipart-form {
   correspondence.isconfirmationneeded: true
   recipients[0]: urn:altinn:organization:identifier-no:{{recipient_orgnumber}}
   recipients[1]: urn:altinn:person:identifier-no:{{recipient_ssn}}
+  Attachments: @file(test-file.txt)
+  correspondence.content.attachments[0].sendersReference: test-file-1
+  correspondence.content.attachments[0].filename: test-file.txt
+  : 
 }
 
 script:post-response {
