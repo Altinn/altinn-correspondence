@@ -1,0 +1,15 @@
+meta {
+  name: System overview
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{platform_base_url}}/authentication/api/v1/systemregister/vendor/{{serviceowner_orgnumber}}_{{resource_id}}_correspondence
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{systemprovider_token}}
+}
