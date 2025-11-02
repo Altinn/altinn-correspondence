@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{base_url}}/correspondence/api/v1/attachment
+  url: {{correspondence_base_url}}/correspondence/api/v1/attachment
   body: json
   auth: bearer
 }
@@ -29,5 +29,5 @@ body:json {
 
 script:post-response {
   const responseData = res.body;
-  bru.setVar("attachmentId", responseData.attachmentId);
+  bru.setVar("attachment_id", responseData);
 }
