@@ -4,8 +4,8 @@ meta {
   seq: 6
 }
 
-post {
-  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}/actions/purge
+delete {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}/purge
   body: json
   auth: bearer
 }
