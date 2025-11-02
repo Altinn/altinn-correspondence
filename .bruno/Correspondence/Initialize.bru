@@ -26,9 +26,9 @@ body:json {
         "messageBody": "Som kan være plain text eller **markdown**",
         "attachments": []
       },
-      "RequestedPublishTime": "2024-09-28T12:44:28.290518+00:00",
-      "allowSystemDeleteAfter": "2026-08-29T13:31:28.290518+00:00",
-      "dueDateTime": "2026-05-29T13:31:28.290518+00:00",
+      "requestedPublishTime": "{{requestedPublishTime}}",
+      "dueDateTime": "{{dueDateTime}}",
+      "allowSystemDeleteAfter": "{{allowSystemDeleteAfter}}",
       "externalReferences": [],
       "propertyList": {
         "caseNumber": "123",
@@ -60,6 +60,14 @@ body:json {
     ],
     "existingAttachments": []
   }
+}
+
+script:pre-request {
+  const now = new Date();
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  bru.setVar("requestedPublishTime", new Date(now.getTime()).toISOString());
+  bru.setVar("dueDateTime", new Date(now.getTime() + (14 * millisecondsPerDay)).toISOString());
+  bru.setVar("allowSystemDeleteAfter", new Date(now.getTime() + (365 * millisecondsPerDay)).toISOString());
 }
 
 script:post-response {

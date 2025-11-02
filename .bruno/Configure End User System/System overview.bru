@@ -1,12 +1,12 @@
 meta {
   name: System overview
   type: http
-  seq: 5
+  seq: 4
 }
 
 get {
   url: {{platform_base_url}}/authentication/api/v1/systemregister/vendor/{{serviceowner_orgnumber}}_{{resource_id}}_correspondence
-  body: json
+  body: none
   auth: bearer
 }
 
