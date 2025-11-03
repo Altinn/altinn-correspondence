@@ -20,7 +20,6 @@ public class MigrateCorrespondenceHandler(
     IDialogportenService dialogportenService,
     HangfireScheduleHelper hangfireScheduleHelper,
     IBackgroundJobClient backgroundJobClient,
-    IMonitoringApi monitoringApi,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -135,7 +134,7 @@ public class MigrateCorrespondenceHandler(
             }
             var currentBatch = 999;
 
-            var enqueuedJobs = monitoringApi.EnqueuedCount(HangfireQueues.Migration);
+            var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
             if (enqueuedJobs > currentBatch * 20)
             {
                 var migrateRequest = new MakeCorrespondenceAvailableRequest()

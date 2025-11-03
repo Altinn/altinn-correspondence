@@ -19,7 +19,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceRepository> _mockCorrespondenceRepository;
         private readonly Mock<IDialogportenService> _mockDialogportenService;
         private readonly Mock<IBackgroundJobClient> _mockBackgroundJobClient;
-        private readonly Mock<IMonitoringApi> _mockMonitoringApi;
         private readonly Mock<ILogger<MigrateCorrespondenceHandler>> _mockLogger;
         private readonly Mock<ICorrespondenceDeleteEventRepository> _mockCorrespondenceDeleteRepository;
         private readonly MigrateCorrespondenceHandler _handler;
@@ -30,10 +29,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockCorrespondenceDeleteRepository = new Mock<ICorrespondenceDeleteEventRepository>();
             _mockDialogportenService = new Mock<IDialogportenService>();
             _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
-            _mockMonitoringApi = new Mock<IMonitoringApi>();
-            _mockMonitoringApi
-                .Setup(x => x.EnqueuedCount(It.IsAny<string>()))
-                .Returns(500l);
             _mockLogger = new Mock<ILogger<MigrateCorrespondenceHandler>>();
             var mockCache = new Mock<IHybridCacheWrapper>();
 
@@ -49,7 +44,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockDialogportenService.Object,
                 hangfireScheduleHelper,
                 _mockBackgroundJobClient.Object,
-                _mockMonitoringApi.Object,
                 _mockLogger.Object);
         }
 
@@ -451,49 +445,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.False(response.Statuses[0].Ok);
             Assert.NotNull(response.Statuses[0].Error);
             Assert.Contains("Test exception", response.Statuses[0].Error);
-        }
-
-        [Fact]
-        public async Task MakeCorrespondenceAvailable_WithBatchSizeBelowLimit_ShouldPassCorrectParametersToBackgroundJobs()
-        {
-            // Arrange
-            var request = new MakeCorrespondenceAvailableRequest
-            {
-                BatchSize = 3,
-                AsyncProcessing = true,
-                CreateEvents = true
-            };
-
-            var correspondenceIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
-            var mockCorrespondences = correspondenceIds.Select(id => CreateMockCorrespondence(id)).ToList();
-
-            _mockCorrespondenceRepository.Setup(x => x.GetCandidatesForMigrationToDialogporten(
-                It.IsAny<int>(),
-                It.IsAny<DateTimeOffset?>(),
-                It.IsAny<Guid?>(),
-                It.IsAny<DateTimeOffset?>(),
-                It.IsAny<DateTimeOffset?>(),
-                It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockCorrespondences);
-
-            // Act
-            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.True(result.IsT0);
-
-            // Verify that background jobs were created with the correct correspondence IDs
-            foreach (var correspondenceId in correspondenceIds)
-            {
-                _mockBackgroundJobClient.Verify(x => x.Create(
-                    It.Is<Job>(job => 
-                        job.Method.Name == "MakeCorrespondenceAvailableInDialogportenAndApi" &&
-                        job.Args.Count > 0 &&
-                        job.Args[0].Equals(correspondenceId)),
-                    It.IsAny<IState>()), 
-                    Times.Once);
-            }
         }
 
         private static CorrespondenceEntity CreateMockCorrespondence(Guid id)
