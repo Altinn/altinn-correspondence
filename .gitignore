@@ -354,4 +354,4 @@ MigrationBackup/
 *appsettings.local
 
 Documentation/
-.bruno/environments/*
+/.bruno/environments/*.bru

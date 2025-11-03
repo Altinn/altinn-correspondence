@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
-using Altinn.Correspondence.Application.CreateNotification;
+using Altinn.Correspondence.Application.CreateNotificationOrder;
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -159,7 +158,7 @@ public class InitializeCorrespondencesHandler(
         }
 
         var existingAttachmentIds = request.ExistingAttachments;
-        var uploadAttachments = request.Attachments;
+        var uploadAttachmentFiles = request.Attachments;
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
         logger.LogDebug("Validating {ExistingCount} existing attachments", existingAttachmentIds.Count);
@@ -187,12 +186,28 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.AttachmentsNotPublished;
         }
 
-        logger.LogDebug("Validating {UploadCount} new attachments", uploadAttachments.Count);
-        var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
+        logger.LogDebug("Validating {UploadCount} new attachments", uploadAttachmentFiles.Count);
+        var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachmentFiles, uploadAttachmentMetadata);
         if (attachmentMetaDataError != null)
         {
             logger.LogWarning("Attachment validation failed: {Error}", attachmentMetaDataError);
             return attachmentMetaDataError;
+        }
+
+        logger.LogDebug("Validating expiration times for attachments");
+        var uploadAttachments = uploadAttachmentMetadata.Select(a => a.Attachment).Where(a => a != null).Select(a => a!).ToList();
+        var uploadAttachmentsExpirationError = initializeCorrespondenceHelper.ValidateAttachmentsExpiration(uploadAttachments, request.Correspondence.RequestedPublishTime);
+        if (uploadAttachmentsExpirationError != null)
+        {
+            logger.LogWarning("Expiration time validation failed for uploaded attachments: {Error}", uploadAttachmentsExpirationError);
+            return uploadAttachmentsExpirationError;
+        }
+
+        var existingAttachmentsExpirationError = initializeCorrespondenceHelper.ValidateAttachmentsExpiration(existingAttachments, request.Correspondence.RequestedPublishTime);
+        if (existingAttachmentsExpirationError != null)
+        {
+            logger.LogWarning("Expiration time validation failed for existing attachments: {Error}", existingAttachmentsExpirationError);
+            return existingAttachmentsExpirationError;
         }
 
         logger.LogDebug("Validating reply options");
@@ -237,7 +252,7 @@ public class InitializeCorrespondencesHandler(
         }
 
         logger.LogDebug("Uploading {Count} attachments", validatedData.AttachmentsToBeUploaded.Count);
-        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.AttachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
+        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.AttachmentsToBeUploaded, uploadAttachmentFiles, partyUuid, cancellationToken);
         if (uploadError != null)
         {
             logger.LogError("Attachment upload failed: {Error}", uploadError);
@@ -391,12 +406,8 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
-            var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
-            if (createJobResult.IsT1)
-            {
-                return createJobResult.AsT1;
-            }
-
+            
+            string? notificationJobId = null;
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
             {
@@ -405,18 +416,24 @@ public class InitializeCorrespondencesHandler(
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
                 }
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-
+            
                 if (request.Notification != null)
                 {
-                    // Schedule notification creation as a background job
-                    backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
+                    notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
                     {
-                        NotificationRequest = request.Notification,
                         CorrespondenceId = correspondence.Id,
+                        NotificationRequest = request.Notification,
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
                     }, cancellationToken));
                 }
             }
+
+            var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
+            if (createJobResult.IsT1)
+            {
+                return createJobResult.AsT1;
+            }
+
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
@@ -481,7 +498,7 @@ public class InitializeCorrespondencesHandler(
         }
     }
 
-    private async Task<OneOf<Task, Error>> CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
+    private async Task<OneOf<Task, Error>> CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, string? notificationJobId, CancellationToken cancellationToken)
     {
         
         bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
@@ -494,10 +511,14 @@ public class InitializeCorrespondencesHandler(
             }
 
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
-            var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondence.Id), correspondence.RequestedPublishTime);
-            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+
+            if (!string.IsNullOrEmpty(notificationJobId))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, transmissionJob, cancellationToken);
+                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
+            }
+            else
+            {
+                await ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken);
             }
         }
         else
@@ -510,11 +531,27 @@ public class InitializeCorrespondencesHandler(
             });
             if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+                if (!string.IsNullOrEmpty(notificationJobId))
+                {
+                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+                }
+                else
+                {
+                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+                }
             }
         }
 
         return Task.CompletedTask;
+    }
+
+    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
+    {
+        var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
+        if (attachmentsCount == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
+        {
+            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
+        };
     }
 
     private async Task<OneOf<bool, Error>> ValidateRecipientParty(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)

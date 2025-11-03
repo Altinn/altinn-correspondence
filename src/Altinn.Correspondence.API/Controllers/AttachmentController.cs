@@ -36,6 +36,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <li>2011: Filename is too long</li>
     /// <li>2012: Filename contains invalid characters</li>
     /// <li>2013: Filetype not allowed</li>
+    /// <li>2017: Attachment expirationTime must be at least 14 days from now</li>
     /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register </li>
     /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService. </li>
     /// </ul></response>

@@ -13,3 +13,8 @@ get {
 auth:bearer {
   token: {{serviceowner_altinn_token}}
 }
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("attachment_id", responseData.content.attachments[0].id);
+}

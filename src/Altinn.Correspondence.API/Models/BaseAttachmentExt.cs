@@ -40,5 +40,10 @@ namespace Altinn.Correspondence.API.Models
         [Required]
         public required string SendersReference { get; set; }
 
+        /// <summary>
+        /// The expiration time of the attachment
+        /// </summary>
+        [JsonPropertyName("expirationTime")]
+        public DateTimeOffset? ExpirationTime { get; set; }
     }
 }

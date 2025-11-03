@@ -5,9 +5,14 @@ meta {
 }
 
 get {
-  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence?role=Recipient&resourceId={{resource_id}}
   body: none
   auth: bearer
+}
+
+params:query {
+  role: Recipient
+  resourceId: {{resource_id}}
 }
 
 auth:bearer {

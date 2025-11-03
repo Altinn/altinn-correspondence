@@ -42,6 +42,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw new ArgumentException($"Notification with id {notificationId} not found");
         }
 
+        public async Task UpdateOrderResponseData(Guid notificationId, Guid notificationOrderId, Guid shipmentId, CancellationToken cancellationToken)
+        {
+            var rows = await _context.CorrespondenceNotifications
+                .Where(n => n.Id == notificationId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(n => n.NotificationOrderId, notificationOrderId)
+                    .SetProperty(n => n.ShipmentId, shipmentId),
+                    cancellationToken);
+            if (rows == 0)
+                throw new ArgumentException($"Notification with id {notificationId} not found");
+        }
+
         public async Task WipeOrder(Guid notificationId, CancellationToken cancellationToken)
         {
             var notification = await _context.CorrespondenceNotifications.FirstOrDefaultAsync(notification => notification.Id == notificationId, cancellationToken);
@@ -51,6 +63,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             notification.OrderRequest = null;
             await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceNotificationEntity>> GetPrimaryNotificationsByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
+        {
+            return await _context.CorrespondenceNotifications
+                .Where(n => n.CorrespondenceId == correspondenceId && !n.IsReminder)
+                .OrderByDescending(n => n.RequestedSendTime)
+                .ToListAsync(cancellationToken);
         }
     }
 }

@@ -1,6 +1,6 @@
-using Altinn.Correspondence.Application.Helpers;
+using System.Text.Json;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
-using Altinn.Correspondence.Application.CheckNotificationDelivery;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -8,34 +8,27 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
-using Hangfire;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Text.Json;
-using Altinn.Correspondence.Common.Constants;
 
-namespace Altinn.Correspondence.Application.CreateNotification;
+namespace Altinn.Correspondence.Application.CreateNotificationOrder;
 
-public class CreateNotificationHandler(
-    IAltinnNotificationService altinnNotificationService,
-    IAltinnRegisterService altinnRegisterService,
+public class CreateNotificationOrderHandler(
     ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceNotificationRepository correspondenceNotificationRepository,
+    IAltinnRegisterService altinnRegisterService,
     INotificationTemplateRepository notificationTemplateRepository,
-    IBackgroundJobClient backgroundJobClient,
+    ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
-    ILogger<CreateNotificationHandler> logger)
+    ILogger<CreateNotificationOrderHandler> logger)
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
-    private const int NotificationDeliveryCheckDelayMinutes = 5;
 
-    public async Task Process(CreateNotificationRequest request, CancellationToken cancellationToken)
+    public async Task Process(CreateNotificationOrderRequest request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting notification creation process for correspondence {CorrespondenceId}", request.CorrespondenceId);
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, true, false, cancellationToken) ?? throw new Exception($"Correspondence with id {request.CorrespondenceId} not found when creating notification");
+        logger.LogInformation("Starting notification order creation for correspondence {CorrespondenceId}", request.CorrespondenceId);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, true, false, cancellationToken) ?? throw new Exception($"Correspondence with id {request.CorrespondenceId} not found when creating notification order");
         try
         {
             // Get notification templates
@@ -53,38 +46,34 @@ public class CreateNotificationHandler(
             logger.LogInformation("Found {TemplateCount} notification templates", templates.Count);
 
             // Get notification content
-            logger.LogInformation("Get notification content for correspondence {CorrespondenceId}", request.CorrespondenceId);
+            logger.LogInformation("Getting notification content for correspondence {CorrespondenceId}", request.CorrespondenceId);
             var notificationContents = await GetNotificationContent(
                 request.NotificationRequest,
                 templates,
                 correspondence,
                 cancellationToken,
                 request.Language);
-
-            logger.LogInformation("Creating notification V2 for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            await CreateNotificationV2(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
-            logger.LogInformation("Successfully created notification for correspondence {CorrespondenceId}", request.CorrespondenceId);
+            
+            // Persist notification order requests
+            await PersistNotificationOrderRequests(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to create notifications for correspondence {CorrespondenceId}", request.CorrespondenceId);
+            logger.LogError(ex, "Failed to create notification order for correspondence {CorrespondenceId}", request.CorrespondenceId);
             throw;
         }
     }
 
-
-
     private async Task<List<NotificationContent>> GetNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
     {
-        logger.LogInformation("Getting notification content for correspondence {CorrespondenceId}", correspondence.Id);
         var content = new List<NotificationContent>();
         var sendersName = correspondence.MessageSender;
         if (string.IsNullOrEmpty(sendersName))
         {
-            logger.LogInformation("Looking up sender name for {Sender}", correspondence.Sender);
+            logger.LogInformation("Looking up sender name for correspondence {CorrespondenceId}", correspondence.Id);
             sendersName = await altinnRegisterService.LookUpName(correspondence.Sender.WithoutPrefix(), cancellationToken);
         }
-        logger.LogInformation("Looking up recipient name for {Recipient}", correspondence.Recipient);
+        logger.LogInformation("Looking up recipient name for correspondence {CorrespondenceId}", correspondence.Id);
         var recipientName = await altinnRegisterService.LookUpName(correspondence.Recipient.WithoutPrefix(), cancellationToken);
         
         foreach (var template in templates)
@@ -105,19 +94,6 @@ public class CreateNotificationHandler(
         return content;
     }
 
-    private Uri? CreateConditionEndpoint(string correspondenceId)
-    {
-        var baseUrl = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/');
-        var path = $"/correspondence/api/v1/correspondence/{Uri.EscapeDataString(correspondenceId)}/notification/check";
-        var conditionEndpoint = new Uri(new Uri(baseUrl), path);
-
-        if (conditionEndpoint.Host == "localhost")
-        {
-            return null;
-        }
-        return conditionEndpoint;
-    }
-
     private static string CreateNotificationContentFromToken(string message, string? token = "")
     {
         return message.Replace("{textToken}", token + " ").Trim();
@@ -125,7 +101,7 @@ public class CreateNotificationHandler(
 
     private List<NotificationOrderRequestV2> CreateNotificationOrderRequestsV2(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
     { 
-        logger.LogInformation("Creating notification request V2 for correspondence {CorrespondenceId}", correspondence.Id);
+        logger.LogInformation("Creating notification order request V2 for correspondence {CorrespondenceId}", correspondence.Id);
         
         // Determine recipients to process - behavior depends on OverrideRegisteredContactInformation flag
         List<Recipient> recipientsToProcess = new List<Recipient>();
@@ -269,111 +245,42 @@ public class CreateNotificationHandler(
         throw new InvalidOperationException("Recipient must have exactly one identifier");
     }
 
-    private async Task CreateNotificationV2(
-        NotificationRequest notificationRequest,
-        CorrespondenceEntity correspondence,
-        List<NotificationContent> notificationContents,
-        CancellationToken cancellationToken)
+    private Uri? CreateConditionEndpoint(string correspondenceId)
     {
-        logger.LogInformation("Creating notification in Altinn Notification Service (v2) for correspondence {CorrespondenceId}", correspondence.Id);
-        // Create notification requests
-        var notificationRequestsV2 = CreateNotificationOrderRequestsV2(
+        var baseUrl = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/');
+        var path = $"/correspondence/api/v1/correspondence/{Uri.EscapeDataString(correspondenceId)}/notification/check";
+        var conditionEndpoint = new Uri(new Uri(baseUrl), path);
+
+        if (conditionEndpoint.Host == "localhost")
+        {
+            return null;
+        }
+        return conditionEndpoint;
+    }
+
+    private async Task PersistNotificationOrderRequests(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> notificationContents, CancellationToken cancellationToken)
+    {
+        // Create notification order requests
+        var notificationOrderRequests = CreateNotificationOrderRequestsV2(
             notificationRequest,
             correspondence,
             notificationContents,
             cancellationToken);
-
-        logger.LogInformation("Sending {Count} notification request(s) V2 to notification service for correspondence {CorrespondenceId}", notificationRequestsV2.Count, correspondence.Id);
         
-        var allSuccessful = true;
-        var successfulNotifications = new List<CorrespondenceNotificationEntity>();
-        var notificationResponses = new List<NotificationOrderRequestResponseV2>();
-        
-        foreach (var notificationRequestV2 in notificationRequestsV2)
+        logger.LogInformation("Persisting {Count} notification order requests for correspondence {CorrespondenceId}", notificationOrderRequests.Count, correspondence.Id);
+        foreach (var notificationOrderRequest in notificationOrderRequests)
         {
-            var notificationResponse = await altinnNotificationService.CreateNotificationV2(notificationRequestV2, cancellationToken);
-
-            if (notificationResponse is null)
+            var notification = new CorrespondenceNotificationEntity()
             {
-                logger.LogError("Failed to create notification V2 for correspondence {CorrespondenceId}", correspondence.Id);
-                allSuccessful = false;
-            }
-            else
-            {
-                logger.LogInformation("Successfully created notification V2 for correspondence {CorrespondenceId} with order ID {OrderId}", correspondence.Id, notificationResponse.NotificationOrderId);
-                var notification = new CorrespondenceNotificationEntity()
-                {
-                    Created = DateTimeOffset.UtcNow,
-                    NotificationChannel = notificationRequest.NotificationChannel,
-                    NotificationTemplate = notificationRequest.NotificationTemplate,
-                    CorrespondenceId = correspondence.Id,
-                    NotificationOrderId = notificationResponse.NotificationOrderId,
-                    RequestedSendTime = notificationRequestV2.RequestedSendTime,
-                    IsReminder = false,
-                    OrderRequest = JsonSerializer.Serialize(notificationRequestV2),
-                    ShipmentId = notificationResponse.Notification.ShipmentId
-                };
-                successfulNotifications.Add(notification);
-                notificationResponses.Add(notificationResponse);
-            }
-        }
-
-        if (!allSuccessful)
-        {
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-        }
-        else
-        {
-            // Add all successful notifications to database
-            logger.LogInformation("Adding {Count} notification entity(ies) to database for correspondence {CorrespondenceId}", successfulNotifications.Count, correspondence.Id);
-            foreach (var notification in successfulNotifications)
-            {
-                await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
-                
-                // Schedule notification delivery check for main notification
-                logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notification.Id);
-                backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
-                    handler => handler.Process(notification.Id, cancellationToken),
-                    notification.RequestedSendTime.AddMinutes(NotificationDeliveryCheckDelayMinutes));
-            }
-
-            if (notificationRequest.SendReminder)
-            {
-                logger.LogInformation("Creating reminder notification entities to database for correspondence {CorrespondenceId}", correspondence.Id);
-                for (int i = 0; i < notificationRequestsV2.Count && i < notificationResponses.Count; i++)
-                {
-                    var notificationRequestV2 = notificationRequestsV2[i];
-                    var notificationResponse = notificationResponses[i];
-                    
-                    var reminder = new CorrespondenceNotificationEntity()
-                    {
-                        Created = DateTimeOffset.UtcNow,
-                        NotificationChannel = notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel,
-                        NotificationTemplate = notificationRequest.NotificationTemplate,
-                        CorrespondenceId = correspondence.Id,
-                        NotificationOrderId = notificationResponse.NotificationOrderId,
-                        RequestedSendTime = notificationRequestV2.RequestedSendTime.AddDays(notificationRequestV2.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
-                        IsReminder = true,
-                        OrderRequest = JsonSerializer.Serialize(notificationRequestV2),
-                        ShipmentId = notificationResponse.Notification.Reminders?.FirstOrDefault()?.ShipmentId
-                    };
-                    await correspondenceNotificationRepository.AddNotification(reminder, cancellationToken);
-
-                    // Schedule notification delivery check for reminder
-                    logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminder.Id);
-                    backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
-                        handler => handler.Process(reminder.Id, cancellationToken),
-                        reminder.RequestedSendTime.AddMinutes(NotificationDeliveryCheckDelayMinutes));
-                }
-            }
-
-            // Publish notification created events for each successful notification
-            foreach (var notification in successfulNotifications)
-            {
-                logger.LogInformation("Publishing notification created event for correspondence {CorrespondenceId}", correspondence.Id);
-                var orderId = notification.NotificationOrderId?.ToString() ?? string.Empty;
-                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.NotificationCreated, correspondence.ResourceId, orderId, "notification", correspondence.Sender, CancellationToken.None));
-            }
+                Created = DateTimeOffset.UtcNow,
+                NotificationTemplate = notificationRequest.NotificationTemplate,
+                NotificationChannel = notificationRequest.NotificationChannel,
+                CorrespondenceId = correspondence.Id,
+                RequestedSendTime = notificationOrderRequest.RequestedSendTime,
+                IsReminder = false,
+                OrderRequest = JsonSerializer.Serialize(notificationOrderRequest)
+            };
+            await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
         }
     }
 

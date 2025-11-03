@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{base_url}}/correspondence/api/v1/attachment/upload
+  url: {{correspondence_base_url}}/correspondence/api/v1/attachment/{{attachment_id}}/upload
   body: file
   auth: bearer
 }
@@ -16,19 +16,6 @@ headers {
 
 auth:bearer {
   token: {{serviceowner_altinn_token}}
-}
-
-body:json {
-  {
-    "resourceId": "{{resource_id}}",
-    "sendersReference": "attachment-1",
-    "fileName": "test-document.pdf",
-    "dataType": "application/pdf",
-    "intendedPresentation": "HumanReadable",
-    "name": "Test Document",
-    "restrictionName": "None",
-    "isEncrypted": false
-  }
 }
 
 body:file {

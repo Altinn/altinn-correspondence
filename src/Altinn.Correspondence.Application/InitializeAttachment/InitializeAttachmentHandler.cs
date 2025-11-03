@@ -70,6 +70,13 @@ public class InitializeAttachmentHandler(
             logger.LogWarning("Invalid attachment name for resource {ResourceId}: {Error}", sanitizedResourceId, attachmentNameError);
             return attachmentNameError;
         }
+
+        var attachmentExpirationError = attachmentHelper.ValidateAttachmentExpiration(attachment);
+        if (attachmentExpirationError is not null)
+        {
+            logger.LogWarning("Expiration time validation failed for attachment: {Error}", attachmentExpirationError);
+            return attachmentExpirationError;
+        }
         
         // Set the Sender, ServiceOwnerId, and ServiceOwnerMigrationStatus from the service owner organization number
         var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);

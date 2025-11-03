@@ -169,6 +169,16 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             return null;
         }
+
+        public Error? ValidateAttachmentExpiration(AttachmentEntity attachment)
+        {
+            if (attachment.ExpirationTime != null && attachment.ExpirationTime < DateTimeOffset.UtcNow.AddDays(14))
+            {
+                return AttachmentErrors.AttachmentExpirationPriorTwoWeeksFromNow;
+            }
+            return null;
+        }
+
         /// <summary>
         /// Simulates a malware scan result for local development and tests by calling the MalwareScanResultHandler with fake ScanResultData.
         /// </summary>

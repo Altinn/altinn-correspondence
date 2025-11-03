@@ -74,6 +74,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1045: Transmission correspondences only support one recipient</li>
         /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
+        /// <li>1048: DialogId must be a valid non-empty GUID</li>
+        /// <li>1049: Could not find dialog in Dialogporten with the given DialogId</li>
+        /// <li>1050: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -174,6 +177,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1045: Transmission correspondences only support one recipient</li>
         /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
+        /// <li>1048: DialogId must be a valid non-empty GUID</li>
+        /// <li>1049: Could not find dialog in Dialogporten with the given DialogId</li>
+        /// <li>1050: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>

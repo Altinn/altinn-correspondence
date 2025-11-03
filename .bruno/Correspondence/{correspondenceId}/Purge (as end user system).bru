@@ -4,18 +4,12 @@ meta {
   seq: 6
 }
 
-post {
-  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}/actions/purge
-  body: json
+delete {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}/purge
+  body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{recipient_altinn_token}}
-}
-
-body:json {
-  {
-    "recipient": "urn:altinn:organization:identifier-no:{{recipient_orgnumber}}"
-  }
 }

@@ -300,6 +300,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
             var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);
 
+            var baseTimestamp = DateTimeOffset.UtcNow;
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
@@ -311,8 +312,9 @@ namespace Altinn.Correspondence.Application.Helpers
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
                 {
-                    Attachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
+                    Attachments = attachmentsToBeUploaded.Select((a, index) => new CorrespondenceAttachmentEntity
                     {
+                        Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)),
                         Attachment = a,
                         Created = DateTimeOffset.UtcNow,
                     }).ToList(),
@@ -478,6 +480,23 @@ namespace Altinn.Correspondence.Application.Helpers
                 if (!replyOption.LinkURL.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 {
                     return CorrespondenceErrors.InvalidReplyOptions;
+                }
+            }
+            return null;
+        }
+
+        public Error? ValidateAttachmentsExpiration(List<AttachmentEntity> attachments, DateTimeOffset requestedPublishTime)
+        {
+            if (attachments != null && attachments.Count > 0)
+            {
+                var publishTime = requestedPublishTime > DateTimeOffset.UtcNow ? requestedPublishTime : DateTimeOffset.UtcNow;
+                var minimumExpiration = publishTime.AddDays(14);
+                foreach (var attachment in attachments)
+                {
+                    if (attachment.ExpirationTime < minimumExpiration)
+                    {
+                        return CorrespondenceErrors.AttachmentExpirationTooSoonAfterRequestedPublishTime;
+                    }
                 }
             }
             return null;
