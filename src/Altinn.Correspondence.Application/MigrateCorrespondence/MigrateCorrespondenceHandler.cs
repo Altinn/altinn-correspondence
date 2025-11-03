@@ -5,8 +5,8 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
-using Altinn.Correspondence.Persistence;
 using Hangfire;
+using Hangfire.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -20,6 +20,7 @@ public class MigrateCorrespondenceHandler(
     IDialogportenService dialogportenService,
     HangfireScheduleHelper hangfireScheduleHelper,
     IBackgroundJobClient backgroundJobClient,
+    IMonitoringApi monitoringApi,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -134,7 +135,7 @@ public class MigrateCorrespondenceHandler(
             }
             var currentBatch = 999;
 
-            var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
+            var enqueuedJobs = monitoringApi.EnqueuedCount(HangfireQueues.Migration);
             if (enqueuedJobs > currentBatch * 20)
             {
                 var migrateRequest = new MakeCorrespondenceAvailableRequest()

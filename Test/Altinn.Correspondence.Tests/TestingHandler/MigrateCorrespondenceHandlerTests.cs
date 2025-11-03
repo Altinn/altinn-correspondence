@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Services;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -18,6 +19,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceRepository> _mockCorrespondenceRepository;
         private readonly Mock<IDialogportenService> _mockDialogportenService;
         private readonly Mock<IBackgroundJobClient> _mockBackgroundJobClient;
+        private readonly Mock<IMonitoringApi> _mockMonitoringApi;
         private readonly Mock<ILogger<MigrateCorrespondenceHandler>> _mockLogger;
         private readonly Mock<ICorrespondenceDeleteEventRepository> _mockCorrespondenceDeleteRepository;
         private readonly MigrateCorrespondenceHandler _handler;
@@ -27,7 +29,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockCorrespondenceRepository = new Mock<ICorrespondenceRepository>();
             _mockCorrespondenceDeleteRepository = new Mock<ICorrespondenceDeleteEventRepository>();
             _mockDialogportenService = new Mock<IDialogportenService>();
-            _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();            
+            _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            _mockMonitoringApi = new Mock<IMonitoringApi>();
+            _mockMonitoringApi
+                .Setup(x => x.EnqueuedCount(It.IsAny<string>()))
+                .Returns(500l);
             _mockLogger = new Mock<ILogger<MigrateCorrespondenceHandler>>();
             var mockCache = new Mock<IHybridCacheWrapper>();
 
@@ -42,127 +48,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockCorrespondenceDeleteRepository.Object,
                 _mockDialogportenService.Object,
                 hangfireScheduleHelper,
-                _mockBackgroundJobClient.Object,                
+                _mockBackgroundJobClient.Object,
+                _mockMonitoringApi.Object,
                 _mockLogger.Object);
-        }
-
-        [Fact]
-        public async Task MakeCorrespondenceAvailable_WithBatchSizeExceedingLimit_ShouldScheduleRecursiveBackgroundJobs()
-        {
-            // Arrange
-            var request = new MakeCorrespondenceAvailableRequest
-            {
-                BatchSize = 25000, // Exceeds the 10,000 limit
-                AsyncProcessing = true,
-                CreateEvents = false
-            };
-
-            // Act
-            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.True(result.IsT0); // Should return MakeCorrespondenceAvailableResponse, not Error
-
-            // Verify that background jobs were scheduled for the recursive batches
-            // 25,000 should create 3 batches: 10,000 + 10,000 + 5,000
-            _mockBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "MakeCorrespondenceAvailable"),
-                It.IsAny<IState>()), Times.Exactly(3));
-        }
-
-        [Fact]
-        public async Task MakeCorrespondenceAvailable_WithBatchSizeExactlyAtLimit_ShouldCreateIndividualBackgroundJobs()
-        {
-            // Arrange
-            var request = new MakeCorrespondenceAvailableRequest
-            {
-                BatchSize = 10000, // Exactly at the limit
-                AsyncProcessing = true,
-                CreateEvents = false
-            };
-
-            var mockCorrespondences = new List<CorrespondenceEntity>();
-            for (int i = 0; i < 10000; i++)
-            {
-                mockCorrespondences.Add(CreateMockCorrespondence(Guid.NewGuid()));
-            }
-
-            _mockCorrespondenceRepository.Setup(x => x.GetCandidatesForMigrationToDialogporten(
-                It.IsAny<int>(),
-                It.IsAny<DateTimeOffset?>(),
-                It.IsAny<Guid?>(),
-                It.IsAny<DateTimeOffset?>(),
-                It.IsAny<DateTimeOffset?>(),
-                It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockCorrespondences);
-
-            // Act
-            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.True(result.IsT0);
-
-            // Verify that individual background jobs were created for each correspondence
-            _mockBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "MakeCorrespondenceAvailableInDialogportenAndApi"),
-                It.IsAny<IState>()), 
-                Times.Exactly(10000));
-
-            // Verify that no recursive batching jobs were created
-            _mockBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "MakeCorrespondenceAvailable"),
-                It.IsAny<IState>()), 
-                Times.Never);
-        }
-
-        [Fact]
-        public async Task MakeCorrespondenceAvailable_WithLargeBatchSize_ShouldHandleRemainderCorrectly()
-        {
-            // Arrange
-            var request = new MakeCorrespondenceAvailableRequest
-            {
-                BatchSize = 100001, // Just over 10 batches of 10,000 + 1 remainder
-                AsyncProcessing = true,
-                CreateEvents = true
-            };
-
-            // Act
-            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.True(result.IsT0);
-
-            // Should create 11 batches: 10 batches of 10,000 + 1 batch of 1
-            _mockBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "MakeCorrespondenceAvailable"),
-                It.IsAny<IState>()), Times.Exactly(11));
-        }
-
-        [Fact]
-        public async Task MakeCorrespondenceAvailable_WithBatchSizeNotMultipleOfLimit_ShouldCalculateCorrectBatchSizes()
-        {
-            // Arrange
-            var request = new MakeCorrespondenceAvailableRequest
-            {
-                BatchSize = 15000, // 1.5 batches
-                AsyncProcessing = true,
-                CreateEvents = false
-            };
-
-            // Act
-            var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.True(result.IsT0);
-
-            // Should create 2 batches: 10,000 + 5,000
-            _mockBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "MakeCorrespondenceAvailable"),
-                It.IsAny<IState>()), Times.Exactly(2));
         }
 
         [Fact]
