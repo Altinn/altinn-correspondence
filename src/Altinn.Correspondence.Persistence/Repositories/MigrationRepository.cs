@@ -12,7 +12,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             CorrespondenceMigrationStatusEntity? correspondenceMigrationStatus = new CorrespondenceMigrationStatusEntity();
 
-            var correspondence = await _context.Correspondences.FirstOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
+            var correspondence = await _context.Correspondences
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
 
             correspondenceMigrationStatus.AttachmentStatus.AddRange(from a in correspondence?.Content?.Attachments
                                                                     where a.Attachment?.Statuses.Count > 0
