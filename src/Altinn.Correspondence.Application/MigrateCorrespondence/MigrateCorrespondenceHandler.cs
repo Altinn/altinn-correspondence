@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
+using Hangfire.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -116,12 +117,12 @@ public class MigrateCorrespondenceHandler(
         {
             if (!request.AsyncProcessing)
             {
-                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
                 foreach (var correspondence in correspondences)
                 {
                     try
                     {
-                        dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken);
+                        dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken, null, request.CreateEvents);
                         response.Statuses.Add(new(correspondence.Id, null, dialogId, true));
                     }
                     catch (Exception ex)
@@ -131,37 +132,47 @@ public class MigrateCorrespondenceHandler(
                 }
                 return response;
             }
-            var batchLimit = 10000;
-            if (request.BatchSize > batchLimit)
+            var currentBatch = 999;
+
+            var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
+            if (enqueuedJobs > currentBatch * 20)
             {
-                var remainingCount = request.BatchSize;
-                var alreadyAdded = 0;
-                while(remainingCount > 0)
+                var migrateRequest = new MakeCorrespondenceAvailableRequest()
                 {
-                    int currentBatch = batchLimit;
-                    remainingCount -= batchLimit;
-                    if (remainingCount < 0)
-                    {
-                        currentBatch = (int)(remainingCount + batchLimit);
-                    }
-                    var migrateRequest = new MakeCorrespondenceAvailableRequest()
-                    {
-                        AsyncProcessing = true,
-                        BatchOffset = alreadyAdded,
-                        BatchSize = currentBatch,
-                        CreateEvents = request.CreateEvents
-                    };
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
-                    alreadyAdded += currentBatch;
-                }
+                    AsyncProcessing = true,
+                    BatchSize = currentBatch,
+                    CreateEvents = request.CreateEvents,
+                    CursorCreated = request.CursorCreated,
+                    CursorId = request.CursorId,
+                    CreatedFrom = request.CreatedFrom,
+                    CreatedTo = request.CreatedTo
+                };
+                logger.LogInformation("Delaying scheduling of migration jobs as there are currently {EnqueuedJobs} jobs in the queue", enqueuedJobs);
+                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
             } 
             else
             {
-                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.BatchOffset ?? 0, cancellationToken);
-                foreach(var correspondence in correspondences)
+                logger.LogInformation("Querying db");
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
+                logger.LogInformation("Found {count} correspondences", correspondences.Count);
+                var last = correspondences.Last();
+                var migrateRequest = new MakeCorrespondenceAvailableRequest()
                 {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id));
+                    AsyncProcessing = true,
+                    BatchSize = request.BatchSize,
+                    CreateEvents = request.CreateEvents,
+                    CursorCreated = last.Created,
+                    CursorId = last.Id,
+                    CreatedFrom = request.CreatedFrom,
+                    CreatedTo = request.CreatedTo
+                };
+                logger.LogInformation("Enqueuing next batch for {id}", last.Id);
+                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+                foreach (var correspondence in correspondences)
+                {
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
                 }
+                logger.LogInformation("Finished queuing {count} correspondences", correspondences.Count);
             }
         }
 
@@ -181,7 +192,13 @@ public class MigrateCorrespondenceHandler(
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        if(correspondence.HasBeenPurged())
+        if (correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
+        {
+            logger.LogError($"Correspondence with id {correspondenceId} is already available in Dialogporten and API");
+            return correspondence.ExternalReferences.First(er => er.ReferenceType == ReferenceType.DialogportenDialogId).ReferenceValue;
+        }
+
+        if (correspondence.HasBeenPurged())
         {
             throw new InvalidOperationException($"Correspondence with id {correspondenceId} is purged and cannot be made available in Dialogporten or API");
         }
@@ -194,9 +211,18 @@ public class MigrateCorrespondenceHandler(
         // If the correspondence was soft deleted in Altinn 2, we need to pass this forward in order to set the system label correctly on the Dialog
         bool isSoftDeleted = await IsCorrespondenceSoftDeleted(correspondence, cancellationToken);
         var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId: correspondenceId, correspondence: correspondence, enableEvents: createEvents, isSoftDeleted: isSoftDeleted);
-
+        if (string.IsNullOrEmpty(dialogId))
+        {
+            logger.LogError($"Dialogporten service failed to create a dialog for correspondence with id {correspondenceId}");
+            return string.Empty;
+        }
         var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
         {
+            if (correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
+            {
+                logger.LogError($"Correspondence with id {correspondenceId} is already available in Dialogporten and API");
+                return correspondence.ExternalReferences.First(er => er.ReferenceType == ReferenceType.DialogportenDialogId).ReferenceValue;
+            }
             await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
             await SetIsMigrating(correspondenceId, false, cancellationToken);
             return dialogId;
