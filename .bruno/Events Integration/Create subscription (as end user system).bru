@@ -1,0 +1,32 @@
+meta {
+  name: Create subscription (as end user system)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{platform_base_url}}/events/api/v1/subscriptions/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{recipient_altinn_token}}
+}
+
+body:json {
+  {
+      "endpoint": "your-http-endpoint-that-returns-200",
+      "resourceFilter": "urn:altinn:resource:{{resource_id}}"
+  }
+}
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("event_subscription_id", responseData.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

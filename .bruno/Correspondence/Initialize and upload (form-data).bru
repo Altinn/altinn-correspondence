@@ -1,0 +1,61 @@
+meta {
+  name: Initialize and upload (form-data)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+body:multipart-form {
+  correspondence.resourceid: {{resource_id}}
+  correspondence.sendersreference: 1
+  correspondence.content.language: nb
+  correspondence.content.messagetitle: Testmelding tittel
+  correspondence.content.messagesummary: Ett sammendrag for meldingen
+  correspondence.content.messagebody: Som kan være plain text eller **markdown**
+  correspondence.requestedpublishtime: {{requestedPublishTime}}
+  correspondence.allowsystemdeleteafter: {{allowSystemDeleteAfter}}
+  correspondence.duedatetime: {{dueDateTime}}
+  correspondence.propertylist.casenumber: 123
+  correspondence.propertylist.etc: can-use-for-anything
+  correspondence.replyoptions[0].linkurl: https://digdir-samarbeid.slack.com/
+  correspondence.replyoptions[0].linktext: Slack
+  correspondence.notification.notificationtemplate: CustomMessage
+  correspondence.notification.notificationchannel: EmailAndSms
+  correspondence.notification.sendreminder: true
+  correspondence.notification.emailsubject: Test av Correspondence: E-post varsel
+  correspondence.notification.reminderemailsubject: Test av Correspondence: E-post påminnelse
+  correspondence.notification.smsbody: Dette er SMS-en som sendes ut ved varsling
+  correspondence.notification.remindersmsbody: Dette er SMS-en som sendes ut ved påminnelse
+  correspondence.notification.emailbody: Dette er mailteksten som sendes ut
+  correspondence.notification.reminderemailbody: Dette er eposten som sendes ut ved påminnelse
+  correspondence.ignorereservation: false
+  correspondence.isconfirmationneeded: true
+  recipients[0]: urn:altinn:organization:identifier-no:{{recipient_orgnumber}}
+  recipients[1]: urn:altinn:person:identifier-no:{{recipient_ssn}}
+  Attachments: @file(test-file.txt)
+  correspondence.content.attachments[0].sendersReference: test-file-1
+  correspondence.content.attachments[0].filename: test-file.txt
+  : 
+}
+
+script:pre-request {
+  const now = new Date();
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  bru.setVar("requestedPublishTime", new Date(now.getTime()).toISOString());
+  bru.setVar("dueDateTime", new Date(now.getTime() + (14 * millisecondsPerDay)).toISOString());
+  bru.setVar("allowSystemDeleteAfter", new Date(now.getTime() + (365 * millisecondsPerDay)).toISOString());
+}
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("correspondenceId", responseData.correspondences[0].correspondenceId);
+}
