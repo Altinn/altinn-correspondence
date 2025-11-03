@@ -255,7 +255,17 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 cancellationToken);
         }
 
-        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, activityTimestamp);
+        var createDialogActivityRequest = null as CreateDialogActivityRequest;
+        if (correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId))
+        {
+            createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogTransmissionActivityRequest(correspondence, actorType, null, ActivityType.TransmissionOpened, activityTimestamp);
+        }
+        else
+        {
+            createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, activityTimestamp);
+        }
+
+        // var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, activityTimestamp);
         createDialogActivityRequest.Id = existingOpenIdempotencyKey.Id.ToString(); // Use the created activity ID
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
