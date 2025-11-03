@@ -89,7 +89,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             }
 
             _mockCorrespondenceRepository.Setup(x => x.GetCandidatesForMigrationToDialogporten(
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mockCorrespondences);
 
             // Act
@@ -181,7 +186,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             };
 
             _mockCorrespondenceRepository.Setup(x => x.GetCandidatesForMigrationToDialogporten(
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mockCorrespondences);
 
             // Setup GetCorrespondenceById for each correspondence since MakeCorrespondenceAvailableInDialogportenAndApi calls it
@@ -208,7 +218,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Verify that repository was called to get correspondences
             _mockCorrespondenceRepository.Verify(x => x.GetCandidatesForMigrationToDialogporten(
-                request.BatchSize.Value, request.BatchOffset ?? 0, It.IsAny<CancellationToken>()), Times.Once);
+                request.BatchSize.Value,
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<CancellationToken>()), Times.Once);
 
             // Verify that no background jobs were scheduled
             _mockBackgroundJobClient.Verify(x => x.Create(
@@ -565,7 +580,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var mockCorrespondences = correspondenceIds.Select(id => CreateMockCorrespondence(id)).ToList();
 
             _mockCorrespondenceRepository.Setup(x => x.GetCandidatesForMigrationToDialogporten(
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mockCorrespondences);
 
             // Act
