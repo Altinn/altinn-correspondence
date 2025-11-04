@@ -133,7 +133,7 @@ public class CreateNotificationOrderHandler(
         {
             var notificationOrder = new NotificationOrderRequestV2
             {
-                SendersReference = correspondence.SendersReference,
+                SendersReference = $"corr-{correspondence.SendersReference}",
                 RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
                     ? DateTime.UtcNow.AddMinutes(5)
                     : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
@@ -147,7 +147,7 @@ public class CreateNotificationOrderHandler(
                 [
                     new ReminderV2
                     {
-                        SendersReference = correspondence.SendersReference,
+                        SendersReference = $"corr-{correspondence.SendersReference}",
                         DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
                         ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString())?.ToString(),
                         Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: true)
