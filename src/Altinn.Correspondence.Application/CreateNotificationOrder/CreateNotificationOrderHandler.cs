@@ -11,6 +11,7 @@ using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.CreateNotificationOrder;
 
@@ -19,6 +20,7 @@ public class CreateNotificationOrderHandler(
     IAltinnRegisterService altinnRegisterService,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
     ILogger<CreateNotificationOrderHandler> logger)
@@ -127,17 +129,18 @@ public class CreateNotificationOrderHandler(
         }
 
         var notificationOrders = new List<NotificationOrderRequestV2>();
-        
+
         // Create a notification order for each recipient
         foreach (var recipient in recipientsToProcess)
         {
+            var deterministicId = correspondence.Id.CreateVersion5(BuildRecipientKey(recipient));
             var notificationOrder = new NotificationOrderRequestV2
             {
                 SendersReference = correspondence.SendersReference,
                 RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
                     ? DateTime.UtcNow.AddMinutes(5)
                     : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
-                IdempotencyId = Guid.CreateVersion7(),
+                IdempotencyId = deterministicId,
                 Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: false)
             };
 
@@ -160,6 +163,15 @@ public class CreateNotificationOrderHandler(
         
         logger.LogInformation("Created {Count} notification request(s) V2 for correspondence {CorrespondenceId}", notificationOrders.Count, correspondence.Id);
         return notificationOrders;
+    }
+
+    private static string BuildRecipientKey(Recipient recipient)
+    {
+        if (!string.IsNullOrEmpty(recipient.OrganizationNumber)) return $"org:{recipient.OrganizationNumber}";
+        if (!string.IsNullOrEmpty(recipient.NationalIdentityNumber)) return $"nin:{recipient.NationalIdentityNumber}";
+        if (!string.IsNullOrEmpty(recipient.EmailAddress)) return $"email:{recipient.EmailAddress.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(recipient.MobileNumber)) return $"sms:{recipient.MobileNumber}";
+        return "unknown";
     }
 
     private static RecipientV2 CreateRecipientOrderV2FromRecipient(Recipient recipient, NotificationRequest notificationRequest, NotificationContent content, CorrespondenceEntity correspondence, bool isReminder)
@@ -270,6 +282,26 @@ public class CreateNotificationOrderHandler(
         logger.LogInformation("Persisting {Count} notification order requests for correspondence {CorrespondenceId}", notificationOrderRequests.Count, correspondence.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
         {
+            try
+            {
+                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                {
+                    Id = notificationOrderRequest.IdempotencyId,
+                    CorrespondenceId = correspondence.Id,
+                    IdempotencyType = IdempotencyType.NotificationOrder
+                }, cancellationToken);
+            }
+            catch (DbUpdateException e)
+            {
+                var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                if (sqlState == "23505")
+                {
+                    logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on correspondence {CorrespondenceId}. Skipping.", notificationOrderRequest.IdempotencyId, correspondence.Id);
+                    continue;
+                }
+                throw;
+            }
+
             var notification = new CorrespondenceNotificationEntity()
             {
                 Created = DateTimeOffset.UtcNow,

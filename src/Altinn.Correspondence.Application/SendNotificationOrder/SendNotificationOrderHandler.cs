@@ -7,6 +7,8 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Application.CheckNotificationDelivery;
 using Hangfire;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Application.SendNotificationOrder;
 
@@ -14,6 +16,7 @@ public class SendNotificationOrderHandler(
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     ICorrespondenceRepository correspondenceRepository,
     IAltinnNotificationService altinnNotificationService,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     IBackgroundJobClient backgroundJobClient,
     ILogger<SendNotificationOrderHandler> logger)
 {
@@ -100,8 +103,11 @@ public class SendNotificationOrderHandler(
                         notificationResponse.NotificationOrderId,
                         reminderResponse,
                         cancellationToken);
-                    logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminderNotification.Id);
-                    ScheduleNotificationDeliveryCheck(reminderNotification, cancellationToken);
+                    if (reminderNotification != null)
+                    {
+                        logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminderNotification.Id);
+                        ScheduleNotificationDeliveryCheck(reminderNotification, cancellationToken);
+                    }
                 }
             }
         }
@@ -133,13 +139,33 @@ public class SendNotificationOrderHandler(
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, resourceId, correspondenceId, "correspondence", sender, CancellationToken.None));
     }
 
-    private async Task<CorrespondenceNotificationEntity> StoreReminderNotificationInDatabase(
+    private async Task<CorrespondenceNotificationEntity?> StoreReminderNotificationInDatabase(
         CorrespondenceNotificationEntity mainNotificationOrder,
         NotificationOrderRequestV2 orderRequest,
         Guid notificationOrderId,
         ReminderResponse reminderResponse,
         CancellationToken cancellationToken)
     {
+        try
+        {
+            await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+            {
+                Id = reminderResponse.ShipmentId,
+                CorrespondenceId = mainNotificationOrder.CorrespondenceId,
+                IdempotencyType = IdempotencyType.NotificationOrder
+            }, cancellationToken);
+        }
+        catch (DbUpdateException e)
+        {
+            var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+            if (sqlState == "23505")
+            {
+                logger.LogWarning("Reminder notification already persisted for shipment {ShipmentId} on correspondence {CorrespondenceId}. Skipping.", reminderResponse.ShipmentId, mainNotificationOrder.CorrespondenceId);
+                return null;
+            }
+            throw;
+        }
+
         var reminderNotification = new CorrespondenceNotificationEntity
         {
             Created = DateTimeOffset.UtcNow,
