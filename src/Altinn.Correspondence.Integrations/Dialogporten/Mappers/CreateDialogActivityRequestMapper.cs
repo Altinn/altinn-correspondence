@@ -10,11 +10,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal class CreateDialogActivityRequestMapper
     {
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, bool isTransmission, params string[] tokens)
         {
-            return CreateDialogActivityRequest(correspondence, actorType, textType, type, DateTime.UtcNow, tokens);
+            return CreateDialogActivityRequest(correspondence, actorType, textType, type, DateTime.UtcNow, isTransmission, tokens);
         }
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, bool isTransmission, params string[] tokens)
         {
             var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             var urnActorId = actorType switch
@@ -24,80 +24,41 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 DialogportenActorType.Recipient => correspondence.GetRecipientUrn(),
                 _ => throw new NotImplementedException()
             };
-
-            var createDialogActivityRequest = new CreateDialogActivityRequest()
+            CreateDialogActivityRequest createDialogActivityRequest;
+            if (isTransmission)
             {
-                Id = dialogActivityId,
-                CreatedAt = dateOfDialog,
-                PerformedBy = new ActivityPerformedBy()
+                var transmissionId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId)?.ReferenceValue;
+                if (transmissionId == null)
                 {
-                    ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
-                    ActorId = urnActorId
-                },
-                Type = type
-            };
-
-            if (type == ActivityType.Information)
-            {
-                if (textType is null)
-                {
-                    throw new ArgumentException("TextType must be set when creating an information activity");
+                    throw new ArgumentException("Correspondence does not have a Dialogporten Transmission Id reference");
                 }
-                createDialogActivityRequest.Description = new List<ActivityDescription>()
+                createDialogActivityRequest = new CreateDialogActivityRequest()
                 {
-                    new ActivityDescription()
+                    Id = dialogActivityId,
+                    CreatedAt = dateOfDialog,
+                    PerformedBy = new ActivityPerformedBy()
                     {
-                        LanguageCode = "nb",
-                        Value = DialogportenText.GetDialogportenText(textType.Value, DialogportenLanguageCode.NB, tokens)
+                        ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
+                        ActorId = urnActorId
                     },
-                    new ActivityDescription()
-                    {
-                        LanguageCode = "nn",
-                        Value = DialogportenText.GetDialogportenText(textType.Value, DialogportenLanguageCode.NN, tokens)
-                    },
-                    new ActivityDescription()
-                    {
-                        LanguageCode = "en",
-                        Value = DialogportenText.GetDialogportenText(textType.Value, DialogportenLanguageCode.EN, tokens)
-                    }
+                    Type = type,
+                    TransmissionId = transmissionId
                 };
             }
             else
             {
-                createDialogActivityRequest.Description = new();
-            }
-
-            return createDialogActivityRequest;
-        }
-
-        internal static CreateDialogActivityRequest CreateDialogTransmissionActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, params string[] tokens)
-        {
-            var transmissionId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId)?.ReferenceValue;
-            if (transmissionId == null)
-            {
-                throw new ArgumentException("Correspondence does not have a Dialogporten Transmission Id reference");
-            }
-            var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
-            var urnActorId = actorType switch
-            {
-                DialogportenActorType.ServiceOwner => null,
-                DialogportenActorType.Sender => correspondence.GetSenderUrn(),
-                DialogportenActorType.Recipient => correspondence.GetRecipientUrn(),
-                _ => throw new NotImplementedException()
-            };
-
-            var createDialogActivityRequest = new CreateDialogActivityRequest()
-            {
-                Id = dialogActivityId,
-                CreatedAt = dateOfDialog,
-                PerformedBy = new ActivityPerformedBy()
+                createDialogActivityRequest = new CreateDialogActivityRequest()
                 {
-                    ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
-                    ActorId = urnActorId
-                },
-                Type = type,
-                TransmissionId = transmissionId
-            };
+                    Id = dialogActivityId,
+                    CreatedAt = dateOfDialog,
+                    PerformedBy = new ActivityPerformedBy()
+                    {
+                        ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
+                        ActorId = urnActorId
+                    },
+                    Type = type
+                };
+            }
 
             if (type == ActivityType.Information)
             {
