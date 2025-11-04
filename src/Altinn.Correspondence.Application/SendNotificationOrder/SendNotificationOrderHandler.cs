@@ -9,6 +9,7 @@ using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Application.Helpers;
 
 namespace Altinn.Correspondence.Application.SendNotificationOrder;
 
@@ -79,6 +80,12 @@ public class SendNotificationOrderHandler(
         CancellationToken cancellationToken)
     {
         var successful = true;
+        if (notificationOrder.NotificationOrderId != null || notificationOrder.ShipmentId != null)
+        {
+            logger.LogWarning("Notification order already created for correspondence {CorrespondenceId} (OrderId: {OrderId}, ShipmentId: {ShipmentId}). Skipping send and update.", correspondence.Id, notificationOrder.NotificationOrderId, notificationOrder.ShipmentId);
+            return true;
+        }
+
         logger.LogInformation("Sending notification order {IdempotencyId} for correspondence {CorrespondenceId}", orderRequest.IdempotencyId, correspondence.Id);
         var notificationResponse = await altinnNotificationService.CreateNotificationV2(orderRequest, cancellationToken);
         
@@ -89,27 +96,31 @@ public class SendNotificationOrderHandler(
         }
         else
         {
-            await UpdateDatabaseNotificationOrder(notificationOrder, notificationResponse, cancellationToken);
-            SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
-            logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notificationOrder.Id);
-            ScheduleNotificationDeliveryCheck(notificationOrder, cancellationToken);
-            if (orderRequest.Reminders != null && orderRequest.Reminders.Any())
+            await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
             {
-                foreach (var reminderResponse in notificationResponse.Notification.Reminders)
+                await UpdateDatabaseNotificationOrder(notificationOrder, notificationResponse, ct);
+                SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
+                logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notificationOrder.Id);
+                ScheduleNotificationDeliveryCheck(notificationOrder);
+                if (orderRequest.Reminders != null && orderRequest.Reminders.Count != 0)
                 {
-                    var reminderNotification = await StoreReminderNotificationInDatabase(
-                        notificationOrder,
-                        orderRequest,
-                        notificationResponse.NotificationOrderId,
-                        reminderResponse,
-                        cancellationToken);
-                    if (reminderNotification != null)
+                    foreach (var reminderResponse in notificationResponse.Notification.Reminders)
                     {
-                        logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminderNotification.Id);
-                        ScheduleNotificationDeliveryCheck(reminderNotification, cancellationToken);
+                        var reminderNotification = await PersistReminderNotification(
+                            notificationOrder,
+                            orderRequest,
+                            notificationResponse.NotificationOrderId,
+                            reminderResponse,
+                            ct);
+                        if (reminderNotification != null)
+                        {
+                            logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminderNotification.Id);
+                            ScheduleNotificationDeliveryCheck(reminderNotification);
+                        }
                     }
                 }
-            }
+                return Task.CompletedTask;
+            }, logger, cancellationToken);
         }
 
         return successful;
@@ -122,7 +133,7 @@ public class SendNotificationOrderHandler(
         await correspondenceNotificationRepository.UpdateOrderResponseData(notificationOrder.Id, notificationResponse.NotificationOrderId, notificationResponse.Notification.ShipmentId, cancellationToken);
     }
 
-    private void ScheduleNotificationDeliveryCheck(CorrespondenceNotificationEntity notificationOrder, CancellationToken cancellationToken)
+    private void ScheduleNotificationDeliveryCheck(CorrespondenceNotificationEntity notificationOrder)
     {
         backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
             handler => handler.Process(notificationOrder.Id, CancellationToken.None),
@@ -139,7 +150,7 @@ public class SendNotificationOrderHandler(
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, resourceId, correspondenceId, "correspondence", sender, CancellationToken.None));
     }
 
-    private async Task<CorrespondenceNotificationEntity?> StoreReminderNotificationInDatabase(
+    private async Task<CorrespondenceNotificationEntity?> PersistReminderNotification(
         CorrespondenceNotificationEntity mainNotificationOrder,
         NotificationOrderRequestV2 orderRequest,
         Guid notificationOrderId,
