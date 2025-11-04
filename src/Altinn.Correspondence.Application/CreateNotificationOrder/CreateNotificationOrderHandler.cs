@@ -133,14 +133,13 @@ public class CreateNotificationOrderHandler(
         // Create a notification order for each recipient
         foreach (var recipient in recipientsToProcess)
         {
-            var deterministicId = correspondence.Id.CreateVersion5(BuildRecipientKey(recipient));
             var notificationOrder = new NotificationOrderRequestV2
             {
                 SendersReference = correspondence.SendersReference,
                 RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
                     ? DateTime.UtcNow.AddMinutes(5)
                     : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
-                IdempotencyId = deterministicId,
+                IdempotencyId = correspondence.Id.CreateVersion5(BuildRecipientKey(recipient)),
                 Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: false)
             };
 
