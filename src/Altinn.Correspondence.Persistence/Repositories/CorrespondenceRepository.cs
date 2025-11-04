@@ -64,6 +64,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken)
         {
             var correspondences = _context.Correspondences
+                .AsNoTracking()
                 .Where(c => c.ResourceId == resourceId)             // Correct id
                 .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
                 .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter
@@ -188,8 +189,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondenceIds = await _context.Correspondences
-            .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId))
-            .Select(c => c.Id).ToListAsync(cancellationToken);
+                .AsNoTracking()
+                .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId))
+                .Select(c => c.Id)
+                .ToListAsync(cancellationToken);
             return correspondenceIds;
         }
         public async Task UpdatePublished(Guid correspondenceId, DateTimeOffset published, CancellationToken cancellationToken)
@@ -234,6 +237,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
             return await _context.CorrespondenceContents
+                .AsNoTracking()
                 .Where(content => content.CorrespondenceId == correspondenceId)
                 .Select(content => content.Attachments
                     .All(correspondenceAttachment => correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
@@ -396,7 +400,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken)
         {
-            var query = _context.Correspondences.AsQueryable();
+            var query = _context.Correspondences
+                .AsNoTracking()
+                .AsQueryable();
 
             // Filter by Altinn version if needed
             if (!includeAltinn2)
