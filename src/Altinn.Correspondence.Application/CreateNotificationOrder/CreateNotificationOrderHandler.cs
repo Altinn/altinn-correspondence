@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Application.Helpers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -281,37 +282,41 @@ public class CreateNotificationOrderHandler(
         logger.LogInformation("Persisting {Count} notification order requests for correspondence {CorrespondenceId}", notificationOrderRequests.Count, correspondence.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
         {
-            try
+            await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
             {
-                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                try
                 {
-                    Id = notificationOrderRequest.IdempotencyId,
-                    CorrespondenceId = correspondence.Id,
-                    IdempotencyType = IdempotencyType.NotificationOrder
-                }, cancellationToken);
-            }
-            catch (DbUpdateException e)
-            {
-                var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-                if (sqlState == "23505")
-                {
-                    logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on correspondence {CorrespondenceId}. Skipping.", notificationOrderRequest.IdempotencyId, correspondence.Id);
-                    continue;
+                    await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                    {
+                        Id = notificationOrderRequest.IdempotencyId,
+                        CorrespondenceId = correspondence.Id,
+                        IdempotencyType = IdempotencyType.NotificationOrder
+                    }, ct);
                 }
-                throw;
-            }
+                catch (DbUpdateException e)
+                {
+                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                    if (sqlState == "23505")
+                    {
+                        logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on correspondence {CorrespondenceId}. Skipping.", notificationOrderRequest.IdempotencyId, correspondence.Id);
+                        return Task.CompletedTask;
+                    }
+                    throw;
+                }
 
-            var notification = new CorrespondenceNotificationEntity()
-            {
-                Created = DateTimeOffset.UtcNow,
-                NotificationTemplate = notificationRequest.NotificationTemplate,
-                NotificationChannel = notificationRequest.NotificationChannel,
-                CorrespondenceId = correspondence.Id,
-                RequestedSendTime = notificationOrderRequest.RequestedSendTime,
-                IsReminder = false,
-                OrderRequest = JsonSerializer.Serialize(notificationOrderRequest)
-            };
-            await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
+                var notification = new CorrespondenceNotificationEntity()
+                {
+                    Created = DateTimeOffset.UtcNow,
+                    NotificationTemplate = notificationRequest.NotificationTemplate,
+                    NotificationChannel = notificationRequest.NotificationChannel,
+                    CorrespondenceId = correspondence.Id,
+                    RequestedSendTime = notificationOrderRequest.RequestedSendTime,
+                    IsReminder = false,
+                    OrderRequest = JsonSerializer.Serialize(notificationOrderRequest)
+                };
+                await correspondenceNotificationRepository.AddNotification(notification, ct);
+                return Task.CompletedTask;
+            }, logger, cancellationToken);
         }
     }
 
