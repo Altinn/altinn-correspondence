@@ -22,5 +22,5 @@ public interface IDialogportenService
     Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove);
     Task<bool> TryRemoveMarkdownAndHtmlFromSummary(string dialogId, string newSummary, CancellationToken cancellationToken = default);
     Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default);
-    Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default);
+    Task<bool?> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default);
 }

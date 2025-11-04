@@ -149,11 +149,10 @@ public class InitializeCorrespondencesHandler(
                 logger.LogWarning("Provided DialogId {DialogId} is not a valid GUID", dialogId);
                 return CorrespondenceErrors.InvalidCorrespondenceDialogId;
             }
-            bool exists = await dialogportenService.DoesDialogExist(dialogId, cancellationToken);
-            if (!exists)
+            var validationResult = await ValidateTransmissionRequest(request.Correspondence, request, cancellationToken);
+            if (validationResult.IsT1)
             {
-                logger.LogWarning("A dialog with DialogId {DialogId} was not found", dialogId);
-                return CorrespondenceErrors.DialogNotFoundWithDialogId;
+                return validationResult.AsT1;
             }
         }
 
@@ -482,8 +481,17 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.InvalidCorrespondenceDialogId;
         }
-
-        var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, correspondence.Recipient, cancellationToken);
+        var validateResourceOwnerMatch = await dialogportenService.DialogValidForTransmission(dialogId, correspondence.ResourceId, cancellationToken);
+        if (validateResourceOwnerMatch == false)
+        {
+            return CorrespondenceErrors.InvalidServiceOwner;
+        }
+        if (validateResourceOwnerMatch == null)
+        {
+            return CorrespondenceErrors.DialogNotFoundWithDialogId;
+        }
+        var expectedRecipient = request.Recipients.First();
+        var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, expectedRecipient, cancellationToken);
         if (recipientMatches == false)
         {
             return CorrespondenceErrors.RecipientMismatch;

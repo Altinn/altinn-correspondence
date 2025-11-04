@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -14,7 +15,7 @@ using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository, IResourceRegistryService _resourceRegistryService) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -555,7 +556,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
     {
-        
+
         CreateDialogRequest? dialog = null;
         try
         {
@@ -570,24 +571,33 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             logger.LogError(ex, "Error retrieving dialog {dialogId} for recipient validation", dialogId);
             throw;
         }
-        return dialog.Party == expectedRecipient ? true : false;
+        return dialog.Party == expectedRecipient;
     }
 
-    public async Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default)
+    public async Task<bool?> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
     {
+        CreateDialogRequest? dialog = null;
         try
         {
-            var dialog = await GetDialog(dialogId);
+            dialog = await GetDialog(dialogId);
         }
         catch (Exception ex)
         {
             if (ex.Message.Contains("not found"))
             {
-                return false;
+                return null;
             }
             logger.LogError(ex, "Error retrieving dialog {dialogId} for existence check", dialogId);
             throw;
         }
+        var dialogResource = dialog.ServiceResource.WithoutPrefix();
+        
+        var dialogResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(dialogResource);
+        var transmissionResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(transmissionResourceId);
+        if (dialogResourceOwner != transmissionResourceOwner)
+        {
+            return false;
+        }        
         return true;
     }
 

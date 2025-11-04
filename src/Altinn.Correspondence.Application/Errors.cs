@@ -55,6 +55,7 @@ public static class CorrespondenceErrors
     public static Error InvalidCorrespondenceDialogId = new Error(1048, "DialogId must be a valid non-empty GUID", HttpStatusCode.BadRequest);
     public static Error DialogNotFoundWithDialogId = new Error(1049, "Could not find dialog in Dialogporten with the given DialogId", HttpStatusCode.BadRequest);
     public static Error AttachmentExpirationTooSoonAfterRequestedPublishTime = new Error(1050, "The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence", HttpStatusCode.BadRequest);
+    public static Error InvalidServiceOwner = new Error(1051, "The service owner of a transmission can not differ from the service owner of the dialog", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
