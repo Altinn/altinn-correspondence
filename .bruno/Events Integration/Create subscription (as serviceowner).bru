@@ -1,7 +1,7 @@
 meta {
-  name: Create subscription (as end user system)
+  name: Create subscription (as serviceowner)
   type: http
-  seq: 3
+  seq: 2
 }
 
 post {
@@ -11,14 +11,13 @@ post {
 }
 
 auth:bearer {
-  token: {{recipient_altinn_token}}
+  token: {{serviceowner_altinn_token}}
 }
 
 body:json {
   {
       "endpoint": "your-http-endpoint-that-returns-200",
-      "resourceFilter": "urn:altinn:resource:{{resource_id}}",
-      "subjectFilter": "urn:altinn:organization:identifier-no:{{recipient_orgnumber}}"
+      "resourceFilter": "urn:altinn:resource:{{resource_id}}"
   }
 }
 
