@@ -1972,7 +1972,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_CreateTransmission_WithDialogIdNotFoundInDialogporten_ReturnsBadRequest()
         {
-            
+
             var mockDialogPortenService = new Mock<IDialogportenService>();
             mockDialogPortenService.Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((bool?)null); // Dialog not found
@@ -1986,23 +1986,141 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     services.AddScoped(_ => mockDialogPortenService.Object);
                 });
 
-                var client = customFactory.CreateSenderClient();
+            var client = customFactory.CreateSenderClient();
 
-                var transmissionPayload = new CorrespondenceBuilder()
-                    .CreateCorrespondence()
-                    .WithExternalReferencesDialogId("00000000-0000-0000-0000-000000000000") // Valid GUID but not found
-                    .Build();
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("00000000-0000-0000-0000-000000000000") // Valid GUID but not found
+                .Build();
 
-                // Act
-                var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
-                var transmissionContent = await transmissionResponse.Content.ReadAsStringAsync();
+            // Act
+            var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+            var transmissionContent = await transmissionResponse.Content.ReadAsStringAsync();
 
-                // Assert
-                Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
-                Assert.Contains(CorrespondenceErrors.DialogNotFoundWithDialogId.Message, transmissionContent);
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            Assert.Contains(CorrespondenceErrors.DialogNotFoundWithDialogId.Message, transmissionContent);
 
-                // Clean up
-                customFactory.Dispose();
-            }
+            // Clean up
+            customFactory.Dispose();
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_CreateTransmission_WithDifferentResource_SameServiceOwner_Succeeds()
+        {
+            // Arrange
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockDialogporten = new Mock<IDialogportenService>();
+                mockDialogporten
+                    .Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+                mockDialogporten
+                    .Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IDialogportenService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockDialogporten.Object);
+            });
+
+            var client = customFactory.CreateSenderClient();
+
+            
+            var initialCorrespondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Initial Correspondence")
+                .WithResourceId("resource-A")
+                .Build();
+
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(client, _responseSerializerOptions, initialCorrespondence);
+            var published = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = customFactory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var dialogId = correspondence?.ExternalReferences
+                .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            // Act
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Transmission - Different Resource Same Owner")
+                .WithExternalReferencesDialogId(dialogId!)
+                .WithResourceId("resource-B")
+                .Build();
+
+            var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, transmissionResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_CreateTransmission_WithDifferentServiceOwner_ReturnsBadRequest()
+        {
+            // Arrange
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockDialogporten = new Mock<IDialogportenService>();
+                mockDialogporten
+                    .Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(false);
+                mockDialogporten
+                    .Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IDialogportenService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockDialogporten.Object);
+            });
+
+            var client = customFactory.CreateSenderClient();
+
+            
+            var initialCorrespondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Initial correspondence")
+                .WithResourceId("resource-1")
+                .Build();
+
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(client, _responseSerializerOptions, initialCorrespondence);
+            var _ = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = customFactory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var dialogId = correspondence?.ExternalReferences
+                .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            // Act
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Transmission")
+                .WithExternalReferencesDialogId(dialogId!)
+                .WithResourceId("Resource-2 with different owner")
+                .Build();
+
+            var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+            var content = await transmissionResponse.Content.ReadAsStringAsync();
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            Assert.Contains(CorrespondenceErrors.InvalidServiceOwner.Message, content);
+        }
     }
 }
