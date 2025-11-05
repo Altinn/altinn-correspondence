@@ -26,6 +26,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 _ => throw new NotImplementedException()
             };
             CreateDialogActivityRequest createDialogActivityRequest;
+            createDialogActivityRequest = new CreateDialogActivityRequest()
+            {
+                Id = dialogActivityId,
+                CreatedAt = dateOfDialog,
+                PerformedBy = new ActivityPerformedBy()
+                {
+                    ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
+                    ActorId = urnActorId
+                },
+                Type = type
+            };
             if (TransmissionValidator.IsTransmission(correspondence) && type == ActivityType.TransmissionOpened)
             {
                 var transmissionId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId)?.ReferenceValue;
@@ -33,34 +44,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 {
                     throw new ArgumentException("Correspondence does not have a Dialogporten Transmission Id reference");
                 }
-                createDialogActivityRequest = new CreateDialogActivityRequest()
-                {
-                    Id = dialogActivityId,
-                    CreatedAt = dateOfDialog,
-                    PerformedBy = new ActivityPerformedBy()
-                    {
-                        ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
-                        ActorId = urnActorId
-                    },
-                    Type = type,
-                    TransmissionId = transmissionId
-                };
+                createDialogActivityRequest.TransmissionId = transmissionId;
             }
-            else
-            {
-                createDialogActivityRequest = new CreateDialogActivityRequest()
-                {
-                    Id = dialogActivityId,
-                    CreatedAt = dateOfDialog,
-                    PerformedBy = new ActivityPerformedBy()
-                    {
-                        ActorType = actorType == DialogportenActorType.ServiceOwner ? "ServiceOwner" : "PartyRepresentative",
-                        ActorId = urnActorId
-                    },
-                    Type = type
-                };
-            }
-
             if (type == ActivityType.Information)
             {
                 if (textType is null)
