@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.EntityFrameworkCore;
+using Altinn.Correspondence.Application.CheckNotificationDelivery;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -18,6 +20,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceRepository> _mockCorrespondenceRepository;
         private readonly Mock<ICorrespondenceNotificationRepository> _mockCorrespondenceNotificationRepository;
         private readonly Mock<IAltinnNotificationService> _mockAltinnNotificationService;
+        private readonly Mock<IIdempotencyKeyRepository> _mockIdempotencyKeyRepository;
         private readonly Mock<IBackgroundJobClient> _mockBackgroundJobClient;
         private readonly Mock<ILogger<SendNotificationOrderHandler>> _mockLogger;
         private readonly SendNotificationOrderHandler _handler;
@@ -27,6 +30,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockCorrespondenceRepository = new Mock<ICorrespondenceRepository>();
             _mockCorrespondenceNotificationRepository = new Mock<ICorrespondenceNotificationRepository>();
             _mockAltinnNotificationService = new Mock<IAltinnNotificationService>();
+            _mockIdempotencyKeyRepository = new Mock<IIdempotencyKeyRepository>();
             _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
             _mockLogger = new Mock<ILogger<SendNotificationOrderHandler>>();
 
@@ -34,6 +38,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockCorrespondenceNotificationRepository.Object,
                 _mockCorrespondenceRepository.Object,
                 _mockAltinnNotificationService.Object,
+                _mockIdempotencyKeyRepository.Object,
                 _mockBackgroundJobClient.Object,
                 _mockLogger.Object);
         }
@@ -135,6 +140,34 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     job.Method.Name == "Publish"),
                 It.Is<IState>(state => state is EnqueuedState)),
                 Times.AtLeastOnce);
+        }
+
+        [Fact]
+        public async Task Process_ShouldSkipReminderPersist_WhenIdempotencyKeyExists()
+        {
+            // Arrange
+            var (correspondenceId, _, _, _, response) = SetupData();
+
+            var inner = new Exception();
+            inner.Data["SqlState"] = "23505";
+            var dupEx = new DbUpdateException("duplicate", inner);
+
+            _mockIdempotencyKeyRepository
+                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(dupEx);
+
+            // Act
+            await _handler.Process(correspondenceId, CancellationToken.None);
+
+            _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+
+            // Only the main notification delivery check should be scheduled (once)
+            _mockBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job =>
+                    job.Type == typeof(CheckNotificationDeliveryHandler) &&
+                    job.Method.Name == nameof(CheckNotificationDeliveryHandler.Process)),
+                It.Is<IState>(state => state is ScheduledState)),
+                Times.Once);
         }
     }
 }
