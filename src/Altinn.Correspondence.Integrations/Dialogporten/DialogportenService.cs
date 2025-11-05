@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
@@ -255,7 +256,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 cancellationToken);
         }
 
-        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.TransmissionOpened, activityTimestamp);
+        var createDialogActivityRequest = await CreateOpenedActivityRequest(correspondence, actorType, activityTimestamp);
         createDialogActivityRequest.Id = existingOpenIdempotencyKey.Id.ToString(); // Use the created activity ID
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -589,6 +590,18 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw;
         }
         return true;
+    }
+
+    public async Task<CreateDialogActivityRequest> CreateOpenedActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DateTimeOffset activityTimestamp)
+    {
+        if (TransmissionValidator.IsTransmission(correspondence))
+        {
+            return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.TransmissionOpened, activityTimestamp);
+        }
+        else
+        {
+            return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, activityTimestamp);
+        }
     }
 
 
