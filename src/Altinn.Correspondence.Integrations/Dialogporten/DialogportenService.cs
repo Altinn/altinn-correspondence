@@ -594,11 +594,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         
         var dialogResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(dialogResource);
         var transmissionResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(transmissionResourceId);
-        if (dialogResourceOwner != transmissionResourceOwner)
+        if (string.IsNullOrWhiteSpace(dialogResourceOwner) || string.IsNullOrWhiteSpace(transmissionResourceOwner))
         {
             return false;
-        }        
-        return true;
+        }
+        return string.Equals(dialogResourceOwner, transmissionResourceOwner, StringComparison.OrdinalIgnoreCase);
     }
 
 
