@@ -2,6 +2,7 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
@@ -10,11 +11,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal class CreateDialogActivityRequestMapper
     {
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, bool isTransmission, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, params string[] tokens)
         {
-            return CreateDialogActivityRequest(correspondence, actorType, textType, type, DateTime.UtcNow, isTransmission, tokens);
+            return CreateDialogActivityRequest(correspondence, actorType, textType, type, DateTime.UtcNow, tokens);
         }
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, bool isTransmission, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, params string[] tokens)
         {
             var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             var urnActorId = actorType switch
@@ -25,7 +26,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 _ => throw new NotImplementedException()
             };
             CreateDialogActivityRequest createDialogActivityRequest;
-            if (isTransmission)
+            if (TransmissionValidator.IsTransmission(correspondence))
             {
                 var transmissionId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId)?.ReferenceValue;
                 if (transmissionId == null)
