@@ -261,8 +261,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             try
             {
-                var content = await blobClient.DownloadContentAsync(cancellationToken);
-                return content.Value.Content.ToStream();
+                // Stream directly from blob to avoid loading entire content into memory
+                var stream = await blobClient.OpenReadAsync(new BlobOpenReadOptions(allowModifications: false)
+                {
+                    BufferSize = 4 * 1024 * 1024 // 4 MiB buffer
+                }, cancellationToken);
+                return stream;
             }
             catch (RequestFailedException requestFailedException)
             {
@@ -345,15 +349,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw new FileNotFoundException($"Report file '{fileName}' not found in blob storage");
             }
             
-            // Download the blob to a memory stream
-            var memoryStream = new MemoryStream();
-            await blobClient.DownloadToAsync(memoryStream, cancellationToken);
-            memoryStream.Position = 0; // Reset position for reading
+            // Stream directly from blob to avoid large in-memory buffers
+            var stream = await blobClient.OpenReadAsync(new BlobOpenReadOptions(allowModifications: false)
+            {
+                BufferSize = 4 * 1024 * 1024 // 4 MiB buffer
+            }, cancellationToken);
             
             stopwatch.Stop();
             _logger.LogInformation("Successfully downloaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
             
-            return memoryStream;
+            return stream;
         }
         catch (Exception ex)
         {

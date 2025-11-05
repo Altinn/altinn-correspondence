@@ -45,6 +45,11 @@ public class SendNotificationOrderHandler(
             logger.LogError("Correspondence not found for correspondence {CorrespondenceId} when sending notification orders", correspondenceId);
             throw new Exception($"The correspondence {correspondenceId} was not found");
         }
+        if (correspondence.Altinn2CorrespondenceId is not null)
+        {
+            logger.LogInformation("Correspondence {CorrespondenceId} is an Altinn 2 correspondence, skipping sending notification orders as they are sent from there", correspondenceId);
+            return;
+        }
 
         var allSuccessful = true;
         foreach (var notificationOrder in notificationOrders)
