@@ -43,7 +43,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
                 var parentId = client.Enqueue<PropagationJobs>(x => x.ParentEnqueueChild());
                 BackgroundJobContext.Origin = null;
                 PropagationJobs.LastChildJobId = null;
-                
+
                 using var server = new BackgroundJobServer(new BackgroundJobServerOptions
                 {
                     Queues = [HangfireQueues.Default],
@@ -108,7 +108,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
 
         public class PropagationJobs
         {
-            public static string? LastChildJobId;
+            public static volatile string? LastChildJobId;
 
             public void ParentEnqueueChild()
             {

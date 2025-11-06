@@ -65,7 +65,7 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 // Properly await the notification
                 if (string.Equals(origin, "migrate", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("Skipping Slack exception notification for migrate job {JobId}", jobId);
+                    _logger.LogInformation("Skipping Slack exception notification for migrate related job {JobId}", jobId);
                     return;
                 }
                 await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);
