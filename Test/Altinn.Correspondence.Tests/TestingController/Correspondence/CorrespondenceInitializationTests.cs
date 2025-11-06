@@ -1982,6 +1982,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             {
                 var mockDialogporten = new Mock<IDialogportenService>();
                 mockDialogporten
+                    .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+                    .ReturnsAsync(Guid.NewGuid().ToString());
+                mockDialogporten
+                    .Setup(x => x.CreateDialogTransmission(It.IsAny<Guid>()))
+                    .ReturnsAsync(Guid.NewGuid().ToString());
+                mockDialogporten
                     .Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(true);
                 mockDialogporten
@@ -2039,6 +2045,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockDialogporten = new Mock<IDialogportenService>();
+                mockDialogporten
+                    .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+                    .ReturnsAsync(Guid.NewGuid().ToString());
+                mockDialogporten
+                    .Setup(x => x.CreateDialogTransmission(It.IsAny<Guid>()))
+                    .ReturnsAsync(Guid.NewGuid().ToString());
                 mockDialogporten
                     .Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(false);
