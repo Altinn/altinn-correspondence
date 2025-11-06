@@ -32,32 +32,33 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
             BackgroundJobContext.Origin = "migrate";
             var parentId = client.Enqueue<PropagationJobs>(x => x.ParentEnqueueChild());
             BackgroundJobContext.Origin = null;
-            PropagationJobs.LastChildJobId = null;
+            OriginProbe.LastObservedOrigin = null;
 
-            var sw = Stopwatch.StartNew();
-            string? childId = null;
-            while (sw.Elapsed < TimeSpan.FromSeconds(10))
+            // Wait for child job to capture context
+            var wait = Stopwatch.StartNew();
+            while (wait.Elapsed < TimeSpan.FromSeconds(10) && OriginProbe.LastObservedOrigin == null)
             {
-                childId = PropagationJobs.LastChildJobId; 
-                if (!string.IsNullOrEmpty(childId)) break;
                 await Task.Delay(100);
             }
-            Assert.False(string.IsNullOrEmpty(childId));
-
-            using var connection = storage.GetConnection();
-            var origin = connection.GetJobParameter(childId!, "Origin");
-            Assert.Equal("migrate", origin?.Trim('"'));
+            Assert.Equal("migrate", OriginProbe.LastObservedOrigin);
         }
 
         public class PropagationJobs(IBackgroundJobClient client)
         {
-            public static volatile string? LastChildJobId;
             private readonly IBackgroundJobClient _client = client;
 
             public void ParentEnqueueChild()
             {
-                var childId = _client.Enqueue(() => Console.WriteLine("Hello World!"));
-                LastChildJobId = childId;
+                var childId = _client.Enqueue(() => OriginProbe.Capture());
+            }
+        }
+
+        public static class OriginProbe
+        {
+            public static volatile string? LastObservedOrigin;
+            public static void Capture()
+            {
+                LastObservedOrigin = BackgroundJobContext.Origin;
             }
         }
     }

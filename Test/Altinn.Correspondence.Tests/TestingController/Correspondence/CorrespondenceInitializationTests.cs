@@ -24,7 +24,6 @@ using Altinn.Correspondence.Application;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Tests.Extensions;
-using Altinn.Correspondence.Integrations.Dialogporten.Models;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
