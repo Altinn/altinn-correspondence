@@ -588,9 +588,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.InternalServerError, initializeCorrespondenceResponse.StatusCode);
             var body = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.Equal(body.Status, (int)HttpStatusCode.InternalServerError);
-
-            // Clean up
-            testFactory.Dispose();
         }
 
         [Fact]
@@ -614,9 +611,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
-
-            // Clean up
-            testFactory.Dispose();
         }
 
         [Fact]
@@ -721,9 +715,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
-
-            // Clean up
-            testFactory.Dispose();
         }
 
         [Fact]
@@ -753,9 +744,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
-
-            // Clean up
-            testFactory.Dispose();
         }
 
         [Fact]
@@ -797,9 +785,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
-
-            // Clean up
-            testFactory.Dispose();
         }
 
         [Fact]
@@ -876,7 +861,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Teardown
             memoryStream.Dispose();
-            testFactory.Dispose();
         }
 
         [Fact]
@@ -1257,9 +1241,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var correspondenceId = uploadResponseContent.Correspondences.First().CorrespondenceId;
             await malwareScanHandler.FailAssociatedCorrespondences(attachment2.Id, Guid.NewGuid(), CancellationToken.None);
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, uploadResponseContent.Correspondences.First().CorrespondenceId, CorrespondenceStatusExt.Failed);
-
-            // Clean up
-            testFactory.Dispose();
         }
 
         [Fact]
@@ -1645,9 +1626,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var errorContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
             Assert.Contains("Could not find partyId for the following recipients", errorContent);
             Assert.Contains(nonExistentRecipient.WithoutPrefix(), errorContent);
-
-            // Clean up
-            testFactory.Dispose();
         }
         [Fact]
         public async Task InitializeCorrespondence_WithDialogportenDialogId_CreatesTransmission_Succeeds()
@@ -1767,9 +1745,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Assert.Contains("lack required roles", errorContent);
             }
-
-            // Clean up
-            testFactory.Dispose();
         }
 
         [Fact]
@@ -1907,7 +1882,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Create a custom factory with mock validation that returns false for mismatched recipients
             var mockDialogportenService = new Mock<IDialogportenService>();
-            mockDialogportenService.Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            mockDialogportenService
+                .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+                .ReturnsAsync(Guid.NewGuid().ToString());
+            mockDialogportenService
+                .Setup(x => x.CreateDialogTransmission(It.IsAny<Guid>()))
+                .ReturnsAsync(Guid.NewGuid().ToString());
+            mockDialogportenService
+                .Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false); // Different recipient should fail validation
 
             using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
@@ -1958,9 +1940,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
-
-            // Clean up
-            customFactory.Dispose();
         }
 
         [Fact]
@@ -2003,32 +1982,29 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             mockDialogPortenService.Setup(x => x.DoesDialogExist(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false); // Dialog not found
             using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var serviceDescriptor = services.FirstOrDefault(descriptor => descriptor.ServiceType == typeof(IDialogportenService));
+                if (serviceDescriptor != null)
                 {
-                    var serviceDescriptor = services.FirstOrDefault(descriptor => descriptor.ServiceType == typeof(IDialogportenService));
-                    if (serviceDescriptor != null)
-                    {
-                        services.Remove(serviceDescriptor);
-                    }
-                    services.AddScoped(_ => mockDialogPortenService.Object);
-                });
+                    services.Remove(serviceDescriptor);
+                }
+                services.AddScoped(_ => mockDialogPortenService.Object);
+            });
 
-                var client = customFactory.CreateSenderClient();
+            var client = customFactory.CreateSenderClient();
 
-                var transmissionPayload = new CorrespondenceBuilder()
-                    .CreateCorrespondence()
-                    .WithExternalReferencesDialogId("00000000-0000-0000-0000-000000000000") // Valid GUID but not found
-                    .Build();
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("00000000-0000-0000-0000-000000000000") // Valid GUID but not found
+                .Build();
 
-                // Act
-                var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
-                var transmissionContent = await transmissionResponse.Content.ReadAsStringAsync();
+            // Act
+            var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+            var transmissionContent = await transmissionResponse.Content.ReadAsStringAsync();
 
-                // Assert
-                Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
-                Assert.Contains(CorrespondenceErrors.DialogNotFoundWithDialogId.Message, transmissionContent);
-
-                // Clean up
-                customFactory.Dispose();
-            }
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            Assert.Contains(CorrespondenceErrors.DialogNotFoundWithDialogId.Message, transmissionContent);
+        }
     }
 }
