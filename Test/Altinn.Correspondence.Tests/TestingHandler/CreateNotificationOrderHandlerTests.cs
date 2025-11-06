@@ -11,6 +11,7 @@ using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -20,6 +21,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<INotificationTemplateRepository> _mockNotificationTemplateRepository;
         private readonly Mock<IAltinnRegisterService> _mockAltinnRegisterService;
         private readonly Mock<ICorrespondenceNotificationRepository> _mockCorrespondenceNotificationRepository;
+        private readonly Mock<IIdempotencyKeyRepository> _mockIdempotencyKeyRepository;
         private readonly Mock<IHostEnvironment> _mockHostEnvironment;
         private readonly Mock<IOptions<GeneralSettings>> _mockGeneralSettings;
         private readonly Mock<ILogger<CreateNotificationOrderHandler>> _mockLogger;
@@ -31,6 +33,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockNotificationTemplateRepository = new Mock<INotificationTemplateRepository>();
             _mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
             _mockCorrespondenceNotificationRepository = new Mock<ICorrespondenceNotificationRepository>();
+            _mockIdempotencyKeyRepository = new Mock<IIdempotencyKeyRepository>();
             _mockHostEnvironment = new Mock<IHostEnvironment>();
             _mockGeneralSettings = new Mock<IOptions<GeneralSettings>>();
             _mockLogger = new Mock<ILogger<CreateNotificationOrderHandler>>();
@@ -47,6 +50,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockAltinnRegisterService.Object,
                 _mockNotificationTemplateRepository.Object,
                 _mockCorrespondenceNotificationRepository.Object,
+                _mockIdempotencyKeyRepository.Object,
                 _mockHostEnvironment.Object,
                 _mockGeneralSettings.Object,
                 _mockLogger.Object);
@@ -190,6 +194,27 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.NotNull(deserialized);
             Assert.NotNull(deserialized!.Recipient.RecipientPerson);
             Assert.Equal(ignoreReservation, deserialized!.Recipient.RecipientPerson!.IgnoreReservation);
+        }
+
+        [Fact]
+        public async Task Process_ShouldSkipPersist_WhenIdempotencyKeyExists()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, _, _) = SetupOrderData(requestedPublishTime);
+
+            var inner = new Exception();
+            inner.Data["SqlState"] = "23505";
+            var dupEx = new DbUpdateException("duplicate", inner);
+
+            _mockIdempotencyKeyRepository
+                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(dupEx);
+
+            // Act
+            await _handler.Process(request, CancellationToken.None);
+
+            _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
         }
     }
 }

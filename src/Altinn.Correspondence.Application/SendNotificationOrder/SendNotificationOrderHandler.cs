@@ -7,6 +7,9 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Application.CheckNotificationDelivery;
 using Hangfire;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Application.Helpers;
 
 namespace Altinn.Correspondence.Application.SendNotificationOrder;
 
@@ -14,6 +17,7 @@ public class SendNotificationOrderHandler(
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     ICorrespondenceRepository correspondenceRepository,
     IAltinnNotificationService altinnNotificationService,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     IBackgroundJobClient backgroundJobClient,
     ILogger<SendNotificationOrderHandler> logger)
 {
@@ -81,6 +85,12 @@ public class SendNotificationOrderHandler(
         CancellationToken cancellationToken)
     {
         var successful = true;
+        if (notificationOrder.NotificationOrderId != null || notificationOrder.ShipmentId != null)
+        {
+            logger.LogWarning("Notification order already created for correspondence {CorrespondenceId} (OrderId: {OrderId}, ShipmentId: {ShipmentId}). Skipping send and update.", correspondence.Id, notificationOrder.NotificationOrderId, notificationOrder.ShipmentId);
+            return true;
+        }
+
         logger.LogInformation("Sending notification order {IdempotencyId} for correspondence {CorrespondenceId}", orderRequest.IdempotencyId, correspondence.Id);
         var notificationResponse = await altinnNotificationService.CreateNotificationV2(orderRequest, cancellationToken);
         
@@ -91,24 +101,31 @@ public class SendNotificationOrderHandler(
         }
         else
         {
-            await UpdateDatabaseNotificationOrder(notificationOrder, notificationResponse, cancellationToken);
-            SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
-            logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notificationOrder.Id);
-            ScheduleNotificationDeliveryCheck(notificationOrder, cancellationToken);
-            if (orderRequest.Reminders != null && orderRequest.Reminders.Any())
+            await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
             {
-                foreach (var reminderResponse in notificationResponse.Notification.Reminders)
+                await UpdateDatabaseNotificationOrder(notificationOrder, notificationResponse, ct);
+                SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
+                logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notificationOrder.Id);
+                ScheduleNotificationDeliveryCheck(notificationOrder);
+                if (orderRequest.Reminders != null && orderRequest.Reminders.Count != 0)
                 {
-                    var reminderNotification = await StoreReminderNotificationInDatabase(
-                        notificationOrder,
-                        orderRequest,
-                        notificationResponse.NotificationOrderId,
-                        reminderResponse,
-                        cancellationToken);
-                    logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminderNotification.Id);
-                    ScheduleNotificationDeliveryCheck(reminderNotification, cancellationToken);
+                    foreach (var reminderResponse in notificationResponse.Notification.Reminders)
+                    {
+                        var reminderNotification = await PersistReminderNotification(
+                            notificationOrder,
+                            orderRequest,
+                            notificationResponse.NotificationOrderId,
+                            reminderResponse,
+                            ct);
+                        if (reminderNotification != null)
+                        {
+                            logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminderNotification.Id);
+                            ScheduleNotificationDeliveryCheck(reminderNotification);
+                        }
+                    }
                 }
-            }
+                return Task.CompletedTask;
+            }, logger, cancellationToken);
         }
 
         return successful;
@@ -121,7 +138,7 @@ public class SendNotificationOrderHandler(
         await correspondenceNotificationRepository.UpdateOrderResponseData(notificationOrder.Id, notificationResponse.NotificationOrderId, notificationResponse.Notification.ShipmentId, cancellationToken);
     }
 
-    private void ScheduleNotificationDeliveryCheck(CorrespondenceNotificationEntity notificationOrder, CancellationToken cancellationToken)
+    private void ScheduleNotificationDeliveryCheck(CorrespondenceNotificationEntity notificationOrder)
     {
         backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
             handler => handler.Process(notificationOrder.Id, CancellationToken.None),
@@ -138,13 +155,33 @@ public class SendNotificationOrderHandler(
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationCreationFailed, resourceId, correspondenceId, "correspondence", sender, CancellationToken.None));
     }
 
-    private async Task<CorrespondenceNotificationEntity> StoreReminderNotificationInDatabase(
+    private async Task<CorrespondenceNotificationEntity?> PersistReminderNotification(
         CorrespondenceNotificationEntity mainNotificationOrder,
         NotificationOrderRequestV2 orderRequest,
         Guid notificationOrderId,
         ReminderResponse reminderResponse,
         CancellationToken cancellationToken)
     {
+        try
+        {
+            await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+            {
+                Id = reminderResponse.ShipmentId,
+                CorrespondenceId = mainNotificationOrder.CorrespondenceId,
+                IdempotencyType = IdempotencyType.NotificationOrder
+            }, cancellationToken);
+        }
+        catch (DbUpdateException e)
+        {
+            var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+            if (sqlState == "23505")
+            {
+                logger.LogWarning("Reminder notification already persisted for shipment {ShipmentId} on correspondence {CorrespondenceId}. Skipping.", reminderResponse.ShipmentId, mainNotificationOrder.CorrespondenceId);
+                return null;
+            }
+            throw;
+        }
+
         var reminderNotification = new CorrespondenceNotificationEntity
         {
             Created = DateTimeOffset.UtcNow,

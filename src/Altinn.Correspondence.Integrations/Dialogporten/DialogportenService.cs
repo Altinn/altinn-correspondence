@@ -1,9 +1,11 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
@@ -14,7 +16,7 @@ using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository, IResourceRegistryService _resourceRegistryService) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -255,7 +257,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 cancellationToken);
         }
 
-        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, activityTimestamp);
+        var createDialogActivityRequest = CreateOpenedActivityRequest(correspondence, actorType, activityTimestamp);
         createDialogActivityRequest.Id = existingOpenIdempotencyKey.Id.ToString(); // Use the created activity ID
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -553,42 +555,39 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return true;
     }
 
-    public async Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+    public async Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
     {
-        
-        CreateDialogRequest? dialog = null;
-        try
-        {
-            dialog = await GetDialog(dialogId);
-        }
-        catch (Exception ex)
-        {
-            if (ex.Message.Contains("not found"))
-            {
-                return null;
-            }
-            logger.LogError(ex, "Error retrieving dialog {dialogId} for recipient validation", dialogId);
-            throw;
-        }
-        return dialog.Party == expectedRecipient ? true : false;
+
+        CreateDialogRequest? dialog = await GetDialog(dialogId);
+        return dialog.Party == expectedRecipient;
     }
 
-    public async Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default)
+    public async Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
     {
-        try
+        CreateDialogRequest? dialog = await GetDialog(dialogId);
+
+        var dialogResource = dialog.ServiceResource.WithoutPrefix();
+        var normalizedTransmissionResourceId = transmissionResourceId.WithoutPrefix();
+        
+        var dialogResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(dialogResource, cancellationToken);
+        var transmissionResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(normalizedTransmissionResourceId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(dialogResourceOwner) || string.IsNullOrWhiteSpace(transmissionResourceOwner))
         {
-            var dialog = await GetDialog(dialogId);
+            return false;
         }
-        catch (Exception ex)
+        return string.Equals(dialogResourceOwner, transmissionResourceOwner, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public CreateDialogActivityRequest CreateOpenedActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DateTimeOffset activityTimestamp)
+    {
+        if (TransmissionValidator.IsTransmission(correspondence))
         {
-            if (ex.Message.Contains("not found"))
-            {
-                return false;
-            }
-            logger.LogError(ex, "Error retrieving dialog {dialogId} for existence check", dialogId);
-            throw;
+            return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.TransmissionOpened, activityTimestamp);
         }
-        return true;
+        else
+        {
+            return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, activityTimestamp);
+        }
     }
 
 

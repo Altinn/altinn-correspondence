@@ -1,6 +1,8 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
@@ -23,8 +25,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 DialogportenActorType.Recipient => correspondence.GetRecipientUrn(),
                 _ => throw new NotImplementedException()
             };
-
-            var createDialogActivityRequest = new CreateDialogActivityRequest()
+            CreateDialogActivityRequest createDialogActivityRequest;
+            createDialogActivityRequest = new CreateDialogActivityRequest()
             {
                 Id = dialogActivityId,
                 CreatedAt = dateOfDialog,
@@ -35,7 +37,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 },
                 Type = type
             };
-
+            if (TransmissionValidator.IsTransmission(correspondence) && type == ActivityType.TransmissionOpened)
+            {
+                var transmissionId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId)?.ReferenceValue;
+                if (transmissionId == null)
+                {
+                    throw new ArgumentException("Correspondence does not have a Dialogporten Transmission Id reference");
+                }
+                createDialogActivityRequest.TransmissionId = transmissionId;
+            }
             if (type == ActivityType.Information)
             {
                 if (textType is null)
