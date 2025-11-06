@@ -1,11 +1,10 @@
 using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Tests.Invariants;
 using Hangfire;
-using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
 using System.Diagnostics;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
 {
@@ -14,9 +13,8 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
         [Fact]
         public async Task ClientFilter_StampsOriginParameter_WhenAmbientOriginIsSet()
         {
-            using var factory = new WebApplicationFactory<Program>();
-            using var dataSource = factory.Services.GetRequiredService<NpgsqlDataSource>();
-            await WithTestStorage(dataSource, async storage =>
+            using var factory = new UnitWebApplicationFactory(_ => { });
+            await WithAppStorage(factory, async storage =>
             {
                 var client = new BackgroundJobClient(storage);
                 BackgroundJobContext.Origin = "migrate";
@@ -32,10 +30,8 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
         [Fact]
         public async Task ServerAndClientFilters_PropagateOrigin_ToChildJobs()
         {
-            using var factory = new WebApplicationFactory<Program>();
-            using var dataSource = factory.Services.GetRequiredService<NpgsqlDataSource>();
-
-            await WithTestStorage(dataSource, async storage =>
+            using var factory = new UnitWebApplicationFactory(_ => { });
+            await WithAppStorage(factory, async storage =>
             {
                 var client = new BackgroundJobClient(storage);
 
@@ -68,16 +64,13 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
             });
         }
 
-        private static async Task WithTestStorage(NpgsqlDataSource dataSource, Func<PostgreSqlStorage, Task> run)
+        private static async Task WithAppStorage(WebApplicationFactory<Program> factory, Func<JobStorage, Task> run)
         {
-            var schema = $"hangfire_test_{Guid.NewGuid().ToString("N")[..8]}";
-            await using var conn = await dataSource.OpenConnectionAsync();
             var prevStorage = JobStorage.Current;
             var prevFilters = GlobalJobFilters.Filters.ToList();
             try
             {
-                PostgreSqlObjectsInstaller.Install(conn, schema);
-                var storage = new PostgreSqlStorage(new HangfireStorageCompatibilityTests.TestConnectionFactory(dataSource), new PostgreSqlStorageOptions { SchemaName = schema });
+                var storage = factory.Services.GetRequiredService<JobStorage>();
 
                 JobStorage.Current = storage;
                 GlobalJobFilters.Filters.Clear();
@@ -95,14 +88,6 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
                     GlobalJobFilters.Filters.Add(filter.Instance, filter.Order);
                 }
                 JobStorage.Current = prevStorage;
-
-                try
-                {
-                    var drop = conn.CreateCommand();
-                    drop.CommandText = $"DROP SCHEMA IF EXISTS {schema} CASCADE";
-                    await drop.ExecuteNonQueryAsync();
-                }
-                catch { }
             }
         }
 
