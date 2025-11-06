@@ -2098,7 +2098,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
 
             Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
-            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, transmissionResponse.Content.ReadAsStringAsync().Result);
+            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, await transmissionResponse.Content.ReadAsStringAsync());
     }
     }
 }
