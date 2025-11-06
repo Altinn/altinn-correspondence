@@ -2048,7 +2048,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var client = customFactory.CreateSenderClient();
 
-            
+
             var initialCorrespondence = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithMessageTitle("Initial correspondence")
@@ -2086,5 +2086,101 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
             Assert.Contains(CorrespondenceErrors.InvalidServiceOwner.Message, content);
         }
+        
+        [Fact]
+        public async Task InitializeCorrespondenceTransmission_WithConfirmationNeeded_ReturnsBadRequest()
+        {
+            // Arrange
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .Build();
+
+
+            // Act
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var externalReference = correspondence?.ExternalReferences;
+            var dialogId = externalReference.First().ReferenceValue;
+            Assert.NotNull(dialogId);
+
+
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId(dialogId)
+                .WithConfirmationNeeded(true)
+                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(5))
+                .Build();
+
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            var responseContent = await transmissionResponse.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, responseContent);
+
+
+            
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondenceTransmission_WithReplyOptions_ReturnsBadRequest()
+        {
+            // Arrange
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .Build();
+
+
+            // Act
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var externalReference = correspondence?.ExternalReferences;
+            var dialogId = externalReference.First().ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            var replyOptions = new List<CorrespondenceReplyOptionExt>
+            {
+                new CorrespondenceReplyOptionExt
+                {
+                LinkURL = "https://test.no",
+                LinkText = "test"
+
+                }
+            };
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId(dialogId)
+                .WithReplyOptions(replyOptions)
+                .Build();
+
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, await transmissionResponse.Content.ReadAsStringAsync());
+    }
     }
 }
