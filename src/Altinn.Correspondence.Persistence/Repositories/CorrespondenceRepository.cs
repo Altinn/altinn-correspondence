@@ -107,7 +107,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 correspondences = correspondences.Include(c => c.ForwardingEvents);
             }
 
-            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+            var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+
+            if (correspondence != null && includeContent && correspondence.Content?.Attachments != null)
+            {
+                correspondence.Content.Attachments = correspondence.Content.Attachments
+                    .OrderBy(a => a.Created)
+                    .ThenBy(a => a.Id)
+                    .ToList();
+            }
+
+            return correspondence;
         }
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
@@ -230,15 +240,43 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .SingleOrDefaultAsync(cancellationToken);
         }
 
-        public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default)
+        public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, DateTimeOffset? cursorCreated, Guid? cursorId, DateTimeOffset? createdFrom, DateTimeOffset? createdTo, CancellationToken cancellationToken = default)
         {
-            return _context.Correspondences
-                .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
-                .ExcludePurged() // Exclude purged correspondences
-                .ExcludeSelfIdentifiedRecipients() // Exclude correspondences belonging to self identified users
+            var query = _context.Correspondences
+                .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating)
+                .ExcludePurged()
+                .ExcludeSelfIdentifiedRecipients()
+                .AsQueryable();
+
+            if (createdFrom.HasValue)
+            {
+                query = query.Where(c => c.Created >= createdFrom.Value);
+            }
+
+            if (createdTo.HasValue)
+            {
+                query = query.Where(c => c.Created < createdTo.Value);
+            } else
+            {
+                query = query.Where(c => c.Created <= DateTimeOffset.UtcNow.AddMonths(-1));
+            }
+
+            if (cursorCreated.HasValue)
+            {
+                if (cursorId.HasValue)
+                {
+                    query = query.Where(c => c.Created < cursorCreated.Value ||
+                                             (c.Created == cursorCreated.Value && c.Id > cursorId.Value));
+                }
+                else
+                {
+                    query = query.Where(c => c.Created < cursorCreated.Value);
+                }
+            }
+
+            return query
                 .OrderByDescending(c => c.Created)
                 .ThenBy(c => c.Id)
-                .Skip(offset)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
         }

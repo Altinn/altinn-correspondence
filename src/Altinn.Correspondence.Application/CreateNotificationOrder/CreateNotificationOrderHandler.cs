@@ -8,9 +8,11 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Application.Helpers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.CreateNotificationOrder;
 
@@ -19,6 +21,7 @@ public class CreateNotificationOrderHandler(
     IAltinnRegisterService altinnRegisterService,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
     ILogger<CreateNotificationOrderHandler> logger)
@@ -127,17 +130,17 @@ public class CreateNotificationOrderHandler(
         }
 
         var notificationOrders = new List<NotificationOrderRequestV2>();
-        
+
         // Create a notification order for each recipient
         foreach (var recipient in recipientsToProcess)
         {
             var notificationOrder = new NotificationOrderRequestV2
             {
-                SendersReference = correspondence.SendersReference,
+                SendersReference = $"corr-{correspondence.SendersReference}",
                 RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
                     ? DateTime.UtcNow.AddMinutes(5)
                     : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
-                IdempotencyId = Guid.CreateVersion7(),
+                IdempotencyId = correspondence.Id.CreateVersion5(BuildRecipientKey(recipient)),
                 Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: false)
             };
 
@@ -147,7 +150,7 @@ public class CreateNotificationOrderHandler(
                 [
                     new ReminderV2
                     {
-                        SendersReference = correspondence.SendersReference,
+                        SendersReference = $"corr-{correspondence.SendersReference}",
                         DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
                         ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString())?.ToString(),
                         Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: true)
@@ -160,6 +163,15 @@ public class CreateNotificationOrderHandler(
         
         logger.LogInformation("Created {Count} notification request(s) V2 for correspondence {CorrespondenceId}", notificationOrders.Count, correspondence.Id);
         return notificationOrders;
+    }
+
+    private static string BuildRecipientKey(Recipient recipient)
+    {
+        if (!string.IsNullOrEmpty(recipient.OrganizationNumber)) return $"org:{recipient.OrganizationNumber}";
+        if (!string.IsNullOrEmpty(recipient.NationalIdentityNumber)) return $"nin:{recipient.NationalIdentityNumber}";
+        if (!string.IsNullOrEmpty(recipient.EmailAddress)) return $"email:{recipient.EmailAddress.ToLowerInvariant()}";
+        if (!string.IsNullOrEmpty(recipient.MobileNumber)) return $"sms:{recipient.MobileNumber}";
+        throw new InvalidOperationException("Recipient must have exactly one identifier");
     }
 
     private static RecipientV2 CreateRecipientOrderV2FromRecipient(Recipient recipient, NotificationRequest notificationRequest, NotificationContent content, CorrespondenceEntity correspondence, bool isReminder)
@@ -270,17 +282,41 @@ public class CreateNotificationOrderHandler(
         logger.LogInformation("Persisting {Count} notification order requests for correspondence {CorrespondenceId}", notificationOrderRequests.Count, correspondence.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
         {
-            var notification = new CorrespondenceNotificationEntity()
+            await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
             {
-                Created = DateTimeOffset.UtcNow,
-                NotificationTemplate = notificationRequest.NotificationTemplate,
-                NotificationChannel = notificationRequest.NotificationChannel,
-                CorrespondenceId = correspondence.Id,
-                RequestedSendTime = notificationOrderRequest.RequestedSendTime,
-                IsReminder = false,
-                OrderRequest = JsonSerializer.Serialize(notificationOrderRequest)
-            };
-            await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
+                try
+                {
+                    await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                    {
+                        Id = notificationOrderRequest.IdempotencyId,
+                        CorrespondenceId = correspondence.Id,
+                        IdempotencyType = IdempotencyType.NotificationOrder
+                    }, ct);
+                }
+                catch (DbUpdateException e)
+                {
+                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
+                    if (sqlState == "23505")
+                    {
+                        logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on correspondence {CorrespondenceId}. Skipping.", notificationOrderRequest.IdempotencyId, correspondence.Id);
+                        return Task.CompletedTask;
+                    }
+                    throw;
+                }
+
+                var notification = new CorrespondenceNotificationEntity()
+                {
+                    Created = DateTimeOffset.UtcNow,
+                    NotificationTemplate = notificationRequest.NotificationTemplate,
+                    NotificationChannel = notificationRequest.NotificationChannel,
+                    CorrespondenceId = correspondence.Id,
+                    RequestedSendTime = notificationOrderRequest.RequestedSendTime,
+                    IsReminder = false,
+                    OrderRequest = JsonSerializer.Serialize(notificationOrderRequest)
+                };
+                await correspondenceNotificationRepository.AddNotification(notification, ct);
+                return Task.CompletedTask;
+            }, logger, cancellationToken);
         }
     }
 

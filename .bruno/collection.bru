@@ -1,0 +1,125 @@
+vars:pre-request {
+  client_id: your-maskinporten-integration-id
+  client_kid: your-maskinporten-integration-key-id
+  client_pem: your-maskinporten-integration-key
+  resource_id: created-in-altinn-studio
+  recipient_orgnumber: find-in-tenor
+  recipient_ssn: person-national-id
+  correspondence_base_url: https://platform.tt02.altinn.no
+  platform_base_url: https://platform.tt02.altinn.no
+  serviceowner_orgnumber: Used if configuring end user system
+}
+
+docs {
+  Altinn-Correspondence is a messaging API that is used to send correspondences from organizations to organizations and private persons in Norway.
+  
+  ## Setup
+  
+  ### 1. Install Bruno
+  Download from [usebruno.com](https://www.usebruno.com/)
+  
+  ### 2. Open Collection
+  File → Open Collection → Select the `.bruno` folder in the Altinn Correspondence repository
+  
+  ### 3. Configure Environment
+  Select environment in upper right (Configure > Create) and set:
+  
+  - `client_id`: Your Maskinporten Integration ID (see step 4)
+  - `client_kid`: Your Maskinporten key identifier
+  - `client_pem`: Your Maskinporten private key (including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`)
+  - `serviceowner_orgnumber`: Serviceowner org number
+  - `recipient_orgnumber`: Recipient org number (from Tenor)
+  - `recipient_ssn`: Recipient person national ID (for person recipients). For testing often "daglig leder" of recipient_orgnumber
+  - `resource_id`: Your resource ID (see step 5)
+  
+  ### 4. Create Maskinporten Integration
+  1. Go to https://sjolvbetjening.test.samarbeid.digdir.no/
+  2. Create integration with scopes:
+     - `altinn:correspondence.read`
+     - `altinn:correspondence.write`
+  3. Generate/upload your certificate and download the private key as PEM format
+  
+  ### 5. Create resource
+  1. Go to https://altinn.studio
+  2. Login, click profile in upper right and select your service owner.
+  3. Scroll down and go to "Resource Dashboard"
+  4. Create new resource
+  5. Ressurstype = "Meldingstjeneste". Tilgangsregler should give read/write/subscribe to whoever that will read the message in the Altinn inbox or will approve the systemuser request (like "daglig leder") if using end user system.
+  
+  # If using Correspondence as an end user system
+  
+  ### 6. Register End User System
+  1. Add the following scopes to your Maskinporten integration:
+  - `altinn:authentication/systemregister.write`
+  - `altinn:authentication/systemuser.request.write`
+  - `altinn:authentication/systemuser.request.read`
+  2. Set the "serviceowner_orgnumber" environment variable
+  3. Make all the calls in the "Configure End User System"-folder
+  4. Go to the "confirmUrl" in the response of the the "Create recipient systemuser request" call and login as your recipient_ssn. This person should have the necessary role to delegate systemuser rights of the organization.
+  5. After this you can authenticate as End User System with the requests in the Authentication folder and perform all the (as end user)-calls
+  
+  ### 7. Integrating with Altinn Events
+  1. You can use the endpoint "Events Integration"/"Create subscription (as end user system)" to setup an event subscription. You need an endpoint to receive the webhooks (for test you can use some service like webhook.site).
+  
+  ## Usage Workflow
+  
+  ### One-time Setup:
+  1. **Get tokens**:
+     - `Login to Maskinporten (Sender)` → `Exchange Maskinporten token to Altinn token`
+     - `Login to Maskinporten (Recipient)` → `Exchange Maskinporten token to Altinn token`
+     - **Or just Right-Click the Authentication folder and click "Run" to be authenticated for all calls for an hour**
+  
+  ### Regular Workflow:
+  1. **Send Correspondence**:
+     - `Initialize` → Creates correspondence, sets `correspondenceId`
+     - `Initialize and Upload` → Create correspondence with attachments in one request
+     - `Overview` → Check correspondence status
+     - `Details` → Get detailed correspondence information
+  
+  2. **Manage Attachments**:
+     - `Initialize Batch Attachment` → Create attachment, sets `attachmentId`
+     - `Upload` → Upload attachment file
+     - `Download attachment` → Download attachment
+     - `Overview` → Check attachment status
+  
+  3. **Recipient Actions**:
+     - `Search` → Recipient searches for correspondences
+     - `Mark As Read` → Mark correspondence as read
+     - `Confirm` → Confirm receipt of correspondence
+     - `Download attachment` → Download correspondence attachments
+  
+  ## Available Endpoints
+  
+  ### Correspondence
+  - **Initialize**: Create a new correspondence
+  - **Initialize and Upload**: Create correspondence with attachments in one request
+  - **Overview**: Get correspondence overview
+  - **Details**: Get detailed correspondence information
+  - **Search**: Search for available correspondences
+  - **Mark As Read**: Mark correspondence as read
+  - **Confirm**: Confirm receipt of correspondence
+  - **Download attachment**: Download correspondence attachment
+  - **Purge**: Delete correspondence
+  
+  ### Attachment
+  - **Initialize Batch Attachment**: Create a new attachment
+  - **Upload**: Upload attachment file
+  - **Download**: Download attachment
+  - **Overview**: Get attachment overview
+  - **Details**: Get detailed attachment information
+  - **Purge**: Delete attachment
+  
+  ## Notes
+  
+  - JWT tokens expire after 120 seconds
+  - All tokens use RS256 algorithm
+  - PEM keys must include header/footer lines
+  - Correspondences can be sent to both organizations and persons
+  - Attachments can be uploaded separately or with correspondence
+  - All operations require proper authentication tokens
+  
+  ## Documentation
+  
+  - [Altinn Correspondence Docs](https://docs.altinn.studio/correspondence/)
+  - [Maskinporten Guide](https://docs.altinn.studio/correspondence/getting-started/developer-guides/maskinporten/)
+}
