@@ -42,7 +42,8 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
                 BackgroundJobContext.Origin = "migrate";
                 var parentId = client.Enqueue<PropagationJobs>(x => x.ParentEnqueueChild());
                 BackgroundJobContext.Origin = null;
-
+                PropagationJobs.LastChildJobId = null;
+                
                 using var server = new BackgroundJobServer(new BackgroundJobServerOptions
                 {
                     Queues = [HangfireQueues.Default],
