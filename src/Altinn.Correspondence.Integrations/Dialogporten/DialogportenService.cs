@@ -569,8 +569,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogResource = dialog.ServiceResource.WithoutPrefix();
         var normalizedTransmissionResourceId = transmissionResourceId.WithoutPrefix();
         
-        var dialogResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(dialogResource);
-        var transmissionResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(normalizedTransmissionResourceId);
+        var dialogResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(dialogResource, cancellationToken);
+        var transmissionResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(normalizedTransmissionResourceId, cancellationToken);
         if (string.IsNullOrWhiteSpace(dialogResourceOwner) || string.IsNullOrWhiteSpace(transmissionResourceOwner))
         {
             return false;
