@@ -49,13 +49,14 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
             Assert.Equal("migrate", origin?.Trim('"'));
         }
 
-        public class PropagationJobs
+        public class PropagationJobs(IBackgroundJobClient client)
         {
             public static volatile string? LastChildJobId;
+            private readonly IBackgroundJobClient _client = client;
 
             public void ParentEnqueueChild()
             {
-                var childId = BackgroundJob.Enqueue(() => Console.WriteLine("Hello World!"));
+                var childId = _client.Enqueue(() => Console.WriteLine("Hello World!"));
                 LastChildJobId = childId;
             }
         }
