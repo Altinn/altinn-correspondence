@@ -2038,13 +2038,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithExternalReferencesDialogId(dialogId)
                 .WithConfirmationNeeded(true)
+                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(5))
                 .Build();
 
             var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
-            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, transmissionResponse.Content.ReadAsStringAsync().Result);
+            var responseContent = await transmissionResponse.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, responseContent);
 
 
             
