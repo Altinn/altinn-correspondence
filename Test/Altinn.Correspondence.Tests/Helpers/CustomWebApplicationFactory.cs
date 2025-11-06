@@ -143,17 +143,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 Console.WriteLine($"NpgsqlDataSource already disposed: {ex.Message}");
             }
 
-            try
-            {
-                base.Dispose(disposing);
-                Console.WriteLine($"Base application disposed for schema: {_hangfireSchemaName}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error during base application disposal: {ex}");
-            }
-
-            // Drop per-test Hangfire schema to avoid cross-test collisions
             if (dataSource != null)
             {
                 try
@@ -168,11 +157,20 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 {
                     Console.WriteLine($"Error dropping schema {_hangfireSchemaName}: {ex.Message}");
                 }
-                finally
-                {
-                    dataSource.Dispose();
-                }
             }
+
+            try
+            {
+                base.Dispose(disposing);
+                Console.WriteLine($"Base application disposed for schema: {_hangfireSchemaName}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during base application disposal: {ex}");
+            }
+
+            // Drop per-test Hangfire schema to avoid cross-test collisions
+            
         }
         else
         {
