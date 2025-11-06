@@ -564,11 +564,12 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     public async Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
     {
         CreateDialogRequest? dialog = await GetDialog(dialogId);
-       
+
         var dialogResource = dialog.ServiceResource.WithoutPrefix();
+        var normalizedTransmissionResourceId = transmissionResourceId.WithoutPrefix();
         
         var dialogResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(dialogResource);
-        var transmissionResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(transmissionResourceId);
+        var transmissionResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(normalizedTransmissionResourceId);
         if (string.IsNullOrWhiteSpace(dialogResourceOwner) || string.IsNullOrWhiteSpace(transmissionResourceOwner))
         {
             return false;
