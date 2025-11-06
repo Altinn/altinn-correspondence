@@ -588,6 +588,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.InternalServerError, initializeCorrespondenceResponse.StatusCode);
             var body = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.Equal(body.Status, (int)HttpStatusCode.InternalServerError);
+
+            // Clean up
+            testFactory.Dispose();
         }
 
         [Fact]
@@ -611,6 +614,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+
+            // Clean up
+            testFactory.Dispose();
         }
 
         [Fact]
@@ -671,6 +677,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
+
         [Fact]
         public async Task IntializeCorrespondence_WithMultipleRecipients_GivesUniqueAttachmentIds()
         {
@@ -714,6 +721,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
+
+            // Clean up
+            testFactory.Dispose();
         }
 
         [Fact]
@@ -743,6 +753,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
+
+            // Clean up
+            testFactory.Dispose();
         }
 
         [Fact]
@@ -784,6 +797,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
+
+            // Clean up
+            testFactory.Dispose();
         }
 
         [Fact]
@@ -860,6 +876,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Teardown
             memoryStream.Dispose();
+            testFactory.Dispose();
         }
 
         [Fact]
@@ -1240,6 +1257,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var correspondenceId = uploadResponseContent.Correspondences.First().CorrespondenceId;
             await malwareScanHandler.FailAssociatedCorrespondences(attachment2.Id, Guid.NewGuid(), CancellationToken.None);
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, uploadResponseContent.Correspondences.First().CorrespondenceId, CorrespondenceStatusExt.Failed);
+
+            // Clean up
+            testFactory.Dispose();
         }
 
         [Fact]
@@ -1625,6 +1645,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var errorContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
             Assert.Contains("Could not find partyId for the following recipients", errorContent);
             Assert.Contains(nonExistentRecipient.WithoutPrefix(), errorContent);
+
+            // Clean up
+            testFactory.Dispose();
         }
         [Fact]
         public async Task InitializeCorrespondence_WithDialogportenDialogId_CreatesTransmission_Succeeds()
@@ -1744,6 +1767,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Assert.Contains("lack required roles", errorContent);
             }
+
+            // Clean up
+            testFactory.Dispose();
         }
 
         [Fact]
