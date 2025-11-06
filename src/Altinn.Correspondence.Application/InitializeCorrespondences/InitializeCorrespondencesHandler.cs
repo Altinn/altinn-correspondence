@@ -486,19 +486,11 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.InvalidServiceOwner;
         }
-        if (validateResourceOwnerMatch == null)
-        {
-            return CorrespondenceErrors.DialogNotFoundWithDialogId;
-        }
         var expectedRecipient = request.Recipients.First();
         var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, expectedRecipient, cancellationToken);
         if (recipientMatches == false)
         {
             return CorrespondenceErrors.RecipientMismatch;
-        }
-        else if (recipientMatches == null)
-        {
-            return CorrespondenceErrors.DialogNotFoundWithDialogId;
         }
         else
         {

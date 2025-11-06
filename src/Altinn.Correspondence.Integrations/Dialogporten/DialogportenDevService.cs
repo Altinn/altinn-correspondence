@@ -84,14 +84,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(true);
         }
 
-        public Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+        public Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(true as bool?);
+            return Task.FromResult(true);
         }
 
-        public Task<bool?> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
+        public Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(true as bool?);
+            return Task.FromResult(true);
         }
     }
 }

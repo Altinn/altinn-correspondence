@@ -554,42 +554,17 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return true;
     }
 
-    public async Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
+    public async Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
     {
 
-        CreateDialogRequest? dialog = null;
-        try
-        {
-            dialog = await GetDialog(dialogId);
-        }
-        catch (Exception ex)
-        {
-            if (ex.Message.Contains("not found"))
-            {
-                return null;
-            }
-            logger.LogError(ex, "Error retrieving dialog {dialogId} for recipient validation", dialogId);
-            throw;
-        }
+        CreateDialogRequest? dialog = await GetDialog(dialogId);
         return dialog.Party == expectedRecipient;
     }
 
-    public async Task<bool?> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
+    public async Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
     {
-        CreateDialogRequest? dialog = null;
-        try
-        {
-            dialog = await GetDialog(dialogId);
-        }
-        catch (Exception ex)
-        {
-            if (ex.Message.Contains("not found"))
-            {
-                return null;
-            }
-            logger.LogError(ex, "Error retrieving dialog {dialogId} for existence check", dialogId);
-            throw;
-        }
+        CreateDialogRequest? dialog = await GetDialog(dialogId);
+       
         var dialogResource = dialog.ServiceResource.WithoutPrefix();
         
         var dialogResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(dialogResource);
