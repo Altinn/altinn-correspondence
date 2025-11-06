@@ -72,7 +72,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
             var schema = $"hangfire_test_{Guid.NewGuid().ToString("N")[..8]}";
             await using var conn = await dataSource.OpenConnectionAsync();
             var prevStorage = JobStorage.Current;
-            var prevFilterInstances = GlobalJobFilters.Filters.Select(f => f.Instance).ToList();
+            var prevFilters = GlobalJobFilters.Filters.ToList();
             try
             {
                 PostgreSqlObjectsInstaller.Install(conn, schema);
@@ -89,7 +89,10 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
             {
                 // Restore globals
                 GlobalJobFilters.Filters.Clear();
-                foreach (var inst in prevFilterInstances) GlobalJobFilters.Filters.Add(inst);
+                foreach (var filter in prevFilters)
+                {
+                    GlobalJobFilters.Filters.Add(filter.Instance, filter.Order);
+                }
                 JobStorage.Current = prevStorage;
 
                 try
