@@ -34,7 +34,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
 
     public CustomWebApplicationFactory()
     {
-        _hangfireSchemaName = $"hangfire_test_{Guid.NewGuid().ToString("N")[..8]}";
+        _hangfireSchemaName = $"hangfire_test";
     }
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
@@ -152,27 +152,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 Console.WriteLine($"Error during base application disposal: {ex}");
             }
-
-            // Drop per-test Hangfire schema to avoid cross-test collisions
-            if (dataSource != null)
-            {
-                try
-                {
-                    using var conn = dataSource.CreateConnection();
-                    conn.Open();
-                    using var drop = conn.CreateCommand();
-                    drop.CommandText = $"DROP SCHEMA IF EXISTS {_hangfireSchemaName} CASCADE";
-                    drop.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error dropping schema {_hangfireSchemaName}: {ex.Message}");
-                }
-                finally
-                {
-                    dataSource.Dispose();
-                }
-            }
+            dataSource?.Dispose();
         }
         else
         {

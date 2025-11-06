@@ -7,14 +7,13 @@ using Altinn.Correspondence.Tests.Helpers;
 namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
 {
     public class BackgroundJobFiltersTests
-    { 
+    {
         [Fact]
         public void ClientFilter_StampsOriginParameter_WhenAmbientOriginIsSet()
         {
             using var factory = new UnitWebApplicationFactory(_ => { });
             var storage = factory.Services.GetRequiredService<JobStorage>();
-            JobStorage.Current = storage;
-            var client = new BackgroundJobClient(storage);
+            var client = factory.Services.GetRequiredService<IBackgroundJobClient>();
             BackgroundJobContext.Origin = "migrate";
             var jobId = client.Enqueue(() => Console.WriteLine("test"));
             BackgroundJobContext.Origin = null;
@@ -28,15 +27,13 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
         {
             using var factory = new UnitWebApplicationFactory(_ => { });
             var storage = factory.Services.GetRequiredService<JobStorage>();
-            JobStorage.Current = storage;
-            var client = new BackgroundJobClient(storage);
+            var client = factory.Services.GetRequiredService<IBackgroundJobClient>();
 
             BackgroundJobContext.Origin = "migrate";
             var parentId = client.Enqueue<PropagationJobs>(x => x.ParentEnqueueChild());
             BackgroundJobContext.Origin = null;
             PropagationJobs.LastChildJobId = null;
 
-            // wait up to 10s for child job id to be recorded
             var sw = Stopwatch.StartNew();
             string? childId = null;
             while (sw.Elapsed < TimeSpan.FromSeconds(10))
