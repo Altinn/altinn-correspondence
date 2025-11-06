@@ -65,6 +65,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                     }
                 );
                 config.UseColouredConsoleLogProvider();
+                config.UseFilter(new BackgroundJobClientFilter());
+                config.UseFilter(new BackgroundJobServerFilter());
             });
             
             services.AddHangfireServer(options => 
