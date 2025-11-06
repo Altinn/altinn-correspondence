@@ -58,7 +58,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                     new PostgreSqlStorageOptions
                     {
                         PrepareSchemaIfNecessary = true,
-                        QueuePollInterval = TimeSpan.FromMilliseconds(100),
+                        QueuePollInterval = TimeSpan.FromSeconds(1),
                         SchemaName = _hangfireSchemaName,
                         InvisibilityTimeout = TimeSpan.FromMinutes(1),
                         DistributedLockTimeout = TimeSpan.FromSeconds(10)
@@ -71,8 +71,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             
             services.AddHangfireServer(options => 
             {
-                options.SchedulePollingInterval = TimeSpan.FromMilliseconds(100);
-                options.WorkerCount = 10;
+                options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
+                options.WorkerCount = 5;
                 options.Queues = new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration };
                 options.ServerTimeout = TimeSpan.FromSeconds(2);
                 options.ShutdownTimeout = TimeSpan.FromSeconds(1);
@@ -143,6 +143,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 Console.WriteLine($"NpgsqlDataSource already disposed: {ex.Message}");
             }
 
+            try
+            {
+                base.Dispose(disposing);
+                Console.WriteLine($"Base application disposed for schema: {_hangfireSchemaName}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during base application disposal: {ex}");
+            }
+
+            // Drop per-test Hangfire schema to avoid cross-test collisions
             if (dataSource != null)
             {
                 try
@@ -157,20 +168,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 {
                     Console.WriteLine($"Error dropping schema {_hangfireSchemaName}: {ex.Message}");
                 }
+                finally
+                {
+                    dataSource.Dispose();
+                }
             }
-
-            try
-            {
-                base.Dispose(disposing);
-                Console.WriteLine($"Base application disposed for schema: {_hangfireSchemaName}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error during base application disposal: {ex}");
-            }
-
-            // Drop per-test Hangfire schema to avoid cross-test collisions
-            
         }
         else
         {
