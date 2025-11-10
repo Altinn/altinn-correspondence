@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251003063431_IndexIsolatedToA3Correspondences")]
+    [Migration("20251110150438_IndexIsolatedToA3Correspondences")]
     partial class IndexIsolatedToA3Correspondences
     {
         /// <inheritdoc />
@@ -22,7 +22,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("correspondence")
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -55,6 +55,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("DisplayName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<DateTimeOffset?>("ExpirationTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
@@ -469,9 +472,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CorrespondenceId");
-
                     b.HasIndex("Status");
+
+                    b.HasIndex("CorrespondenceId", "Status")
+                        .IsDescending(false, true);
 
                     b.ToTable("CorrespondenceStatuses", "correspondence");
                 });
