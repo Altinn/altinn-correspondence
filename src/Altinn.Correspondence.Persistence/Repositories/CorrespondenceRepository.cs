@@ -225,13 +225,15 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.Statuses)
                 .Include(c => c.Content)
                 .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
-            if (from != null || from > DateTime.Now.AddYears(-19))
+            // Default logic from A2 is to set 20 years into the past if no from is provided. Better performance to not apply filter in that case.
+            if (from != null && from > DateTime.Now.AddYears(-19)) 
             {
                 correspondences = correspondences.Where(c => c.RequestedPublishTime > from);
             }
-            if (to != null || to.Value.Date <= DateTime.UtcNow.Date)
+            // Default logic from A2 is 9999-12-31 if no to is provided. Better performance to not apply filter in that case.
+            if (to != null && to.Value.Date <= DateTime.UtcNow.Date) 
             {
-                correspondences = correspondences.Where(c => c.RequestedPublishTime < to);
+                correspondences = correspondences.Where(c => c.RequestedPublishTime < to); 
             }
 
             var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
