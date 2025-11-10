@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250907103403_CorrespondenceIdStatusIndexOnCorrespondenceStatus")]
-    partial class CorrespondenceIdStatusIndexOnCorrespondenceStatus
+    [Migration("20251110073319_CorrespondenceIdAndStatusIndexOnCorrespondenceStatus")]
+    partial class CorrespondenceIdAndStatusIndexOnCorrespondenceStatus
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -22,7 +22,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("correspondence")
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -55,6 +55,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("DisplayName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<DateTimeOffset?>("ExpirationTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FileName")
                         .HasMaxLength(255)
