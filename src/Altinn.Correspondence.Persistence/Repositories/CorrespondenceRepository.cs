@@ -218,8 +218,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
 
             correspondences = correspondences
-                .Where(c => from == null || c.RequestedPublishTime > from)   // From date filter
-                .Where(c => to == null || c.RequestedPublishTime < to)       // To date filter                              
                 .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
                 .ExcludePurged() // Exclude purged correspondences
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
@@ -227,6 +225,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.Statuses)
                 .Include(c => c.Content)
                 .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
+            // Default logic from A2 is to set 20 years into the past if no from is provided. Better performance to not apply filter in that case.
+            if (from != null && from > DateTime.Now.AddYears(-19)) 
+            {
+                correspondences = correspondences.Where(c => c.RequestedPublishTime > from);
+            }
+            // Default logic from A2 is 9999-12-31 if no to is provided. Better performance to not apply filter in that case.
+            if (to != null && to.Value.Date <= DateTime.UtcNow.Date) 
+            {
+                correspondences = correspondences.Where(c => c.RequestedPublishTime < to); 
+            }
 
             var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
             return result;
