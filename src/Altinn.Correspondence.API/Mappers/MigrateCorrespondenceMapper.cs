@@ -40,7 +40,7 @@ internal static class MigrateCorrespondenceMapper
                 MessageBody = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Content.MessageBody,
                 Attachments = []
             } : null,
-            IsConfirmationNeeded = IsCorrespondenceConfirmed(migrateCorrespondenceExt.EventHistory) ? false : true,
+            IsConfirmationNeeded = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsConfirmationNeeded,
             IsMigrating = migrateCorrespondenceExt.IsMigrating,
             PartyId = migrateCorrespondenceExt.PartyId,
             Published = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Published
@@ -239,10 +239,5 @@ internal static class MigrateCorrespondenceMapper
             Altinn2NotificationId = notificationExt.Altinn2NotificationId,
             IsReminder = notificationExt.IsReminder,
         };
-    }
-
-    private static bool IsCorrespondenceConfirmed(List<MigrateCorrespondenceStatusEventExt> statusHistory)
-    {
-        return statusHistory.Any(statusEvent => statusEvent.Status == MigrateCorrespondenceStatusExt.Confirmed);
     }
 }
