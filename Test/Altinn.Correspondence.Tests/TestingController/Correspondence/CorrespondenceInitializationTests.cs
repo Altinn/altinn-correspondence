@@ -66,9 +66,26 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Theory]
-        [InlineData("nu")]
         [InlineData(null)]
         [InlineData("")]
+        [InlineData(" ")]
+        public async Task InitializeCorrespondence_WithNullOrEmptyLanguageCode_DefaultsToNb_ReturnsOK(string? languageCode)
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithLanguageCode(languageCode)
+            .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("nu")]
         public async Task InitializeCorrespondence_WithInvalidLanguageCode_ReturnsBadRequest(string? languageCode)
         {
             // Arrange
@@ -653,6 +670,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
+
         [Fact]
         public async Task IntializeCorrespondence_WithMultipleRecipients_GivesUniqueAttachmentIds()
         {
@@ -1641,7 +1659,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithExternalReferencesDialogId(dialogId)
                 .Build();
-            
+
             var initializedTransmission = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload2);
             var transmissionContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedTransmission.CorrespondenceId, CorrespondenceStatusExt.Published);
             var transmission = await correspondenceRepository.GetCorrespondenceById(
@@ -1684,14 +1702,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
-                
+
                 mockRegisterService.SetupPartyByIdLookup("991825827", Guid.NewGuid());
 
                 var recipientPartyUuid = Guid.NewGuid();
                 var mainUnitPartyUuid = Guid.NewGuid();
                 mockRegisterService.SetupPartyByIdLookup(orgNo, recipientPartyUuid);
 
-                if (subUnit) mockRegisterService.SetupMainUnitsLookup(orgNo, mainUnitOrgNo, mainUnitPartyUuid); 
+                if (subUnit) mockRegisterService.SetupMainUnitsLookup(orgNo, mainUnitOrgNo, mainUnitPartyUuid);
                 else mockRegisterService.SetupEmptyMainUnitsLookup(orgNo);
 
                 if (hasRequiredRoles)
@@ -1699,7 +1717,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     mockRegisterService.SetupPartyRoleLookup(recipientPartyUuid.ToString(), "daglig-leder");
                     mockRegisterService.SetupPartyRoleLookup(mainUnitPartyUuid.ToString(), "daglig-leder");
                 }
-                else 
+                else
                 {
                     mockRegisterService.SetupPartyRoleLookup(recipientPartyUuid.ToString(), "ANNET");
                     mockRegisterService.SetupPartyRoleLookup(mainUnitPartyUuid.ToString(), "ANNET");
@@ -1712,6 +1730,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([recipientUrn])
+                .WithIsConfidential(true)
                 .Build();
 
             // Act
@@ -1726,7 +1745,458 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 Assert.Contains("lack required roles", errorContent);
             }
         }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithPropertyListTooLong_ReturnsBadRequest()
+        {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithPropertyList(new Dictionary<string, string> { { "key", "value" },
+                { "key2", "value2" },
+                { "key3", "value3" },
+                { "key4", "value4" },
+                { "key5", "value5" },
+                { "key6", "value6" },
+                { "key7", "value7" },
+                { "key8", "value8" },
+                { "key9", "value9" },
+                { "key10", "value10" },
+                { "key11", "value11" } })
+                .Build();
+
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            var correspondenceContent = await initializeResponse.Content.ReadAsStringAsync();
+            Assert.Equal(HttpStatusCode.BadRequest, initializeResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_TransmissionScheduledAtRequestedPublishTime_NotPublishedBefore()
+        {
+            // Arrange
+            var futurePublishTime = DateTimeOffset.UtcNow.AddHours(2);
+
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Correspondence")
+                .Build();
+
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var dialogId = correspondence?.ExternalReferences
+                .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Transmission Correspondence")
+                .WithExternalReferencesDialogId(dialogId)
+                .WithRequestedPublishTime(futurePublishTime)
+                .Build();
+
+            // Act
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+            Assert.Equal(HttpStatusCode.OK, transmissionResponse.StatusCode);
+
+            var transmissionContent = await transmissionResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(transmissionContent);
+
+            var transmissionId = transmissionContent.Correspondences.First().CorrespondenceId;
+
+            // Assert 
+            var statusResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{transmissionId}");
+            statusResponse.EnsureSuccessStatusCode();
+            var statusContent = await statusResponse.Content.ReadFromJsonAsync<GetCorrespondenceOverviewResponse>(_responseSerializerOptions);
+
+            Assert.NotNull(statusContent);
+            Assert.NotEqual("Published", statusContent.Status.ToString());
+
+            var transmissionEntity = await correspondenceRepository.GetCorrespondenceById(
+                transmissionId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var transmissionReference = transmissionEntity?.ExternalReferences
+                .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId);
+
+            // The transmission reference should contain a dialog id, but not a transmission id as this is set upon publishing
+            Assert.NotNull(transmissionReference);
+            Assert.Equal(1, transmissionEntity?.ExternalReferences.Count);
+        }
+        [Fact]
+        public async Task InitializeCorrespondenceTransmission_WithTwoRecipients_ReturnsBadRequest()
+        {
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .Build();
+
+            // Act
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var externalReference = correspondence?.ExternalReferences;
+            Assert.NotNull(externalReference);
+            var dialogId = externalReference.First().ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients(["26818099001", "07827199405"])
+                .WithExternalReferencesDialogId(dialogId)
+                .Build();
+
+            // Act
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+        }
+
+
+        [Fact]
+        public async Task InitializeCorrespondenceTransmission_WithRecipientMismatch_ReturnsBadRequest()
+        {
+            // Create a custom factory with mock validation that returns false for mismatched recipients
+            var mockDialogportenService = new Mock<IDialogportenService>();
+            mockDialogportenService
+                .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+                .ReturnsAsync(Guid.NewGuid().ToString());
+            mockDialogportenService
+                .Setup(x => x.CreateDialogTransmission(It.IsAny<Guid>()))
+                .ReturnsAsync(Guid.NewGuid().ToString());
+            mockDialogportenService
+                .Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false); // Different recipient should fail validation
+
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var serviceDescriptor = services.FirstOrDefault(descriptor => descriptor.ServiceType == typeof(IDialogportenService));
+                if (serviceDescriptor != null)
+                {
+                    services.Remove(serviceDescriptor);
+                }
+                services.AddScoped(_ => mockDialogportenService.Object);
+            });
+            var client = customFactory.CreateSenderClient();
+
+
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .WithRecipients(["26818099001"])
+                .Build();
+
+            // Act
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(client, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = customFactory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var externalReference = correspondence?.ExternalReferences;
+            Assert.NotNull(externalReference);
+            var dialogId = externalReference.First().ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients(["07827199405"]) // Different recipient than original correspondence
+                .WithExternalReferencesDialogId(dialogId)
+                .Build();
+
+            // Act
+            var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithIdempotentKeyAndMultipleRecipients_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .WithIdempotentKey(Guid.NewGuid())
+                .WithRecipients(["26818099001", "07827199405"])
+                .Build();
+
+            // Act
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithDialogIdNotGuid_ReturnsBadRequest()
+        {
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("not-a-guid")
+                .Build();
+
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            var correspondenceContent = await initializeResponse.Content.ReadAsStringAsync();
+            Assert.Equal(HttpStatusCode.BadRequest, initializeResponse.StatusCode);
+            Assert.Contains(CorrespondenceErrors.InvalidCorrespondenceDialogId.Message, correspondenceContent);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_CreateTransmission_WithDifferentResource_SameServiceOwner_Succeeds()
+        {
+            // Arrange
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockDialogporten = new Mock<IDialogportenService>();
+                mockDialogporten
+                    .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+                    .ReturnsAsync(Guid.NewGuid().ToString());
+                mockDialogporten
+                    .Setup(x => x.CreateDialogTransmission(It.IsAny<Guid>()))
+                    .ReturnsAsync(Guid.NewGuid().ToString());
+                mockDialogporten
+                    .Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+                mockDialogporten
+                    .Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IDialogportenService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockDialogporten.Object);
+            });
+
+            var client = customFactory.CreateSenderClient();
+
+            
+            var initialCorrespondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Initial Correspondence")
+                .WithResourceId("resource-A")
+                .Build();
+
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(client, _responseSerializerOptions, initialCorrespondence);
+            var published = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = customFactory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var dialogId = correspondence?.ExternalReferences
+                .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            // Act
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Transmission - Different Resource Same Owner")
+                .WithExternalReferencesDialogId(dialogId!)
+                .WithResourceId("resource-B")
+                .Build();
+
+            var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, transmissionResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_CreateTransmission_WithDifferentServiceOwner_ReturnsBadRequest()
+        {
+            // Arrange
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockDialogporten = new Mock<IDialogportenService>();
+                mockDialogporten
+                    .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+                    .ReturnsAsync(Guid.NewGuid().ToString());
+                mockDialogporten
+                    .Setup(x => x.CreateDialogTransmission(It.IsAny<Guid>()))
+                    .ReturnsAsync(Guid.NewGuid().ToString());
+                mockDialogporten
+                    .Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(false);
+                mockDialogporten
+                    .Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IDialogportenService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockDialogporten.Object);
+            });
+
+            var client = customFactory.CreateSenderClient();
+
+
+            var initialCorrespondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Initial correspondence")
+                .WithResourceId("resource-1")
+                .Build();
+
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(client, _responseSerializerOptions, initialCorrespondence);
+            var _ = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = customFactory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var dialogId = correspondence?.ExternalReferences
+                .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            // Act
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("Transmission")
+                .WithExternalReferencesDialogId(dialogId!)
+                .WithResourceId("Resource-2 with different owner")
+                .Build();
+
+            var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+            var content = await transmissionResponse.Content.ReadAsStringAsync();
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            Assert.Contains(CorrespondenceErrors.InvalidServiceOwner.Message, content);
+        }
+        
+        [Fact]
+        public async Task InitializeCorrespondenceTransmission_WithConfirmationNeeded_ReturnsBadRequest()
+        {
+            // Arrange
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .Build();
+
+
+            // Act
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var externalReference = correspondence?.ExternalReferences;
+            var dialogId = externalReference.First().ReferenceValue;
+            Assert.NotNull(dialogId);
+
+
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId(dialogId)
+                .WithConfirmationNeeded(true)
+                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(5))
+                .Build();
+
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            var responseContent = await transmissionResponse.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, responseContent);
+
+
+            
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondenceTransmission_WithReplyOptions_ReturnsBadRequest()
+        {
+            // Arrange
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .Build();
+
+
+            // Act
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(
+                initializedCorrespondence.CorrespondenceId,
+                includeStatus: false,
+                includeContent: false,
+                includeForwardingEvents: false,
+                cancellationToken: CancellationToken.None);
+
+            var externalReference = correspondence?.ExternalReferences;
+            var dialogId = externalReference.First().ReferenceValue;
+            Assert.NotNull(dialogId);
+
+            var replyOptions = new List<CorrespondenceReplyOptionExt>
+            {
+                new CorrespondenceReplyOptionExt
+                {
+                LinkURL = "https://test.no",
+                LinkText = "test"
+
+                }
+            };
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId(dialogId)
+                .WithReplyOptions(replyOptions)
+                .Build();
+
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, await transmissionResponse.Content.ReadAsStringAsync());
+    }
     }
 }
-
-

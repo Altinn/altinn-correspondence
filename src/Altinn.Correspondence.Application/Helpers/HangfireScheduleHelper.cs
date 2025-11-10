@@ -11,9 +11,9 @@ using Microsoft.Extensions.Logging;
 namespace Altinn.Correspondence.Application.Helpers
 {
     public class HangfireScheduleHelper(IBackgroundJobClient backgroundJobClient,
-                                        IHybridCacheWrapper hybridCacheWrapper,
-                                        ICorrespondenceRepository correspondenceRepository,
-                                        ILogger<HangfireScheduleHelper> logger)
+        IHybridCacheWrapper hybridCacheWrapper,
+        ICorrespondenceRepository correspondenceRepository,
+        ILogger<HangfireScheduleHelper> logger)
     {
 
         public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)
@@ -30,9 +30,8 @@ namespace Altinn.Correspondence.Application.Helpers
             }
         }
 
-        public async Task SchedulePublishAfterTransmissionCreated(Guid correspondenceId, CancellationToken cancellationToken)
+        public async Task SchedulePublishAfterTransmissionCreated(Guid correspondenceId, string transmissionJobId, CancellationToken cancellationToken)
         {
-            var transmissionJobId = await hybridCacheWrapper.GetAsync<string?>($"transmissionJobId_{correspondenceId}", cancellationToken: cancellationToken);
             if (transmissionJobId is null)
             {
                 logger.LogError("Could not find transmissionJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
@@ -62,16 +61,6 @@ namespace Altinn.Correspondence.Application.Helpers
 
         private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now
 
-        public async Task CreateActivityAfterDialogCreated(Guid correspondenceId, NotificationOrderRequest notification, DateTimeOffset operationTimestamp)
-        {
-            var dialogJobId = await hybridCacheWrapper.GetAsync<string?>($"dialogJobId_{correspondenceId}");
-            if (dialogJobId is null)
-            {
-                logger.LogError("Could not find dialogJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
-                return;
-            }
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJobId, (dialogPortenService) => dialogPortenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, operationTimestamp, notification.RequestedSendTime.ToString("yyyy-MM-dd HH:mm")), JobContinuationOptions.OnlyOnSucceededState);
-        }
 
         public async Task CreateActivityAfterDialogCreated(Guid correspondenceId, NotificationOrderRequestV2 notification, DateTimeOffset operationTimestamp)
         {

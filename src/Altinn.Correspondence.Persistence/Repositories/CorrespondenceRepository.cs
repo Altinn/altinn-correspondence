@@ -11,6 +11,33 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithStatuses =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.Statuses)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
+
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithNotifications =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.Notifications)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
+
+        private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithForwardingEvents =
+            EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
+                ctx.Correspondences
+                   .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
+                   .Include(c => c.ForwardingEvents)
+                   .Where(c => c.Id == id)
+                   .FirstOrDefault());
+
         public async Task<CorrespondenceEntity> CreateCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
@@ -80,7 +107,35 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 correspondences = correspondences.Include(c => c.ForwardingEvents);
             }
 
-            return await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+            var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
+
+            if (correspondence != null && includeContent && correspondence.Content?.Attachments != null)
+            {
+                correspondence.Content.Attachments = correspondence.Content.Attachments
+                    .OrderBy(a => a.Created)
+                    .ThenBy(a => a.Id)
+                    .ToList();
+            }
+
+            return correspondence;
+        }
+
+        public async Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
+            Guid guid,
+            CorrespondenceSyncType syncType,
+            CancellationToken cancellationToken)
+        {
+            logger.LogDebug("GetCorrespondenceByIdForSync {Id} syncType={syncType}", guid, syncType);
+
+            Task<CorrespondenceEntity?> correspondence = syncType switch
+            {
+                CorrespondenceSyncType.StatusEvents => _getForSyncWithStatuses(_context, guid),
+                CorrespondenceSyncType.NotificationEvents => _getForSyncWithNotifications(_context, guid),
+                CorrespondenceSyncType.ForwardingEvents => _getForSyncWithForwardingEvents(_context, guid),
+                _ => throw new NotImplementedException($"Unsupported sync type: {syncType}")
+            };
+
+            return await correspondence;
         }
 
         public async Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(int altinn2Id, CancellationToken cancellationToken)
@@ -191,15 +246,43 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .SingleOrDefaultAsync(cancellationToken);
         }
 
-        public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default)
+        public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, DateTimeOffset? cursorCreated, Guid? cursorId, DateTimeOffset? createdFrom, DateTimeOffset? createdTo, CancellationToken cancellationToken = default)
         {
-            return _context.Correspondences
-                .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating) // Only include correspondences that are not already migrated 
-                .ExcludePurged() // Exclude purged correspondences
-                .ExcludeSelfIdentifiedRecipients() // Exclude correspondences belonging to self identified users
+            var query = _context.Correspondences
+                .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating)
+                .ExcludePurged()
+                .ExcludeSelfIdentifiedRecipients()
+                .AsQueryable();
+
+            if (createdFrom.HasValue)
+            {
+                query = query.Where(c => c.Created >= createdFrom.Value);
+            }
+
+            if (createdTo.HasValue)
+            {
+                query = query.Where(c => c.Created < createdTo.Value);
+            } else
+            {
+                query = query.Where(c => c.Created <= DateTimeOffset.UtcNow.AddMonths(-1));
+            }
+
+            if (cursorCreated.HasValue)
+            {
+                if (cursorId.HasValue)
+                {
+                    query = query.Where(c => c.Created < cursorCreated.Value ||
+                                             (c.Created == cursorCreated.Value && c.Id > cursorId.Value));
+                }
+                else
+                {
+                    query = query.Where(c => c.Created < cursorCreated.Value);
+                }
+            }
+
+            return query
                 .OrderByDescending(c => c.Created)
                 .ThenBy(c => c.Id)
-                .Skip(offset)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
         }

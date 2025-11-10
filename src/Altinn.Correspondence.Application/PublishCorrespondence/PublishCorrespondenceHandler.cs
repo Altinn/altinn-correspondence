@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -17,6 +16,7 @@ using OneOf;
 using Slack.Webhooks;
 using System.Security.Claims;
 using Altinn.Correspondence.Integrations.Redlock;
+using Altinn.Correspondence.Application.SendNotificationOrder;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -32,7 +32,6 @@ public class PublishCorrespondenceHandler(
     IBackgroundJobClient backgroundJobClient,
     IDistributedLockHelper distributedLockHelper) : IHandler<Guid, Task>
 {
-
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting publish process for correspondence {CorrespondenceId}", correspondenceId);
@@ -110,8 +109,12 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";
         }
-        else if (!string.IsNullOrEmpty(recipientParty!.OrgNumber) && !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken))
+        else if (
+            !string.IsNullOrEmpty(recipientParty!.OrgNumber) && 
+            !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken) && 
+            correspondence.IsConfidential) 
         {
+            // Only check for confidential pending #1444. Remove IsConfidential condition after Register has been updated.
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
         }
         CorrespondenceStatusEntity status;
@@ -136,12 +139,10 @@ public class PublishCorrespondenceHandler(
                     logger.LogError("Failed to send Slack notification for failed correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
-                logger.LogInformation("Cancelling notifications for failed correspondence {CorrespondenceId}", correspondenceId);
-                var cancelNotificationJob = backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 if (hasDialogportenDialog)
                 {
                     logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
-                    backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
                 }
             }
             else
@@ -158,6 +159,7 @@ public class PublishCorrespondenceHandler(
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
                 backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, operationTimestamp));
+                backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);

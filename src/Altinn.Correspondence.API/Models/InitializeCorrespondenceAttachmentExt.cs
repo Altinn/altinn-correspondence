@@ -21,11 +21,5 @@ namespace Altinn.Correspondence.API.Models
         [JsonPropertyName("dataLocationType")]
         [Required]
         public InitializeAttachmentDataLocationTypeExt DataLocationType { get; set; }
-
-        /// <summary>
-        /// The expiration time of the attachment
-        /// </summary>
-        [JsonPropertyName("expirationTime")]
-        public DateTimeOffset ExpirationTime { get; set; }
     }
 }

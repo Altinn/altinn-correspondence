@@ -42,6 +42,11 @@ namespace Altinn.Correspondence.Core.Repositories
             CancellationToken cancellationToken,
             bool includeIsMigrating = false);
 
+        Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
+            Guid guid,
+            CorrespondenceSyncType syncType,
+            CancellationToken cancellationToken);
+
         Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(
             int altinn2Id,
             CancellationToken cancellationToken);
@@ -53,7 +58,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task UpdatePublished(Guid correspondenceId, DateTimeOffset published, CancellationToken cancellationToken);
         Task UpdateIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken);
         Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default);
-        Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default);
+        Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, DateTimeOffset? cursorCreated, Guid? cursorId, DateTimeOffset? createdFrom, DateTimeOffset? createdTo, CancellationToken cancellationToken = default);
         Task<List<CorrespondenceEntity>> GetCorrespondencesWindowAfter(
             int limit,
             DateTimeOffset? lastCreated,

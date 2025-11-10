@@ -38,7 +38,14 @@ public class SlackExceptionNotificationHandler(
         );
         try
         {
-            await SendSlackNotificationWithMessage(exceptionMessage);
+            if (!sanitizedPath.StartsWith("/correspondence/api/v1/migration", StringComparison.OrdinalIgnoreCase))
+            {
+                await SendSlackNotificationWithMessage(exceptionMessage);
+            }
+            else
+            {
+                logger.LogWarning("Skipping Slack notification for exception on migration endpoint");
+            }
             var statusCode = HttpStatusCode.InternalServerError;
             var problemDetails = new ProblemDetails
             {

@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Helpers;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
+    [SetJobOrigin("migrate")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [Route("correspondence/api/v1/migration")]
     [Authorize]

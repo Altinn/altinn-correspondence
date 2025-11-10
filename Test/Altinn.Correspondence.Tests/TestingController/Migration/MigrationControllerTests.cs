@@ -561,7 +561,48 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.NotNull(correspondence);
         Assert.True(correspondence.IsMigrating);
     }
-    
+
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_EmptyTitle_Failsvalidation()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
+            .WithMessageTitle(String.Empty)
+            .Build();
+
+        SetNotificationHistory(migrateCorrespondenceExt);
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.False(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+    }
+
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_NullTitle_FailsValidation()
+    {
+        var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithMessageTitle(null)
+            .Build();
+
+        var response = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        Assert.False(response.IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_WhitespaceTitle_FailsValidation()
+    {
+        var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithMessageTitle("   ")
+            .Build();
+
+        var response = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        Assert.False(response.IsSuccessStatusCode);
+    }
+
     private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
     {
         migrateCorrespondenceExt.NotificationHistory =

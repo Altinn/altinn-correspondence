@@ -28,4 +28,6 @@ public class GetAttachmentOverviewResponse
     public string DataType { get; set; } = string.Empty;
 
     public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();
+
+    public DateTimeOffset? ExpirationTime { get; set; } = null;
 }

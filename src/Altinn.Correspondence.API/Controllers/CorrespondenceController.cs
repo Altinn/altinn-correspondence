@@ -65,9 +65,18 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
+        /// <li>1036: ResourceId must match an existing resource in the resource registry</li>
+        /// <li>1037: Message title cannot exceed 255 characters</li>
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
         /// <li>1039: Message sender must be plain text</li>
+        /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
         /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
+        /// <li>1045: Transmission correspondences only support one recipient</li>
+        /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
+        /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
+        /// <li>1048: DialogId must be a valid non-empty GUID</li>
+        /// <li>1049: Could not find dialog in Dialogporten with the given DialogId</li>
+        /// <li>1050: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -86,9 +95,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </ul></response>
         /// <response code="401"><ul>
         /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
-        /// </ul></response>
-        /// <response code="403"><ul>
-        /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
         /// </ul></response>
         /// <response code="404"><ul>
         /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>
@@ -118,8 +124,11 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Initialize correspondences");
             
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request);
-            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
+            var result = InitializeCorrespondencesMapper.MapToRequest(request);
+            if (result.IsT1)
+                return BadRequest(result.AsT1.Message); 
+            var mappedRequest = result.AsT0;
+            var commandResult = await handler.Process(mappedRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),
@@ -159,9 +168,18 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1023: Invalid language chosen. Supported languages is Norsk bokmål (nb), Nynorsk (nn) and English (en)</li>
         /// <li>1033: The idempotency key must be a valid non-empty GUID</li>
         /// <li>1035: Reply options must be well-formed URIs and HTTPS with a max length of 255 characters</li>
+        /// <li>1036: ResourceId must match an existing resource in the resource registry</li>
+        /// <li>1037: Message title cannot exceed 255 characters</li>
         /// <li>1038: A correspondence cannot contain more than 100 attachments in total</li>
         /// <li>1039: Message sender must be plain text</li>
+        /// <li>1042: Message summary, if not null, must be between 0 and 255 characters long</li>
         /// <li>1044: The following recipients lack required roles to read the correspondence: {recipients}</li>
+        /// <li>1045: Transmission correspondences only support one recipient</li>
+        /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
+        /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
+        /// <li>1048: DialogId must be a valid non-empty GUID</li>
+        /// <li>1049: Could not find dialog in Dialogporten with the given DialogId</li>
+        /// <li>1050: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
@@ -188,9 +206,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// </ul></response>
         /// <response code="401"><ul>
         /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
-        /// </ul></response>
-        /// <response code="403"><ul>
-        /// <li>4008: Resource not whitelisted. Contact us on Slack or servicedesk@altinn.no</li>
         /// </ul></response>
         /// <response code="404"><ul>
         /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>
@@ -226,8 +241,11 @@ namespace Altinn.Correspondence.API.Controllers
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
             
-            var commandRequest = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
-            var commandResult = await handler.Process(commandRequest, HttpContext.User, cancellationToken);
+            var result = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
+            if (result.IsT1)
+                return BadRequest(result.AsT1.Message); 
+            var mappedRequest = result.AsT0;
+            var commandResult = await handler.Process(mappedRequest, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(InitializeCorrespondencesMapper.MapToExternal(data)),
@@ -494,6 +512,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1014: Correspondence has already been purged</li>
         /// <li>1015: Could not retrieve highest status for correspondence</li>
         /// <li>1026: Cannot archive or delete a correspondence which has not been confirmed when confirmation is required</li>
+        /// <li>1043: Cannot purge correspondence linked to a Dialogporten Transmission</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li> 
         /// </ul></response>
         /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>

@@ -24,6 +24,8 @@ public static class DependencyInjection
             config.UseLogProvider(new AspNetCoreLogProvider(provider.GetRequiredService<ILoggerFactory>()));
             config.UseFilter(new HangfireAppRequestFilter());
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+            config.UseFilter(new BackgroundJobClientFilter());
+            config.UseFilter(new BackgroundJobServerFilter());
             config.UseFilter(
                 new SlackExceptionHandler(
                     provider.GetRequiredService<SlackExceptionNotificationHandler>(),
@@ -34,7 +36,17 @@ public static class DependencyInjection
         services.AddHangfireServer(options =>
         {
             options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
-            options.Queues = generalSettings.EnableMigrationQueue ? [HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration] : [HangfireQueues.Default, HangfireQueues.LiveMigration];
+            options.Queues = [ HangfireQueues.Default ];
         });
+        
+        if (generalSettings.MigrationWorkerCountPerReplica > 0)
+        {
+            services.AddHangfireServer(options =>
+            {
+                options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
+                options.WorkerCount = generalSettings.MigrationWorkerCountPerReplica;
+                options.Queues = [HangfireQueues.LiveMigration, HangfireQueues.Migration];
+            });
+        };
     }
 }

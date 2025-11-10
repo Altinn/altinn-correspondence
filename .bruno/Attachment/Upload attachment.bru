@@ -1,0 +1,28 @@
+meta {
+  name: Upload attachment
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{correspondence_base_url}}/correspondence/api/v1/attachment/{{attachment_id}}/upload
+  body: file
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/octet-stream
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+body:file {
+  file: @file(collection.bru)
+}
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("attachmentId", responseData.attachmentId);
+}

@@ -10,10 +10,10 @@ public static class CorrespondenceStatusExtensions
             .OrderByDescending(s => s.Status).FirstOrDefault();
         return statusEntity;
     }
-    public static CorrespondenceStatusEntity? GetHighestStatusWithoutPurged(this CorrespondenceEntity correspondence)
+    public static CorrespondenceStatusEntity? GetHighestStatusWithoutPurgedAndAttachmentsDownloaded(this CorrespondenceEntity correspondence)
     {
         var statusEntity = correspondence.Statuses
-            .Where(s => !s.Status.IsPurged() && s.Status != CorrespondenceStatus.Fetched)
+            .Where(s => !s.Status.IsPurged() && s.Status != CorrespondenceStatus.Fetched && s.Status != CorrespondenceStatus.AttachmentsDownloaded)
             .OrderByDescending(s => s.Status).FirstOrDefault();
         return statusEntity;
     }

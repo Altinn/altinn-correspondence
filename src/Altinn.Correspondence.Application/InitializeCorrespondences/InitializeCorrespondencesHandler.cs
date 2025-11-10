@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
-using Altinn.Correspondence.Application.CreateNotification;
+using Altinn.Correspondence.Application.CreateNotificationOrder;
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -52,20 +51,11 @@ public class InitializeCorrespondencesHandler(
     {
         var validatedData = new ValidatedData();
 
-        if (!string.IsNullOrWhiteSpace(generalSettings.Value.ResourceWhitelist))
-        {
-            if (!generalSettings.Value.ResourceWhitelist.Split(',').Contains(request.Correspondence.ResourceId))
-            {
-                logger.LogError("Resource {ResourceId} is not whitelisted", request.Correspondence.ResourceId);
-                return AuthorizationErrors.ResourceNotWhitelisted;
-            }
-        }
-
         var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Correspondence.ResourceId, cancellationToken) ?? string.Empty;
         if (serviceOwnerOrgNumber is null || serviceOwnerOrgNumber == string.Empty)
         {
             logger.LogError("Service owner/sender's organization number (9 digits) not found for resource {ResourceId}", request.Correspondence.ResourceId);
-            return CorrespondenceErrors.ServiceOwnerOrgNumberNotFound;
+            return CorrespondenceErrors.InvalidResource;
         }
         validatedData.ServiceOwnerOrgNumber = serviceOwnerOrgNumber;
 
@@ -151,9 +141,23 @@ public class InitializeCorrespondencesHandler(
             logger.LogWarning("Sender validation failed: {Error}", senderError);
             return senderError;
         }
+        var dialogId = request.Correspondence.ExternalReferences?.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (!string.IsNullOrWhiteSpace(dialogId))
+        {
+            if (!Guid.TryParse(dialogId, out _))
+            {
+                logger.LogWarning("Provided DialogId {DialogId} is not a valid GUID", dialogId);
+                return CorrespondenceErrors.InvalidCorrespondenceDialogId;
+            }
+            var validationResult = await ValidateTransmissionRequest(request.Correspondence, request, cancellationToken);
+            if (validationResult.IsT1)
+            {
+                return validationResult.AsT1;
+            }
+        }
 
         var existingAttachmentIds = request.ExistingAttachments;
-        var uploadAttachments = request.Attachments;
+        var uploadAttachmentFiles = request.Attachments;
         var uploadAttachmentMetadata = request.Correspondence.Content.Attachments;
 
         logger.LogDebug("Validating {ExistingCount} existing attachments", existingAttachmentIds.Count);
@@ -181,12 +185,28 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.AttachmentsNotPublished;
         }
 
-        logger.LogDebug("Validating {UploadCount} new attachments", uploadAttachments.Count);
-        var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachments, uploadAttachmentMetadata);
+        logger.LogDebug("Validating {UploadCount} new attachments", uploadAttachmentFiles.Count);
+        var attachmentMetaDataError = initializeCorrespondenceHelper.ValidateAttachmentFiles(uploadAttachmentFiles, uploadAttachmentMetadata);
         if (attachmentMetaDataError != null)
         {
             logger.LogWarning("Attachment validation failed: {Error}", attachmentMetaDataError);
             return attachmentMetaDataError;
+        }
+
+        logger.LogDebug("Validating expiration times for attachments");
+        var uploadAttachments = uploadAttachmentMetadata.Select(a => a.Attachment).Where(a => a != null).Select(a => a!).ToList();
+        var uploadAttachmentsExpirationError = initializeCorrespondenceHelper.ValidateAttachmentsExpiration(uploadAttachments, request.Correspondence.RequestedPublishTime);
+        if (uploadAttachmentsExpirationError != null)
+        {
+            logger.LogWarning("Expiration time validation failed for uploaded attachments: {Error}", uploadAttachmentsExpirationError);
+            return uploadAttachmentsExpirationError;
+        }
+
+        var existingAttachmentsExpirationError = initializeCorrespondenceHelper.ValidateAttachmentsExpiration(existingAttachments, request.Correspondence.RequestedPublishTime);
+        if (existingAttachmentsExpirationError != null)
+        {
+            logger.LogWarning("Expiration time validation failed for existing attachments: {Error}", existingAttachmentsExpirationError);
+            return existingAttachmentsExpirationError;
         }
 
         logger.LogDebug("Validating reply options");
@@ -231,7 +251,7 @@ public class InitializeCorrespondencesHandler(
         }
 
         logger.LogDebug("Uploading {Count} attachments", validatedData.AttachmentsToBeUploaded.Count);
-        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.AttachmentsToBeUploaded, uploadAttachments, partyUuid, cancellationToken);
+        var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.AttachmentsToBeUploaded, uploadAttachmentFiles, partyUuid, cancellationToken);
         if (uploadError != null)
         {
             logger.LogError("Attachment upload failed: {Error}", uploadError);
@@ -270,6 +290,11 @@ public class InitializeCorrespondencesHandler(
 
         if (request.IdempotentKey.HasValue)
         {
+            if (request.Recipients != null && request.Recipients.Count > 1)
+            {
+                logger.LogWarning("IdempotencyKey cannot be used with multiple recipients");
+                return CorrespondenceErrors.IdempotencyKeyNotAllowedWithMultipleRecipients;
+            }
             logger.LogInformation("Checking idempotency key {Key}", request.IdempotentKey.Value);
             var result = await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
             {
@@ -335,10 +360,10 @@ public class InitializeCorrespondencesHandler(
         ValidatedData validatedData,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}", 
-            request.Recipients.Count, 
+        logger.LogInformation("Initializing {correspondenceCount} correspondences for {resourceId}",
+            request.Recipients.Count,
             request.Correspondence.ResourceId.SanitizeForLogging());
-        
+
         var correspondences = new List<CorrespondenceEntity>();
         var serviceOwnerOrgNumber = validatedData.ServiceOwnerOrgNumber;
         foreach (var recipient in request.Recipients)
@@ -349,7 +374,7 @@ public class InitializeCorrespondencesHandler(
             correspondences.Add(correspondence);
         }
         await correspondenceRepository.CreateCorrespondences(correspondences, cancellationToken);
-        
+
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
@@ -380,8 +405,8 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
-            await CreateDialogOrTransmissionJob(correspondence, request, cancellationToken);
-
+            
+            string? notificationJobId = null;
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
             {
@@ -390,18 +415,24 @@ public class InitializeCorrespondencesHandler(
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
                 }
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-
+            
                 if (request.Notification != null)
                 {
-                    // Schedule notification creation as a background job
-                    backgroundJobClient.Enqueue<CreateNotificationHandler>((handler) => handler.Process(new CreateNotificationRequest
+                    notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
                     {
-                        NotificationRequest = request.Notification,
                         CorrespondenceId = correspondence.Id,
+                        NotificationRequest = request.Notification,
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
                     }, cancellationToken));
                 }
             }
+
+            var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
+            if (createJobResult.IsT1)
+            {
+                return createJobResult.AsT1;
+            }
+
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
@@ -432,20 +463,67 @@ public class InitializeCorrespondencesHandler(
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
     }
-    private async Task CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
+    private async Task<OneOf<Task, Error>> ValidateTransmissionRequest(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
+        if (request.Recipients.Count > 1)
+        {
+            return CorrespondenceErrors.TransmissionOnlyAllowsOneRecipient;
+        }
+
+        if (correspondence.ReplyOptions.Count > 0 || correspondence.IsConfirmationNeeded)
+        {
+            return CorrespondenceErrors.TransmissionNotAllowedWithGuiActions;
+        }
+
+        var dialogId = correspondence.ExternalReferences
+            .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        
+        if (string.IsNullOrEmpty(dialogId))
+        {
+            throw new InvalidOperationException("Dialog ID not found on correspondence");
+        }
+        if (!Guid.TryParse(dialogId, out _))
+        {
+            return CorrespondenceErrors.InvalidCorrespondenceDialogId;
+        }
+        var validateResourceOwnerMatch = await dialogportenService.DialogValidForTransmission(dialogId, correspondence.ResourceId, cancellationToken);
+        if (validateResourceOwnerMatch == false)
+        {
+            return CorrespondenceErrors.InvalidServiceOwner;
+        }
+        var expectedRecipient = request.Recipients.First();
+        var recipientMatches = await dialogportenService.ValidateDialogRecipientMatch(dialogId, expectedRecipient, cancellationToken);
+        if (recipientMatches == false)
+        {
+            return CorrespondenceErrors.RecipientMismatch;
+        }
+        else
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private async Task<OneOf<Task, Error>> CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, string? notificationJobId, CancellationToken cancellationToken)
+    {
+        
         bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
         if (hasDialogId)
         {
+            var validationResult = await ValidateTransmissionRequest(correspondence, request, cancellationToken);
+            if (validationResult.IsT1)
+            {
+                return validationResult.AsT1;
+            }
+
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
-            var transmissionJob = backgroundJobClient.Enqueue(() => CreateDialogportenTransmission(correspondence.Id));
-            await hybridCacheWrapper.SetAsync($"transmissionJobId_{correspondence.Id}", transmissionJob, new HybridCacheEntryOptions
+
+            if (!string.IsNullOrEmpty(notificationJobId))
             {
-                Expiration = TimeSpan.FromHours(24)
-            });
-            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
+            }
+            else
             {
-                await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondence.Id, cancellationToken);
+                await ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken);
             }
         }
         else
@@ -458,9 +536,27 @@ public class InitializeCorrespondencesHandler(
             });
             if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+                if (!string.IsNullOrEmpty(notificationJobId))
+                {
+                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+                }
+                else
+                {
+                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
+                }
             }
         }
+
+        return Task.CompletedTask;
+    }
+
+    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
+    {
+        var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
+        if (attachmentsCount == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
+        {
+            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
+        };
     }
 
     private async Task<OneOf<bool, Error>> ValidateRecipientParty(InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
@@ -491,7 +587,19 @@ public class InitializeCorrespondencesHandler(
         }
         if (recipientsWithoutRequiredRoles.Count > 0)
         {
-            return CorrespondenceErrors.RecipientLacksRequiredRolesForCorrespondence(recipientsWithoutRequiredRoles);
+            if (request.Correspondence.IsConfidential)
+            {
+                return CorrespondenceErrors.RecipientLacksRequiredRolesForCorrespondence(recipientsWithoutRequiredRoles);
+            }
+            else
+            {
+                var recipients = string.Join(',', recipientsWithoutRequiredRoles);
+                logger.LogWarning($"Role check failed for {recipients}");
+                backgroundJobClient.Enqueue<SlackNotificationService>(slackNotificationService =>
+                    slackNotificationService.SendSlackMessage(
+                        $"Correspondence recipients {recipients} did not have required roles, " +
+                        $"but check was bypassed pending Altinn Register change. See #1444 for details."));
+            }
         }
 
         return true;

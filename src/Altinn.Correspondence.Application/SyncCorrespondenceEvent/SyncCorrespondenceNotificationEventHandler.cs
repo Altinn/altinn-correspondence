@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -13,15 +14,12 @@ public class SyncCorrespondenceNotificationEventHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceNotificationEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(
+        var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
             request.CorrespondenceId,
-            includeStatus: false,
-            includeContent: false,
-            includeForwardingEvents: false, 
-            cancellationToken, 
-            includeIsMigrating: true);
-        
-        if(correspondence == null)
+            CorrespondenceSyncType.NotificationEvents,
+            cancellationToken);
+
+        if (correspondence == null)
         {
             logger.LogError("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;

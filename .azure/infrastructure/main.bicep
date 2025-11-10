@@ -29,8 +29,6 @@ param idportenClientSecret string
 param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
-param resourceWhiteList string
-@secure()
 param statisticsApiKey string
 
 @secure()
@@ -54,8 +52,6 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
     vaultName: sourceKeyVaultName
     location: location
     tenant_id: tenantId
-    test_client_id: test_client_id
-    environment: environment
   }
 }
 
@@ -98,10 +94,6 @@ var secrets = [
   {
     name: 'idporten-client-secret'
     value: idportenClientSecret
-  }
-  {
-    name: 'resource-whitelist'
-    value: resourceWhiteList
   }
   {
     name: 'statistics-api-key'
@@ -162,6 +154,7 @@ module postgresql '../modules/postgreSql/create.bicep' = {
     tenantId: tenantId
     prodLikeEnvironment: prodLikeEnvironment
     logAnalyticsWorkspaceId: containerAppEnv.outputs.logAnalyticsWorkspaceId
+    auditLogAnalyticsWorkspaceId: containerAppEnv.outputs.auditLogAnalyticsWorkspaceId
     environment: environment
   }
 }

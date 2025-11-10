@@ -12,7 +12,6 @@ internal static class InitializeCorrespondenceAttachmentMapper
         return new CorrespondenceAttachmentEntity
         {
             Created = DateTimeOffset.UtcNow,
-            ExpirationTime = initializeAttachmentExt.ExpirationTime,
             Attachment = new AttachmentEntity
             {
                 Created = DateTimeOffset.UtcNow,
@@ -25,6 +24,7 @@ internal static class InitializeCorrespondenceAttachmentMapper
                 Checksum = initializeAttachmentExt.Checksum,
                 IsEncrypted = initializeAttachmentExt.IsEncrypted,
                 DataLocationType = (AttachmentDataLocationType)initializeAttachmentExt.DataLocationType,
+                ExpirationTime = initializeAttachmentExt.ExpirationTime,
             }
         };
     }
