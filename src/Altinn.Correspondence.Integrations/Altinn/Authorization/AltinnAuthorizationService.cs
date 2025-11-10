@@ -69,6 +69,15 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             cancellationToken);
 
+    public Task<bool> CheckAttachmentAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default) =>
+        CheckUserAccess(
+            user,
+            correspondence.Content.Attachments.First().Attachment.ResourceId,
+            correspondence.Recipient.WithoutPrefix(),
+            correspondence.Id.ToString(),
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
+            cancellationToken);
+
     public Task<bool> CheckAccessAsAny(ClaimsPrincipal? user, string resource, string party, CancellationToken cancellationToken) =>
         CheckUserAccess(
             user,

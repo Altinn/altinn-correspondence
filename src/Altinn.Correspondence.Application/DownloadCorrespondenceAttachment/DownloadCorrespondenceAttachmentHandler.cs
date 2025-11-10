@@ -45,7 +45,7 @@ public class DownloadCorrespondenceAttachmentHandler(
             _logger.LogError("Attachment with id {AttachmentId} not found in correspondence {CorrespondenceId}", request.AttachmentId, request.CorrespondenceId);
             return AttachmentErrors.AttachmentNotFound;
         }
-        var hasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken);
+        var hasAccess = await altinnAuthorizationService.CheckAttachmentAccessAsRecipient(user, correspondence, cancellationToken);
         if (!hasAccess)
         {
             _logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
