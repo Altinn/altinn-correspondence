@@ -95,7 +95,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static string GetDialogStatusForCorrespondence(CorrespondenceEntity correspondence)
         {
-            if (correspondence.IsConfirmationNeeded)
+            if (correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
             {
                 return "RequiresAttention";
             }
@@ -385,7 +385,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     });
                 }
             }
-            if (correspondence.IsConfirmationNeeded)
+            if (correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
             {
                 guiActions.Add(new GuiAction()
                 {
