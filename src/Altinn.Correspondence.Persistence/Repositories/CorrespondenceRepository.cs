@@ -266,8 +266,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 if (cursorId.HasValue)
                 {
-                    query = query.Where(c => c.Created < cursorCreated.Value ||
-                                             (c.Created == cursorCreated.Value && c.Id > cursorId.Value));
+                    query = query.Where(c => c.Created < cursorCreated.Value);
                 }
                 else
                 {
