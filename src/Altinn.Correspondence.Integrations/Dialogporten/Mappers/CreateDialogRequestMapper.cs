@@ -38,7 +38,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
                 CreatedAt = correspondence.Created,
-                UpdatedAt = correspondence.Published != null && correspondence.Published < DateTime.UtcNow ? correspondence.Published : null,
+                UpdatedAt = correspondence.Published != null && correspondence.Published < currentDateTimeUtcNow ? correspondence.Published : null,
                 VisibleFrom = correspondence.RequestedPublishTime < currentDateTimeUtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 DueAt = dueAt,
