@@ -38,7 +38,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
                 CreatedAt = correspondence.Created,
-                UpdatedAt = correspondence.Altinn2CorrespondenceId is not null ? GetUpdatedAt(correspondence, currentDateTimeUtcNow) : null,
+                UpdatedAt = correspondence.Published != null && correspondence.Published < currentDateTimeUtcNow ? correspondence.Published : null,
                 VisibleFrom = correspondence.RequestedPublishTime < currentDateTimeUtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 DueAt = dueAt,
@@ -53,27 +53,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
             };
-        }
-
-        /// <summary>
-        /// Method to get appropriate UpdatedAt value for Dialogporten that is not in the future.
-        /// This is primarily to handle cases where a Migrated correspondence has a "Published" status in the future due to a future RequestedVisibleTime
-        /// </summary>
-        /// <param name="correspondence">The correspondence to get for</param>
-        /// <param name="currentUtcNow">Current UTCNow time, to enable unit testing</param>
-        /// <returns></returns>
-        private static DateTimeOffset GetUpdatedAt(CorrespondenceEntity correspondence, DateTimeOffset currentUtcNow)
-        {
-            var latestStatusChange = (correspondence.Statuses is { Count: > 0 })
-                ? correspondence.Statuses.Max(s => s.StatusChanged)
-                : correspondence.Created;
-
-            if (latestStatusChange > currentUtcNow)
-            {
-                latestStatusChange = currentUtcNow;
-            }
-
-            return latestStatusChange;
         }
 
         private static string GetSystemLabelForCorrespondence(CorrespondenceEntity correspondence, bool isSoftDeleted)

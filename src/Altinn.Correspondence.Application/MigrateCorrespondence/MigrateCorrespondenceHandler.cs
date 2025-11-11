@@ -113,7 +113,7 @@ public class MigrateCorrespondenceHandler(
                 }
             }
         }
-        else if (request.BatchSize is not null)
+        else if (request.BatchSize is not null && request.BatchSize > 0)
         {
             if (!request.AsyncProcessing)
             {
@@ -140,7 +140,7 @@ public class MigrateCorrespondenceHandler(
                 var migrateRequest = new MakeCorrespondenceAvailableRequest()
                 {
                     AsyncProcessing = true,
-                    BatchSize = currentBatch,
+                    BatchSize = request.BatchSize,
                     CreateEvents = request.CreateEvents,
                     CursorCreated = request.CursorCreated,
                     CursorId = request.CursorId,
@@ -153,13 +153,13 @@ public class MigrateCorrespondenceHandler(
             else
             {
                 logger.LogInformation("Querying db");
-                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
+                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(currentBatch, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
                 logger.LogInformation("Found {count} correspondences", correspondences.Count);
                 var last = correspondences.Last();
                 var migrateRequest = new MakeCorrespondenceAvailableRequest()
                 {
                     AsyncProcessing = true,
-                    BatchSize = request.BatchSize,
+                    BatchSize = request.BatchSize - correspondences.Count,
                     CreateEvents = request.CreateEvents,
                     CursorCreated = last.Created,
                     CursorId = last.Id,
