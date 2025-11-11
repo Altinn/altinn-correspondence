@@ -54,7 +54,7 @@ namespace Altinn.Correspondence.Tests.Factories
         public CorrespondenceEntityBuilder WithRequestedPublishTime(DateTimeOffset requestedPublishTime)
         {
             _correspondenceEntity.RequestedPublishTime = requestedPublishTime;
-            if (requestedPublishTime < DateTime.UtcNow)
+            if (requestedPublishTime < DateTimeOffset.UtcNow)
             {
                 _correspondenceEntity.Published = requestedPublishTime;
             }
