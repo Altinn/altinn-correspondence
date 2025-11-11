@@ -471,7 +471,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var downloadResponse = await client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
             Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
         }
-        
+
         [Fact]
         public async Task DownloadCorrespondenceAttachment_WithoutAccessToAttachment_ReturnsBadRequest()
         {
@@ -505,9 +505,60 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var correspondenceId = correspondence.CorrespondenceId;
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
 
-             // Assert
+            // Assert
             var downloadResponse = await client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
             Assert.Equal(HttpStatusCode.Unauthorized, downloadResponse.StatusCode);
         }
+        
+        [Fact]
+        public async Task DownloadCorrespondenceAttachment_AccessToOneOutOfTwoAttachments_Succeeds_Then_ReturnsBadRequest()
+        {
+            var allowedId = Guid.Empty;
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
+                mockAltinnAuthorization
+                    .Setup(x => x.CheckAttachmentAccessAsRecipient(
+                        It.IsAny<ClaimsPrincipal?>(),
+                        It.IsAny<CorrespondenceEntity>(),
+                        It.IsAny<AttachmentEntity>(),
+                        It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((ClaimsPrincipal? user, CorrespondenceEntity correspondence, AttachmentEntity attachment, CancellationToken ct) =>
+                    {
+                        return attachment.Id == allowedId;
+                    });
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IAltinnAuthorizationService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockAltinnAuthorization.Object);
+            });
+
+            var recipientClient = customFactory.CreateClientWithAddedClaims(("notSender", "true"), ("scope", AuthorizationConstants.RecipientScope));
+
+            // Arrange
+            var attachmentAllowedId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+            allowedId = attachmentAllowedId;
+            var attachmentDeniedId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentAllowedId, attachmentDeniedId])
+                .Build();
+
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            initializeResponse.EnsureSuccessStatusCode();
+            var initializeContent = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = initializeContent!.Correspondences.First().CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+            
+            // Act & Assert
+            var downloadAllowed = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentAllowedId}/download");
+            Assert.Equal(HttpStatusCode.OK, downloadAllowed.StatusCode);
+
+            // Act & Assert 
+            var downloadDenied = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentDeniedId}/download");
+            Assert.Equal(HttpStatusCode.Unauthorized, downloadDenied.StatusCode);
+        }
     }
+
 }
