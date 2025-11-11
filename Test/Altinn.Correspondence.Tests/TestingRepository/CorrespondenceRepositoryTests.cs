@@ -44,16 +44,18 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             // Arrange
             await using var context = _fixture.CreateDbContext();
             var correspondenceRepository = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-            var from = DateTimeOffset.UtcNow.AddDays(-1);
-            var to = DateTimeOffset.UtcNow.AddDays(1);
+            var baseTime = new DateTimeOffset(new DateTime(2001, 1, 1, 0, 0, 0), TimeSpan.Zero);
+            var from = baseTime.AddDays(-1);
+            var to = baseTime.AddDays(1);
             var recipient = "0192:987654321";
             var resource = "LegacyCorrespondenceSearch_CorrespondencesAddedForParty_GetCorrespondencesForPartyReturnsSome";
             var entity = new CorrespondenceEntityBuilder()
                 .WithRecipient(recipient)
                 .WithResourceId(resource)
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.ReadyForPublish)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithRequestedPublishTime(baseTime)
+                .WithStatus(CorrespondenceStatus.Initialized, baseTime)
+                .WithStatus(CorrespondenceStatus.ReadyForPublish, baseTime.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(2))
                 .Build();
             var addedCorrespondence = await correspondenceRepository.CreateCorrespondence(entity, CancellationToken.None);
 
@@ -64,7 +66,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.NotNull(correspondences);
             Assert.NotEmpty(correspondences);
             Assert.Equal(1, correspondences?.Count);
-            Assert.Equal(addedCorrespondence.Id, correspondences.FirstOrDefault()?.Id);
+            Assert.Equal(addedCorrespondence.Id, correspondences?.FirstOrDefault()?.Id);
         }
 
         [Fact]

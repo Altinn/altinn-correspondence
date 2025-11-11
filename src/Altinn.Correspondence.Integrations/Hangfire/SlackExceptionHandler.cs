@@ -35,9 +35,15 @@ namespace Altinn.Correspondence.Integrations.Hangfire
             
             // Get retry count from the job context
             var retryCount = filterContext.GetJobParameter<int>("RetryCount");
+            var origin = filterContext.GetJobParameter<string>("Origin");
             
             // Properly await the notification
             if(exception != null) {
+                if (string.Equals(origin, "migrate", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Skipping Slack exception notification for migration related job {JobId}", jobId);
+                    return;
+                }
                 await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);
             }
         }
@@ -52,10 +58,16 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 
                 // Get retry count from the job context
                 var retryCount = context.GetJobParameter<int>("RetryCount");
+                var origin = context.GetJobParameter<string>("Origin");
 
                 _logger.LogError(exception, "Job {JobId} of type {JobName} failed", jobId, jobName);
                 
                 // Properly await the notification
+                if (string.Equals(origin, "migrate", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Skipping Slack exception notification for migrate related job {JobId}", jobId);
+                    return;
+                }
                 await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);
             }
         }

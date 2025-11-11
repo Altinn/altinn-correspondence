@@ -470,6 +470,11 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.TransmissionOnlyAllowsOneRecipient;
         }
 
+        if (correspondence.ReplyOptions.Count > 0 || correspondence.IsConfirmationNeeded)
+        {
+            return CorrespondenceErrors.TransmissionNotAllowedWithGuiActions;
+        }
+
         var dialogId = correspondence.ExternalReferences
             .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         
