@@ -31,5 +31,15 @@ namespace Altinn.Correspondence.Controllers
                 });
             }
         }
+
+        [HttpGet("/healthz")]
+        public ActionResult LivenessCheck()
+        {
+            return Ok(new
+            {
+                Status = "Healthy",
+                Message = "Process is responsive"
+            });
+        }
     }
 }
