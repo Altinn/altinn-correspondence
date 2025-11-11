@@ -442,7 +442,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             {
                 var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
                 mockAltinnAuthorization
-                    .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                    .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<AttachmentEntity>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(true);
 
                 var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IAltinnAuthorizationService));
@@ -480,7 +480,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             {
                 var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
                 mockAltinnAuthorization
-                    .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                    .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<AttachmentEntity>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(false);
 
                 var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IAltinnAuthorizationService));

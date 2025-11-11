@@ -17,7 +17,7 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
             return Task.FromResult(true);
         }
 
-        public Task<bool> CheckAttachmentAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default)
+        public Task<bool> CheckAttachmentAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, AttachmentEntity attachment, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(true);
         }

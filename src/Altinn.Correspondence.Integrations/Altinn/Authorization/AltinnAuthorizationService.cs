@@ -69,10 +69,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             cancellationToken);
 
-    public Task<bool> CheckAttachmentAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default) =>
+    public Task<bool> CheckAttachmentAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, AttachmentEntity attachment, CancellationToken cancellationToken = default) =>
         CheckUserAccess(
             user,
-            correspondence.Content.Attachments.First().Attachment.ResourceId,
+            attachment.ResourceId,
             correspondence.Recipient.WithoutPrefix(),
             correspondence.Id.ToString(),
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },

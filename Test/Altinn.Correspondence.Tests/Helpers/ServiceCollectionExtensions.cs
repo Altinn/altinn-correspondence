@@ -51,8 +51,9 @@ public static class ServiceCollectionExtensions
             .Setup(x => x.CheckAttachmentAccessAsRecipient(
                 It.IsAny<ClaimsPrincipal>(),
                 It.IsAny<CorrespondenceEntity>(),
+                It.IsAny<AttachmentEntity>(),
                 It.IsAny<CancellationToken>()))
-            .Returns((ClaimsPrincipal? user, CorrespondenceEntity corr, CancellationToken token) => {
+            .Returns((ClaimsPrincipal? user, CorrespondenceEntity corr, AttachmentEntity attachment, CancellationToken token) => {
                 return Task.FromResult(NotRecipient(user));
             });
 
