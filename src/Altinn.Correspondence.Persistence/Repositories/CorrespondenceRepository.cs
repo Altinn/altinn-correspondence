@@ -370,6 +370,36 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, CancellationToken cancellationToken)
+        {
+            return await _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.ResourceId == resourceId)
+                .Select(c => c.Id)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<int> HardDeleteCorrespondencesByIds(IEnumerable<Guid> correspondenceIds, CancellationToken cancellationToken)
+        {
+            var ids = correspondenceIds?.Distinct().ToList() ?? new List<Guid>();
+            if (ids.Count == 0)
+            {
+                return 0;
+            }
+
+            var entities = await _context.Correspondences
+                .Where(c => ids.Contains(c.Id))
+                .ToListAsync(cancellationToken);
+
+            if (entities.Count == 0)
+            {
+                return 0;
+            }
+
+            _context.Correspondences.RemoveRange(entities);
+            return await _context.SaveChangesAsync(cancellationToken);
+        }
+
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
