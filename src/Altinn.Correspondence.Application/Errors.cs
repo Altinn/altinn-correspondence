@@ -125,6 +125,6 @@ public static class StatisticsErrors
 
 public static class MaintenanceErrors
 {
-    public static Error ResourceIdForBruksmonsterTestsNotConfigured = new Error(7001, "ResourceId for bruksmonster tests is not configured", HttpStatusCode.InternalServerError);
-    public static Error InvalidResourceIdForBruksmonsterTests = new Error(7002, "Cleanup bruksmonster tests can only be run for the resource 'correspondence-bruksmonstertester-ressurs'", HttpStatusCode.InternalServerError);
+    public static Error ResourceIdForBruksmonsterTestsNotConfigured = new Error(7001, "ResourceId for bruksmonster tests is not configured", HttpStatusCode.BadRequest);
+    public static Error InvalidResourceIdForBruksmonsterTests = new Error(7002, "Cleanup bruksmonster tests can only be run for the resource 'correspondence-bruksmonstertester-ressurs'", HttpStatusCode.BadRequest);
 }

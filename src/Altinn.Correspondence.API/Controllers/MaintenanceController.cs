@@ -159,7 +159,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [Route("cleanup-bruksmonster")]
     [Authorize(Policy = AuthorizationConstants.Maintenance)]
     [Produces("application/json")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CleanupBruksmonsterResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> CleanupBruksmonsterTestData(
