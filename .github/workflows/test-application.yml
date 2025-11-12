@@ -15,7 +15,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            10.0.x
+            9.0.x
 
       - name: Start dependencies for tests (docker compose)
         run: |
@@ -33,7 +33,7 @@ jobs:
           timeout 5m bash -c 'while !  docker ps | grep "(healthy)"; do sleep 1; done'
 
       - name: Install EF Core CLI
-        run: dotnet tool install dotnet-ef --global
+        run: dotnet tool install --global dotnet-ef --version 9.0.x
         shell: bash
         
       - name: Run migrations
