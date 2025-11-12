@@ -17,5 +17,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<AttachmentEntity?> GetAttachmentByCorrespondenceIdAndAttachmentId(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken);
         Task<List<AttachmentEntity>> GetAttachmentsByResourceIdWithoutStorageProvider(string resourceId, CancellationToken cancellationToken);
         Task SetStorageProvider(Guid attachmentId, StorageProviderEntity storageProvider, string dataLocationUrl, CancellationToken cancellationToken);
+        Task<List<AttachmentEntity>> GetAttachmentsByResourceId(string resourceId, CancellationToken cancellationToken);
+        Task<int> HardDeleteOrphanedAttachmentsOnResource(string resourceId, CancellationToken cancellationToken);
     }
 }

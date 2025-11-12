@@ -16,11 +16,14 @@ public class CleanupBruksmonsterHandler(
     ILogger<CleanupBruksmonsterHandler> logger,
     IDialogportenService dialogportenService,
     ICorrespondenceRepository correspondenceRepository,
-    IIdempotencyKeyRepository idempotencyKeyRepository
+	IIdempotencyKeyRepository idempotencyKeyRepository,
+	IAttachmentRepository attachmentRepository,
+	IStorageRepository storageRepository
 ) : IHandler<CleanupBruksmonsterResponse>
 {
     public async Task<OneOf<CleanupBruksmonsterResponse, Error>> Process(ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Starting cleanup of bruksmonster test data");
         var resourceId = generalSettings.Value.BruksmonsterTestsResourceId;
         if (string.IsNullOrEmpty(resourceId))
         {
@@ -33,10 +36,10 @@ public class CleanupBruksmonsterHandler(
 
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, cancellationToken);
 
-        return await TransactionWithRetriesPolicy.Execute<CleanupBruksmonsterResponse>(async (ct) =>
+		return await TransactionWithRetriesPolicy.Execute<CleanupBruksmonsterResponse>(async (ct) =>
         {
             var deleteDialogsJobId = backgroundJobClient.Enqueue<CleanupBruksmonsterHandler>(h => h.PurgeCorrespondenceDialogs(correspondenceIds));
-            var deleteCorrespondencesJobId = backgroundJobClient.ContinueJobWith<CleanupBruksmonsterHandler>(deleteDialogsJobId, h => h.PurgeCorrespondences(correspondenceIds, CancellationToken.None));
+			var deleteCorrespondencesJobId = backgroundJobClient.ContinueJobWith<CleanupBruksmonsterHandler>(deleteDialogsJobId, h => h.PurgeCorrespondences(correspondenceIds, resourceId, CancellationToken.None));
             await Task.CompletedTask;
 
             var resp = new CleanupBruksmonsterResponse
@@ -54,16 +57,27 @@ public class CleanupBruksmonsterHandler(
     {
         foreach (var correspondenceId in correspondenceIds)
         {
+            logger.LogInformation("Purging correspondence dialog {correspondenceId} by cleanup bruksmonster", correspondenceId);
             await dialogportenService.PurgeCorrespondenceDialog(correspondenceId);
         }
     }
 
-    public async Task PurgeCorrespondences(List<Guid> correspondenceIds, CancellationToken cancellationToken)
+	public async Task PurgeCorrespondences(List<Guid> correspondenceIds, string resourceId, CancellationToken cancellationToken)
     {
         await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
         {
             await idempotencyKeyRepository.DeleteByCorrespondenceIds(correspondenceIds, cancellationToken);
             await correspondenceRepository.HardDeleteCorrespondencesByIds(correspondenceIds, cancellationToken);
+
+			var attachmentsForResource = await attachmentRepository.GetAttachmentsByResourceId(resourceId, cancellationToken);
+			foreach (var attachment in attachmentsForResource)
+			{
+				await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
+				logger.LogInformation("Purged attachment {attachmentId} on resource {resourceId} by cleanup bruksmonster", attachment.Id, resourceId);
+			}
+
+			int deletedAttachments = await attachmentRepository.HardDeleteOrphanedAttachmentsOnResource(resourceId, cancellationToken);
+			logger.LogInformation("Deleted {deletedAttachments} orphaned attachments of {totalAttachments} on resource {resourceId} by cleanup bruksmonster", deletedAttachments, attachmentsForResource.Count, resourceId);
 
             return Task.CompletedTask;
         }, logger, cancellationToken);

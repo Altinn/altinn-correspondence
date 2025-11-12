@@ -125,16 +125,41 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task SetStorageProvider(Guid attachmentId, StorageProviderEntity storageProvider, string dataLocationUrl, CancellationToken cancellationToken)
-        {
-            var attachment = await _context.Attachments.SingleOrDefaultAsync(a => a.Id == attachmentId);
-            if (attachment == null)
-            {
-                throw new ArgumentException($"Attachment with id {attachmentId} does not exist", nameof(attachmentId));
-            }
-            attachment.StorageProvider = storageProvider;
-            attachment.DataLocationUrl = dataLocationUrl;
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-    }
+		public async Task SetStorageProvider(Guid attachmentId, StorageProviderEntity storageProvider, string dataLocationUrl, CancellationToken cancellationToken)
+		{
+			var attachment = await _context.Attachments.SingleOrDefaultAsync(a => a.Id == attachmentId);
+			if (attachment == null)
+			{
+				throw new ArgumentException($"Attachment with id {attachmentId} does not exist", nameof(attachmentId));
+			}
+			attachment.StorageProvider = storageProvider;
+			attachment.DataLocationUrl = dataLocationUrl;
+			await _context.SaveChangesAsync(cancellationToken);
+		}
+
+		public async Task<List<AttachmentEntity>> GetAttachmentsByResourceId(string resourceId, CancellationToken cancellationToken)
+		{
+			return await _context.Attachments
+				.AsNoTracking()
+				.Where(a => a.ResourceId == resourceId)
+				.Include(a => a.StorageProvider)
+				.ToListAsync(cancellationToken);
+		}
+
+		public async Task<int> HardDeleteOrphanedAttachmentsOnResource(string resourceId, CancellationToken cancellationToken)
+		{
+			var orphanAttachments = await _context.Attachments
+				.Where(a => a.ResourceId == resourceId)
+				.Where(a => !_context.CorrespondenceAttachments.Any(ca => ca.AttachmentId == a.Id))
+				.ToListAsync(cancellationToken);
+
+			if (orphanAttachments.Count == 0)
+			{
+				return 0;
+			}
+
+			_context.Attachments.RemoveRange(orphanAttachments);
+			return await _context.SaveChangesAsync(cancellationToken);
+		}
+	}
 }
