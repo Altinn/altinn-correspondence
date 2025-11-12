@@ -1,13 +1,18 @@
 ﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -410,7 +415,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
             var correspondenceId = correspondence.CorrespondenceId;
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
-            
+
             // Download the attachment
             var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
             Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
@@ -420,14 +425,140 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var details = await detailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
             // Assert
-            Assert.NotNull(details);   
+            Assert.NotNull(details);
             var statusHistory = details.StatusHistory.ToList();
             var publishedStatus = statusHistory.FirstOrDefault(s => s.Status == CorrespondenceStatusExt.Published);
             var downloadedStatus = statusHistory.FirstOrDefault(s => s.Status == CorrespondenceStatusExt.AttachmentsDownloaded);
-            
+
             Assert.NotNull(publishedStatus);
             Assert.NotNull(downloadedStatus);
             Assert.True(downloadedStatus.StatusChanged > publishedStatus.StatusChanged);
         }
+
+        [Fact]
+        public async Task DownloadCorrespondenceAttachment_WithAccessToAttachment_Succeeds()
+        {
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
+                mockAltinnAuthorization
+                    .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<AttachmentEntity>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IAltinnAuthorizationService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockAltinnAuthorization.Object);
+            });
+
+            var client = customFactory.CreateClientWithAddedClaims(
+                ("notRecipient", "true"),
+                ("scope", AuthorizationConstants.RecipientScope));
+            
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId])
+                .WithResourceId("2")
+                .Build();
+
+            // Act
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+             // Assert
+            var downloadResponse = await client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
+            Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task DownloadCorrespondenceAttachment_WithoutAccessToAttachment_ReturnsBadRequest()
+        {
+
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
+                mockAltinnAuthorization
+                    .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<AttachmentEntity>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(false);
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IAltinnAuthorizationService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockAltinnAuthorization.Object);
+            });
+
+            var client = customFactory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("scope", AuthorizationConstants.RecipientScope));
+
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions); //Default attachment builds with resourceId = "1"
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId])
+                .WithResourceId("2")
+                .Build();
+
+            // Act
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = correspondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            // Assert
+            var downloadResponse = await client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download");
+            Assert.Equal(HttpStatusCode.Unauthorized, downloadResponse.StatusCode);
+        }
+        
+        [Fact]
+        public async Task DownloadCorrespondenceAttachment_AccessToOneOutOfTwoAttachments_Succeeds_Then_ReturnsBadRequest()
+        {
+            var allowedId = Guid.Empty;
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
+                mockAltinnAuthorization
+                    .Setup(x => x.CheckAttachmentAccessAsRecipient(
+                        It.IsAny<ClaimsPrincipal?>(),
+                        It.IsAny<CorrespondenceEntity>(),
+                        It.IsAny<AttachmentEntity>(),
+                        It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((ClaimsPrincipal? user, CorrespondenceEntity correspondence, AttachmentEntity attachment, CancellationToken ct) =>
+                    {
+                        return attachment.Id == allowedId;
+                    });
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IAltinnAuthorizationService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockAltinnAuthorization.Object);
+            });
+
+            var recipientClient = customFactory.CreateClientWithAddedClaims(("notSender", "true"), ("scope", AuthorizationConstants.RecipientScope));
+
+            // Arrange
+            var attachmentAllowedId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+            allowedId = attachmentAllowedId;
+            var attachmentDeniedId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentAllowedId, attachmentDeniedId])
+                .Build();
+
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            initializeResponse.EnsureSuccessStatusCode();
+            var initializeContent = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = initializeContent!.Correspondences.First().CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+            
+            // Act & Assert
+            var downloadAllowed = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentAllowedId}/download");
+            Assert.Equal(HttpStatusCode.OK, downloadAllowed.StatusCode);
+
+            // Act & Assert 
+            var downloadDenied = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentDeniedId}/download");
+            Assert.Equal(HttpStatusCode.Unauthorized, downloadDenied.StatusCode);
+        }
     }
+
 }
