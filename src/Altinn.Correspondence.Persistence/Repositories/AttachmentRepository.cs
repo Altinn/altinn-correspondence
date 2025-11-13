@@ -160,5 +160,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Select(a => a.Id)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<List<AttachmentEntity>> GetAttachmentsByIds(List<Guid> attachmentIds, bool includeStatus = false, CancellationToken cancellationToken = default)
+        {
+            var attachments = _context.Attachments.AsQueryable();
+            if (includeStatus)
+            {
+                attachments = attachments.Include(a => a.Statuses);
+            }
+            attachments = attachments.Include(a => a.StorageProvider);
+            return await attachments.Where(a => attachmentIds.Contains(a.Id)).ToListAsync(cancellationToken);
+        }
 	}
 }

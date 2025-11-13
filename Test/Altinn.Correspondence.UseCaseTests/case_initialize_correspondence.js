@@ -29,6 +29,7 @@ export default async function () {
 	await TC03_GetAttachmentOverviewAsSender(attachmentId);
 	await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
 	await TC05_PurgeCorrespondenceAsRecipient(correspondenceId);
+    sleep(10); //give time for the purge to complete (Report purge activity to dialogporten might throw an error if it's not completed yet on cleanup)
 	await cleanupBruksmonsterTestData();
 }
 

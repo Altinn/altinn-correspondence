@@ -69,14 +69,9 @@ public class CleanupBruksmonsterHandler(
             await idempotencyKeyRepository.DeleteByCorrespondenceIds(correspondenceIds, cancellationToken);
             await correspondenceRepository.HardDeleteCorrespondencesByIds(correspondenceIds, cancellationToken);
 
-			foreach (var attachmentId in attachmentIds)
+			var attachments = await attachmentRepository.GetAttachmentsByIds(attachmentIds, true, cancellationToken);
+			foreach (var attachment in attachments)
 			{
-                var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
-                if (attachment == null)
-                {
-                    logger.LogError("Attachment {attachmentId} not found", attachmentId);
-                    continue;
-                }
 				backgroundJobClient.Enqueue<IStorageRepository>(repository => repository.PurgeAttachment(attachment.Id, attachment.StorageProvider, CancellationToken.None));
 			}
 
