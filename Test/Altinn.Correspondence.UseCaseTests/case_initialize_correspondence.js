@@ -5,6 +5,7 @@ import { buildInitializeCorrespondenceWithNewAttachmentPayload } from './helpers
 import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.js';
 
 const baseUrl = __ENV.base_url;
+const resourceId = __ENV.resource_id;
 const ATTACHMENT_PATH = './fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';
 const ATTACHMENT_FILENAME = 'usecase-attachment.txt';
@@ -25,6 +26,7 @@ export const options = {
  * cleanup: deletes data created by bruksmonster tests
  */
 export default async function () {
+    console.log(`Starting test case with base url ${baseUrl} and resource id ${resourceId}`);
     const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
     await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
     await TC03_GetAttachmentOverviewAsSender(attachmentId);
@@ -40,7 +42,7 @@ async function TC01_InitializeCorrespondenceWithAttachment() {
 
     const recipient = '26818099001';
 
-    const formBody = buildInitializeCorrespondenceWithNewAttachmentPayload(__ENV.resource_id, recipient, ATTACHMENT_FILE_BIN, ATTACHMENT_FILENAME, ATTACHMENT_MIME);
+    const formBody = buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId, recipient, ATTACHMENT_FILE_BIN, ATTACHMENT_FILENAME, ATTACHMENT_MIME);
 
     const headers = {
         Authorization: `Bearer ${token}`
