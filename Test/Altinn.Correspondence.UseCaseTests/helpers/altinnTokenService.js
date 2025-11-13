@@ -5,8 +5,8 @@ const authorizationBaseUrl = (__ENV.base_url.toLowerCase().includes('platform.al
     ? 'https://platform.altinn.no'
     : 'https://platform.tt02.altinn.no';
 
-async function retrieveAltinnToken({ baseUrl, clientId, kid, pem, scope, tokenUrl }) {
-    const mpToken = await retrieveMaskinportenToken({ clientId, kid, pem, scope, tokenUrl });
+async function retrieveAltinnToken({ baseUrl, clientId, kid, pem, scope}) {
+    const mpToken = await retrieveMaskinportenToken({ clientId, kid, pem, scope });
     const headers = { 'Authorization': `Bearer ${mpToken}`, 'Accept': 'application/json' };
     const url = `${(baseUrl || '').replace(/\/$/, '')}/authentication/api/v1/exchange/maskinporten`;
     const res = http.get(url, { headers });
