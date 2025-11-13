@@ -35,6 +35,7 @@ param maskinporten_token_exchange_environment string
 @minLength(3)
 param apimIp string
 param migrationWorkerCountPerReplica string
+param arbeidsflateOriginsCommaSeparated string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'

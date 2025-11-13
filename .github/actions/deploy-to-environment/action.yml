@@ -101,6 +101,9 @@ inputs:
   MIGRATION_WORKER_COUNT_PER_REPLICA:
     description: "Number of workers to use for Dialogporten migration"
     required: false
+  ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED:
+    description: "Comma separated list of Arbeidsflate origins"
+    required: false
 
 runs:
   using: "composite"
@@ -170,3 +173,4 @@ runs:
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ inputs.APIM_IP }}
         MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
+        ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ inputs.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
