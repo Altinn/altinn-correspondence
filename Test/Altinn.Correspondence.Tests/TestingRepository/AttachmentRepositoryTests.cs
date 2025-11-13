@@ -71,7 +71,7 @@ public class AttachmentRepositoryTests : IClassFixture<PostgresTestcontainerFixt
             ExpirationTime = corr.Created.AddDays(30)
         });
 
-        context.Attachments.AddRange(orphanA, linkedB, orphanC);
+        context.Attachments.AddRange(orphanA, linkedB, orphanC, orphanD);
         context.Correspondences.Add(corr);
         await context.SaveChangesAsync();
 

@@ -101,7 +101,7 @@ public class CleanupBruksmonsterHandlerTests
         bgMock
             .Setup(m => m.Create(It.IsAny<Job>(), It.IsAny<IState>()))
             .Callback<Job, IState>((job, state) => createdJobs.Add((job, state)))
-            .Returns(() => createdJobs.Count == 1);
+            .Returns(() => $"job-id-{createdJobs.Count}");
 
         // Act
         var result = await handler.Process(user: null, CancellationToken.None);
