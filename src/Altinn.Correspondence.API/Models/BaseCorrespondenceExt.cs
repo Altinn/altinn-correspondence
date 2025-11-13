@@ -102,12 +102,6 @@ namespace Altinn.Correspondence.API.Models
         public bool? IgnoreReservation { get; set; }
 
         /// <summary>
-        /// Is null until the correspondence is published.
-        /// </summary>
-        [JsonPropertyName("published")]
-        public DateTimeOffset? Published { get; set; }
-
-        /// <summary>
         /// Specifies whether reading the correspondence needs to be confirmed by the recipient
         /// </summary>
         [JsonPropertyName("isConfirmationNeeded")]

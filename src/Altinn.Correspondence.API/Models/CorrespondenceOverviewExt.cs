@@ -62,5 +62,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("altinn2CorrespondenceId")]
         public int? Altinn2CorrespondenceId { get; set; }
+
+        /// <summary>
+        /// Is null until the correspondence is published.
+        /// </summary>
+        [JsonPropertyName("published")]
+        public DateTimeOffset? Published { get; set; }
     }
 }
