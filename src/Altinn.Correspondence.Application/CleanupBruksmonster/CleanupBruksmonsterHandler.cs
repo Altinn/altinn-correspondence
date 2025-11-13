@@ -17,8 +17,7 @@ public class CleanupBruksmonsterHandler(
     IDialogportenService dialogportenService,
     ICorrespondenceRepository correspondenceRepository,
 	IIdempotencyKeyRepository idempotencyKeyRepository,
-	IAttachmentRepository attachmentRepository,
-	IStorageRepository storageRepository
+	IAttachmentRepository attachmentRepository
 ) : IHandler<CleanupBruksmonsterResponse>
 {
     public async Task<OneOf<CleanupBruksmonsterResponse, Error>> Process(ClaimsPrincipal? user, CancellationToken cancellationToken)
