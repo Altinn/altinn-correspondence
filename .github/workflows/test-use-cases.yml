@@ -34,12 +34,7 @@ jobs:
       uses: grafana/k6-action@e4714b734f2b0afaabeb7b4a69142745548ab9ec # v0.3.1
       with:
         filename: Test/Altinn.Correspondence.UseCaseTests/case_initialize_correspondence.js
-        flags: >-
-          -e base_url=${{ secrets.CORRESPONDENCE_BASE_URL }}
-          -e resource_id=${{ secrets.BRUKSMONSTER_RESOURCE_ID }}
-          -e mp_client_id=${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
-          -e mp_kid=${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
-          -e mp_client_pem=${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
+        flags: -e base_url=${{ secrets.CORRESPONDENCE_BASE_URL }} -e resource_id=${{ secrets.BRUKSMONSTER_RESOURCE_ID }} -e mp_client_id=${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }} -e mp_kid=${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }} -e mp_client_pem=${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
 
     - name: Build failure report
       if: failure()
