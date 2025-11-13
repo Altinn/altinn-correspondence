@@ -6,6 +6,7 @@ using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
@@ -341,6 +342,130 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.NotEmpty(correspondenceOverviewResponse.Content!.MessageSummary);
             Assert.NotEmpty(correspondenceOverviewResponse.Content.MessageBody);
             Assert.NotEmpty(correspondenceOverviewResponse.Content.MessageTitle);
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceContent_WithAllowedOrigin_ReturnsCorsHeaders()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            var client = _factory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("scope", AuthorizationConstants.RecipientScope));
+            client.DefaultRequestHeaders.Add("Origin", "https://af.tt02.altinn.no");
+
+            // Act
+            var response = await client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
+
+            // Assert
+            Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Origin"), "CORS header Access-Control-Allow-Origin should be present");
+            Assert.Equal("https://af.tt02.altinn.no", response.Headers.GetValues("Access-Control-Allow-Origin").First());
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Credentials"), "CORS header Access-Control-Allow-Credentials should be present");
+            Assert.Equal("true", response.Headers.GetValues("Access-Control-Allow-Credentials").First());
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceContent_WithSecondAllowedOrigin_ReturnsCorsHeaders()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            var client = _factory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("scope", AuthorizationConstants.RecipientScope));
+            client.DefaultRequestHeaders.Add("Origin", "http://af.tt.altinn.no");
+
+            // Act
+            var response = await client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
+
+            // Assert
+            Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Origin"), "CORS header Access-Control-Allow-Origin should be present");
+            Assert.Equal("http://af.tt.altinn.no", response.Headers.GetValues("Access-Control-Allow-Origin").First());
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Credentials"), "CORS header Access-Control-Allow-Credentials should be present");
+            Assert.Equal("true", response.Headers.GetValues("Access-Control-Allow-Credentials").First());
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceContent_WithDisallowedOrigin_DoesNotReturnCorsHeaders()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            var client = _factory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("scope", AuthorizationConstants.RecipientScope));
+            client.DefaultRequestHeaders.Add("Origin", "https://malicious-site.com");
+
+            // Act
+            var response = await client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");
+
+            // Assert
+            // The request may still succeed (200) if authentication passes, but CORS headers should not be present
+            Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"), "CORS header Access-Control-Allow-Origin should not be present for disallowed origin");
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceContent_OptionsPreflight_WithAllowedOrigin_ReturnsCorsHeaders()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            var client = _factory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("scope", AuthorizationConstants.RecipientScope));
+            client.DefaultRequestHeaders.Add("Origin", "https://af.tt02.altinn.no");
+            client.DefaultRequestHeaders.Add("Access-Control-Request-Method", "GET");
+
+            // Act
+            var request = new HttpRequestMessage(HttpMethod.Options, $"correspondence/api/v1/correspondence/{correspondenceId}/content");
+            var response = await client.SendAsync(request);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Origin"), "CORS header Access-Control-Allow-Origin should be present");
+            Assert.Equal("https://af.tt02.altinn.no", response.Headers.GetValues("Access-Control-Allow-Origin").First());
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Credentials"), "CORS header Access-Control-Allow-Credentials should be present");
+            Assert.Equal("true", response.Headers.GetValues("Access-Control-Allow-Credentials").First());
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Methods"), "CORS header Access-Control-Allow-Methods should be present");
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceContent_OptionsPreflight_WithDisallowedOrigin_DoesNotReturnCorsHeaders()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            var client = _factory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("scope", AuthorizationConstants.RecipientScope));
+            client.DefaultRequestHeaders.Add("Origin", "https://malicious-site.com");
+            client.DefaultRequestHeaders.Add("Access-Control-Request-Method", "GET");
+
+            // Act
+            var request = new HttpRequestMessage(HttpMethod.Options, $"correspondence/api/v1/correspondence/{correspondenceId}/content");
+            var response = await client.SendAsync(request);
+
+            // Assert
+            // Preflight requests from disallowed origins should not return CORS headers
+            Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"), "CORS header Access-Control-Allow-Origin should not be present for disallowed origin");
         }
     }
 }
