@@ -33,11 +33,11 @@ public class CleanupBruksmonsterHandler(
         {
             return MaintenanceErrors.InvalidResourceIdForBruksmonsterTests;
         }
-
+        var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, cancellationToken);
+        var attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, cancellationToken);
 		return await TransactionWithRetriesPolicy.Execute<CleanupBruksmonsterResponse>(async (ct) =>
         {
-            var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, cancellationToken);
-            var attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, cancellationToken);
+            
             var deleteDialogsJobId = backgroundJobClient.Enqueue<CleanupBruksmonsterHandler>(h => h.PurgeCorrespondenceDialogs(correspondenceIds));
 			var deleteCorrespondencesJobId = backgroundJobClient.ContinueJobWith<CleanupBruksmonsterHandler>(deleteDialogsJobId, h => h.PurgeCorrespondences(correspondenceIds, attachmentIds, resourceId, CancellationToken.None));
             await Task.CompletedTask;
