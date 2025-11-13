@@ -397,7 +397,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
             _context.Correspondences.RemoveRange(entities);
-            return await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            return entities.Count;
         }
 
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(

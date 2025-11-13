@@ -287,5 +287,28 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             Assert.Empty(result);
         }
+
+        [Fact]
+        public async Task HardDeleteCorrespondencesByIds_DeletesOnlySpecifiedIds()
+        {
+            // Arrange
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var c1 = new CorrespondenceEntityBuilder().Build();
+            var c2 = new CorrespondenceEntityBuilder().Build();
+            var c3 = new CorrespondenceEntityBuilder().Build();
+            context.Correspondences.AddRange(c1, c2, c3);
+            await context.SaveChangesAsync();
+
+            // Act
+            var deleted = await repo.HardDeleteCorrespondencesByIds([c1.Id, c3.Id], CancellationToken.None);
+
+            // Assert
+            Assert.Equal(2, deleted);
+            Assert.Null(await context.Correspondences.FindAsync(c1.Id));
+            Assert.NotNull(await context.Correspondences.FindAsync(c2.Id));
+            Assert.Null(await context.Correspondences.FindAsync(c3.Id));
+        }
     }
 }
