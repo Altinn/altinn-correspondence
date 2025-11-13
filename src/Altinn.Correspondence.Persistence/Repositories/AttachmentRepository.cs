@@ -137,19 +137,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
 			await _context.SaveChangesAsync(cancellationToken);
 		}
 
-		public async Task<List<AttachmentEntity>> GetAttachmentsByResourceId(string resourceId, CancellationToken cancellationToken)
-		{
-			return await _context.Attachments
-				.AsNoTracking()
-				.Where(a => a.ResourceId == resourceId)
-				.Include(a => a.StorageProvider)
-				.ToListAsync(cancellationToken);
-		}
-
-		public async Task<int> HardDeleteOrphanedAttachmentsOnResource(string resourceId, CancellationToken cancellationToken)
+		public async Task<int> HardDeleteOrphanedAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken)
 		{
 			var orphanAttachments = await _context.Attachments
-				.Where(a => a.ResourceId == resourceId)
+				.Where(a => attachmentIds.Contains(a.Id))
 				.Where(a => !_context.CorrespondenceAttachments.Any(ca => ca.AttachmentId == a.Id))
 				.ToListAsync(cancellationToken);
 
@@ -161,5 +152,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
 			_context.Attachments.RemoveRange(orphanAttachments);
 			return await _context.SaveChangesAsync(cancellationToken);
 		}
+
+        public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, CancellationToken cancellationToken)
+        {
+            return await _context.Attachments
+                .Where(a => a.ResourceId == resourceId)
+                .Select(a => a.Id)
+                .ToListAsync(cancellationToken);
+        }
 	}
 }

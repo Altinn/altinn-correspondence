@@ -35,11 +35,12 @@ public class CleanupBruksmonsterHandler(
         }
 
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, cancellationToken);
+        var attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, cancellationToken);
 
 		return await TransactionWithRetriesPolicy.Execute<CleanupBruksmonsterResponse>(async (ct) =>
         {
             var deleteDialogsJobId = backgroundJobClient.Enqueue<CleanupBruksmonsterHandler>(h => h.PurgeCorrespondenceDialogs(correspondenceIds));
-			var deleteCorrespondencesJobId = backgroundJobClient.ContinueJobWith<CleanupBruksmonsterHandler>(deleteDialogsJobId, h => h.PurgeCorrespondences(correspondenceIds, resourceId, CancellationToken.None));
+			var deleteCorrespondencesJobId = backgroundJobClient.ContinueJobWith<CleanupBruksmonsterHandler>(deleteDialogsJobId, h => h.PurgeCorrespondences(correspondenceIds, attachmentIds, resourceId, CancellationToken.None));
             await Task.CompletedTask;
 
             var resp = new CleanupBruksmonsterResponse
@@ -62,22 +63,27 @@ public class CleanupBruksmonsterHandler(
         }
     }
 
-	public async Task PurgeCorrespondences(List<Guid> correspondenceIds, string resourceId, CancellationToken cancellationToken)
+	public async Task PurgeCorrespondences(List<Guid> correspondenceIds, List<Guid> attachmentIds, string resourceId, CancellationToken cancellationToken)
     {
         await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
         {
             await idempotencyKeyRepository.DeleteByCorrespondenceIds(correspondenceIds, cancellationToken);
             await correspondenceRepository.HardDeleteCorrespondencesByIds(correspondenceIds, cancellationToken);
 
-			var attachmentsForResource = await attachmentRepository.GetAttachmentsByResourceId(resourceId, cancellationToken);
-			foreach (var attachment in attachmentsForResource)
+			foreach (var attachmentId in attachmentIds)
 			{
+                var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
+                if (attachment == null)
+                {
+                    logger.LogError("Attachment {attachmentId} not found", attachmentId);
+                    continue;
+                }
 				await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
 				logger.LogInformation("Purged attachment {attachmentId} on resource {resourceId} by cleanup bruksmonster", attachment.Id, resourceId);
 			}
 
-			int deletedAttachments = await attachmentRepository.HardDeleteOrphanedAttachmentsOnResource(resourceId, cancellationToken);
-			logger.LogInformation("Deleted {deletedAttachments} orphaned attachments of {totalAttachments} on resource {resourceId} by cleanup bruksmonster", deletedAttachments, attachmentsForResource.Count, resourceId);
+			int deletedAttachments = await attachmentRepository.HardDeleteOrphanedAttachments(attachmentIds, cancellationToken);
+			logger.LogInformation("Deleted {deletedAttachments} orphaned attachments of {totalAttachments} on resource {resourceId} by cleanup bruksmonster", deletedAttachments, attachmentIds.Count, resourceId);
 
             return Task.CompletedTask;
         }, logger, cancellationToken);
