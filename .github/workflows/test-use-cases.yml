@@ -1,4 +1,4 @@
-name: Run use case tests on environment
+name: Test use cases on environment
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ on:
     branches:
       - 'feat/bruksmonster-tests'  # Triggers on push to any branch
 
-run-name: Run use case tests for environment ${{ github.event.inputs.environment || 'test' }}
+run-name: Test use cases for environment ${{ github.event.inputs.environment || 'test' }}
 
 jobs:
   usecase-test:
@@ -32,9 +32,14 @@ jobs:
 
     - name: Run use case test (case_initialize_correspondence.js)
       uses: grafana/k6-action@e4714b734f2b0afaabeb7b4a69142745548ab9ec # v0.3.1
+      env:
+        base_url: ${{ secrets.CORRESPONDENCE_BASE_URL }}
+        resource_id: ${{ secrets.BRUKSMONSTER_RESOURCE_ID }}
+        mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
+        mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
+        mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
       with:
         filename: Test/Altinn.Correspondence.UseCaseTests/case_initialize_correspondence.js
-        flags: -e base_url=${{ secrets.CORRESPONDENCE_BASE_URL }} -e resource_id=${{ secrets.BRUKSMONSTER_RESOURCE_ID }} -e mp_client_id=${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }} -e mp_kid=${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }} -e mp_client_pem=${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
 
     - name: Build failure report
       if: failure()
