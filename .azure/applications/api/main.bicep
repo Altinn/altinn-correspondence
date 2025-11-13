@@ -136,6 +136,7 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     sblBridgeBaseUrl: sblBridgeBaseUrl
     maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
     migrationWorkerCountPerReplica: migrationWorkerCountPerReplica
+    arbeidsflateOriginsCommaSeparated: arbeidsflateOriginsCommaSeparated
   }
 }
 
