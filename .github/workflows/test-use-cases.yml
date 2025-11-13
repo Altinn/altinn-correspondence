@@ -16,6 +16,9 @@ on:
         - at22
         - at23
         - at24
+  push:
+    branches:
+      - 'feat/bruksmonster-tests'  # Triggers on push to any branch
 
 run-name: Run use case tests for environment ${{ github.event.inputs.environment || 'test' }}
 
