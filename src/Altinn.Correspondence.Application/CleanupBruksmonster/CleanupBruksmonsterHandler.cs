@@ -46,6 +46,7 @@ public class CleanupBruksmonsterHandler(
             {
                 ResourceId = resourceId,
                 CorrespondencesFound = correspondenceIds.Count,
+                AttachmentsFound = attachmentIds.Count,
                 DeleteDialogsJobId = deleteDialogsJobId,
                 DeleteCorrespondencesJobId = deleteCorrespondencesJobId
             };
@@ -77,8 +78,7 @@ public class CleanupBruksmonsterHandler(
                     logger.LogError("Attachment {attachmentId} not found", attachmentId);
                     continue;
                 }
-				await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-				logger.LogInformation("Purged attachment {attachmentId} on resource {resourceId} by cleanup bruksmonster", attachment.Id, resourceId);
+				backgroundJobClient.Enqueue<IStorageRepository>(repository => repository.PurgeAttachment(attachment.Id, attachment.StorageProvider, CancellationToken.None));
 			}
 
 			int deletedAttachments = await attachmentRepository.HardDeleteOrphanedAttachments(attachmentIds, cancellationToken);
