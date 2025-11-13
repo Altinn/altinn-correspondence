@@ -21,7 +21,7 @@ export const options = {
  * TC03: Retrieve attachment overview as sender
  * TC04: Download the correspondence attachment as recipient
  * TC05: Purge correspondence as recipient
- * cleanup: deletes data created bybruksmonster tests
+ * cleanup: deletes data created by bruksmonster tests
  */
 export default async function () {
 	const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
@@ -49,7 +49,7 @@ async function TC01_InitializeCorrespondenceWithAttachment() {
     check(res, { 'Initialize correspondence with new attachment response status 200': r => r.status === 200 });
     if (res.status !== 200) {
         console.error(`Initialize correspondence with new attachment failed. Status: ${res.status}. Body: ${res.body}`);
-        return null;
+        return { correspondenceId: null, attachmentId: null };
     }
 
     let correspondenceId = null;
@@ -111,12 +111,12 @@ async function TC02_GetCorrespondencePublishedAsRecipient(correspondenceId) {
 		else if (r.status === 404) {
 			console.log(`TC02:Correspondence overview not available yet (404). Attempt ${i + 1}/${maxIterations}`);
 		}
-        else if (r.status !== 404) {
+        else {
             fail(`Failed to get correspondence overview. Status: ${r.status}. Body: ${r.body}`);
         }
     }
 
-    check(published, { 'Correspondence reached Published statuswithin 30s': v => v === true });
+    check(published, { 'Correspondence reached Published status within 30s': v => v === true });
     console.log(`TC02: Test case completed`);
 }
 
@@ -151,7 +151,7 @@ async function TC03_GetAttachmentOverviewAsSender(attachmentId) {
 
 async function TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId) {
     if (!attachmentId || !correspondenceId) {
-		console.error('TC05 aborted: No attachmentId or correspondenceId from TC01.');
+		console.error('TC04 aborted: No attachmentId or correspondenceId from TC01.');
 		return;
 	}
 
