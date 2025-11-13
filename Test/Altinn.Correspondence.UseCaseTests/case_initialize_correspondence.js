@@ -1,5 +1,5 @@
 import http from 'k6/http';
-import { check, sleep, fail } from 'k6';
+import { check, sleep } from 'k6';
 import { getSenderAltinnToken, getRecipientAltinnToken } from './helpers/altinnTokenService.js';
 import { buildInitializeCorrespondenceWithNewAttachmentPayload } from './helpers/correspondencePayloadBuilder.js';
 import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.js';
@@ -11,8 +11,9 @@ const ATTACHMENT_FILENAME = 'usecase-attachment.txt';
 const ATTACHMENT_FILE_BIN = open(ATTACHMENT_PATH, 'b');
 
 export const options = {
-    vus: 1,
-    iterations: 1
+    thresholds: {
+        checks: ["rate==1"],  // 100% of checks must pass
+    },
 };
 
 /**
@@ -24,13 +25,13 @@ export const options = {
  * cleanup: deletes data created by bruksmonster tests
  */
 export default async function () {
-	const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
-	await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
-	await TC03_GetAttachmentOverviewAsSender(attachmentId);
-	await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
-	await TC05_PurgeCorrespondenceAsRecipient(correspondenceId);
+    const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
+    await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
+    await TC03_GetAttachmentOverviewAsSender(attachmentId);
+    await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
+    await TC05_PurgeCorrespondenceAsRecipient(correspondenceId);
     sleep(10); //give time for the purge to complete (Report purge activity to dialogporten might throw an error if it's not completed yet on cleanup)
-	await cleanupBruksmonsterTestData();
+    await cleanupBruksmonsterTestData();
 }
 
 async function TC01_InitializeCorrespondenceWithAttachment() {
@@ -59,7 +60,6 @@ async function TC01_InitializeCorrespondenceWithAttachment() {
         if (payload && payload.correspondences && payload.correspondences.length > 0) {
             correspondenceId = payload.correspondences[0].correspondenceId;
         }
-		
 		if (payload && payload.attachmentIds && payload.attachmentIds.length > 0) {
 			attachmentId = payload.attachmentIds[0];
 		}
@@ -112,7 +112,7 @@ async function TC02_GetCorrespondencePublishedAsRecipient(correspondenceId) {
 			console.log(`TC02:Correspondence overview not available yet (404). Attempt ${i + 1}/${maxIterations}`);
 		}
         else {
-            fail(`Failed to get correspondence overview. Status: ${r.status}. Body: ${r.body}`);
+            console.error(`Failed to get correspondence overview. Status: ${r.status}. Body: ${r.body}`);
         }
     }
 
@@ -175,7 +175,7 @@ async function TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId
 
 	check(downloadedBytes, { 'Attachment downloaded successfully': b => b instanceof Uint8Array });
 	if (!downloadedBytes) {
-		fail('TC04: Could not download attachment');
+		console.error('TC04: Could not download attachment');
 		return;
 	}
 
