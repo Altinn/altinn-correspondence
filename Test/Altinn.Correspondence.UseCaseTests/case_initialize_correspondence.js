@@ -16,6 +16,8 @@ export const options = {
     thresholds: {
         checks: ["rate==1"],  // 100% of checks must pass
     },
+    vus: 1,
+    iterations: 1
 };
 
 /**
