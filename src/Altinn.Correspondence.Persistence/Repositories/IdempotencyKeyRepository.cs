@@ -57,4 +57,23 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }
+
+    public async Task<int> DeleteByCorrespondenceIds(IEnumerable<Guid> correspondenceIds, CancellationToken cancellationToken)
+    {
+        var ids = correspondenceIds?.Distinct().ToList() ?? new List<Guid>();
+        if (ids.Count == 0)
+        {
+            return 0;
+        }
+
+        var keys = await _dbContext.IdempotencyKeys
+            .Where(k => k.CorrespondenceId != null && ids.Contains(k.CorrespondenceId.Value))
+            .ToListAsync(cancellationToken);
+        if (keys.Count == 0)
+        {
+            return 0;
+        }
+        _dbContext.IdempotencyKeys.RemoveRange(keys);
+        return await _dbContext.SaveChangesAsync(cancellationToken);
+    }
 } 

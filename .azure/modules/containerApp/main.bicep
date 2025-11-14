@@ -17,6 +17,7 @@ param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
 param eventGridIps array
 param migrationWorkerCountPerReplica string
+param bruksmonsterTestsResourceId string
 param arbeidsflateOriginsCommaSeparated string
 
 @secure()
@@ -127,6 +128,7 @@ var containerAppEnvVarsDefault = [
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
   { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
   { name: 'GeneralSettings__MigrationWorkerCountPerReplica', value: int(migrationWorkerCountPerReplica) }
+  { name: 'GeneralSettings__BruksmonsterTestsResourceId', value: bruksmonsterTestsResourceId }
 ]
 
 var containerAppEnvVars = concat(

@@ -14,4 +14,5 @@ public class GeneralSettings
     public bool DisableTelemetryForMigration { get; set; } = true;
     public bool DisableTelemetryForSync { get; set; } = false;
     public int MigrationWorkerCountPerReplica { get; set; } = 2;
+    public string BruksmonsterTestsResourceId { get; set; } = string.Empty;
 }

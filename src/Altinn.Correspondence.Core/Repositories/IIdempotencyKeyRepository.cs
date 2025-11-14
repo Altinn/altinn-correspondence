@@ -46,4 +46,9 @@ public interface IIdempotencyKeyRepository
     /// <param name="id">The id of the idempotency key to delete.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task DeleteAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes idempotency keys for the given correspondence ids. Returns number of deleted rows.
+    /// </summary>
+    Task<int> DeleteByCorrespondenceIds(IEnumerable<Guid> correspondenceIds, CancellationToken cancellationToken);
 } 
