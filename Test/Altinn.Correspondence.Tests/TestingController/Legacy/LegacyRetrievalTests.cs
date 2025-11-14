@@ -127,8 +127,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             // Assert 2
             Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
             Assert.NotNull(historyResponse);
-            var historyResponseContent = await historyResponse.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>(_serializerOptions);
-            Assert.NotEqual(CorrespondenceStatusExt.AttachmentsDownloaded.ToString(), historyResponseContent.First().Status); // This status is hidden from Legacy recipients, so should not appear in history
+            var historyResponseContent = await historyResponse.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>(_serializerOptions);            
+            Assert.DoesNotContain(
+                historyResponseContent,
+                item => item.Status == CorrespondenceStatusExt.AttachmentsDownloaded.ToString()); // This status is hidden from Legacy recipients, so should not appear in history
         }
 
 
