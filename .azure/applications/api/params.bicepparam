@@ -18,6 +18,7 @@ param maskinporten_token_exchange_environment = readEnvironmentVariable('MASKINP
 param apimIp = readEnvironmentVariable('APIM_IP')
 param migrationWorkerCountPerReplica = readEnvironmentVariable('MIGRATION_WORKER_COUNT_PER_REPLICA')
 // secrets
+param bruksmonsterTestsResourceId = readEnvironmentVariable('BRUKSMONSTER_RESOURCE_ID')
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')
 param keyVaultUrl = readEnvironmentVariable('KEY_VAULT_URL')
 param storageAccountName = readEnvironmentVariable('STORAGE_ACCOUNT_NAME')
