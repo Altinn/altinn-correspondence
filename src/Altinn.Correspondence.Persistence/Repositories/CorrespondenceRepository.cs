@@ -264,21 +264,15 @@ namespace Altinn.Correspondence.Persistence.Repositories
             
             if (cursorCreated.HasValue)
             {
-                if (cursorId.HasValue)
-                {
-                    query = query.Where(c => c.Created < cursorCreated.Value);
-                }
-                else
-                {
-                    query = query.Where(c => c.Created < cursorCreated.Value);
-                }
-            } else if (createdTo.HasValue)
+                query = query.Where(c => c.Created < cursorCreated.Value);
+            }
+            else if (createdTo.HasValue)
             {
                 query = query.Where(c => c.Created < createdTo.Value);
             }
             else
             {
-                query = query.Where(c => c.Created <= DateTimeOffset.UtcNow.AddMonths(-1));
+                throw new InvalidOperationException("Either cursorCreated or createdTo must be provided");
             }
 
 
