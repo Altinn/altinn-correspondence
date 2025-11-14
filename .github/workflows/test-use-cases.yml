@@ -1,4 +1,4 @@
-name: Test use cases on environment
+name: Test Use Cases On Environment
 
 on:
   workflow_dispatch:
@@ -16,15 +16,21 @@ on:
         - at22
         - at23
         - at24
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to run against'
+        required: true
+        type: string
   push:
     branches:
       - 'feat/bruksmonster-tests'  # Triggers on push to any branch
 
-run-name: Test use cases for environment ${{ github.event.inputs.environment || 'test' }}
+run-name: Test use cases for environment ${{ inputs.environment || github.event.inputs.environment || 'test' }}
 
 jobs:
   usecase-test:
-    environment: ${{ github.event.inputs.environment || 'test' }}
+    environment: ${{ inputs.environment || github.event.inputs.environment || 'test' }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -45,7 +51,7 @@ jobs:
       if: failure()
       run: |
           report=":warning: Correspondence use case test failure :warning: \n"
-          report+="\n Environment: ${{ github.event.inputs.environment || 'test' }}"
+          report+="\n Environment: ${{ inputs.environment || github.event.inputs.environment || 'test' }}"
           report+="\n Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           echo "stepreport=$report" >> $GITHUB_ENV
     - name: Report failure to Slack
