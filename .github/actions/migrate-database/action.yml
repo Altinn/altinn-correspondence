@@ -77,7 +77,7 @@ runs:
     - name: Install EF Core CLI
       shell: bash
       run: |
-        dotnet tool install --global dotnet-ef 
+        dotnet tool install --global dotnet-ef --version 9.0.*
         dotnet tool restore
 
     - name: Create migration script
