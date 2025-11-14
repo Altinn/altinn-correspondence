@@ -87,7 +87,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
 
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
-            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, "Failed to upload Correspondece");
+            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, "Failed to upload Correspondence");
             var uploadCorrespondenceResponseObj = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_serializerOptions);
             Assert.Equal(1, uploadCorrespondenceResponseObj.Correspondences.Count);
             var correspondence = uploadCorrespondenceResponseObj.Correspondences.First();
