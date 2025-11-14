@@ -40,7 +40,7 @@ async function TC01_InitializeCorrespondenceWithAttachment() {
     const token = await getSenderAltinnToken();
     check(token, { 'Sender altinn token obtained for initialize correspondence': t => typeof t === 'string' && t.length > 0 });
 
-    const recipient = isProduction ? 'insert production recipient here' : '26818099002';
+    const recipient = isProduction ? 'insert production recipient here' : '26818099001';
 
     const formBody = buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId, recipient, ATTACHMENT_FILE_BIN, ATTACHMENT_FILENAME, ATTACHMENT_MIME);
 
