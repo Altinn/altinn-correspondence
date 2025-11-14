@@ -125,6 +125,7 @@ var containerAppEnvVarsDefault = [
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
   { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
   { name: 'GeneralSettings__MigrationWorkerCountPerReplica', value: int(migrationWorkerCountPerReplica) }
+  { name: 'GeneralSettings__BruksmonsterTestsResourceId', secretRef: 'bruksmonster-resource-id' }
 ]
 
 var containerAppEnvVars = concat(
@@ -230,6 +231,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           identity: principal_id
           keyVaultUrl: '${keyVaultUrl}/secrets/statistics-api-key'
           name: 'statistics-api-key'
+        }
+        {
+          identity: principal_id
+          keyVaultUrl: '${keyVaultUrl}/secrets/bruksmonster-resource-id'
+          name: 'bruksmonster-resource-id'
         }
       ]
     }
