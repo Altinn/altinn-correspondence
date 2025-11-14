@@ -6,6 +6,7 @@ import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.j
 
 const baseUrl = __ENV.base_url;
 const resourceId = __ENV.resource_id;
+const isProduction = (__ENV.base_url.toLowerCase().includes('platform.altinn.no')) ? true : false;
 const ATTACHMENT_PATH = './fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';
 const ATTACHMENT_FILENAME = 'usecase-attachment.txt';
@@ -39,7 +40,7 @@ async function TC01_InitializeCorrespondenceWithAttachment() {
     const token = await getSenderAltinnToken();
     check(token, { 'Sender altinn token obtained for initialize correspondence': t => typeof t === 'string' && t.length > 0 });
 
-    const recipient = '26818099001';
+    const recipient = isProduction ? 'insert production recipient here' : '26818099002';
 
     const formBody = buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId, recipient, ATTACHMENT_FILE_BIN, ATTACHMENT_FILENAME, ATTACHMENT_MIME);
 
