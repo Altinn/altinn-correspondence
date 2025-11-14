@@ -105,12 +105,12 @@ public class LegacyUpdateCorrespondenceStatusHandler(
 
     public Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
     {
-        var currentStatus = correspondence.GetHighestStatus();
+        var currentStatus = correspondence.GetHighestStatusForLegacyCorrespondence();
         if (currentStatus is null)
         {
             return CorrespondenceErrors.CouldNotRetrieveStatus;
         }
-        if (!currentStatus.Status.IsAvailableForRecipient())
+        if (!currentStatus.Status.IsAvailableForLegacyRecipient())
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }

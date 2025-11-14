@@ -38,7 +38,7 @@ namespace Altinn.Correspondence.API.Models
         public required string MessageBody { get; set; }
 
         /// <summary>
-        /// Gets or sets a list of attachments.
+        /// Gets or sets metadata of the attachments added in the Attachments field. Uses the InitializeCorrespondenceAttachmentExt model.
         /// </summary>
         [JsonPropertyName("attachments")]
         public List<InitializeCorrespondenceAttachmentExt> Attachments { get; set; } = new List<InitializeCorrespondenceAttachmentExt>();

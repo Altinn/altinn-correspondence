@@ -261,32 +261,26 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 query = query.Where(c => c.Created >= createdFrom.Value);
             }
 
-            if (createdTo.HasValue)
-            {
-                query = query.Where(c => c.Created < createdTo.Value);
-            } else
-            {
-                query = query.Where(c => c.Created <= DateTimeOffset.UtcNow.AddMonths(-1));
-            }
-
+            
             if (cursorCreated.HasValue)
             {
-                if (cursorId.HasValue)
-                {
-                    query = query.Where(c => c.Created < cursorCreated.Value ||
-                                             (c.Created == cursorCreated.Value && c.Id > cursorId.Value));
-                }
-                else
-                {
-                    query = query.Where(c => c.Created < cursorCreated.Value);
-                }
+                query = query.Where(c => c.Created < cursorCreated.Value);
+            }
+            else if (createdTo.HasValue)
+            {
+                query = query.Where(c => c.Created < createdTo.Value);
+            }
+            else
+            {
+                throw new InvalidOperationException("Either cursorCreated or createdTo must be provided");
             }
 
+
             return query
-                .OrderByDescending(c => c.Created)
-                .ThenBy(c => c.Id)
-                .Take(batchSize)
-                .ToListAsync(cancellationToken);
+                    .OrderByDescending(c => c.Created)
+                    .ThenBy(c => c.Id)
+                    .Take(batchSize)
+                    .ToListAsync(cancellationToken);
         }
 
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesWindowAfter(

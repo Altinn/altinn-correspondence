@@ -18,6 +18,7 @@ param maskinporten_token_exchange_environment string
 param eventGridIps array
 param migrationWorkerCountPerReplica string
 param bruksmonsterTestsResourceId string
+param arbeidsflateOriginsCommaSeparated string
 
 @secure()
 param sblBridgeBaseUrl string
@@ -102,6 +103,7 @@ var containerAppEnvVarsDefault = [
   { name: 'AltinnOptions__OverrideAuthorizationThumbprint', value: override_authorization_thumbprint }
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretRef: 'platform-subscription-key' }
   { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretRef: 'access-management-subscription-key' }
+  { name: 'AltinnOptions__ArbeidsflateOriginsCommaSeparated', value: arbeidsflateOriginsCommaSeparated }
   { name: 'MaskinportenSettings__Environment', value: maskinporten_environment }
   { name: 'MaskinportenSettings__ClientId', secretRef: 'maskinporten-client-id' }
   {

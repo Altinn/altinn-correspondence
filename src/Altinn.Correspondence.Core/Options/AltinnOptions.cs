@@ -8,4 +8,5 @@ public class AltinnOptions
     public string AccessManagementSubscriptionKey { get; set; } = string.Empty;
     public string OverrideAuthorizationUrl {  get; set; } = string.Empty;
     public string AuthorizationCertificateThumbprint { get; set; } = string.Empty;
+    public string ArbeidsflateOriginsCommaSeparated { get; set; } = string.Empty;
 }

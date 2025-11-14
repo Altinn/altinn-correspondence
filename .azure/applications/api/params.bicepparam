@@ -17,6 +17,7 @@ param idportenIssuer = readEnvironmentVariable('IDPORTEN_ISSUER')
 param maskinporten_token_exchange_environment = readEnvironmentVariable('MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT')
 param apimIp = readEnvironmentVariable('APIM_IP')
 param migrationWorkerCountPerReplica = readEnvironmentVariable('MIGRATION_WORKER_COUNT_PER_REPLICA')
+param arbeidsflateOriginsCommaSeparated = readEnvironmentVariable('ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED')
 // secrets
 param bruksmonsterTestsResourceId = readEnvironmentVariable('BRUKSMONSTER_RESOURCE_ID')
 param sourceKeyVaultName = readEnvironmentVariable('KEY_VAULT_NAME')

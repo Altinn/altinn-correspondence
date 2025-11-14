@@ -104,6 +104,9 @@ inputs:
   BRUKSMONSTER_RESOURCE_ID:
     description: "Resource ID for Bruksmonster tests"
     required: false
+  ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED:
+    description: "Comma separated list of Arbeidsflate origins"
+    required: false
 
 runs:
   using: "composite"
@@ -174,3 +177,4 @@ runs:
         APIM_IP: ${{ inputs.APIM_IP }}
         MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
         BRUKSMONSTER_RESOURCE_ID: ${{ inputs.BRUKSMONSTER_RESOURCE_ID }}
+        ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ inputs.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
