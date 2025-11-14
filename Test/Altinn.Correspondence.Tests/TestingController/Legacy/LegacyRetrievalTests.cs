@@ -1,18 +1,20 @@
-﻿using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.Common.Constants;
+﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondenceHistory;
+using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
+using Azure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http.Json;
-using Altinn.Correspondence.Core.Services;
-using Moq;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Tests.Fixtures;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingController.Legacy
@@ -65,6 +67,70 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
+
+        [Fact]
+        public async Task LegacyGetCorrespondenceOverviewAndHistory_AllAttachmentsDownloaded_StatusNotAttachmentDownloaded()
+        {  
+            // Upload correspondence (attachments included in same request)
+            using var stream = System.IO.File.OpenRead("./Data/Markdown.txt");
+            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            using var fileStream = file.OpenReadStream();
+
+            var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
+                .WithAttachments([attachmentMetaData,])
+                .Build();
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, "Failed to upload Correspondece");
+            var uploadCorrespondenceResponseObj = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_serializerOptions);
+            Assert.Equal(1, uploadCorrespondenceResponseObj.Correspondences.Count);
+            var correspondence = uploadCorrespondenceResponseObj.Correspondences.First();
+
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
+                _senderClient,
+                _serializerOptions,
+                correspondence.CorrespondenceId,
+                CorrespondenceStatusExt.Published);
+
+            
+            var overviewResponse = await _legacyClient.GetAsync(
+                $"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
+            Assert.True(overviewResponse.IsSuccessStatusCode, "Failed to retrieve overview");
+            var overviewResponseContent = await overviewResponse.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
+            Assert.NotNull(overviewResponseContent);            
+            Assert.Equal(CorrespondenceStatusExt.Published, overviewResponseContent.Status);
+
+            var downloadResponse = await _senderClient.GetAsync(
+                    $"correspondence/api/v1/correspondence/{overviewResponseContent.CorrespondenceId}/attachment/{overviewResponseContent.Attachments.First().Id}/download");
+            Assert.True(downloadResponse.IsSuccessStatusCode, $"Download failed for attachment {overviewResponseContent.Attachments.First().Id}");
+
+            // Act 1 - Overview after attachment download
+            var overviewResponse2 = await _legacyClient.GetAsync(
+                $"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview");
+
+            // Assert 1
+            Assert.True(overviewResponse2.IsSuccessStatusCode, "Failed to retrieve overview");
+            Assert.NotNull(overviewResponse2);
+            var overviewResponseContent2 = await overviewResponse2.Content.ReadFromJsonAsync<LegacyCorrespondenceOverviewExt>(_serializerOptions);
+            Assert.NotNull(overviewResponseContent2);
+            Assert.NotEqual(CorrespondenceStatusExt.AttachmentsDownloaded, overviewResponseContent2.Status); // This status is hidden from Legacy recipients, so should not appear in overview
+
+            // Act 2 - History after attachment download
+            var historyResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/history");            
+            
+            // Assert 2
+            Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
+            Assert.NotNull(historyResponse);
+            var historyResponseContent = await historyResponse.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>(_serializerOptions);
+            Assert.NotEqual(CorrespondenceStatusExt.AttachmentsDownloaded.ToString(), historyResponseContent.First().Status); // This status is hidden from Legacy recipients, so should not appear in history
+        }
+
 
         [Fact]
         public async Task LegacyGetCorrespondenceHistory_WithValidRequest_ReturnsOk()
