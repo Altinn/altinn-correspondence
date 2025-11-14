@@ -26,7 +26,6 @@ export const options = {
  * cleanup: deletes data created by bruksmonster tests
  */
 export default async function () {
-    console.log(`Starting test case with base url ${baseUrl} and resource id ${resourceId}`);
     const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
     await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
     await TC03_GetAttachmentOverviewAsSender(attachmentId);
