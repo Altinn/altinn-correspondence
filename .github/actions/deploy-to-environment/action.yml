@@ -101,6 +101,9 @@ inputs:
   MIGRATION_WORKER_COUNT_PER_REPLICA:
     description: "Number of workers to use for Dialogporten migration"
     required: false
+  BRUKSMONSTER_RESOURCE_ID:
+    description: "Resource ID for Bruksmonster tests"
+    required: false
 
 runs:
   using: "composite"
@@ -170,3 +173,4 @@ runs:
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ inputs.APIM_IP }}
         MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
+        BRUKSMONSTER_RESOURCE_ID: ${{ inputs.BRUKSMONSTER_RESOURCE_ID }}
