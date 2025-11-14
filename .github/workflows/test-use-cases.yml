@@ -45,6 +45,7 @@ jobs:
       if: failure()
       run: |
           report=":warning: Correspondence use case test failure :warning: \n"
+          report+="\n Environment: ${{ github.event.inputs.environment || 'test' }}"
           report+="\n Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           echo "stepreport=$report" >> $GITHUB_ENV
     - name: Report failure to Slack
@@ -53,7 +54,7 @@ jobs:
       uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # v2.1.1
       with:
         webhook-type: incoming-webhook
-        webhook: ${{ secrets.SLACK_URL }}
+        webhook: ${{ secrets.BRUKSMONSTER_SLACK_URL || secrets.SLACK_URL }}
         payload: |
           {
             "text": "${{ env.stepreport }}"

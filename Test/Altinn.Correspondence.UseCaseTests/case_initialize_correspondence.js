@@ -6,7 +6,7 @@ import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.j
 
 const baseUrl = __ENV.base_url;
 const resourceId = __ENV.resource_id;
-const isProduction = (__ENV.base_url.toLowerCase().includes('platform.altinn.no')) ? true : false;
+const isProduction = (baseUrl.toLowerCase().includes('platform.altinn.no')) ? true : false;
 const ATTACHMENT_PATH = './fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';
 const ATTACHMENT_FILENAME = 'usecase-attachment.txt';
@@ -32,7 +32,7 @@ export default async function () {
     await TC03_GetAttachmentOverviewAsSender(attachmentId);
     await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
     await TC05_PurgeCorrespondenceAsRecipient(correspondenceId);
-    sleep(10); //give time for the purge to complete (Report purge activity to dialogporten might throw an error if it's not completed yet on cleanup)
+    sleep(10); //give time for the purge to complete (Report purge activity to dialogporten might throw an error if it's not completed yet before cleanup)
     await cleanupBruksmonsterTestData();
 }
 
