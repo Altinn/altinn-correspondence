@@ -22,9 +22,6 @@ on:
         description: 'Environment to run against'
         required: true
         type: string
-  push:
-    branches:
-      - 'feat/bruksmonster-tests'  # Triggers on push to any branch
 
 run-name: Test use cases for environment ${{ inputs.environment || github.event.inputs.environment || 'test' }}
 
