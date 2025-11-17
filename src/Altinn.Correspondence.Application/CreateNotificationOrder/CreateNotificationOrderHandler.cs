@@ -138,8 +138,8 @@ public class CreateNotificationOrderHandler(
             {
                 SendersReference = $"corr-{correspondence.SendersReference}",
                 RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
-                    ? DateTime.UtcNow.AddMinutes(5)
-                    : correspondence.RequestedPublishTime.UtcDateTime.AddMinutes(5),
+                    ? DateTime.UtcNow
+                    : correspondence.RequestedPublishTime.UtcDateTime,
                 IdempotencyId = correspondence.Id.CreateVersion5(BuildRecipientKey(recipient)),
                 Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: false)
             };

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
 using System.Text.Json;
+using System.Net;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 
@@ -20,24 +21,28 @@ public class AltinnNotificationService : IAltinnNotificationService
         _logger = logger;
     }
 
-
     public async Task<NotificationOrderRequestResponseV2?> CreateNotificationV2(NotificationOrderRequestV2 notificationRequest, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Creating notification in Altinn Notification v2");
         var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/future/orders", notificationRequest, cancellationToken);
-        var jsonRequest = JsonSerializer.Serialize(notificationRequest);
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Failed to create notification in Altinn Notification v2. Status code: {StatusCode}", response.StatusCode);
-            _logger.LogError("Body: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
+            _logger.LogError("Body: {Response}", responseJson);
+            
+            if (response.StatusCode != HttpStatusCode.UnprocessableEntity)
+            {
+                throw new BadHttpRequestException($"Failed to create notification V2. Status code: {response.StatusCode}. Response body: {responseJson}. IdempotencyId: {notificationRequest.IdempotencyId}");
+            }
+            
             return null;
         }
         var responseContent = await response.Content.ReadFromJsonAsync<NotificationOrderRequestResponseV2>(cancellationToken: cancellationToken);
         if (responseContent is null)
         {
-            _logger.LogError("Unexpected null or invalid json response from Notification v2.");
-            return null;
+            _logger.LogError("Unexpected null json response from Notification v2. Response body: {Response}. IdempotencyId: {IdempotencyId}", responseJson, notificationRequest.IdempotencyId);
+            throw new JsonException($"Failed to deserialize notification V2 response - received null. Response body: {responseJson}. IdempotencyId: {notificationRequest.IdempotencyId}");
         }
         return responseContent;
     }
