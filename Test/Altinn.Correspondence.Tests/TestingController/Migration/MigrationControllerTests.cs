@@ -563,6 +563,31 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
+    public async Task InitializeMigrateCorrespondence_PublishedOnCorrespondenceData_IsPersistedOnEntity()
+    {
+        // Arrange
+        var published = new DateTimeOffset(2024, 2, 3, 10, 20, 30, TimeSpan.Zero);
+        var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithPublished(published)
+            .Build();
+
+        // Act
+        var initializeResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
+        var result = await initializeResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
+
+        using var scope = _factory.Services.CreateScope();
+        var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, false, CancellationToken.None, true);
+
+        // Assert
+        Assert.NotNull(correspondence);
+        Assert.Equal(published, correspondence.Published);
+    }
+
+    [Fact]
     public async Task InitializeMigrateCorrespondence_EmptyTitle_Failsvalidation()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()

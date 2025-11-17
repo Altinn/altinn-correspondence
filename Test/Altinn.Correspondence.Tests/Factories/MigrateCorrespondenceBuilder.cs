@@ -147,6 +147,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public MigrateCorrespondenceBuilder WithPublished(DateTimeOffset published)
+        {
+            _migratedCorrespondence.CorrespondenceData.Published = published;
+            return this;
+        }
+
         public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
         {
             var published = _migratedCorrespondence.CorrespondenceData.Published;
