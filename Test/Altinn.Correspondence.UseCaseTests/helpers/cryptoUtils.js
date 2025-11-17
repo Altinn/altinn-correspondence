@@ -10,7 +10,6 @@ export function pemToBinary(pem) {
 
 // Converts a string to bytes (Uint8Array)
 // Note: This assumes ASCII-only input (works for base64url JWT strings)
-// For full UTF-8 support, use TextEncoder or a proper UTF-8 encoder
 export function stringToBytes(str) {
     const arr = new Uint8Array(str.length);
     for (let i = 0; i < str.length; i++) {
