@@ -1,9 +1,7 @@
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Options;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
 using Hangfire;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
@@ -11,7 +9,6 @@ using Altinn.Correspondence.Core.Repositories;
 namespace Altinn.Correspondence.Application.CleanupBruksmonster;
 
 public class CleanupBruksmonsterHandler(
-    IOptions<GeneralSettings> generalSettings,
     IBackgroundJobClient backgroundJobClient,
     ILogger<CleanupBruksmonsterHandler> logger,
     IDialogportenService dialogportenService,
@@ -23,15 +20,7 @@ public class CleanupBruksmonsterHandler(
     public async Task<OneOf<CleanupBruksmonsterResponse, Error>> Process(ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting cleanup of bruksmonster test data");
-        var resourceId = generalSettings.Value.BruksmonsterTestsResourceId;
-        if (string.IsNullOrEmpty(resourceId))
-        {
-            return MaintenanceErrors.ResourceIdForBruksmonsterTestsNotConfigured;
-        }
-        if (resourceId != "correspondence-bruksmonstertester-ressurs")
-        {
-            return MaintenanceErrors.InvalidResourceIdForBruksmonsterTests;
-        }
+        var resourceId = "correspondence-bruksmonstertester-ressurs";
         var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, cancellationToken);
         var attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, cancellationToken);
 		return await TransactionWithRetriesPolicy.Execute<CleanupBruksmonsterResponse>(async (ct) =>

@@ -5,7 +5,7 @@ import { buildInitializeCorrespondenceWithNewAttachmentPayload } from './helpers
 import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.js';
 
 const baseUrl = __ENV.base_url;
-const resourceId = __ENV.resource_id;
+const resourceId = 'correspondence-bruksmonstertester-ressurs';
 const isProduction = (baseUrl.toLowerCase().includes('platform.altinn.no')) ? true : false;
 const ATTACHMENT_PATH = './fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';

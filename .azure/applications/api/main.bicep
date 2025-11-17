@@ -35,7 +35,6 @@ param maskinporten_token_exchange_environment string
 @minLength(3)
 param apimIp string
 param migrationWorkerCountPerReplica string
-param bruksmonsterTestsResourceId string
 param arbeidsflateOriginsCommaSeparated string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
@@ -137,7 +136,6 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     sblBridgeBaseUrl: sblBridgeBaseUrl
     maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
     migrationWorkerCountPerReplica: migrationWorkerCountPerReplica
-    bruksmonsterTestsResourceId: bruksmonsterTestsResourceId
     arbeidsflateOriginsCommaSeparated: arbeidsflateOriginsCommaSeparated
   }
 }

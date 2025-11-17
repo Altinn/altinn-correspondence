@@ -122,9 +122,3 @@ public static class StatisticsErrors
     public static Error NoCorrespondencesFound = new Error(6001, "No correspondences found for report generation", HttpStatusCode.NotFound);
     public static Error ReportGenerationFailed = new Error(6002, "Failed to generate statistics report", HttpStatusCode.InternalServerError);
 }
-
-public static class MaintenanceErrors
-{
-    public static Error ResourceIdForBruksmonsterTestsNotConfigured = new Error(7001, "ResourceId for bruksmonster tests is not configured", HttpStatusCode.BadRequest);
-    public static Error InvalidResourceIdForBruksmonsterTests = new Error(7002, "Cleanup bruksmonster tests can only be run for the resource 'correspondence-bruksmonstertester-ressurs'", HttpStatusCode.BadRequest);
-}

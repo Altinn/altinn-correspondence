@@ -18,18 +18,12 @@ public class CleanupBruksmonsterHandlerTests
     private const string AllowedResourceId = "correspondence-bruksmonstertester-ressurs";
 
     private static CleanupBruksmonsterHandler CreateHandler(
-        string resourceId,
         out Mock<IBackgroundJobClient> backgroundJobClientMock,
         out Mock<IDialogportenService> dialogportenServiceMock,
         out Mock<ICorrespondenceRepository> correspondenceRepositoryMock,
         out Mock<IIdempotencyKeyRepository> idempotencyKeyRepositoryMock,
         out Mock<IAttachmentRepository> attachmentRepositoryMock)
     {
-        var options = Options.Create(new GeneralSettings
-        {
-            BruksmonsterTestsResourceId = resourceId
-        });
-
         backgroundJobClientMock = new Mock<IBackgroundJobClient>(MockBehavior.Strict);
         dialogportenServiceMock = new Mock<IDialogportenService>(MockBehavior.Strict);
         correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>(MockBehavior.Strict);
@@ -39,7 +33,6 @@ public class CleanupBruksmonsterHandlerTests
         var logger = Mock.Of<ILogger<CleanupBruksmonsterHandler>>();
 
         return new CleanupBruksmonsterHandler(
-            options,
             backgroundJobClientMock.Object,
             logger,
             dialogportenServiceMock.Object,
@@ -50,37 +43,10 @@ public class CleanupBruksmonsterHandlerTests
     }
 
     [Fact]
-    public async Task Process_WhenResourceIdIsNotAllowed_ReturnsInvalidResourceIdError_AndDoesNothing()
-    {
-        // Arrange
-        var handler = CreateHandler(
-            resourceId: "some-other-resource",
-            out var bgMock,
-            out var dialogMock,
-            out var corrRepoMock,
-            out var idRepoMock,
-            out var attRepoMock);
-
-        // Act
-        var result = await handler.Process(user: null, CancellationToken.None);
-
-        // Assert
-        Assert.True(result.IsT1);
-        Assert.Equal(MaintenanceErrors.InvalidResourceIdForBruksmonsterTests, result.AsT1);
-
-        corrRepoMock.Verify(m => m.GetCorrespondenceIdsByResourceId(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        attRepoMock.Verify(m => m.GetAttachmentIdsOnResource(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        bgMock.Verify(m => m.Create(It.IsAny<Job>(), It.IsAny<IState>()), Times.Never);
-        dialogMock.VerifyNoOtherCalls();
-        idRepoMock.VerifyNoOtherCalls();
-    }
-
-    [Fact]
     public async Task Process_WhenValid_SchedulesJobs_AndTargetsOnlyConfiguredResource()
     {
         // Arrange
         var handler = CreateHandler(
-            resourceId: AllowedResourceId,
             out var bgMock,
             out var dialogMock,
             out var corrRepoMock,
@@ -134,7 +100,6 @@ public class CleanupBruksmonsterHandlerTests
     {
         // Arrange
         var handler = CreateHandler(
-            resourceId: AllowedResourceId,
             out var bgMock,
             out var dialogMock,
             out var corrRepoMock,
