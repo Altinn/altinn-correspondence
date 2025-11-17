@@ -295,20 +295,20 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             await using var context = _fixture.CreateDbContext();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
-            var c1 = new CorrespondenceEntityBuilder().Build();
-            var c2 = new CorrespondenceEntityBuilder().Build();
-            var c3 = new CorrespondenceEntityBuilder().Build();
-            context.Correspondences.AddRange(c1, c2, c3);
+            var correspondenceA = new CorrespondenceEntityBuilder().Build();
+            var correspondenceB = new CorrespondenceEntityBuilder().Build();
+            var correspondenceC = new CorrespondenceEntityBuilder().Build();
+            context.Correspondences.AddRange(correspondenceA, correspondenceB, correspondenceC);
             await context.SaveChangesAsync();
 
             // Act
-            var deleted = await repo.HardDeleteCorrespondencesByIds([c1.Id, c3.Id], CancellationToken.None);
+            var deleted = await repo.HardDeleteCorrespondencesByIds([correspondenceA.Id, correspondenceC.Id], CancellationToken.None);
 
             // Assert
             Assert.Equal(2, deleted);
-            Assert.Null(await context.Correspondences.FindAsync(c1.Id));
-            Assert.NotNull(await context.Correspondences.FindAsync(c2.Id));
-            Assert.Null(await context.Correspondences.FindAsync(c3.Id));
+            Assert.Null(await context.Correspondences.FindAsync(correspondenceA.Id));
+            Assert.NotNull(await context.Correspondences.FindAsync(correspondenceB.Id));
+            Assert.Null(await context.Correspondences.FindAsync(correspondenceC.Id));
         }
     }
 }

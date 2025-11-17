@@ -60,19 +60,19 @@ public class AttachmentRepositoryTests : IClassFixture<PostgresTestcontainerFixt
             AttachmentSize = 1
         };
 
-        var corr = new CorrespondenceEntityBuilder().Build();
-        corr.Content!.Attachments.Add(new CorrespondenceAttachmentEntity
+        var correspondence = new CorrespondenceEntityBuilder().Build();
+        correspondence.Content!.Attachments.Add(new CorrespondenceAttachmentEntity
         {
             Id = Guid.NewGuid(),
-            CorrespondenceContentId = corr.Content!.Id,
+            CorrespondenceContentId = correspondence.Content!.Id,
             AttachmentId = linkedB.Id,
             Attachment = linkedB,
-            Created = corr.Created,
-            ExpirationTime = corr.Created.AddDays(30)
+            Created = correspondence.Created,
+            ExpirationTime = correspondence.Created.AddDays(30)
         });
 
         context.Attachments.AddRange(orphanA, linkedB, orphanC, orphanD);
-        context.Correspondences.Add(corr);
+        context.Correspondences.Add(correspondence);
         await context.SaveChangesAsync();
 
         // Act
