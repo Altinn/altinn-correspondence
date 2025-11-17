@@ -20,29 +20,29 @@ public class IdempotencyKeyRepositoryTests : IClassFixture<PostgresTestcontainer
     {
         // Arrange
         await using var context = _fixture.CreateDbContext();
-        var repo = new IdempotencyKeyRepository(context);
+        var idempotencyKeyRepository = new IdempotencyKeyRepository(context);
 
-        var c1 = new CorrespondenceEntityBuilder().Build();
-        var c2 = new CorrespondenceEntityBuilder().Build();
-        var c3 = new CorrespondenceEntityBuilder().Build();
-        context.Correspondences.AddRange(c1, c2, c3);
+        var correspondenceA = new CorrespondenceEntityBuilder().Build();
+        var correspondenceB = new CorrespondenceEntityBuilder().Build();
+        var correspondenceC = new CorrespondenceEntityBuilder().Build();
+        context.Correspondences.AddRange(correspondenceA, correspondenceB, correspondenceC);
 
-        var k1 = new IdempotencyKeyEntity { Id = Guid.NewGuid(), CorrespondenceId = c1.Id, IdempotencyType = IdempotencyType.Correspondence };
-        var k2 = new IdempotencyKeyEntity { Id = Guid.NewGuid(), CorrespondenceId = c2.Id, IdempotencyType = IdempotencyType.Correspondence };
-        var k3 = new IdempotencyKeyEntity { Id = Guid.NewGuid(), CorrespondenceId = c3.Id, IdempotencyType = IdempotencyType.Correspondence };
-        var k4 = new IdempotencyKeyEntity { Id = Guid.NewGuid(), CorrespondenceId = null, AttachmentId = null, IdempotencyType = IdempotencyType.DialogportenActivity };
-        context.IdempotencyKeys.AddRange(k1, k2, k3, k4);
+        var idempotencyKeyA = new IdempotencyKeyEntity { Id = Guid.NewGuid(), CorrespondenceId = correspondenceA.Id, IdempotencyType = IdempotencyType.Correspondence };
+        var idempotencyKeyB = new IdempotencyKeyEntity { Id = Guid.NewGuid(), CorrespondenceId = correspondenceB.Id, IdempotencyType = IdempotencyType.Correspondence };
+        var idempotencyKeyC = new IdempotencyKeyEntity { Id = Guid.NewGuid(), CorrespondenceId = correspondenceC.Id, IdempotencyType = IdempotencyType.Correspondence };
+        var idempotencyKeyD = new IdempotencyKeyEntity { Id = Guid.NewGuid(), CorrespondenceId = null, AttachmentId = null, IdempotencyType = IdempotencyType.DialogportenActivity };
+        context.IdempotencyKeys.AddRange(idempotencyKeyA, idempotencyKeyB, idempotencyKeyC, idempotencyKeyD);
         await context.SaveChangesAsync();
 
         // Act
-        var deletedCount = await repo.DeleteByCorrespondenceIds([c1.Id, c3.Id], CancellationToken.None);
+        var deletedCount = await idempotencyKeyRepository.DeleteByCorrespondenceIds([correspondenceA.Id, correspondenceC.Id], CancellationToken.None);
 
         // Assert
         Assert.Equal(2, deletedCount);
-        Assert.Null(await context.IdempotencyKeys.FindAsync(k1.Id));
-        Assert.NotNull(await context.IdempotencyKeys.FindAsync(k2.Id));
-        Assert.Null(await context.IdempotencyKeys.FindAsync(k3.Id));
-        Assert.NotNull(await context.IdempotencyKeys.FindAsync(k4.Id));
+        Assert.Null(await context.IdempotencyKeys.FindAsync(idempotencyKeyA.Id));
+        Assert.NotNull(await context.IdempotencyKeys.FindAsync(idempotencyKeyB.Id));
+        Assert.Null(await context.IdempotencyKeys.FindAsync(idempotencyKeyC.Id));
+        Assert.NotNull(await context.IdempotencyKeys.FindAsync(idempotencyKeyD.Id));
     }
 }
 
