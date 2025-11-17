@@ -1,5 +1,5 @@
 import encoding from 'k6/encoding';
-import { pemToBinary, utf8Encode } from './cryptoUtils.js';
+import { pemToBinary, stringToBytes } from './cryptoUtils.js';
 
 export async function buildMaskinportenJwt({ clientId, kid, pem, scope, tokenUrl }) {
     const now = Math.floor(Date.now() / 1000);
@@ -28,7 +28,7 @@ export async function buildMaskinportenJwt({ clientId, kid, pem, scope, tokenUrl
         ['sign']
     );
 
-    const data = utf8Encode(signingInput);
+    const data = stringToBytes(signingInput);
     const signature = await crypto.subtle.sign({ name: 'RSASSA-PKCS1-v1_5' }, key, data);
     const encodedSignature = encoding.b64encode(new Uint8Array(signature), 'url');
     return `${signingInput}.${encodedSignature}`;
