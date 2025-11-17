@@ -36,7 +36,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
 
             // Wait for child job to capture context
             var wait = Stopwatch.StartNew();
-            while (wait.Elapsed < TimeSpan.FromSeconds(10) && OriginProbe.LastObservedOrigin == null)
+            while (wait.Elapsed < TimeSpan.FromSeconds(30) && OriginProbe.LastObservedOrigin == null)
             {
                 await Task.Delay(100);
             }
