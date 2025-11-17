@@ -91,9 +91,9 @@ public class SendNotificationOrderHandler(
             return true;
         }
 
-        if (orderRequest.RequestedSendTime <= DateTime.UtcNow.AddSeconds(15))
+        if (orderRequest.RequestedSendTime <= DateTime.UtcNow.AddSeconds(30))
         {
-            orderRequest.RequestedSendTime = DateTime.UtcNow.AddSeconds(15);
+            orderRequest.RequestedSendTime = DateTime.UtcNow.AddSeconds(30);
         }
 
         logger.LogInformation("Sending notification order {IdempotencyId} for correspondence {CorrespondenceId}", orderRequest.IdempotencyId, correspondence.Id);
