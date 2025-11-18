@@ -148,6 +148,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
 			{
 				return 0;
 			}
+            if (orphanAttachments.Count > 1000) // Safety margin
+            {
+                throw new ArgumentException($"Too many orphaned attachments to delete. Total attachments in requested hard delete operation: {orphanAttachments.Count}");
+            }
 
 			_context.Attachments.RemoveRange(orphanAttachments);
 			return await _context.SaveChangesAsync(cancellationToken);

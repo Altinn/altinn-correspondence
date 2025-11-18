@@ -310,5 +310,69 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.NotNull(await context.Correspondences.FindAsync(correspondenceB.Id));
             Assert.Null(await context.Correspondences.FindAsync(correspondenceC.Id));
         }
+
+        [Fact]
+        public async Task HardDeleteCorrespondencesByIds_ExceedsSafetyMargin_ThrowsArgumentException()
+        {
+            // Arrange
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
+
+            // Create 1001 correspondences (one over the safety margin of 1000)
+            var correspondences = Enumerable.Range(0, 1001)
+                .Select(_ => new CorrespondenceEntityBuilder()
+                    .WithResourceId(uniqueResourceId)
+                    .Build())
+                .ToList();
+            context.Correspondences.AddRange(correspondences);
+            await context.SaveChangesAsync();
+
+            var idsToDelete = correspondences.Select(c => c.Id).ToList();
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => repo.HardDeleteCorrespondencesByIds(idsToDelete, CancellationToken.None));
+            
+            Assert.Contains("1001", exception.Message);
+            Assert.Contains("Too many correspondences to delete", exception.Message);
+            
+            // Verify no correspondences were deleted by counting only our test data
+            var remainingCount = await context.Correspondences
+                .Where(c => c.ResourceId == uniqueResourceId)
+                .CountAsync();
+            Assert.Equal(1001, remainingCount);
+        }
+
+        [Fact]
+        public async Task HardDeleteCorrespondencesByIds_ExactlyAtSafetyMargin_DeletesSuccessfully()
+        {
+            // Arrange
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
+
+            // Create 1000 correspondences (at the safety margin limit)
+            var correspondences = Enumerable.Range(0, 1000)
+                .Select(_ => new CorrespondenceEntityBuilder()
+                    .WithResourceId(uniqueResourceId)
+                    .Build())
+                .ToList();
+            context.Correspondences.AddRange(correspondences);
+            await context.SaveChangesAsync();
+
+            var idsToDelete = correspondences.Select(c => c.Id).ToList();
+
+            // Act
+            var deleted = await repo.HardDeleteCorrespondencesByIds(idsToDelete, CancellationToken.None);
+
+            // Assert
+            Assert.Equal(1000, deleted);
+            // Verify all our test correspondences were deleted
+            var remainingCount = await context.Correspondences
+                .Where(c => c.ResourceId == uniqueResourceId)
+                .CountAsync();
+            Assert.Equal(0, remainingCount);
+        }
     }
 }

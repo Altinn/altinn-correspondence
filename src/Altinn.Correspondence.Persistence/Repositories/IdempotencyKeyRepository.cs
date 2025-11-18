@@ -73,6 +73,10 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
         {
             return 0;
         }
+        if (keys.Count > 1000) // Safety margin
+        {
+            throw new ArgumentException($"Too many idempotency keys to delete. Total idempotency keys in requested hard delete operation: {keys.Count}");
+        }
         _dbContext.IdempotencyKeys.RemoveRange(keys);
         return await _dbContext.SaveChangesAsync(cancellationToken);
     }
