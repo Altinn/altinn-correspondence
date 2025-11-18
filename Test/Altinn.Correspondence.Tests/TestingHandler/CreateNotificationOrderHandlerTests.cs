@@ -120,7 +120,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             await _handler.Process(request, CancellationToken.None);
 
-            var expectedMainTime = requestedPublishTime.UtcDateTime.AddMinutes(5);
+            var expectedMainTime = requestedPublishTime.UtcDateTime;
             _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
                 n.NotificationTemplate == NotificationTemplate.GenericAltinnMessage &&
                 n.NotificationChannel == NotificationChannel.EmailPreferred &&
@@ -133,15 +133,15 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ShouldUseNowPlusFiveMinutes_WhenPublishTimeInPast_Production()
+        public async Task Process_ShouldUseNow_WhenPublishTimeInPast_Production()
         {
             _mockHostEnvironment.Setup(x => x.EnvironmentName).Returns("Production");
             var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(-10);
             var (request, _, _) = SetupOrderData(requestedPublishTime);
 
-            var before = DateTime.UtcNow.AddMinutes(5).AddSeconds(-20);
+            var before = DateTime.UtcNow.AddSeconds(-20);
             await _handler.Process(request, CancellationToken.None);
-            var after = DateTime.UtcNow.AddMinutes(5).AddSeconds(20);
+            var after = DateTime.UtcNow.AddSeconds(20);
 
             _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
                 n.RequestedSendTime >= before && n.RequestedSendTime <= after

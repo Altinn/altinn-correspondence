@@ -91,6 +91,11 @@ public class SendNotificationOrderHandler(
             return true;
         }
 
+        if (orderRequest.RequestedSendTime <= DateTime.UtcNow.AddSeconds(20))
+        {
+            orderRequest.RequestedSendTime = DateTime.UtcNow.AddSeconds(20);
+        }
+
         logger.LogInformation("Sending notification order {IdempotencyId} for correspondence {CorrespondenceId}", orderRequest.IdempotencyId, correspondence.Id);
         var notificationResponse = await altinnNotificationService.CreateNotificationV2(orderRequest, cancellationToken);
         

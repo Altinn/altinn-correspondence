@@ -165,7 +165,7 @@ public class LegacyGetCorrespondencesHandler(
                     ServiceOwnerName = resourceOwners?[correspondence.ResourceId],
                     InstanceOwnerPartyId = recipient?.PartyId ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
-                    Status = correspondence.GetHighestStatusWithoutPurgedAndAttachmentsDownloaded().Status,
+                    Status = correspondence.GetHighestStatusForLegacyCorrespondenceList().Status,
                     CorrespondenceId = correspondence.Id,
                     MinimumAuthenticationLevel = (int)minAuthLevel,
                     Published = correspondence.Published,
