@@ -26,7 +26,6 @@ namespace Altinn.Correspondence.Tests.Factories
 
             migrateCorrespondence.Correspondence.Content.MessageBody = "<html><header>test header</header><body>test body</body></html>";
             
-            migrateCorrespondence.Correspondence.Published = new DateTimeOffset(new DateTime(2024, 1, 6));
 
             _migratedCorrespondence = new()
             {
@@ -148,9 +147,15 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public MigrateCorrespondenceBuilder WithPublished(DateTimeOffset published)
+        {
+            _migratedCorrespondence.CorrespondenceData.Published = published;
+            return this;
+        }
+
         public MigrateCorrespondenceBuilder WithNotificationHistoryEvents()
         {
-            var published = _migratedCorrespondence.CorrespondenceData.Correspondence.Published;
+            var published = _migratedCorrespondence.CorrespondenceData.Published;
             _migratedCorrespondence.NotificationHistory =
             [
                 new MigrateCorrespondenceNotificationExt()

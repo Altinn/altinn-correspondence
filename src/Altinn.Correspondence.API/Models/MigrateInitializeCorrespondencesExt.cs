@@ -29,4 +29,10 @@ public class MigrateInitializeCorrespondencesExt
     /// </summary>
     [JsonPropertyName("idempotentKey")]
     public Guid? IdempotentKey { get; set; }
+
+     /// <summary>
+    /// Is null until the correspondence is published.
+    /// </summary>
+    [JsonPropertyName("published")]
+    public DateTimeOffset? Published { get; set; }
 }
