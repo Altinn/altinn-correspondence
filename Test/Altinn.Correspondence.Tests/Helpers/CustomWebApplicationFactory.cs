@@ -74,9 +74,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
                 options.WorkerCount = 5;
                 options.Queues = new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration };
-                options.ServerTimeout = TimeSpan.FromSeconds(2);
-                options.ShutdownTimeout = TimeSpan.FromSeconds(1);
-                options.StopTimeout = TimeSpan.FromSeconds(1);
+                options.ServerTimeout = TimeSpan.FromSeconds(30);
+                options.ShutdownTimeout = TimeSpan.FromSeconds(5);
+                options.StopTimeout = TimeSpan.FromSeconds(5);
             });
 
             services.AddScoped<IEventBus, ConsoleLogEventBus>();

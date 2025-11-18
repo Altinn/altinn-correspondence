@@ -28,6 +28,7 @@ using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
+using Altinn.Correspondence.Application.CleanupBruksmonster;
 
 namespace Altinn.Correspondence.Application;
 
@@ -67,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<CleanupPerishingDialogs.CleanupPerishingDialogsHandler>();
         services.AddScoped<CleanupMarkdownAndHTMLInSummary.CleanupMarkdownAndHTMLInSummaryHandler>();
         services.AddScoped<RestoreSoftDeletedDialogsHandler>();
+        services.AddScoped<CleanupBruksmonsterHandler>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();
