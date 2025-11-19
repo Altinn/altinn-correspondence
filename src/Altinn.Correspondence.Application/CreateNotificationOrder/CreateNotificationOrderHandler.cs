@@ -129,10 +129,24 @@ public class CreateNotificationOrderHandler(
             recipientsToProcess.AddRange(notificationRequest.CustomRecipients);
         }
 
+        // Deduplicate recipients based on the same key used for idempotency to avoid tracking and PK conflicts
+        var distinctRecipients = recipientsToProcess
+            .GroupBy(BuildRecipientKey)
+            .Select(g => g.First())
+            .ToList();
+
+        if (distinctRecipients.Count != recipientsToProcess.Count)
+        {
+            logger.LogInformation(
+                "Deduplicated recipients for correspondence {CorrespondenceId}: {OriginalCount} -> {DistinctCount}",
+                correspondence.Id,
+                recipientsToProcess.Count,
+                distinctRecipients.Count);
+        }
+
         var notificationOrders = new List<NotificationOrderRequestV2>();
 
-        // Create a notification order for each recipient
-        foreach (var recipient in recipientsToProcess)
+        foreach (var recipient in distinctRecipients)
         {
             var notificationOrder = new NotificationOrderRequestV2
             {
@@ -278,7 +292,7 @@ public class CreateNotificationOrderHandler(
             correspondence,
             notificationContents,
             cancellationToken);
-        
+
         logger.LogInformation("Persisting {Count} notification order requests for correspondence {CorrespondenceId}", notificationOrderRequests.Count, correspondence.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
         {
