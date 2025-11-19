@@ -559,7 +559,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     {
 
         CreateDialogRequest? dialog = await GetDialog(dialogId);
-        return dialog.Party == expectedRecipient;
+        return dialog.Party.WithoutPrefix() == expectedRecipient.WithoutPrefix();
     }
 
     public async Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
