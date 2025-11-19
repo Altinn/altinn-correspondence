@@ -133,6 +133,34 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
+        public async Task Process_ShouldDeduplicateRecipients_WithSameIdentifier()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, _, _) = SetupOrderData(requestedPublishTime);
+
+            request.NotificationRequest.OverrideRegisteredContactInformation = true;
+            var nin = "26818099001";
+            request.NotificationRequest.CustomRecipients =
+            [
+                new Recipient { NationalIdentityNumber = nin },
+                new Recipient { NationalIdentityNumber = nin }
+            ];
+
+            // Act
+            await _handler.Process(request, CancellationToken.None);
+
+            // Assert: idempotency key and notification are each created only once
+            _mockIdempotencyKeyRepository.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            _mockCorrespondenceNotificationRepository.Verify(
+                x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
         public async Task Process_ShouldUseNow_WhenPublishTimeInPast_Production()
         {
             _mockHostEnvironment.Setup(x => x.EnvironmentName).Returns("Production");
