@@ -29,13 +29,18 @@ export const options = {
  * cleanup: deletes data created by bruksmonster tests
  */
 export default async function () {
-    const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
-    await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
-    await TC03_GetAttachmentOverviewAsSender(attachmentId);
-    await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
-    await TC05_PurgeCorrespondenceAsRecipient(correspondenceId);
-    sleep(10); //give time for the purge to complete (Report purge activity to dialogporten might throw an error if it's not completed yet before cleanup)
-    await cleanupBruksmonsterTestData();
+    try {
+        const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
+        await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
+        await TC03_GetAttachmentOverviewAsSender(attachmentId);
+        await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
+        await TC05_PurgeCorrespondenceAsRecipient(correspondenceId);
+        sleep(10); //give time for the purge to complete (Report purge activity to dialogporten might throw an error if it's not completed yet before cleanup)
+        await cleanupBruksmonsterTestData();
+    } catch (e) {
+        check(false, { 'No exceptions in test execution': () => false });
+        throw e;
+    }
 }
 
 async function TC01_InitializeCorrespondenceWithAttachment() {
