@@ -10,3 +10,4 @@ jobs:
     uses: ./.github/workflows/test-use-cases.yml
     with:
       environment: staging
+    secrets: inherit
