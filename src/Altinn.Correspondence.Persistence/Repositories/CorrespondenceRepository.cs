@@ -537,6 +537,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
                 .Include(c => c.Content)
                 .Include(c => c.ExternalReferences)
+                .Include(c => c.Statuses)
                 .ToListAsync(cancellationToken);
         }
     }
