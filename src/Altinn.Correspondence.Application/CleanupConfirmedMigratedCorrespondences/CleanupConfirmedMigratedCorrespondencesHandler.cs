@@ -135,16 +135,16 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
             logger.LogWarning("Skipping correspondence {correspondenceId} as it does not have Confirmed status", correspondence.Id);
             return (false, false);
         }
-           logger.LogInformation("Attempting to remove expiresAt on dialog {dialogId} for correspondence {correspondenceId}", 
+           logger.LogInformation("Attempting to patch correspondence to confirmed on dialog {dialogId} for correspondence {correspondenceId}", 
             dialogId, correspondence.Id);
 
         var removed = await dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id);
         if (removed)
         {
-            logger.LogInformation("Successfully removed expiresAt on dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondence.Id);
+            logger.LogInformation("Successfully patched to confirmed on dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondence.Id);
             return (true, false);
         }
-        logger.LogInformation("Dialog {dialogId} already has no expiresAt in Dialogporten for correspondence {correspondenceId}", dialogId, correspondence.Id);
+        logger.LogInformation("Dialog {dialogId} already confirmed in Dialogporten for correspondence {correspondenceId}", dialogId, correspondence.Id);
         return (false, true);
     }
 } 
