@@ -84,7 +84,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return transmissionResponse;
     }
 
-    public async Task PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
+    public async Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
@@ -100,7 +100,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             if (correspondence.IsMigrating)
             {
                 logger.LogWarning("Skipping patching correspondence {correspondenceId} to confirmed as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
-                return;
+                return false;
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
@@ -125,13 +125,19 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         if (patchRequest.Count == 0)
         {
             logger.LogInformation("No actions to remove from dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
-            return;
+            return false;
         }
         var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            logger.LogError("Response from Dialogporten when patching dialog {dialogId} to confirmed for correspondence {correspondenceId} was not successful: {statusCode}: {responseContent}",
+                dialogId,
+                correspondenceId,
+                response.StatusCode,
+                await response.Content.ReadAsStringAsync());
+            return false;
         }
+        return true;
     }
     
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
