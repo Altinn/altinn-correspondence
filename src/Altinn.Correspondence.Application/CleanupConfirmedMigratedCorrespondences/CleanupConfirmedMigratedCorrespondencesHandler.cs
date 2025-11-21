@@ -56,7 +56,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
                 (windowSize + 1,
                 lastCreated,
                 lastId,
-                true,
+                false,
                 cancellationToken);
 
                 isMoreCorrespondences = correspondencesWindow.Count > windowSize;

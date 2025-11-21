@@ -287,7 +287,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             int limit,
             DateTimeOffset? lastCreated,
             Guid? lastId,
-            bool filterMigrated,
+            bool filterMigrated = true,
             CancellationToken cancellationToken)
         {
             var query = _context.Correspondences
@@ -307,7 +307,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 }
             }
 
-            query = query.OrderBy(c => c.Created).ThenBy(c => c.Id).Take(limit);
+            query = query.OrderByDescending(c => c.Created).ThenBy(c => c.Id).Take(limit);
 
             return await query.ToListAsync(cancellationToken);
         }
