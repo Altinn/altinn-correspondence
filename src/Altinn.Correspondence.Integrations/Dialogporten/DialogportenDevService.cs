@@ -12,9 +12,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public async Task PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
+        public Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
         {
-            await Task.CompletedTask;
+        
+            return Task.FromResult(true);
         }
 
         public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
