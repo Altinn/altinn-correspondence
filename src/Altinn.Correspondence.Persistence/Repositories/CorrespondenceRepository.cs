@@ -307,6 +307,35 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 }
             }
 
+            query = query.OrderBy(c => c.Created).ThenBy(c => c.Id).Take(limit);
+
+            return await query.ToListAsync(cancellationToken);
+        }
+
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWindowBefore(
+            int limit,
+            DateTimeOffset? lastCreated,
+            Guid? lastId,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences
+                .AsNoTracking()
+                .IncludeOnlyMigrated()
+                .AsQueryable();
+
+            if (lastCreated.HasValue)
+            {
+                if (lastId.HasValue)
+                {
+                    query = query.Where(c => c.Created < lastCreated.Value || (c.Created == lastCreated.Value && c.Id < lastId.Value));
+                }
+                else
+                {
+                    query = query.Where(c => c.Created < lastCreated.Value);
+                }
+            }
+
             query = query.OrderByDescending(c => c.Created).ThenBy(c => c.Id).Take(limit);
 
             return await query.ToListAsync(cancellationToken);

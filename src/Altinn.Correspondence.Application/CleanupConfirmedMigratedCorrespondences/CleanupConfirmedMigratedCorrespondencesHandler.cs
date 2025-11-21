@@ -52,11 +52,10 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
             while (isMoreCorrespondences)
             {
                 logger.LogInformation("Processing batch starting after cursor {correspondenceId}", lastId);
-                var correspondencesWindow = await correspondenceRepository.GetCorrespondencesWindowAfter
+                var correspondencesWindow = await correspondenceRepository.GetCorrespondencesWindowBefore
                 (windowSize + 1,
                 lastCreated,
                 lastId,
-                false,
                 cancellationToken);
 
                 isMoreCorrespondences = correspondencesWindow.Count > windowSize;

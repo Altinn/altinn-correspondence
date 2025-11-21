@@ -66,6 +66,12 @@ namespace Altinn.Correspondence.Core.Repositories
             bool filterMigrated,
             CancellationToken cancellationToken);
 
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWindowBefore(
+            int limit,
+            DateTimeOffset? lastCreated,
+            Guid? lastId,
+            CancellationToken cancellationToken);
+
         Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
