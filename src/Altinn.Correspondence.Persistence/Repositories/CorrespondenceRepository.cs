@@ -287,7 +287,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             int limit,
             DateTimeOffset? lastCreated,
             Guid? lastId,
-            bool filterMigrated = true,
+            bool filterMigrated,
             CancellationToken cancellationToken)
         {
             var query = _context.Correspondences
