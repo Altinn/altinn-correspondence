@@ -374,5 +374,48 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 .CountAsync();
             Assert.Equal(0, remainingCount);
         }
+
+        [Fact]
+        public async Task GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus_FiltersOutInvalidCandidates()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var baseTime = new DateTime(2010, 1, 1, 0, 0, 0);
+
+            var valid = new CorrespondenceEntityBuilder()
+                .WithRequestedPublishTime(baseTime)
+                .WithAltinn2CorrespondenceId(5001)
+                .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(1))
+                .Build();
+
+            var migrating = new CorrespondenceEntityBuilder()
+                .WithRequestedPublishTime(baseTime.AddMinutes(1))
+                .WithAltinn2CorrespondenceId(5002)
+                .WithIsMigrating(true)
+                .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(2))
+                .Build();
+
+            var notConfirmed = new CorrespondenceEntityBuilder()
+                .WithRequestedPublishTime(baseTime.AddMinutes(2))
+                .WithAltinn2CorrespondenceId(5003)
+                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(2))
+                .Build();
+
+            var noAltinn2Id = new CorrespondenceEntityBuilder()
+                .WithRequestedPublishTime(baseTime.AddMinutes(3))
+                .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(3))
+                .Build();
+
+            context.Correspondences.AddRange(valid, migrating, notConfirmed, noAltinn2Id);
+            await context.SaveChangesAsync();
+
+            var windowIds = new List<Guid> { valid.Id, migrating.Id, notConfirmed.Id, noAltinn2Id.Id };
+
+            var result = await repo.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(windowIds, CancellationToken.None);
+
+            Assert.Single(result);
+            Assert.Equal(valid.Id, result[0].Id);
+        }
     }
 }
