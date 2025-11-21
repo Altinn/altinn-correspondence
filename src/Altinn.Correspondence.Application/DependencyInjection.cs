@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.AddScoped<CleanupMarkdownAndHTMLInSummary.CleanupMarkdownAndHTMLInSummaryHandler>();
         services.AddScoped<RestoreSoftDeletedDialogsHandler>();
         services.AddScoped<CleanupBruksmonsterHandler>();
+        services.AddScoped<CleanupConfirmedMigratedCorrespondences.CleanupConfirmedMigratedCorrespondencesHandler>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();
