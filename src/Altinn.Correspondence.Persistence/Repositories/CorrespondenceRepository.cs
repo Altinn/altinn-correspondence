@@ -520,7 +520,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<CorrespondenceEntity?>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(
             List<Guid> correspondenceIds,
             CancellationToken cancellationToken)
         {

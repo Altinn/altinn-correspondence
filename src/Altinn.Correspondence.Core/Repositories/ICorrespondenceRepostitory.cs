@@ -98,6 +98,6 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity?>> GetCorrespondencesByNoAltinn2IdAndExistingDialog(List<Guid> windowIds, ReferenceType referenceType, CancellationToken cancellationToken);
-        Task<List<CorrespondenceEntity?>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(List<Guid> windowIds, CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(List<Guid> windowIds, CancellationToken cancellationToken);
     }
 }
