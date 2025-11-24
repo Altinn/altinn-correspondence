@@ -30,6 +30,13 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("correspondence");
+
+        // Configure StorageProviderEntity to use ServiceOwnerId as FK to ServiceOwnerEntity.Id
+        modelBuilder.Entity<ServiceOwnerEntity>()
+            .HasMany(so => so.StorageProviders)
+            .WithOne()
+            .HasForeignKey(sp => sp.ServiceOwnerId)
+            .HasPrincipalKey(so => so.Id);
     }
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
