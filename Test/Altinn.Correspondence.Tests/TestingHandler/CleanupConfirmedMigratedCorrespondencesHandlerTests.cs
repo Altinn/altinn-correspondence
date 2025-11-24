@@ -34,11 +34,10 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
-        repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(
+        repo.SetupSequence(r => r.GetCorrespondencesWindowBefore(
             It.IsAny<int>(),
             It.IsAny<DateTimeOffset?>(),
             It.IsAny<Guid?>(),
-            true,
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { c1, c2 })
             .ReturnsAsync(new List<CorrespondenceEntity>());
@@ -74,11 +73,10 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
-        repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(
+        repo.SetupSequence(r => r.GetCorrespondencesWindowBefore(
             It.IsAny<int>(),
             It.IsAny<DateTimeOffset?>(),
             It.IsAny<Guid?>(),
-            true,
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { c })
             .ReturnsAsync(new List<CorrespondenceEntity>());
@@ -110,11 +108,10 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
-        repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(
+        repo.SetupSequence(r => r.GetCorrespondencesWindowBefore(
             It.IsAny<int>(),
             It.IsAny<DateTimeOffset?>(),
             It.IsAny<Guid?>(),
-            true,
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { c })
             .ReturnsAsync(new List<CorrespondenceEntity>());
