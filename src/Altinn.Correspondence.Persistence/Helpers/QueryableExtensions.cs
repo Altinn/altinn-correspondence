@@ -143,11 +143,10 @@ namespace Altinn.Correspondence.Persistence.Helpers
 
 
         /// <summary>
-        /// Filters out migrated correspondences when filterMigrated is true
+        /// Includes only correspondences that have been migrated
         /// </summary>
-        /// <param name="query">The source query</param>
-        /// <param name="filterMigrated">When true, excludes migrated correspondences</param>
-        /// <returns>Filtered or unmodified query based on the filterMigrated parameter</returns>
+        /// <param name="query"></param>
+        /// <returns>Filtered query containing only correspondences with Altinn2CorrespondenceId and IsMigrating == false</returns>
         public static IQueryable<CorrespondenceEntity> IncludeOnlyMigrated(this IQueryable<CorrespondenceEntity> query)
         {
             return query.Where(cs => cs.Altinn2CorrespondenceId.HasValue && cs.IsMigrating == false);
