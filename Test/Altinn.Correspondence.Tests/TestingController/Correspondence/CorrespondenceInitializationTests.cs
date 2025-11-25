@@ -1689,6 +1689,86 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
         }
 
+        [Fact]
+        public async Task InitializeCorrespondence_WithDialogportenTransmissionTypeWithoutDialogId_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesTransmissionType("Information")
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.DialogportenTransmissionTypeRequiresDialogId.Message, body);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithMultipleDialogportenTransmissionTypes_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd")
+                .WithExternalReferencesTransmissionType("Information")
+                .WithExternalReferencesTransmissionType("Submission")
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.MultipleDialogportenTransmissionTypeExternalReferences.Message, body);
+        }
+
+        [Theory]
+        [InlineData("Submission")]
+        [InlineData("7")]
+        public async Task InitializeCorrespondence_WithValidDialogportenTransmissionTypeValue_ReturnsOk(string transmissionTypeValue)
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd")
+                .WithExternalReferencesTransmissionType(transmissionTypeValue)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.DoesNotContain("DialogportenTransmissionType referenceValue must be a valid transmission type", body);
+        }
+
+        [Theory]
+        [InlineData("InvalidTransmissionType")]
+        [InlineData("20")]
+        public async Task InitializeCorrespondence_WithInvalidDialogportenTransmissionTypeValue_ReturnsBadRequest(string transmissionTypeValue)
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd")
+                .WithExternalReferencesTransmissionType(transmissionTypeValue)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains("DialogportenTransmissionType referenceValue must be a valid transmission type", body);
+        }
+
         [Theory]
         [InlineData(false, false, HttpStatusCode.BadRequest)]
         [InlineData(true, false, HttpStatusCode.BadRequest)]
