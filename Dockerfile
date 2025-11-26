@@ -1,5 +1,13 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /app
+
+# Create directory structure
+RUN mkdir -p ./src/Altinn.Correspondence.Common \
+    ./src/Altinn.Correspondence.Core \
+    ./src/Altinn.Correspondence.Persistence \
+    ./src/Altinn.Correspondence.Integrations \
+    ./src/Altinn.Correspondence.Application \
+    ./src/Altinn.Correspondence.API
 
 # Copy csproj and restore as distinct layers
 COPY src/Altinn.Correspondence.Common/*.csproj ./src/Altinn.Correspondence.Common/
@@ -15,7 +23,7 @@ COPY src ./src
 RUN dotnet publish -c Release -o out ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj
 
 # Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 EXPOSE 2525
 ENV ASPNETCORE_URLS=http://+:2525
