@@ -35,6 +35,16 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var actualPublishStatus = correspondence.Statuses.OrderBy(status => status.StatusChanged).FirstOrDefault(status => status.Status == CorrespondenceStatus.Published);
             var publishTime = actualPublishStatus != null ? actualPublishStatus.StatusChanged : correspondence.RequestedPublishTime;
 
+            var createdAt = correspondence.Statuses.OrderBy(status => status.StatusChanged).FirstOrDefault()?.StatusChanged;
+            if (createdAt.HasValue && createdAt > correspondence.Created)
+            {
+                createdAt = correspondence.Created;
+            }
+            if (createdAt < publishTime)
+            {
+                createdAt = publishTime;
+            }
+
             return new CreateDialogRequest
             {
                 Id = dialogId,
