@@ -20,7 +20,7 @@ jobs:
     permissions: 
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: "Get current version"
         uses: ./.github/actions/get-current-version
         id: get-version
@@ -33,7 +33,7 @@ jobs:
       packages: write
       contents: read
     steps:        
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: "Publish image"
         uses: ./.github/actions/publish-image
         with:
@@ -53,7 +53,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy to environment
         uses: ./.github/actions/deploy-to-environment
@@ -102,7 +102,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy to environment
         uses: ./.github/actions/deploy-to-environment
@@ -155,7 +155,7 @@ jobs:
       packages: write
     steps:       
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy to environment
         uses: ./.github/actions/deploy-to-environment
@@ -208,7 +208,7 @@ jobs:
       packages: write
     steps:       
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy to environment
         uses: ./.github/actions/deploy-to-environment
@@ -255,7 +255,7 @@ jobs:
       should-release: ${{ steps.check-version.outputs.should-release }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check version bump
         id: check-version
         shell: bash
@@ -286,7 +286,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Release
         if: ${{ !failure() && !cancelled() }}
         uses: ./.github/actions/release-to-git
