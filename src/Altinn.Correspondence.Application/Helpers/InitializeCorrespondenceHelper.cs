@@ -258,6 +258,31 @@ namespace Altinn.Correspondence.Application.Helpers
 
             return null;
         }
+
+        /// <summary>
+        /// Validate external references
+        /// </summary>
+        public Error? ValidateExternalReferences(List<ExternalReferenceEntity> externalReferences)
+        {
+            var hasDialogId = externalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
+            var transmissionTypeRefs = externalReferences
+                .Where(er => er.ReferenceType == ReferenceType.DialogportenTransmissionType)
+                .ToList();
+
+            if (transmissionTypeRefs.Count > 1)
+            {
+                logger.LogWarning("Multiple DialogportenTransmissionType external references found");
+                return CorrespondenceErrors.MultipleDialogportenTransmissionTypeExternalReferences;
+            }
+
+            if (transmissionTypeRefs.Count == 1 && !hasDialogId)
+            {
+                logger.LogWarning("DialogportenTransmissionType external reference provided without a DialogportenDialogId external reference");
+                return CorrespondenceErrors.DialogportenTransmissionTypeRequiresDialogId;
+            }
+
+            return null;
+        }
         private bool TextContainsTag(string? text, string tag)
         {
             if (text == null) return false;

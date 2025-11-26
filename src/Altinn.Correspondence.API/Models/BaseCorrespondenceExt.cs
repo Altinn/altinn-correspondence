@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Altinn.Correspondence.API.Models.Enums;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -169,8 +170,23 @@ namespace Altinn.Correspondence.API.Models
             var externalReferences = (List<ExternalReferenceExt>)value;
             if (externalReferences.Count > 10)
                 return new ValidationResult("externalReferences can contain at most 10 references");
-            if (externalReferences.Any(externalReference => externalReference.ReferenceType == Enums.ReferenceTypeExt.DialogportenTransmissionId))
+            if (externalReferences.Any(externalReference => externalReference.ReferenceType == ReferenceTypeExt.DialogportenTransmissionId))
                 return new ValidationResult("Cannot initialize a correspondence with pre-existing transmission defined");
+
+            var transmissionTypeRefs = externalReferences
+                .Where(er => er.ReferenceType == ReferenceTypeExt.DialogportenTransmissionType)
+                .ToList();
+
+            if (transmissionTypeRefs.Count == 1)
+            {
+                var referenceValue = transmissionTypeRefs[0].ReferenceValue;
+
+                if (!Enum.TryParse<TransmissionTypeExt>(referenceValue, ignoreCase: true, out var parsed) ||
+                    !Enum.IsDefined(parsed))
+                {
+                    return new ValidationResult("DialogportenTransmissionType referenceValue must be a valid transmission type");
+                }
+            }
 
             return ValidationResult.Success;
         }
