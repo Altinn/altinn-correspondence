@@ -33,16 +33,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
 
             var actualPublishStatus = correspondence.Statuses.OrderBy(status => status.StatusChanged).FirstOrDefault(status => status.Status == CorrespondenceStatus.Published);
-            var publishTime = actualPublishStatus != null ? actualPublishStatus.StatusChanged : correspondence.RequestedPublishTime;
+            DateTimeOffset? publishTime = actualPublishStatus != null ? actualPublishStatus.StatusChanged : null;
 
-            var createdAt = correspondence.Statuses.OrderBy(status => status.StatusChanged).FirstOrDefault()?.StatusChanged;
-            if (createdAt.HasValue && createdAt > correspondence.Created)
+            var createdAt = correspondence.Created;
+            if (publishTime is not null && createdAt > publishTime)
             {
-                createdAt = correspondence.Created;
-            }
-            if (createdAt > publishTime)
-            {
-                createdAt = publishTime;
+                createdAt = (DateTimeOffset)publishTime;
             }
 
             return new CreateDialogRequest
@@ -50,7 +46,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Id = dialogId,
                 ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
-                CreatedAt = correspondence.Created,
+                CreatedAt = createdAt,
                 UpdatedAt = publishTime,
                 VisibleFrom = correspondence.RequestedPublishTime < currentDateTimeUtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
@@ -227,8 +223,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static Activity GetServiceOwnerActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? activityId = null)
         {
-            bool isConfirmation = status.Status == CorrespondenceStatus.Confirmed;
-
             Activity activity = new Activity();
             activity.Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId;
             activity.PerformedBy = new PerformedBy()
