@@ -1,21 +1,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /app
 
-# Create directory structure
-RUN mkdir -p ./src/Altinn.Correspondence.Common \
-    ./src/Altinn.Correspondence.Core \
-    ./src/Altinn.Correspondence.Persistence \
-    ./src/Altinn.Correspondence.Integrations \
-    ./src/Altinn.Correspondence.Application \
-    ./src/Altinn.Correspondence.API
-
-# Copy csproj and restore as distinct layers
-COPY src/Altinn.Correspondence.Common/*.csproj ./src/Altinn.Correspondence.Common/
-COPY src/Altinn.Correspondence.Core/*.csproj ./src/Altinn.Correspondence.Core/
-COPY src/Altinn.Correspondence.Persistence/*.csproj ./src/Altinn.Correspondence.Persistence/
-COPY src/Altinn.Correspondence.Integrations/*.csproj ./src/Altinn.Correspondence.Integrations/
-COPY src/Altinn.Correspondence.Application/*.csproj ./src/Altinn.Correspondence.Application/
-COPY src/Altinn.Correspondence.API/*.csproj ./src/Altinn.Correspondence.API/
+# Copy csproj files explicitly and restore as distinct layers
+COPY ["src/Altinn.Correspondence.Common/Altinn.Correspondence.Common.csproj", "src/Altinn.Correspondence.Common/"]
+COPY ["src/Altinn.Correspondence.Core/Altinn.Correspondence.Core.csproj", "src/Altinn.Correspondence.Core/"]
+COPY ["src/Altinn.Correspondence.Persistence/Altinn.Correspondence.Persistence.csproj", "src/Altinn.Correspondence.Persistence/"]
+COPY ["src/Altinn.Correspondence.Integrations/Altinn.Correspondence.Integrations.csproj", "src/Altinn.Correspondence.Integrations/"]
+COPY ["src/Altinn.Correspondence.Application/Altinn.Correspondence.Application.csproj", "src/Altinn.Correspondence.Application/"]
+COPY ["src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj", "src/Altinn.Correspondence.API/"]
 RUN dotnet restore ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj
 
 # Copy everything else and build
