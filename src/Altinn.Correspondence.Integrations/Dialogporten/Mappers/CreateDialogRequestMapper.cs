@@ -192,11 +192,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, confirmedActivityIdempotencyKey));
             }
 
-            var publishedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Published);
+            /*var publishedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Published);
             if (publishedStatus != null)
             {
                 activities.Add(GetServiceOwnerActivityFromStatus(correspondence, publishedStatus));
-            }
+            }*/
 
             activities.AddRange(GetActivitiesFromNotifications(correspondence));
 
@@ -227,7 +227,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             activity.Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId;
             activity.PerformedBy = new PerformedBy()
             {
-                ActorId = correspondence.Sender,
+                ActorId = null,
                 ActorType = "ServiceOwner"
             };
             activity.CreatedAt = status.StatusChanged;
