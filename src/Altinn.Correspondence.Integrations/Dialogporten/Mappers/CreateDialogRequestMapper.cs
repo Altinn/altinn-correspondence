@@ -31,10 +31,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 dueAt = null;
             }
-
+            logger.LogInformation("Mapping to request to create dialog in Dialogporten for correspondence {CorrespondenceId} with dialog id {DialogId}", correspondence.Id, dialogId);)
             var actualPublishStatus = correspondence.Statuses.OrderBy(status => status.StatusChanged).FirstOrDefault(status => status.Status == CorrespondenceStatus.Published);
             DateTimeOffset? publishTime = actualPublishStatus != null ? actualPublishStatus.StatusChanged : null;
-
+            logger.LogInformation("Determined publish time for correspondence {CorrespondenceId} as {PublishTime}", correspondence.Id, publishTime);
             var createdAt = correspondence.Created;
             if (publishTime is not null && createdAt > publishTime)
             {
