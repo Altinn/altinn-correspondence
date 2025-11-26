@@ -31,10 +31,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 dueAt = null;
             }
-            logger.LogInformation("Mapping to request to create dialog in Dialogporten for correspondence {CorrespondenceId} with dialog id {DialogId}", correspondence.Id, dialogId);
             var actualPublishStatus = correspondence.Statuses.OrderBy(status => status.StatusChanged).FirstOrDefault(status => status.Status == CorrespondenceStatus.Published);
             DateTimeOffset? publishTime = actualPublishStatus != null ? actualPublishStatus.StatusChanged : null;
-            logger.LogInformation("Determined publish time for correspondence {CorrespondenceId} as {PublishTime}", correspondence.Id, publishTime);
             var createdAt = correspondence.Created;
             if (publishTime is not null && createdAt > publishTime)
             {
@@ -192,12 +190,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, confirmedActivityIdempotencyKey));
             }
 
-            /*var publishedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Published);
-            if (publishedStatus != null)
-            {
-                activities.Add(GetServiceOwnerActivityFromStatus(correspondence, publishedStatus));
-            }*/
-
             activities.AddRange(GetActivitiesFromNotifications(correspondence));
 
             return activities.OrderBy(a => a.CreatedAt).ToList();
@@ -216,22 +208,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             };
             activity.CreatedAt = status.StatusChanged;
             activity.Type = isConfirmation ? "CorrespondenceConfirmed" : "CorrespondenceOpened";
-            activity.Description = [];
-
-            return activity;
-        }
-
-        private static Activity GetServiceOwnerActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? activityId = null)
-        {
-            Activity activity = new Activity();
-            activity.Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId;
-            activity.PerformedBy = new PerformedBy()
-            {
-                ActorId = null,
-                ActorType = "ServiceOwner"
-            };
-            activity.CreatedAt = status.StatusChanged;
-            activity.Type = "DialogCreated";
             activity.Description = [];
 
             return activity;
