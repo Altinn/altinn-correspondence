@@ -66,6 +66,12 @@ namespace Altinn.Correspondence.Core.Repositories
             bool filterMigrated,
             CancellationToken cancellationToken);
 
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWindowBefore(
+            int limit,
+            DateTimeOffset? lastCreated,
+            Guid? lastId,
+            CancellationToken cancellationToken);
+
         Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
@@ -92,5 +98,6 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity?>> GetCorrespondencesByNoAltinn2IdAndExistingDialog(List<Guid> windowIds, ReferenceType referenceType, CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(List<Guid> windowIds, CancellationToken cancellationToken);
     }
 }

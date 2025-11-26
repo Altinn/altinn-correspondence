@@ -312,6 +312,35 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await query.ToListAsync(cancellationToken);
         }
 
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWindowBefore(
+            int limit,
+            DateTimeOffset? lastCreated,
+            Guid? lastId,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences
+                .AsNoTracking()
+                .IncludeOnlyMigrated()
+                .AsQueryable();
+
+            if (lastCreated.HasValue)
+            {
+                if (lastId.HasValue)
+                {
+                    query = query.Where(c => c.Created < lastCreated.Value || (c.Created == lastCreated.Value && c.Id < lastId.Value));
+                }
+                else
+                {
+                    query = query.Where(c => c.Created < lastCreated.Value);
+                }
+            }
+
+            query = query.OrderByDescending(c => c.Created).ThenBy(c => c.Id).Take(limit);
+
+            return await query.ToListAsync(cancellationToken);
+        }
+
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
@@ -488,6 +517,27 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
                 .Include(c => c.Content)
                 .Include(c => c.ExternalReferences)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(
+            List<Guid> correspondenceIds,
+            CancellationToken cancellationToken)
+        {
+            if (correspondenceIds == null || correspondenceIds.Count == 0)
+            {
+                return new List<CorrespondenceEntity>();
+            }
+            return await _context.Correspondences
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(c => correspondenceIds.Contains(c.Id))
+                .Where(c => c.Altinn2CorrespondenceId != null)
+                .Where(c => !c.IsMigrating)
+                .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
+                .Include(c => c.Content)
+                .Include(c => c.ExternalReferences)
+                .Include(c => c.Statuses)
                 .ToListAsync(cancellationToken);
         }
     }
