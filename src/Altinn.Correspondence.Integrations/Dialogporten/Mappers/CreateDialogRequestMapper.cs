@@ -32,13 +32,16 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 dueAt = null;
             }
 
+            var actualPublishStatus = correspondence.Statuses.OrderBy(status => status.StatusChanged).FirstOrDefault(status => status.Status == CorrespondenceStatus.Published);
+            var publishTime = actualPublishStatus != null ? actualPublishStatus.StatusChanged : correspondence.RequestedPublishTime;
+
             return new CreateDialogRequest
             {
                 Id = dialogId,
                 ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
                 CreatedAt = correspondence.Created,
-                UpdatedAt = correspondence.Published != null && correspondence.Published < currentDateTimeUtcNow ? correspondence.Published : null,
+                UpdatedAt = publishTime,
                 VisibleFrom = correspondence.RequestedPublishTime < currentDateTimeUtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 DueAt = dueAt,
@@ -49,7 +52,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
+                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
             };
@@ -166,7 +169,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return list;
         }
 
-        private static List<Activity> GetActivitiesForCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
+        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
         {
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
@@ -181,6 +184,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             if (confirmedStatus != null && !string.IsNullOrWhiteSpace(confirmedActivityIdempotencyKey))
             {
                 activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, confirmedActivityIdempotencyKey));
+            }
+
+            var publishedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Published);
+            if (publishedStatus != null)
+            {
+                activities.Add(GetServiceOwnerActivityFromStatus(correspondence, publishedStatus));
             }
 
             activities.AddRange(GetActivitiesFromNotifications(correspondence));
@@ -201,6 +210,24 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             };
             activity.CreatedAt = status.StatusChanged;
             activity.Type = isConfirmation ? "CorrespondenceConfirmed" : "CorrespondenceOpened";
+            activity.Description = [];
+
+            return activity;
+        }
+
+        private static Activity GetServiceOwnerActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? activityId = null)
+        {
+            bool isConfirmation = status.Status == CorrespondenceStatus.Confirmed;
+
+            Activity activity = new Activity();
+            activity.Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId;
+            activity.PerformedBy = new PerformedBy()
+            {
+                ActorId = correspondence.Sender,
+                ActorType = "ServiceOwner"
+            };
+            activity.CreatedAt = status.StatusChanged;
+            activity.Type = "DialogCreated";
             activity.Description = [];
 
             return activity;
