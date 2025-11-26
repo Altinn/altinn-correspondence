@@ -2,10 +2,12 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.100-alpine3.20 AS build
 WORKDIR /app
 
 # Copy csproj and restore as distinct layers
-COPY src/Altinn.Correspondence.API/*.csproj ./src/Altinn.Correspondence.API/
+COPY src/Altinn.Correspondence.Common/*.csproj ./src/Altinn.Correspondence.Common/
 COPY src/Altinn.Correspondence.Core/*.csproj ./src/Altinn.Correspondence.Core/
 COPY src/Altinn.Correspondence.Persistence/*.csproj ./src/Altinn.Correspondence.Persistence/
 COPY src/Altinn.Correspondence.Integrations/*.csproj ./src/Altinn.Correspondence.Integrations/
+COPY src/Altinn.Correspondence.Application/*.csproj ./src/Altinn.Correspondence.Application/
+COPY src/Altinn.Correspondence.API/*.csproj ./src/Altinn.Correspondence.API/
 RUN dotnet restore ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj
 
 # Copy everything else and build
