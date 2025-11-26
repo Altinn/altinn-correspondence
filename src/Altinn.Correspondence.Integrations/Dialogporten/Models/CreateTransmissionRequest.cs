@@ -1,4 +1,7 @@
 using System.Text.Json.Serialization;
+
+namespace Altinn.Correspondence.Integrations.Dialogporten.Models;
+
 public class CreateTransmissionRequest
 {
     [JsonPropertyName("id")]
@@ -131,14 +134,14 @@ public class TransmissionAttachment
         public string LanguageCode { get; set; }
     }
 
-public enum TransmissionType
-{
-    Information = 1,
-    Acceptance = 2,
-    Rejection = 3,
-    Request = 4,
-    Alert = 5,
-    Decision = 6,
-    Submission = 7,
-    Correction = 8
-}
+    public enum TransmissionType
+    {
+        Information = 1,
+        Acceptance = 2,
+        Rejection = 3,
+        Request = 4,
+        Alert = 5,
+        Decision = 6,
+        Submission = 7,
+        Correction = 8
+    }

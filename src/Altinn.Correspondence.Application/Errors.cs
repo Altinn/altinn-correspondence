@@ -57,6 +57,8 @@ public static class CorrespondenceErrors
     public static Error AttachmentExpirationTooSoonAfterRequestedPublishTime = new Error(1049, "The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence", HttpStatusCode.BadRequest);
     public static Error InvalidServiceOwner = new Error(1050, "The service owner of a transmission can not differ from the service owner of the dialog", HttpStatusCode.BadRequest);
     public static Error TransmissionNotAllowedWithGuiActions = new Error(1051, "Correspondences with GUI actions (ReplyOptions or IsConfirmationNeeded) cannot be sent as transmissions", HttpStatusCode.BadRequest);
+    public static Error MultipleDialogportenTransmissionTypeExternalReferences = new Error(1052, "Only one DialogportenTransmissionType external reference is allowed", HttpStatusCode.BadRequest);
+    public static Error DialogportenTransmissionTypeRequiresDialogId = new Error(1053, "DialogportenTransmissionType external reference requires a DialogportenDialogId external reference", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors

@@ -141,6 +141,16 @@ public class InitializeCorrespondencesHandler(
             logger.LogWarning("Sender validation failed: {Error}", senderError);
             return senderError;
         }
+
+        logger.LogDebug("Validating external references for Dialogporten transmission type");
+        var externalReferences = request.Correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>();
+        var externalReferencesError = initializeCorrespondenceHelper.ValidateExternalReferences(externalReferences);
+        if (externalReferencesError != null)
+        {
+            logger.LogWarning("External references validation failed: {Error}", externalReferencesError);
+            return externalReferencesError;
+        }
+
         var dialogId = request.Correspondence.ExternalReferences?.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (!string.IsNullOrWhiteSpace(dialogId))
         {
