@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.100-alpine3.20 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /app
 
 # Copy csproj and restore as distinct layers
@@ -15,7 +15,7 @@ COPY src ./src
 RUN dotnet publish -c Release -o out ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj
 
 # Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.0-alpine3.20 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 WORKDIR /app
 EXPOSE 2525
 ENV ASPNETCORE_URLS=http://+:2525
