@@ -40,7 +40,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 createdAt = correspondence.Created;
             }
-            if (createdAt < publishTime)
+            if (createdAt > publishTime)
             {
                 createdAt = publishTime;
             }
