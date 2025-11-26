@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.Common.Helpers
             if (consumerClaim is not null)
             {
                 var consumerObject = JsonSerializer.Deserialize<TokenConsumer>(consumerClaim.Value);
-                return consumerObject.ID.WithoutPrefix();
+                return consumerObject?.ID.WithoutPrefix();
             }
             // DialogToken
             var dialogportenTokenUserId = user.Claims.FirstOrDefault(c => c.Type == "p")?.Value;
