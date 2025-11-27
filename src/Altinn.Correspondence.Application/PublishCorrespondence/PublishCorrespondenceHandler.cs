@@ -129,7 +129,7 @@ public class PublishCorrespondenceHandler(
                 {
                     CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.Failed,
-                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusChanged = operationTimestamp,
                     StatusText = errorMessage,
                     PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
@@ -152,7 +152,7 @@ public class PublishCorrespondenceHandler(
                 {
                     CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.Published,
-                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusChanged = operationTimestamp,
                     StatusText = CorrespondenceStatus.Published.ToString(),
                     PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
