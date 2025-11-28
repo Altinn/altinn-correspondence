@@ -49,7 +49,10 @@ public class MigrateCorrespondenceHandler(
             if (request.MakeAvailable)
             {
                 var makeAvailableJob = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(makeAvailableJob, HangfireQueues.LiveMigration, (helper) => helper.SchedulePublishAtPublishTime(correspondence.Id, CancellationToken.None));
+                if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
+                {
+                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None);
+;               }
             }
             
             return new MigrateCorrespondenceResponse()
