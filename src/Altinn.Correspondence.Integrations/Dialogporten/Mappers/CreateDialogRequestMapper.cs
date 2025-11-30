@@ -38,6 +38,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 createdAt = (DateTimeOffset)publishTime;
             }
+            if (publishTime > currentDateTimeUtcNow)
+            {
+                publishTime = currentDateTimeUtcNow;
+            }
 
             return new CreateDialogRequest
             {
