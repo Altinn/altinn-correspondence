@@ -1,13 +1,11 @@
 ﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using UUIDNext;
 using Microsoft.Extensions.Logging;
-using System.Text.RegularExpressions;
-using Altinn.Correspondence.Common.Helpers;
-using Hangfire.Storage.Monitoring;
+using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -341,10 +339,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var guiActions = new List<GuiAction>();
 
             // Add ReplyOptions as GUI actions first
-            if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any())
+            if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any() && correspondence.ReplyOptions.Count <= 3)
             {
                 // Add each ReplyOption from the request
-                foreach (var replyOption in correspondence.ReplyOptions.Take(3))
+                foreach (var replyOption in correspondence.ReplyOptions)
                 {
                     guiActions.Add(new GuiAction()
                     {
