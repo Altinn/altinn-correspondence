@@ -11,7 +11,7 @@ public class GeneralSettings
     public string ContactReservationRegistryBaseUrl { get; set; } = string.Empty;
     public string BrregBaseUrl { get; set; } = string.Empty;
     public string ApplicationInsightsConnectionString { get; set; } = string.Empty;
-    public bool DisableTelemetryForMigration { get; set; } = false;
+    public bool DisableTelemetryForMigration { get; set; } = true;
     public bool DisableTelemetryForSync { get; set; } = false;
     public int MigrationWorkerCountPerReplica { get; set; } = 2;
 }
