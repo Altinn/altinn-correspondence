@@ -116,6 +116,14 @@ public class GetCorrespondenceOverviewHandler(
                 });
             }
 
+            var content = hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published) ? correspondence.Content : null;
+            if (content != null && correspondence.ReplyOptions?.Count > 3)
+            {
+                content.MessageBody = content.MessageBody + "\n\n" +
+                    "Svarvalg:\n" +
+                    string.Join("\n", correspondence.ReplyOptions.Select(ro => $"{ro.LinkText}: {ro.LinkURL}"));
+            }
+
             var response = new GetCorrespondenceOverviewResponse
             {
                 CorrespondenceId = correspondence.Id,
