@@ -7,6 +7,7 @@ using UUIDNext;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Helpers;
+using Hangfire.Storage.Monitoring;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -105,7 +106,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 }
             },
-            Summary = string.IsNullOrWhiteSpace(correspondence.Content.MessageSummary) ? null : new ContentValue()
+            Summary = string.IsNullOrWhiteSpace(TextValidation.StripSummaryForHtmlAndMarkdown(correspondence.Content.MessageSummary ?? "")) ? null : new ContentValue()
             {
                 MediaType = "text/plain",
                 Value = new List<DialogValue> {
@@ -343,7 +344,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any())
             {
                 // Add each ReplyOption from the request
-                foreach (var replyOption in correspondence.ReplyOptions)
+                foreach (var replyOption in correspondence.ReplyOptions.Take(3))
                 {
                     guiActions.Add(new GuiAction()
                     {
