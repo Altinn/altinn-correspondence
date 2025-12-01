@@ -22,9 +22,9 @@ ENV ASPNETCORE_URLS=http://+:2525
 
 COPY --from=build /app/out .
 
-# Create non-root user (Debian-based image: use groupadd/useradd instead of addgroup/adduser)
-RUN groupadd --gid 3000 dotnet \
-    && useradd --uid 1000 --gid 3000 --home-dir /app --shell /usr/sbin/nologin dotnet
+# Create non-root user (Debian-based; tolerate if it already exists)
+RUN groupadd -r dotnet || true \
+    && useradd -r -g dotnet -d /app -s /usr/sbin/nologin dotnet || true
 
 RUN mkdir -p /mnt/storage \
     && chown -R dotnet:dotnet /mnt/storage
