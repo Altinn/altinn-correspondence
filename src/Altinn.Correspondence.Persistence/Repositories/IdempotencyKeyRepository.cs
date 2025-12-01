@@ -22,6 +22,7 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
         CancellationToken cancellationToken)
     {
         return await _dbContext.IdempotencyKeys
+            .AsNoTracking()
             .FirstOrDefaultAsync(k => 
                 k.CorrespondenceId == correspondenceId && 
                 k.AttachmentId == attachmentId && 
@@ -45,7 +46,9 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
 
     public async Task<IdempotencyKeyEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await _dbContext.IdempotencyKeys.FirstOrDefaultAsync(k => k.Id == id, cancellationToken);
+        return await _dbContext.IdempotencyKeys
+            .AsNoTracking()
+            .FirstOrDefaultAsync(k => k.Id == id, cancellationToken);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
