@@ -22,9 +22,12 @@ ENV ASPNETCORE_URLS=http://+:2525
 
 COPY --from=build /app/out .
 
-RUN addgroup -g 3000 dotnet && adduser -u 1000 -G dotnet -D -s /bin/false dotnet
+# Create non-root user (Debian-based image: use groupadd/useradd instead of addgroup/adduser)
+RUN groupadd --gid 3000 dotnet \
+    && useradd --uid 1000 --gid 3000 --home-dir /app --shell /usr/sbin/nologin dotnet
 
-RUN mkdir -p /mnt/storage
-RUN chown -R dotnet:dotnet /mnt/storage
+RUN mkdir -p /mnt/storage \
+    && chown -R dotnet:dotnet /mnt/storage
+
 USER dotnet
 ENTRYPOINT [ "dotnet", "Altinn.Correspondence.API.dll" ]
