@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Controllers
 {
