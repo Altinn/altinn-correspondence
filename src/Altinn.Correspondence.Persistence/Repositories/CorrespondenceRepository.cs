@@ -540,5 +540,29 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.Statuses)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatusUsingCursor(
+            Guid? cursorId,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences
+                .AsNoTracking()
+                .AsSplitQuery();
+            if (cursorId.HasValue)
+            {
+                query = query.Where(c => c.Id < cursorId.Value);
+            }
+            query = query
+                .Where(c => c.Altinn2CorrespondenceId != null)
+                .Where(c => !c.IsMigrating)
+                .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
+                .Include(c => c.Content)
+                .Include(c => c.ExternalReferences)
+                .Include(c => c.Statuses)
+                .OrderByDescending(c => c.Id)
+                .Take(1000);
+
+            return await query.ToListAsync(cancellationToken);
+        }
     }
 }
