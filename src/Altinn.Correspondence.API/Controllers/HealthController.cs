@@ -1,5 +1,7 @@
 using Altinn.Correspondence.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Altinn.Correspondence.Controllers
 {
@@ -30,6 +32,27 @@ namespace Altinn.Correspondence.Controllers
                     Message = $"Health check failed: {ex.Message}"
                 });
             }
+        }
+
+        [HttpGet("db-session-role")]
+        public async Task<ActionResult> GetDbSessionReplicationRoleAsync()
+        {
+            await using var connection = _dbContext.Database.GetDbConnection();
+
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SHOW session_replication_role;";
+
+            var result = await command.ExecuteScalarAsync();
+
+            return Ok(new
+            {
+                SessionReplicationRole = result?.ToString() ?? "<null>"
+            });
         }
 
         [HttpGet("/healthz")]
