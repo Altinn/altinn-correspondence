@@ -31,6 +31,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
@@ -84,6 +85,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
@@ -129,6 +131,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
@@ -174,6 +177,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
@@ -217,6 +221,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, DateTime.Now)
             .WithCreatedAt(DateTime.Now)
             .WithRecipient("urn:altinn:organization:identifier-no:991825827")
@@ -273,6 +278,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithRecipient("urn:altinn:person:identifier-no:29909898925")
@@ -315,6 +321,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
@@ -347,6 +354,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
             .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
             .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
