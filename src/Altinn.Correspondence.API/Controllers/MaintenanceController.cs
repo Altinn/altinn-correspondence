@@ -9,6 +9,9 @@ using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 using Altinn.Correspondence.Application.InitializeServiceOwner;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
+using Altinn.Correspondence.Persistence;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -16,9 +19,10 @@ namespace Altinn.Correspondence.API.Controllers;
 [ApiExplorerSettings(IgnoreApi = true)]
 [Route("correspondence/api/v1/maintenance")]
 [Authorize]
-public class MaintenanceController(ILogger<MaintenanceController> logger) : Controller
+public class MaintenanceController(ILogger<MaintenanceController> logger, ApplicationDbContext dbContext) : Controller
 {
     private readonly ILogger<MaintenanceController> _logger = logger;
+    private readonly ApplicationDbContext _dbContext = dbContext;
 
     /// <summary>
     /// Enqueue cleanup of orphaned dialogs in Dialogporten for correspondences already purged in our system
@@ -199,6 +203,39 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             Ok,
             Problem
         );
+    }
+
+    /// <summary>
+    /// Returns the PostgreSQL session_replication_role for the current DB session
+    /// </summary>
+    /// <response code="200">The current session_replication_role value</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpGet]
+    [Route("db-session-role")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> GetDbSessionReplicationRoleAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = _dbContext.Database.GetDbConnection();
+
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SHOW session_replication_role;";
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+
+        return Ok(new
+        {
+            SessionReplicationRole = result?.ToString() ?? "<null>"
+        });
     }
 
     private ActionResult Problem(Error error) => Problem(
