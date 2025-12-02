@@ -566,11 +566,10 @@ public class MigrationControllerTests : MigrationTestBase
     public async Task InitializeMigrateCorrespondence_PublishedOnCorrespondenceData_IsPersistedOnEntity()
     {
         // Arrange
-        var published = new DateTimeOffset(2024, 2, 3, 10, 20, 30, TimeSpan.Zero);
         var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithPublished(published)
             .Build();
+        var publishedEvent = migrateCorrespondenceExt.EventHistory.FirstOrDefault(statusEvent => statusEvent.Status == MigrateCorrespondenceStatusExt.Published);
 
         // Act
         var initializeResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
@@ -584,7 +583,7 @@ public class MigrationControllerTests : MigrationTestBase
 
         // Assert
         Assert.NotNull(correspondence);
-        Assert.Equal(published, correspondence.Published);
+        Assert.Equal(publishedEvent.StatusChanged, correspondence.Published);
     }
 
     [Fact]
