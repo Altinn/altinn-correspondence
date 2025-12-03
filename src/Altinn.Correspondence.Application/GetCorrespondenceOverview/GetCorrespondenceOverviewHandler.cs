@@ -128,7 +128,6 @@ public class GetCorrespondenceOverviewHandler(
                         "nn" => "Svarval:",
                         _ => "Svarvalg:"
                     };
-                    // Create a copy to avoid mutating the entity
                     content = new CorrespondenceContentEntity
                     {
                         Language = content.Language,
