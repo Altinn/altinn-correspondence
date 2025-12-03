@@ -48,7 +48,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         var handler = new CleanupConfirmedMigratedCorrespondencesHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteCleanupInBackground(50, CancellationToken.None);
+        await handler.ExecuteCleanupInBackground(50, null, CancellationToken.None);
 
         // Assert
         dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(c1.Id), Times.Once);
@@ -77,7 +77,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         var handler = new CleanupConfirmedMigratedCorrespondencesHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteCleanupInBackground(25, CancellationToken.None);
+        await handler.ExecuteCleanupInBackground(25, null, CancellationToken.None);
 
         // Assert
         dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>()), Times.Never);
@@ -105,7 +105,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         var handler = new CleanupConfirmedMigratedCorrespondencesHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteCleanupInBackground(10, CancellationToken.None);
+        await handler.ExecuteCleanupInBackground(10, null, CancellationToken.None);
 
         // Assert
         dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>()), Times.Never);
