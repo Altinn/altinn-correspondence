@@ -49,7 +49,7 @@ public class LegacyPurgeCorrespondenceHandler(
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var partyUrn = user.GetCallerPartyUrn();
+            var partyUrn = user?.GetCallerPartyUrn();
             return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, partyId, operationTimestamp, cancellationToken, partyUrn);
         }, logger, cancellationToken);
     }
