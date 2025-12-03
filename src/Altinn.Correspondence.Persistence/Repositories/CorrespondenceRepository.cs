@@ -102,10 +102,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            if (includeForwardingEvents)
-            {
-                correspondences = correspondences.Include(c => c.ForwardingEvents);
-            }
 
             var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
 
@@ -115,6 +111,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     .OrderBy(a => a.Created)
                     .ThenBy(a => a.Id)
                     .ToList();
+            }
+
+            if (correspondence != null && includeForwardingEvents)
+            {
+                await _context.Entry(correspondence)
+                    .Collection(c => c.ForwardingEvents)
+                    .LoadAsync(cancellationToken);
             }
 
             return correspondence;
