@@ -116,6 +116,7 @@ public class DownloadCorrespondenceAttachmentHandler(
                 _logger.LogError(e, "Error when adding status to correspondence {CorrespondenceId}", request.CorrespondenceId);
             }
 
+            var partyUrn = user?.GetCallerPartyUrn();
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => 
             dialogportenService.CreateInformationActivity(
                 request.CorrespondenceId,
@@ -123,7 +124,8 @@ public class DownloadCorrespondenceAttachmentHandler(
                 DialogportenTextType.DownloadStarted,
                 operationTimestamp,
                 attachment.DisplayName ?? attachment.FileName,
-                request.AttachmentId.ToString()));
+                request.AttachmentId.ToString(),
+                partyUrn));
             _logger.LogInformation("Successfully processed download request for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
                 request.CorrespondenceId, request.AttachmentId);
             return new DownloadCorrespondenceAttachmentResponse()

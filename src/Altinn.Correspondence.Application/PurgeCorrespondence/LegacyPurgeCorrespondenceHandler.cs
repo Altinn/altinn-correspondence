@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -48,7 +49,8 @@ public class LegacyPurgeCorrespondenceHandler(
         }
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, partyId, operationTimestamp, cancellationToken);
+            var partyUrn = user?.GetCallerPartyUrn();
+            return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, partyId, operationTimestamp, cancellationToken, partyUrn);
         }, logger, cancellationToken);
     }
 }

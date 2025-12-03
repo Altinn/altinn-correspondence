@@ -38,6 +38,12 @@ namespace Altinn.Correspondence.Common.Helpers
             return null;
         }
 
+        public static string? GetCallerPartyUrn(this ClaimsPrincipal user)
+        {
+            var partyUrnClaim = user.Claims.FirstOrDefault(c => c.Type == "c");
+            return partyUrnClaim?.Value;
+        }
+
         public static bool CallingAsSender(this ClaimsPrincipal user)
         {
             var scope = user.Claims.FirstOrDefault(c => c.Type == "scope")?.Value;

@@ -30,6 +30,25 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
                 cancellationToken);
     }
 
+
+    public async Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
+        Guid correspondenceId,
+        Guid? attachmentId,
+        string? partyUrn,
+        StatusAction? action,
+        IdempotencyType idempotencyType,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.IdempotencyKeys
+            .FirstOrDefaultAsync(k =>
+                k.CorrespondenceId == correspondenceId &&
+                k.AttachmentId == attachmentId &&
+                k.PartyUrn == partyUrn &&
+                k.StatusAction == action &&
+                k.IdempotencyType == idempotencyType,
+                cancellationToken);
+    }
+
     public async Task<IdempotencyKeyEntity> CreateAsync(IdempotencyKeyEntity idempotencyKey, CancellationToken cancellationToken)
     {
         await _dbContext.IdempotencyKeys.AddAsync(idempotencyKey, cancellationToken);

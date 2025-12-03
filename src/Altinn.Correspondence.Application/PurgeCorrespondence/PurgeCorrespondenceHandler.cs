@@ -80,7 +80,8 @@ public class PurgeCorrespondenceHandler(
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.PartyId, operationTimestamp, cancellationToken);
+            var partyUrn = user?.GetCallerPartyUrn();
+            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.PartyId, operationTimestamp, cancellationToken, partyUrn);
             logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", result);
             return result;
         }, logger, cancellationToken);
