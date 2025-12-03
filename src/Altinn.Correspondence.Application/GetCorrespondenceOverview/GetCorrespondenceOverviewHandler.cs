@@ -116,12 +116,29 @@ public class GetCorrespondenceOverviewHandler(
                 });
             }
 
-            var content = hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published) ? correspondence.Content : null;
-            if (content != null && correspondence.ReplyOptions?.Count > 3)
+            CorrespondenceContentEntity? content = null;
+            if (hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published))
             {
-                content.MessageBody = content.MessageBody + "\n\n" +
-                    "Svarvalg:\n" +
-                    string.Join("\n", correspondence.ReplyOptions.Select(ro => $"{ro.LinkText}: {ro.LinkURL}"));
+                content = correspondence.Content;
+                if (content != null && correspondence.ReplyOptions?.Count > 3)
+                {
+                    var replyLabel = content.Language?.ToLower() switch
+                    {
+                        "en" => "Reply options:",
+                        "nn" => "Svarval:",
+                        _ => "Svarvalg:"
+                    };
+                    // Create a copy to avoid mutating the entity
+                    content = new CorrespondenceContentEntity
+                    {
+                        Language = content.Language,
+                        MessageTitle = content.MessageTitle,
+                        MessageSummary = content.MessageSummary,
+                        MessageBody = content.MessageBody + "\n\n" + replyLabel + "\n" +
+                            string.Join("\n", correspondence.ReplyOptions.Select(ro => $"{ro.LinkText}: {ro.LinkURL}")),
+                        Attachments = content.Attachments
+                    };
+                }
             }
 
             var response = new GetCorrespondenceOverviewResponse
