@@ -69,6 +69,9 @@ inputs:
   STATISTICS_API_KEY:
     description: "API Key for authentication to Statistics endpoints"
     required: true
+  GRAFANA_MONITORING_PRINCIPAL_ID:
+    description: "Principal ID for Grafana monitoring service principal"
+    required: true
 
 runs:
   using: "composite"
@@ -118,6 +121,7 @@ runs:
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         STATISTICS_API_KEY: ${{ inputs.STATISTICS_API_KEY }}
+        GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
