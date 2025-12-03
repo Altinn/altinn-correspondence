@@ -102,7 +102,7 @@ public class GetCorrespondenceOverviewHandler(
                                 SyncEventType.Read,
                                 CancellationToken.None));
                     }
-                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
+                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, user.GetCallerPartyUrn()));
 
                 }
             }

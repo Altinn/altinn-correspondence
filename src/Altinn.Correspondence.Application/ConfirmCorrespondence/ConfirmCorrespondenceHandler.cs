@@ -82,7 +82,7 @@ public class ConfirmCorrespondenceHandler(
                 PartyUuid = partyUuid
             }, cancellationToken);
             var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id));
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp), JobContinuationOptions.OnlyOnSucceededState);
+            backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, user.GetCallerPartyUrn()), JobContinuationOptions.OnlyOnSucceededState);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
 
             if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)

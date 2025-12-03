@@ -94,5 +94,25 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.FromResult(true);
         }
+
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CreateConfirmedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp, string? partyUrn)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

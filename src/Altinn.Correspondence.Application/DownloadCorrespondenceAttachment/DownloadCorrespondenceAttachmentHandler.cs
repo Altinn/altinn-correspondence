@@ -123,7 +123,8 @@ public class DownloadCorrespondenceAttachmentHandler(
                 DialogportenTextType.DownloadStarted,
                 operationTimestamp,
                 attachment.DisplayName ?? attachment.FileName,
-                request.AttachmentId.ToString()));
+                request.AttachmentId.ToString(),
+                user.GetCallerPartyUrn()));
             _logger.LogInformation("Successfully processed download request for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
                 request.CorrespondenceId, request.AttachmentId);
             return new DownloadCorrespondenceAttachmentResponse()
