@@ -87,7 +87,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeIsMigrating = false)
         {
             logger.LogDebug("Retrieving correspondence {CorrespondenceId} including: status={IncludeStatus} content={IncludeContent}", guid, includeStatus, includeContent);
-            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
+            var correspondences = _context.Correspondences.AsSplitQuery().Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
 
             // Exclude migrating correspondences unless explicitly requested, added as an option since this method is frequently used in unit tests where it it useful to override
             if (!includeIsMigrating)
