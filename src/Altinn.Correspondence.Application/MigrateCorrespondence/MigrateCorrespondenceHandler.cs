@@ -52,7 +52,7 @@ public class MigrateCorrespondenceHandler(
                 if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
                 {
                     await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None);
-;               }
+                }
             }
             
             return new MigrateCorrespondenceResponse()
