@@ -59,7 +59,7 @@ public class PurgeAttachmentHandler(
                 string.Join(", ", correspondences.Select(c => c.Id)));
             return AttachmentErrors.PurgeAttachmentWithExistingCorrespondence;
         }
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
