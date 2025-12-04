@@ -63,11 +63,11 @@ public class ConfirmCorrespondenceHandler(
             return updateError;
         }
 
-        var partyUrn = user?.GetCallerPartyUrn();
-        var party = await altinnRegisterService.LookUpPartyById(partyUrn, cancellationToken);
+        var caller = user?.GetCallerPartyUrn();
+        var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
+            logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
@@ -83,7 +83,7 @@ public class ConfirmCorrespondenceHandler(
                 PartyUuid = partyUuid
             }, cancellationToken);
             var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id));
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, partyUrn), JobContinuationOptions.OnlyOnSucceededState);
+            backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller), JobContinuationOptions.OnlyOnSucceededState);
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
 
             if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
