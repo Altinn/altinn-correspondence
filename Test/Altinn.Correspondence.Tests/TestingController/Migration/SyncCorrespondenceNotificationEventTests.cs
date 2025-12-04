@@ -107,7 +107,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
 
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
-        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);        
+        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
     }
 
     [Fact]
@@ -149,8 +149,6 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
-
-        // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
         Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
     }

@@ -8,6 +8,7 @@ using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Hangfire.Storage;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -20,6 +21,7 @@ public class MigrateCorrespondenceHandler(
     IDialogportenService dialogportenService,
     HangfireScheduleHelper hangfireScheduleHelper,
     IBackgroundJobClient backgroundJobClient,
+    IHostEnvironment hostEnvironment,
     ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -48,8 +50,23 @@ public class MigrateCorrespondenceHandler(
             string dialogId = "";
             if (request.MakeAvailable)
             {
-                var makeAvailableJob = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(makeAvailableJob, HangfireQueues.LiveMigration, (helper) => helper.SchedulePublishAtPublishTime(correspondence.Id, CancellationToken.None));
+                if (hostEnvironment.IsDevelopment())
+                {
+                    try { 
+                        dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken, correspondence, true);
+                    } catch (Exception ex)
+                    {
+                        // Used for tests
+                    }
+                }
+                else
+                {
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
+                }
+                if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
+                {
+                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None);
+                }
             }
             
             return new MigrateCorrespondenceResponse()

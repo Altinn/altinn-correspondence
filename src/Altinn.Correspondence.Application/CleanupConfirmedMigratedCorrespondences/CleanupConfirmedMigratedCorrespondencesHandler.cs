@@ -1,13 +1,13 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
-using Hangfire;
-using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Application.Helpers;
+using System.Security.Cryptography.Xml;
 
 namespace Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
 
@@ -21,7 +21,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
     {
         logger.LogInformation("Starting cleanup of confirmed migrated correspondences with window size {windowSize}", request.WindowSize);
 
-        var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(request.WindowSize, CancellationToken.None));
+        var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(request.WindowSize, null, CancellationToken.None));
 
         logger.LogInformation("Cleanup job {jobId} has been enqueued", jobId);
 
@@ -34,7 +34,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
 
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 43200)]
-    public async Task ExecuteCleanupInBackground(int windowSize, CancellationToken cancellationToken)
+    public async Task ExecuteCleanupInBackground(int windowSize, Guid? cursor, CancellationToken cancellationToken)
     {
         logger.LogInformation("Executing cleanup of migrated messages with a confirmed button in background job");
 
@@ -49,64 +49,50 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
             Guid? lastId = null;
             bool isMoreCorrespondences = true;
 
-            while (isMoreCorrespondences)
-            {
-                logger.LogInformation("Processing batch starting after cursor {correspondenceId}", lastId);
-                var correspondencesWindow = await correspondenceRepository.GetCorrespondencesWindowBefore
-                (windowSize + 1,
-                lastCreated,
-                lastId,
+            logger.LogInformation("Processing batch starting after cursor {correspondenceId}", lastId);
+            var correspondences = await correspondenceRepository.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatusUsingCursor(
+                cursor,
                 cancellationToken);
 
-                isMoreCorrespondences = correspondencesWindow.Count > windowSize;
-                if (isMoreCorrespondences)
-                {
-                    correspondencesWindow = correspondencesWindow.Take(windowSize).ToList();
-                }
-                if (correspondencesWindow.Count > 0)
-                {
-                    var last = correspondencesWindow[^1];
-                    lastCreated = last.Created;
-                    lastId = last.Id;
-                }
-                var windowIds = correspondencesWindow.Select(c => c.Id).ToList();
-                var candidates = await correspondenceRepository.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(
-                    windowIds,
-                    cancellationToken);
-                logger.LogInformation("Found {candidateCount} candidates for cleanup in current window", candidates.Count);
+            isMoreCorrespondences = correspondences.Count == 1000;
+            if (correspondences.Count > 0)
+            {
+                var last = correspondences[^1];
+                lastId = last.Id;
+            }
+            logger.LogInformation("Found {candidateCount} candidates for cleanup in current window", correspondences.Count);
 
-                foreach (var correspondence in candidates)
+            foreach (var correspondence in correspondences)
+            {
+                try
                 {
-                    try
+                    totalProcessed++;
+                    var (patched, alreadyOk) = await ProcessSingleCorrespondence(correspondence);
+                    if (patched)
                     {
-                        totalProcessed++;
-                        var (patched, alreadyOk) = await ProcessSingleCorrespondence(correspondence);
-                        if (patched)
-                        {
-                            totalPatched++;
-                        }
-                        else if (alreadyOk)
-                        {
-                            totalAlreadyOk++;
-                        }
+                        totalPatched++;
                     }
-                    catch (Exception ex)
+                    else if (alreadyOk)
                     {
-                        totalErrors++;
-                        var errorMessage = $"Error processing correspondence {correspondence.Id}: {ex.Message}";
-                        allErrors.Add(errorMessage);
-                        logger.LogError(ex, "Failed to process correspondence {correspondenceId}", correspondence.Id);
+                        totalAlreadyOk++;
                     }
                 }
-                if (correspondencesWindow.Count == 0)
+                catch (Exception ex)
                 {
-                    isMoreCorrespondences = false;
+                    totalErrors++;
+                    var errorMessage = $"Error processing correspondence {correspondence.Id}: {ex.Message}";
+                    allErrors.Add(errorMessage);
+                    logger.LogError(ex, "Failed to process correspondence {correspondenceId}", correspondence.Id);
                 }
             }
+            if (lastId is not null)
+            {
+                backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(windowSize, lastId, CancellationToken.None));
+            }
 
-            logger.LogInformation("Background cleanup completed. Total processed: {processedCount}, Total patched: {patchedCount}, Already ok: {alreadyOkCount}, Total errors: {errorCount}", 
+            logger.LogInformation("Background cleanup completed. Total processed: {processedCount}, Total patched: {patchedCount}, Already ok: {alreadyOkCount}, Total errors: {errorCount}",
                 totalProcessed, totalPatched, totalAlreadyOk, totalErrors);
-                
+
             if (allErrors.Count > 0)
             {
                 logger.LogWarning("Cleanup completed with {errorCount} errors: {errors}", totalErrors, string.Join("; ", allErrors));
@@ -124,18 +110,18 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
         var dialogId = correspondence.ExternalReferences
             .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
 
-            if (dialogId == null)
-            {
-                logger.LogWarning("Skipping correspondence {correspondenceId} as it has no Dialogporten dialogId", correspondence.Id);
-                return (false, false);
-            }
-            if (!correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
+        if (dialogId == null)
+        {
+            logger.LogWarning("Skipping correspondence {correspondenceId} as it has no Dialogporten dialogId", correspondence.Id);
+            return (false, false);
+        }
+        if (!correspondence.StatusHasBeen(CorrespondenceStatus.Confirmed))
         {
             logger.LogWarning("Skipping correspondence {correspondenceId} as it does not have Confirmed status", correspondence.Id);
             return (false, false);
         }
-           logger.LogInformation("Attempting to patch correspondence to confirmed on dialog {dialogId} for correspondence {correspondenceId}", 
-            dialogId, correspondence.Id);
+        logger.LogInformation("Attempting to patch correspondence to confirmed on dialog {dialogId} for correspondence {correspondenceId}",
+         dialogId, correspondence.Id);
 
         var removed = await dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id);
         if (removed)
@@ -146,4 +132,4 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
         logger.LogInformation("Dialog {dialogId} already confirmed in Dialogporten for correspondence {correspondenceId}", dialogId, correspondence.Id);
         return (false, true);
     }
-} 
+}

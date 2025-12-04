@@ -12,6 +12,8 @@ internal static class MigrateCorrespondenceMapper
 {
     internal static async Task<MigrateCorrespondenceRequest> MapToRequestAsync(MigrateCorrespondenceExt migrateCorrespondenceExt, ServiceOwnerHelper serviceOwnerHelper, CancellationToken cancellationToken)
     {
+        var publishedTime = migrateCorrespondenceExt.EventHistory.FirstOrDefault(e => e.Status == MigrateCorrespondenceStatusExt.Published)?.StatusChanged;
+
         var correspondence = new CorrespondenceEntity
         {
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
@@ -43,7 +45,7 @@ internal static class MigrateCorrespondenceMapper
             IsConfirmationNeeded = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsConfirmationNeeded,
             IsMigrating = migrateCorrespondenceExt.IsMigrating,
             PartyId = migrateCorrespondenceExt.PartyId,
-            Published = migrateCorrespondenceExt.CorrespondenceData.Published
+            Published = publishedTime
         };
         
         return new MigrateCorrespondenceRequest()

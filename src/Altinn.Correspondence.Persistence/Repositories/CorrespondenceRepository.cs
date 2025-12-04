@@ -87,7 +87,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeIsMigrating = false)
         {
             logger.LogDebug("Retrieving correspondence {CorrespondenceId} including: status={IncludeStatus} content={IncludeContent}", guid, includeStatus, includeContent);
-            var correspondences = _context.Correspondences.Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
+            var correspondences = _context.Correspondences.AsSplitQuery().Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
 
             // Exclude migrating correspondences unless explicitly requested, added as an option since this method is frequently used in unit tests where it it useful to override
             if (!includeIsMigrating)
@@ -102,10 +102,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
             }
-            if (includeForwardingEvents)
-            {
-                correspondences = correspondences.Include(c => c.ForwardingEvents);
-            }
 
             var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
 
@@ -115,6 +111,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     .OrderBy(a => a.Created)
                     .ThenBy(a => a.Id)
                     .ToList();
+            }
+
+            if (correspondence != null && includeForwardingEvents)
+            {
+                await _context.Entry(correspondence)
+                    .Collection(c => c.ForwardingEvents)
+                    .LoadAsync(cancellationToken);
             }
 
             return correspondence;
@@ -539,6 +542,30 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.ExternalReferences)
                 .Include(c => c.Statuses)
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatusUsingCursor(
+            Guid? cursorId,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences
+                .AsNoTracking()
+                .AsSplitQuery();
+            if (cursorId.HasValue)
+            {
+                query = query.Where(c => c.Id < cursorId.Value);
+            }
+            query = query
+                .Where(c => c.Altinn2CorrespondenceId != null)
+                .Where(c => !c.IsMigrating)
+                .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
+                .Include(c => c.Content)
+                .Include(c => c.ExternalReferences)
+                .Include(c => c.Statuses)
+                .OrderByDescending(c => c.Id)
+                .Take(1000);
+
+            return await query.ToListAsync(cancellationToken);
         }
     }
 }
