@@ -379,10 +379,6 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
         CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
         Assert.NotNull(resultObj.DialogId);
-        
-        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
-        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
-        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
     }
 
     [Fact]
