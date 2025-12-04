@@ -103,7 +103,11 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceNotificationEventUrl, request);
 
         // Assert
-        Assert.True(response.IsSuccessStatusCode, "Response was not successful with code (" + response.StatusCode + "): " + await response.Content.ReadAsStringAsync());   
+        Assert.True(response.IsSuccessStatusCode, "Response was not successful with code (" + response.StatusCode + "): " + await response.Content.ReadAsStringAsync());
+
+        // Get updated details of the migrated correspondence
+        var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
+        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
     }
 
     [Fact]
@@ -145,6 +149,8 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
+        var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
+        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
     }
 
 
