@@ -185,5 +185,85 @@ module reddis '../modules/redis/main.bicep' = {
     environment: environment
   }
 }
+
+// Policy definition to enforce standard correspondence tags on resources
+resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@2021-06-01' = {
+  name: 'correspondence-standard-tags-${environment}'
+  properties: {
+    policyType: 'Custom'
+    mode: 'Indexed'
+    displayName: 'Ensure standard tags on Correspondence resources'
+    description: 'Adds or updates standard FinOps and repository tags on Correspondence resource groups and resources.'
+    metadata: {
+      category: 'Tags'
+    }
+    policyRule: {
+      if: {
+        field: 'type'
+        notEquals: 'Microsoft.Authorization/policyAssignments'
+      }
+      then: {
+        effect: 'modify'
+        details: {
+          roleDefinitionIds: [
+            '/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c' // Contributor
+          ]
+          operations: [
+            {
+              operation: 'addOrReplace'
+              field: 'tags[finops_environment]'
+              value: environment
+            }
+            {
+              operation: 'addOrReplace'
+              field: 'tags[finops_product]'
+              value: 'melding'
+            }
+            {
+              operation: 'addOrReplace'
+              field: 'tags[finops_serviceownercode]'
+              value: 'digdir'
+            }
+            {
+              operation: 'addOrReplace'
+              field: 'tags[finops_serviceownerorgnr]'
+              value: '991825827'
+            }
+            {
+              operation: 'addOrReplace'
+              field: 'tags[repository]'
+              value: 'https://github.com/Altinn/altinn-correspondence'
+            }
+            {
+              operation: 'addOrReplace'
+              field: 'tags[env]'
+              value: environment
+            }
+            {
+              operation: 'addOrReplace'
+              field: 'tags[product]'
+              value: 'melding'
+            }
+            {
+              operation: 'addOrReplace'
+              field: 'tags[org]'
+              value: 'digdir'
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+
+// Assign the policy to this environment's resource group (one assignment per RG)
+module correspondenceTagsAssignment '../modules/policy/assignCorrespondenceTags.bicep' = {
+  name: 'correspondence-standard-tags-assignment'
+  scope: resourceGroup
+  params: {
+    policyDefinitionId: correspondenceTagsPolicy.id
+  }
+}
+
 output resourceGroupName string = resourceGroup.name
 output environmentKeyVaultName string = environmentKeyVault.outputs.name
