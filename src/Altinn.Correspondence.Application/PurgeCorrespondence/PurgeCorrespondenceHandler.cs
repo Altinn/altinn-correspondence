@@ -67,7 +67,7 @@ public class PurgeCorrespondenceHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, caller);
+        logger.LogInformation("Retrieved party UUID {PartyUuid} for caller {caller}", partyUuid, caller);
         logger.LogInformation("Starting purge process for correspondence {CorrespondenceId} as {Role}", 
             correspondenceId, 
             isSender ? "sender" : "recipient");
