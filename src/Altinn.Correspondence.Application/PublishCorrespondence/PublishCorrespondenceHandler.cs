@@ -97,7 +97,7 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Party for recipient {correspondence.Recipient} not found in Altinn Register when publishing";
         }
-        else if (!await IsCorrespondenceReadyForPublish(correspondence, senderPartyUuid.Value, cancellationToken))
+        else if (!await IsCorrespondenceReadyForPublish(correspondence, senderPartyUuid.Value, operationTimestamp, cancellationToken))
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
@@ -173,7 +173,7 @@ public class PublishCorrespondenceHandler(
         }, logger, cancellationToken);
     }
 
-    private async Task<bool> IsCorrespondenceReadyForPublish(CorrespondenceEntity correspondence, Guid partyUuid, CancellationToken cancellationToken)
+    private async Task<bool> IsCorrespondenceReadyForPublish(CorrespondenceEntity correspondence, Guid partyUuid, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
     {
         if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
         {
@@ -184,7 +184,7 @@ public class PublishCorrespondenceHandler(
                     {
                         CorrespondenceId = correspondence.Id,
                         Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = DateTime.UtcNow,
+                        StatusChanged = operationTimestamp.AddMilliseconds(-1),
                         StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
                         PartyUuid = partyUuid
                     },
