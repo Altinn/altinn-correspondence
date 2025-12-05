@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
+using Altinn.Correspondence.API.ValidationAttributes;
 
 namespace Altinn.Correspondence.API.Models
 {

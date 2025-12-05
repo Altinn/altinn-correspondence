@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Altinn.Correspondence.API.Models;
+namespace Altinn.Correspondence.API.ValidationAttributes;
 
 public class OptionalEnumAttribute : ValidationAttribute
 {
