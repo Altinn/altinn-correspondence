@@ -187,7 +187,7 @@ module reddis '../modules/redis/main.bicep' = {
 }
 
 // Policy definition to enforce standard correspondence tags on resources
-resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@2021-06-01' = {
+resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@2025-03-01' = {
   name: 'correspondence-standard-tags-${environment}'
   properties: {
     policyType: 'Custom'
