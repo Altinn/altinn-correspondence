@@ -496,7 +496,8 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.InvalidCorrespondenceDialogId;
         }
-        var validateResourceOwnerMatch = await dialogportenService.DialogValidForTransmission(dialogId, correspondence.ResourceId, cancellationToken);
+        try{
+            var validateResourceOwnerMatch = await dialogportenService.DialogValidForTransmission(dialogId, correspondence.ResourceId, cancellationToken);
         if (validateResourceOwnerMatch == false)
         {
             return CorrespondenceErrors.InvalidServiceOwner;
@@ -507,7 +508,11 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.RecipientMismatch;
         }
-        else
+        }
+        catch (Core.Exceptions.DialogNotFoundException)
+        {
+            return CorrespondenceErrors.DialogportenDialogIdNotFound;
+        }
         {
             return Task.CompletedTask;
         }
