@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
+using Altinn.Correspondence.API.ValidationAttributes;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -39,6 +40,7 @@ namespace Altinn.Correspondence.API.Models
         /// The content type of the email body (HTML or Plain text)
         /// </summary>
         [JsonPropertyName("emailContentType")]
+        [OptionalEnum]
         public EmailContentType EmailContentType { get; set; } = EmailContentType.Plain;
 
         /// <summary>
@@ -77,6 +79,7 @@ namespace Altinn.Correspondence.API.Models
         /// The content type of the reminder email body (HTML or Plain text)
         /// </summary>
         [JsonPropertyName("reminderEmailContentType")]
+        [OptionalEnum]
         public EmailContentType? ReminderEmailContentType { get; set; }
 
         /// <summary>
@@ -92,12 +95,14 @@ namespace Altinn.Correspondence.API.Models
         /// Specifies the notification channel to use for the main notification
         /// </summary>
         [JsonPropertyName("notificationChannel")]
+        [RequiredEnum]
         public NotificationChannelExt NotificationChannel { get; set; }
 
         /// <summary>
         ///  Specifies the notification channel to use for the reminder notification
         /// </summary>
         [JsonPropertyName("reminderNotificationChannel")]
+        [OptionalEnum]
         public NotificationChannelExt? ReminderNotificationChannel { get; set; }
 
         /// <summary>
