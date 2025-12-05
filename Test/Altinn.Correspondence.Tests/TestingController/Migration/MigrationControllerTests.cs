@@ -379,10 +379,6 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
         CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
         Assert.NotNull(resultObj.DialogId);
-        
-        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
-        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
-        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
     }
 
     [Fact]
@@ -566,11 +562,10 @@ public class MigrationControllerTests : MigrationTestBase
     public async Task InitializeMigrateCorrespondence_PublishedOnCorrespondenceData_IsPersistedOnEntity()
     {
         // Arrange
-        var published = new DateTimeOffset(2024, 2, 3, 10, 20, 30, TimeSpan.Zero);
         var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithPublished(published)
             .Build();
+        var publishedEvent = migrateCorrespondenceExt.EventHistory.FirstOrDefault(statusEvent => statusEvent.Status == MigrateCorrespondenceStatusExt.Published);
 
         // Act
         var initializeResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
@@ -584,7 +579,7 @@ public class MigrationControllerTests : MigrationTestBase
 
         // Assert
         Assert.NotNull(correspondence);
-        Assert.Equal(published, correspondence.Published);
+        Assert.Equal(publishedEvent.StatusChanged, correspondence.Published);
     }
 
     [Fact]

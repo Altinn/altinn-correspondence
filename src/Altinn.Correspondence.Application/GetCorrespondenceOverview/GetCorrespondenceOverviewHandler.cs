@@ -117,10 +117,34 @@ public class GetCorrespondenceOverviewHandler(
                 });
             }
 
+            CorrespondenceContentEntity? content = null;
+            if (hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published))
+            {
+                content = correspondence.Content;
+                if (content != null && correspondence.ReplyOptions?.Count > 3)
+                {
+                    var replyLabel = content.Language?.ToLower() switch
+                    {
+                        "en" => "Reply options:",
+                        "nn" => "Svarval:",
+                        _ => "Svarvalg:"
+                    };
+                    content = new CorrespondenceContentEntity
+                    {
+                        Language = content.Language,
+                        MessageTitle = content.MessageTitle,
+                        MessageSummary = content.MessageSummary,
+                        MessageBody = content.MessageBody + "\n\n" + replyLabel + "\n" +
+                            string.Join("\n", correspondence.ReplyOptions.Select(ro => $"{ro.LinkText}: {ro.LinkURL}")),
+                        Attachments = content.Attachments
+                    };
+                }
+            }
+
             var response = new GetCorrespondenceOverviewResponse
             {
                 CorrespondenceId = correspondence.Id,
-                Content = hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published) ? correspondence.Content : null,
+                Content = content,
                 Status = latestStatus.Status,
                 StatusText = latestStatus.StatusText,
                 StatusChanged = latestStatus.StatusChanged,

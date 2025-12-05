@@ -34,17 +34,10 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
-        repo.SetupSequence(r => r.GetCorrespondencesWindowBefore(
-            It.IsAny<int>(),
-            It.IsAny<DateTimeOffset?>(),
+        repo.Setup(r => r.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatusUsingCursor(
             It.IsAny<Guid?>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CorrespondenceEntity> { c1, c2 })
-            .ReturnsAsync(new List<CorrespondenceEntity>());
-        repo.Setup(r => r.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(
-            It.IsAny<List<Guid>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync((List<Guid> ids, CancellationToken _) => new List<CorrespondenceEntity> { c1, c2 }.Where(x => ids.Contains(x.Id)).ToList());
+            .ReturnsAsync([c1, c2]);
 
         var dialog = new Mock<IDialogportenService>();
         dialog.Setup(d => d.PatchCorrespondenceDialogToConfirmed(c1.Id)).ReturnsAsync(true);
@@ -55,7 +48,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         var handler = new CleanupConfirmedMigratedCorrespondencesHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteCleanupInBackground(50, CancellationToken.None);
+        await handler.ExecuteCleanupInBackground(50, null, CancellationToken.None);
 
         // Assert
         dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(c1.Id), Times.Once);
@@ -73,17 +66,10 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
-        repo.SetupSequence(r => r.GetCorrespondencesWindowBefore(
-            It.IsAny<int>(),
-            It.IsAny<DateTimeOffset?>(),
+        repo.Setup(r => r.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatusUsingCursor(
             It.IsAny<Guid?>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CorrespondenceEntity> { c })
-            .ReturnsAsync(new List<CorrespondenceEntity>());
-        repo.Setup(r => r.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(
-            It.IsAny<List<Guid>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync((List<Guid> ids, CancellationToken _) => new List<CorrespondenceEntity> { c }.Where(x => ids.Contains(x.Id)).ToList());
+            .ReturnsAsync([c]);
 
         var dialog = new Mock<IDialogportenService>();
         var bg = new Mock<IBackgroundJobClient>();
@@ -91,7 +77,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         var handler = new CleanupConfirmedMigratedCorrespondencesHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteCleanupInBackground(25, CancellationToken.None);
+        await handler.ExecuteCleanupInBackground(25, null, CancellationToken.None);
 
         // Assert
         dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>()), Times.Never);
@@ -108,17 +94,10 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
-        repo.SetupSequence(r => r.GetCorrespondencesWindowBefore(
-            It.IsAny<int>(),
-            It.IsAny<DateTimeOffset?>(),
+        repo.Setup(r => r.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatusUsingCursor(
             It.IsAny<Guid?>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CorrespondenceEntity> { c })
-            .ReturnsAsync(new List<CorrespondenceEntity>());
-        repo.Setup(r => r.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(
-            It.IsAny<List<Guid>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CorrespondenceEntity> { c });
+            .ReturnsAsync([c]);
 
         var dialog = new Mock<IDialogportenService>();
         var bg = new Mock<IBackgroundJobClient>();
@@ -126,7 +105,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         var handler = new CleanupConfirmedMigratedCorrespondencesHandler(repo.Object, dialog.Object, bg.Object, logger.Object);
 
         // Act
-        await handler.ExecuteCleanupInBackground(10, CancellationToken.None);
+        await handler.ExecuteCleanupInBackground(10, null, CancellationToken.None);
 
         // Assert
         dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>()), Times.Never);

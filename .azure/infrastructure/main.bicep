@@ -30,6 +30,8 @@ param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
 param statisticsApiKey string
+@secure()
+param grafanaMonitoringPrincipalId string
 
 @secure()
 param maintenanceAdGroupId string
@@ -256,12 +258,19 @@ resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@202
   }
 }
 
-// Assign the policy to this environment's resource group (one assignment per RG)
+// Assign the policy to this environment's resource group
 module correspondenceTagsAssignment '../modules/policy/assignCorrespondenceTags.bicep' = {
   name: 'correspondence-standard-tags-assignment'
   scope: resourceGroup
   params: {
     policyDefinitionId: correspondenceTagsPolicy.id
+  }
+}
+
+module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderRole.bicep' = {
+  name: 'grafana-monitoring-reader'
+  params: {
+    grafanaPrincipalId: grafanaMonitoringPrincipalId
   }
 }
 

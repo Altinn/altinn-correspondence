@@ -8,6 +8,7 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -19,6 +20,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceRepository> _mockCorrespondenceRepository;
         private readonly Mock<IDialogportenService> _mockDialogportenService;
         private readonly Mock<IBackgroundJobClient> _mockBackgroundJobClient;
+        private readonly Mock<IHostEnvironment> _mockHostEnvironment;
         private readonly Mock<ILogger<MigrateCorrespondenceHandler>> _mockLogger;
         private readonly Mock<ICorrespondenceDeleteEventRepository> _mockCorrespondenceDeleteRepository;
         private readonly MigrateCorrespondenceHandler _handler;
@@ -29,6 +31,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockCorrespondenceDeleteRepository = new Mock<ICorrespondenceDeleteEventRepository>();
             _mockDialogportenService = new Mock<IDialogportenService>();
             _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            _mockHostEnvironment = new Mock<IHostEnvironment>();
             _mockLogger = new Mock<ILogger<MigrateCorrespondenceHandler>>();
             var mockCache = new Mock<IHybridCacheWrapper>();
 
@@ -44,6 +47,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockDialogportenService.Object,
                 hangfireScheduleHelper,
                 _mockBackgroundJobClient.Object,
+                _mockHostEnvironment.Object,
                 _mockLogger.Object);
         }
 

@@ -128,7 +128,7 @@ public class CreateDialogRequestMapperTests
         var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcTime);
 
         // Assert
-        Assert.Null(result.UpdatedAt);
+        Assert.Equal(result.UpdatedAt, currentUtcTime);
     }
 
     [Fact]
