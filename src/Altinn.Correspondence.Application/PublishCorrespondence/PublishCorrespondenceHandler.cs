@@ -84,7 +84,7 @@ public class PublishCorrespondenceHandler(
         bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
 
-        var altinn2PublishStatus = correspondence.Statuses.FirstOrDefault(statusEvent => statusEvent.Status == CorrespondenceStatus.Published && statusEvent.StatusText == "Published in Altinn 2");
+        var altinn2PublishStatus = correspondence.Statuses.FirstOrDefault(statusEvent => statusEvent.Status == CorrespondenceStatus.Published && statusEvent.StatusText == "Correspondence Published in Altinn 2");
         if (altinn2PublishStatus != null)
         {
             logger.LogInformation("Correspondence {CorrespondenceId} was previously published in Altinn 2 at {PublishedAt}", correspondenceId, altinn2PublishStatus.StatusChanged);
