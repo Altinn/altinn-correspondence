@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Core.Exceptions;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -509,7 +510,7 @@ public class InitializeCorrespondencesHandler(
             return CorrespondenceErrors.RecipientMismatch;
         }
         }
-        catch (Core.Exceptions.DialogNotFoundException)
+        catch (DialogNotFoundException)
         {
             return CorrespondenceErrors.DialogportenDialogIdNotFound;
         }
