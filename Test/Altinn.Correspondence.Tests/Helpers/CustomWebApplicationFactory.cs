@@ -198,8 +198,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             new Claim("actual_iss", "mock"),
             new Claim("nbf", "1721893243"),
             new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", "1"),
-            new Claim("urn:altinn:userid", "1"),
-            new Claim("urn:altinn:partyid", "1")
+            new Claim("urn:altinn:userid", "1")
         };
         var claimsWithDuplicatesAllowed = new List<string> { "scope" };
         foreach (var (type, value) in claims)

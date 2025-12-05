@@ -146,6 +146,25 @@ public class AltinnRegisterService : IAltinnRegisterService
         {
             _logger.LogWarning(ex, "Error retrieving organization from cache when looking up organization in Altinn Register Service.");
         }
+        
+        if (identificationId.IsPartyId())
+        {
+            if (int.TryParse(identificationId.WithoutPrefix(), out int partyId))
+            {
+                return await LookUpPartyByPartyId(partyId, cancellationToken);
+            }
+            else
+            {
+                _logger.LogError("identificationId is not a valid party id.");
+                return null;
+            }
+        }
+
+        if (!identificationId.IsOrganizationNumber() && !identificationId.IsSocialSecurityNumber())
+        {
+            _logger.LogError("IdentificationId {identificationId} is not a valid organization number or social security number.", identificationId);
+            return null;
+        }
 
         identificationId = identificationId.WithoutPrefix();
 
