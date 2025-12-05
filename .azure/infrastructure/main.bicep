@@ -265,12 +265,5 @@ module correspondenceTagsAssignment '../modules/policy/assignCorrespondenceTags.
   }
 }
 
-module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderRole.bicep' = {
-  name: 'grafana-monitoring-reader'
-  params: {
-    grafanaPrincipalId: grafanaMonitoringPrincipalId
-  }
-}
-
 output resourceGroupName string = resourceGroup.name
 output environmentKeyVaultName string = environmentKeyVault.outputs.name
