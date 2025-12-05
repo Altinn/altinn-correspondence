@@ -3,9 +3,12 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using UUIDNext;
+using static Slack.Webhooks.Elements.TextObject;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -18,7 +21,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, bool isPrepublished = false)
         {
             var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
             DateTimeOffset? dueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null;
@@ -59,7 +62,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
+                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, isPrepublished) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
             };
@@ -176,7 +179,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return list;
         }
 
-        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
+        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isPrepublished = false)
         {
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
@@ -191,6 +194,43 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             if (confirmedStatus != null && !string.IsNullOrWhiteSpace(confirmedActivityIdempotencyKey))
             {
                 activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, confirmedActivityIdempotencyKey));
+            }
+
+            if (isPrepublished)
+            {
+                var publishedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Published);
+                CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, ActivityType.Information, publishedStatus.StatusChanged, correspondence.ServiceOwnerId ?? correspondence.Sender, []);
+
+                if (publishedStatus != null)
+                {
+                    Activity prepublishActivity = new Activity();
+                    prepublishActivity.Id = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString();
+                    prepublishActivity.PerformedBy = new PerformedBy()
+                    {
+                        ActorType = "System"
+                    };
+                    prepublishActivity.CreatedAt = publishedStatus.StatusChanged;
+                    prepublishActivity.Type = "Information";
+                    prepublishActivity.Description = new List<Description>()
+                    {
+                        new Description()
+                        {
+                            LanguageCode = "nb",
+                            Value = DialogportenText.GetDialogportenText(DialogportenTextType.CorrespondencePublished, DialogportenLanguageCode.NB, [])
+                        },
+                        new Description()
+                        {
+                            LanguageCode = "nn",
+                            Value = DialogportenText.GetDialogportenText(DialogportenTextType.CorrespondencePublished, DialogportenLanguageCode.NN, [])
+                        },
+                        new Description()
+                        {
+                            LanguageCode = "en",
+                            Value = DialogportenText.GetDialogportenText(DialogportenTextType.CorrespondencePublished, DialogportenLanguageCode.EN, [])
+                        }
+                    };
+                    activities.Add(prepublishActivity);
+                }
             }
 
             activities.AddRange(GetActivitiesFromNotifications(correspondence));

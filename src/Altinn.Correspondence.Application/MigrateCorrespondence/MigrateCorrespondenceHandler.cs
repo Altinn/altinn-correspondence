@@ -187,7 +187,7 @@ public class MigrateCorrespondenceHandler(
                 backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                 foreach (var correspondence in correspondences)
                 {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, true, null, request.CreateEvents));
                 }
                 logger.LogInformation("Finished queuing {count} correspondences", correspondences.Count);
             }
@@ -202,6 +202,11 @@ public class MigrateCorrespondenceHandler(
     }
 
     public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, CorrespondenceEntity? correspondenceEntity = null, bool createEvents = false)
+    {
+        return await MakeCorrespondenceAvailableInDialogportenAndApi(correspondenceId, cancellationToken, false, correspondenceEntity, createEvents);
+    }
+
+    public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, bool isPrepublished, CorrespondenceEntity ? correspondenceEntity = null, bool createEvents = false)
     {
         var correspondence = correspondenceEntity ?? await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken, true);
         if (correspondence == null)
