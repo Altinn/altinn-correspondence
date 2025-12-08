@@ -1,9 +1,6 @@
 targetScope = 'subscription'
 
 param environment string
-param namePrefix string
-
-var resourceGroupName = '${namePrefix}-rg'
 
 resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@2025-03-01' = {
   name: 'correspondence-standard-tags-${environment}'
@@ -146,16 +143,6 @@ resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@202
   }
 }
 
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' existing = {
-  name: resourceGroupName
-}
-
-module correspondenceTagsAssignment '../modules/policy/assignCorrespondenceTags.bicep' = {
-  name: 'correspondence-standard-tags-assignment'
-  scope: resourceGroup
-  params: {
-    policyDefinitionId: correspondenceTagsPolicy.id
-  }
-}
+output policyDefinitionId string = correspondenceTagsPolicy.id
 
 

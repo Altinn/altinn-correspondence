@@ -188,5 +188,20 @@ module reddis '../modules/redis/main.bicep' = {
   }
 }
 
+module correspondenceTagsPolicy '../modules/policy/correspondenceTagsPolicy.bicep' = {
+  name: 'correspondence-standard-tags-definition'
+  params: {
+    environment: environment
+  }
+}
+
+module correspondenceTagsAssignment '../modules/policy/assignCorrespondenceTags.bicep' = {
+  name: 'correspondence-standard-tags-assignment'
+  scope: resourceGroup
+  params: {
+    policyDefinitionId: correspondenceTagsPolicy.outputs.policyDefinitionId
+  }
+}
+
 output resourceGroupName string = resourceGroup.name
 output environmentKeyVaultName string = environmentKeyVault.outputs.name

@@ -96,25 +96,6 @@ runs:
       run: |
         az config set bicep.use_binary_from_path=false
 
-    - name: Bootstrap standard tags policy
-      uses: azure/arm-deploy@v2
-      id: bootstrap-standard-tags-policy
-      env:
-        ENVIRONMENT: ${{ inputs.environment }}
-        NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
-      with:
-        scope: subscription
-        template: ./.azure/infrastructure/standardTagsPolicy.bicep
-        subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
-        deploymentMode: Incremental
-        deploymentName: ${{ inputs.AZURE_NAME_PREFIX }}-standard-tags-policy
-        region: ${{ inputs.region }}
-        resourceGroupName: ${{ inputs.AZURE_NAME_PREFIX }}-rg
-        failOnStdErr: false
-        parameters: >
-          environment=${{ env.ENVIRONMENT }}
-          namePrefix=${{ env.NAME_PREFIX }}
-
     - name: Deploy to Azure
       uses: azure/arm-deploy@v2
       id: deploy
@@ -152,6 +133,17 @@ runs:
         resourceGroupName: ${{ inputs.AZURE_NAME_PREFIX }}-rg
         failOnStdErr: false
         parameters: ./.azure/infrastructure/params.bicepparam
+
+    - name: Remediate standard tags policy
+      shell: pwsh
+      run: |
+        $rgName = "${{ inputs.AZURE_NAME_PREFIX }}-rg"
+        $subscriptionId = "${{ inputs.AZURE_SUBSCRIPTION_ID }}"
+        $assignmentId = "/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Authorization/policyAssignments/correspondence-standard-tags"
+        az policy remediation create `
+          --name "correspondence-standard-tags-remediation" `
+          --policy-assignment $assignmentId `
+          --resource-group $rgName
 
     - name: Logout from azure
       shell: bash
