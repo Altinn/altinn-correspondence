@@ -22,68 +22,100 @@ resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@202
           {
             anyOf: [
               {
-                field: 'tags[finops_environment]'
-                notEquals: environment
+                allOf: [
+                  {
+                    field: 'tags[finops_environment]'
+                    exists: 'false'
+                  }
+                  {
+                    value: '[resourceGroup().tags.finops_environment]'
+                    notEquals: ''
+                  }
+                ]
               }
               {
-                field: 'tags[finops_environment]'
-                exists: 'false'
+                allOf: [
+                  {
+                    field: 'tags[finops_product]'
+                    exists: 'false'
+                  }
+                  {
+                    value: '[resourceGroup().tags.finops_product]'
+                    notEquals: ''
+                  }
+                ]
               }
               {
-                field: 'tags[finops_product]'
-                notEquals: 'melding'
+                allOf: [
+                  {
+                    field: 'tags[finops_serviceownercode]'
+                    exists: 'false'
+                  }
+                  {
+                    value: '[resourceGroup().tags.finops_serviceownercode]'
+                    notEquals: ''
+                  }
+                ]
               }
               {
-                field: 'tags[finops_product]'
-                exists: 'false'
+                allOf: [
+                  {
+                    field: 'tags[finops_serviceownerorgnr]'
+                    exists: 'false'
+                  }
+                  {
+                    value: '[resourceGroup().tags.finops_serviceownerorgnr]'
+                    notEquals: ''
+                  }
+                ]
               }
               {
-                field: 'tags[finops_serviceownercode]'
-                notEquals: 'digdir'
+                allOf: [
+                  {
+                    field: 'tags[repository]'
+                    exists: 'false'
+                  }
+                  {
+                    value: '[resourceGroup().tags.repository]'
+                    notEquals: ''
+                  }
+                ]
               }
               {
-                field: 'tags[finops_serviceownercode]'
-                exists: 'false'
+                allOf: [
+                  {
+                    field: 'tags[env]'
+                    exists: 'false'
+                  }
+                  {
+                    value: '[resourceGroup().tags.env]'
+                    notEquals: ''
+                  }
+                ]
               }
               {
-                field: 'tags[finops_serviceownerorgnr]'
-                notEquals: '991825827'
+                allOf: [
+                  {
+                    field: 'tags[product]'
+                    exists: 'false'
+                  }
+                  {
+                    value: '[resourceGroup().tags.product]'
+                    notEquals: ''
+                  }
+                ]
               }
               {
-                field: 'tags[finops_serviceownerorgnr]'
-                exists: 'false'
-              }
-              {
-                field: 'tags[repository]'
-                notEquals: 'https://github.com/Altinn/altinn-correspondence'
-              }
-              {
-                field: 'tags[repository]'
-                exists: 'false'
-              }
-              {
-                field: 'tags[env]'
-                notEquals: environment
-              }
-              {
-                field: 'tags[env]'
-                exists: 'false'
-              }
-              {
-                field: 'tags[product]'
-                notEquals: 'melding'
-              }
-              {
-                field: 'tags[product]'
-                exists: 'false'
-              }
-              {
-                field: 'tags[org]'
-                notEquals: 'digdir'
-              }
-              {
-                field: 'tags[org]'
-                exists: 'false'
+                allOf: [
+                  {
+                    field: 'tags[org]'
+                    exists: 'false'
+                  }
+                  {
+                    value: '[resourceGroup().tags.org]'
+                    notEquals: ''
+                  }
+                ]
               }
             ]
           }
@@ -97,44 +129,44 @@ resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@202
           ]
           operations: [
             {
-              operation: 'addOrReplace'
+              operation: 'add'
               field: 'tags[finops_environment]'
-              value: environment
+              value: '[resourceGroup().tags.finops_environment]'
             }
             {
-              operation: 'addOrReplace'
+              operation: 'add'
               field: 'tags[finops_product]'
-              value: 'melding'
+              value: '[resourceGroup().tags.finops_product]'
             }
             {
-              operation: 'addOrReplace'
+              operation: 'add'
               field: 'tags[finops_serviceownercode]'
-              value: 'digdir'
+              value: '[resourceGroup().tags.finops_serviceownercode]'
             }
             {
-              operation: 'addOrReplace'
+              operation: 'add'
               field: 'tags[finops_serviceownerorgnr]'
-              value: '991825827'
+              value: '[resourceGroup().tags.finops_serviceownerorgnr]'
             }
             {
-              operation: 'addOrReplace'
+              operation: 'add'
               field: 'tags[repository]'
-              value: 'https://github.com/Altinn/altinn-correspondence'
+              value: '[resourceGroup().tags.repository]'
             }
             {
-              operation: 'addOrReplace'
+              operation: 'add'
               field: 'tags[env]'
-              value: environment
+              value: '[resourceGroup().tags.env]'
             }
             {
-              operation: 'addOrReplace'
+              operation: 'add'
               field: 'tags[product]'
-              value: 'melding'
+              value: '[resourceGroup().tags.product]'
             }
             {
-              operation: 'addOrReplace'
+              operation: 'add'
               field: 'tags[org]'
-              value: 'digdir'
+              value: '[resourceGroup().tags.org]'
             }
           ]
         }
