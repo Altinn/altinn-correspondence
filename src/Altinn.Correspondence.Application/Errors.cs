@@ -102,6 +102,8 @@ public static class NotificationErrors
     public static Error NotificationDetailsNotFound = new Error(3021, "Cannot retrieve notification details from Altinn Notification API", HttpStatusCode.NotFound);
     public static Error OverrideRegisteredContactInformationRequiresCustomRecipients = new Error(3022, "OverrideRegisteredContactInformation flag can only be used when CustomRecipients is provided", HttpStatusCode.BadRequest);
     public static Error InvalidNotificationTemplate = new Error(3023, "Invalid notification template", HttpStatusCode.BadRequest);
+    public static Error MissingEmailAndSmsContent = new Error(3024, "Email body, subject and SMS body must be provided when sending email and SMS notifications", HttpStatusCode.BadRequest);
+    public static Error MissingEmailAndSmsReminderContent = new Error(3025, "Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {
