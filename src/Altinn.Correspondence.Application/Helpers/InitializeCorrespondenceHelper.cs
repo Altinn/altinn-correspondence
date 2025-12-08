@@ -170,6 +170,16 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return NotificationErrors.MissingPreferredReminderChannel;
             }
+            if ((notification.NotificationChannel == NotificationChannel.EmailAndSms) &&
+                (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody)))
+            {
+                return NotificationErrors.MissingEmailAndSmsContent;
+            }
+            if ((reminderNotificationChannel == NotificationChannel.EmailAndSms) &&
+                notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
+            {
+                return NotificationErrors.MissingEmailAndSmsReminderContent;
+            }
             return null;
         }
 
