@@ -2,6 +2,7 @@
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
@@ -2277,6 +2278,55 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
             Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithGuiActions.Message, await transmissionResponse.Content.ReadAsStringAsync());
-    }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondenceTransmission_WithDialogIdNotFound_ReturnsNotFound()
+        {
+            // Arrange 
+            var knownDialogId = Guid.NewGuid().ToString();
+            var unknownDialogId = Guid.NewGuid().ToString();
+
+            var mockDialogportenService = new Mock<IDialogportenService>();
+            mockDialogportenService
+                .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+                .ReturnsAsync(knownDialogId);
+            mockDialogportenService
+                .Setup(x => x.CreateDialogTransmission(It.IsAny<Guid>()))
+                .ReturnsAsync(Guid.NewGuid().ToString());
+            mockDialogportenService
+                .Setup(x => x.DialogValidForTransmission(unknownDialogId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DialogNotFoundException(unknownDialogId));
+
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IDialogportenService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockDialogportenService.Object);
+            });
+
+            var client = customFactory.CreateSenderClient();
+
+            var correspondence1 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithMessageTitle("First Title")
+                .Build();
+
+            // Act
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(client, _responseSerializerOptions, correspondence1);
+            var correspondenceContent = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, initializedCorrespondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            var payload2 = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId(unknownDialogId)
+                .Build();
+
+            var transmissionResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.NotFound, transmissionResponse.StatusCode);
+            var responseContent = await transmissionResponse.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.DialogportenDialogIdNotFound.Message, responseContent);
+        }
     }
 }
