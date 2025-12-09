@@ -13,21 +13,7 @@ public interface IIdempotencyKeyRepository
     Task<IdempotencyKeyEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets an idempotency key by correspondence id, attachment id and action.
-    /// </summary>
-    /// <param name="correspondenceId">The id of the correspondence.</param>
-    /// <param name="attachmentId">The id of the attachment.</param>
-    /// <param name="action">The action of the idempotency key.</param>
-    /// <param name="idempotencyType">The type of idempotency key.</param>
-    Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
-        Guid correspondenceId, 
-        Guid? attachmentId, 
-        StatusAction? action,
-        IdempotencyType idempotencyType,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Gets an idempotency key by correspondence id, attachment id and action.
+    /// Gets an idempotency key by correspondence id, attachment id, end user and action.
     /// </summary>
     /// <param name="correspondenceId">The id of the correspondence.</param>
     /// <param name="attachmentId">The id of the attachment.</param>
