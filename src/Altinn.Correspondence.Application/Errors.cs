@@ -59,6 +59,7 @@ public static class CorrespondenceErrors
     public static Error TransmissionNotAllowedWithGuiActions = new Error(1051, "Correspondences with GUI actions (ReplyOptions or IsConfirmationNeeded) cannot be sent as transmissions", HttpStatusCode.BadRequest);
     public static Error MultipleDialogportenTransmissionTypeExternalReferences = new Error(1052, "Only one DialogportenTransmissionType external reference is allowed", HttpStatusCode.BadRequest);
     public static Error DialogportenTransmissionTypeRequiresDialogId = new Error(1053, "DialogportenTransmissionType external reference requires a DialogportenDialogId external reference", HttpStatusCode.BadRequest);
+    public static Error DialogportenDialogIdNotFound = new Error(1054, "Dialogporten dialog with the given id was not found", HttpStatusCode.NotFound);
 }
 
 public static class AttachmentErrors

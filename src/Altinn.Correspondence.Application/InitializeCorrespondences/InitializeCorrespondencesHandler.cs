@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Core.Exceptions;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -496,7 +497,8 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.InvalidCorrespondenceDialogId;
         }
-        var validateResourceOwnerMatch = await dialogportenService.DialogValidForTransmission(dialogId, correspondence.ResourceId, cancellationToken);
+        try{
+            var validateResourceOwnerMatch = await dialogportenService.DialogValidForTransmission(dialogId, correspondence.ResourceId, cancellationToken);
         if (validateResourceOwnerMatch == false)
         {
             return CorrespondenceErrors.InvalidServiceOwner;
@@ -507,7 +509,11 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.RecipientMismatch;
         }
-        else
+        }
+        catch (DialogNotFoundException)
+        {
+            return CorrespondenceErrors.DialogportenDialogIdNotFound;
+        }
         {
             return Task.CompletedTask;
         }
