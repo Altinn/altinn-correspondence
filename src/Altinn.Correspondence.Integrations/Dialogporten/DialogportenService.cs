@@ -186,7 +186,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
                 correspondence.Id,
                 attachmentId,
-                partyUrn,
+                null, // Log once for each Correspondence x Attachment, not per recipient
                 StatusAction.AttachmentDownloaded,
                 IdempotencyType.DialogportenActivity,
                 cancellationToken);
@@ -248,7 +248,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var existingOpenIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
             correspondenceId,
             null, // No attachment for opened activity
-            partyUrn,
+            null, // Log once for each Correspondence, not per recipient
             StatusAction.Fetched,
             IdempotencyType.DialogportenActivity,
             cancellationToken);
@@ -326,8 +326,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         // Get the pre-created idempotency key for confirm activity
         var existingConfirmIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
             correspondence.Id,
-            null, // No attachment for confirm activity'
-            partyUrn,
+            null, // No attachment for confirm activity
+            null, // Log once for each Correspondence, not per recipient
             StatusAction.Confirmed,
             IdempotencyType.DialogportenActivity,
             cancellationToken);
