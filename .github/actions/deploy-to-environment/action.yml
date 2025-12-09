@@ -152,16 +152,13 @@ runs:
         AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
         APIM_IP: ${{ inputs.APIM_IP }}
 
-    - name: Remediate standard tags policy
-      shell: pwsh
-      run: |
-        $rgName = "${{ inputs.AZURE_NAME_PREFIX }}-rg"
-        $subscriptionId = "${{ inputs.AZURE_SUBSCRIPTION_ID }}"
-        $assignmentId = "/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Authorization/policyAssignments/correspondence-standard-tags"
-        az policy remediation create `
-          --name "correspondence-standard-tags-remediation" `
-          --policy-assignment $assignmentId `
-          --resource-group $rgName
+    - name: Remediate standard tags
+      uses: ./.github/actions/remediate-standard-tags
+      with:
+        AZURE_CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
+        AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
+        AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        AZURE_NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
 
     - name: Release version
       uses: ./.github/actions/release-version
