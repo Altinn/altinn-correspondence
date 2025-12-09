@@ -128,7 +128,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             logger.LogInformation("No actions to remove from dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
             return false;
         }
-        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}?isSilentUpdate=true", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             logger.LogError("Response from Dialogporten when patching dialog {dialogId} to confirmed for correspondence {correspondenceId} was not successful: {statusCode}: {responseContent}",
@@ -198,7 +198,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             }
         }
 
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
@@ -270,7 +270,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         var createDialogActivityRequest = CreateOpenedActivityRequest(correspondence, actorType, activityTimestamp, partyUrn);
         createDialogActivityRequest.Id = existingOpenIdempotencyKey.Id.ToString(); // Use the created activity ID
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
@@ -350,7 +350,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceConfirmed, activityTimestamp, partyUrn);
         createDialogActivityRequest.Id = existingConfirmIdempotencyKey.Id.ToString(); // Use the created activity ID
 
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
@@ -483,7 +483,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             createDialogActivityRequest.PerformedBy.ActorName = actorName;
             createDialogActivityRequest.PerformedBy.ActorId = null;
         }
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");

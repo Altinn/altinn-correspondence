@@ -84,6 +84,14 @@ public class PublishCorrespondenceHandler(
         bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
 
+        var altinn2PublishStatus = correspondence.Statuses.FirstOrDefault(statusEvent => statusEvent.Status == CorrespondenceStatus.Published && statusEvent.StatusText == "Correspondence Published in Altinn 2");
+        if (altinn2PublishStatus != null)
+        {
+            logger.LogInformation("Correspondence {CorrespondenceId} was previously published in Altinn 2 at {PublishedAt}", correspondenceId, altinn2PublishStatus.StatusChanged);
+            await correspondenceRepository.UpdatePublished(correspondenceId, altinn2PublishStatus.StatusChanged, cancellationToken);
+            backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
+            return Task.CompletedTask;
+        }
         var errorMessage = "";
         if (correspondence == null)
         {
@@ -158,7 +166,6 @@ public class PublishCorrespondenceHandler(
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
                 backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, operationTimestamp));
                 backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
             }
 
