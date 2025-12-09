@@ -6,7 +6,7 @@ resource correspondenceTagsPolicy 'Microsoft.Authorization/policyDefinitions@202
   name: 'correspondence-standard-tags-${environment}'
   properties: {
     policyType: 'Custom'
-    mode: 'All'
+    mode: 'Indexed'
     displayName: 'Ensure standard tags on Correspondence resources'
     description: 'Adds or updates standard FinOps and repository tags on Correspondence resource groups and resources.'
     metadata: {
