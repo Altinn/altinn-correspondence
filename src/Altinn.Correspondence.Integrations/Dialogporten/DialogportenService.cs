@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Altinn.Correspondence.Core.Exceptions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -127,7 +128,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             logger.LogInformation("No actions to remove from dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
             return false;
         }
-        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}?isSilentUpdate=true", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             logger.LogError("Response from Dialogporten when patching dialog {dialogId} to confirmed for correspondence {correspondenceId} was not successful: {statusCode}: {responseContent}",
@@ -191,7 +192,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             }
         }
 
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
@@ -264,7 +265,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         var createDialogActivityRequest = CreateOpenedActivityRequest(correspondence, actorType, activityTimestamp, partyUrn);
         createDialogActivityRequest.Id = existingOpenIdempotencyKey.Id.ToString(); // Use the created activity ID
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
@@ -345,7 +346,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceConfirmed, partyUrn, activityTimestamp);
         createDialogActivityRequest.Id = existingConfirmIdempotencyKey.Id.ToString(); // Use the created activity ID
 
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
@@ -478,7 +479,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             createDialogActivityRequest.PerformedBy.ActorName = actorName;
             createDialogActivityRequest.PerformedBy.ActorId = null;
         }
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
@@ -497,6 +498,10 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var cancellationToken = cancellationTokenSource.Token;
 
         var response = await _httpClient.GetAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new DialogNotFoundException(dialogId);
+        }
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");

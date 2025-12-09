@@ -1,19 +1,19 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace Altinn.Correspondence.API.ValidationAttributes;
-public class RequiredEnumAttribute : ValidationAttribute
+
+public class OptionalEnumAttribute : ValidationAttribute
 {
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        var fieldName = validationContext.DisplayName;
-
         if (value is null)
         {
-            return new ValidationResult($"The {fieldName} field is required.");
+            return ValidationResult.Success;
         }
 
         if (!Enum.IsDefined(value.GetType(), value))
         {
+            var fieldName = validationContext.DisplayName;
             return new ValidationResult($"The {fieldName} field must be a defined value.");
         }
 

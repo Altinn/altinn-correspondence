@@ -59,6 +59,7 @@ public static class CorrespondenceErrors
     public static Error TransmissionNotAllowedWithGuiActions = new Error(1051, "Correspondences with GUI actions (ReplyOptions or IsConfirmationNeeded) cannot be sent as transmissions", HttpStatusCode.BadRequest);
     public static Error MultipleDialogportenTransmissionTypeExternalReferences = new Error(1052, "Only one DialogportenTransmissionType external reference is allowed", HttpStatusCode.BadRequest);
     public static Error DialogportenTransmissionTypeRequiresDialogId = new Error(1053, "DialogportenTransmissionType external reference requires a DialogportenDialogId external reference", HttpStatusCode.BadRequest);
+    public static Error DialogportenDialogIdNotFound = new Error(1054, "Dialogporten dialog with the given id was not found", HttpStatusCode.NotFound);
 }
 
 public static class AttachmentErrors
@@ -101,6 +102,8 @@ public static class NotificationErrors
     public static Error NotificationDetailsNotFound = new Error(3021, "Cannot retrieve notification details from Altinn Notification API", HttpStatusCode.NotFound);
     public static Error OverrideRegisteredContactInformationRequiresCustomRecipients = new Error(3022, "OverrideRegisteredContactInformation flag can only be used when CustomRecipients is provided", HttpStatusCode.BadRequest);
     public static Error InvalidNotificationTemplate = new Error(3023, "Invalid notification template", HttpStatusCode.BadRequest);
+    public static Error MissingEmailAndSmsContent = new Error(3024, "Email body, subject and SMS body must be provided when sending email and SMS notifications", HttpStatusCode.BadRequest);
+    public static Error MissingEmailAndSmsReminderContent = new Error(3025, "Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {

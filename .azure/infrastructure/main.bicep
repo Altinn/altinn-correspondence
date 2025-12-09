@@ -30,6 +30,8 @@ param storageAccountName string
 param maskinporten_token_exchange_environment string
 @secure()
 param statisticsApiKey string
+@secure()
+param grafanaMonitoringPrincipalId string
 
 @secure()
 param maintenanceAdGroupId string
@@ -185,5 +187,13 @@ module reddis '../modules/redis/main.bicep' = {
     environment: environment
   }
 }
+
+module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderRole.bicep' = {
+  name: 'grafana-monitoring-reader'
+  params: {
+    grafanaPrincipalId: grafanaMonitoringPrincipalId
+  }
+}
+
 output resourceGroupName string = resourceGroup.name
 output environmentKeyVaultName string = environmentKeyVault.outputs.name
