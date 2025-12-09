@@ -160,13 +160,13 @@ public class AltinnRegisterService : IAltinnRegisterService
             }
         }
 
+        identificationId = identificationId.WithoutPrefix();
+
         if (!identificationId.IsOrganizationNumber() && !identificationId.IsSocialSecurityNumber())
         {
             _logger.LogError("IdentificationId {identificationId} is not a valid organization number or social security number.", identificationId);
             return null;
         }
-
-        identificationId = identificationId.WithoutPrefix();
 
         var partyLookup = new PartyLookup()
         {

@@ -27,7 +27,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 throw new ArgumentException("Correspondence had invalid recipient");
             }
-            return urn;
+            return urn.WithUrnPrefix();
         }
 
         private static string? GetUrn(string input)

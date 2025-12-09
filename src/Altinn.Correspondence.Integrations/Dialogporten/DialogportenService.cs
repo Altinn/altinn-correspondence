@@ -139,7 +139,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
         return true;
     }
-    public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
+    public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, DateTimeOffset activityTimestamp, params string[] tokens)
     {
         logger.LogInformation("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
             Enum.GetName(typeof(DialogportenActorType), actorType),
@@ -166,7 +166,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
-        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, activityTimestamp, partyUrn, tokens);
+        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, partyUrn, activityTimestamp, tokens);
 
         // Only set activity ID for download events using the stored idempotency key
         if (textType == DialogportenTextType.DownloadStarted)
@@ -177,16 +177,10 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 throw new ArgumentException("Invalid attachment ID token", nameof(tokens));
             }
 
-            if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.AttachmentsDownloaded && s.StatusText.Contains(attachmentId.ToString())) >= 2)
-            {
-                logger.LogInformation("Correspondence with id {correspondenceId} already has an AttachmentsDownloaded status for attachment {attachmentId}, skipping activity creation on Dialogporten", correspondenceId, attachmentId);
-                return;
-            }
-
             var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
                 correspondence.Id,
                 attachmentId,
-                partyUrn,
+                partyUrn?.WithUrnPrefix(),
                 StatusAction.AttachmentDownloaded,
                 IdempotencyType.DialogportenActivity,
                 cancellationToken);
@@ -215,7 +209,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
     {
-        await CreateInformationActivity(correspondenceId, actorType, textType, activityTimestamp, null, tokens);
+        await CreateInformationActivity(correspondenceId, actorType, textType, null, activityTimestamp, tokens);
     }
 
     public async Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
@@ -248,7 +242,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var existingOpenIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
             correspondenceId,
             null, // No attachment for opened activity
-            null, // Log once for each Correspondence, not per recipient
+            partyUrn,
             StatusAction.Fetched,
             IdempotencyType.DialogportenActivity,
             cancellationToken);
@@ -348,7 +342,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 cancellationToken);
         }
 
-        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceConfirmed, activityTimestamp, partyUrn);
+        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceConfirmed, partyUrn, activityTimestamp);
         createDialogActivityRequest.Id = existingConfirmIdempotencyKey.Id.ToString(); // Use the created activity ID
 
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
@@ -478,7 +472,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
-        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogDeleted, activityTimestamp, partyUrn);
+        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogDeleted, partyUrn, activityTimestamp);
         if (actorType != DialogportenActorType.ServiceOwner)
         {
             createDialogActivityRequest.PerformedBy.ActorName = actorName;
@@ -612,11 +606,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     {
         if (TransmissionValidator.IsTransmission(correspondence))
         {
-            return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.TransmissionOpened, activityTimestamp, partyUrn);
+            return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.TransmissionOpened, partyUrn, activityTimestamp);
         }
         else
         {
-            return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, activityTimestamp, partyUrn);
+            return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, partyUrn, activityTimestamp);
         }
     }
 

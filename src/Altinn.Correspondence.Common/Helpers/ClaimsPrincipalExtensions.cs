@@ -53,6 +53,12 @@ namespace Altinn.Correspondence.Common.Helpers
             {
                 return partyUrn;
             }
+            var pidClaim = user.Claims.FirstOrDefault(c => c.Type == "pid");
+            partyUrn = pidClaim?.Value;
+            if (!string.IsNullOrWhiteSpace(partyUrn))
+            {
+                return partyUrn;
+            }
             var systemUserClaim = user.Claims.FirstOrDefault(c => c.Type == "authorization_details");
             if (systemUserClaim is not null)
             {
