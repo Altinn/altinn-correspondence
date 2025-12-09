@@ -25,6 +25,7 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
             .FirstOrDefaultAsync(k => 
                 k.CorrespondenceId == correspondenceId && 
                 k.AttachmentId == attachmentId && 
+                k.PartyUrn == null &&
                 k.StatusAction == action &&
                 k.IdempotencyType == idempotencyType,
                 cancellationToken);

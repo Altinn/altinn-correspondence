@@ -62,7 +62,8 @@ public class DownloadCorrespondenceAttachmentHandler(
         // Check for existing idempotency key
         var existingKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
             request.CorrespondenceId, 
-            request.AttachmentId, 
+            request.AttachmentId,
+            null, // Log once for each Correspondence x Attachment, not per recipient
             StatusAction.AttachmentDownloaded,
             IdempotencyType.DialogportenActivity,
             cancellationToken);
