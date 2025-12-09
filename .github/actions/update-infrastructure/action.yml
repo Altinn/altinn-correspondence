@@ -134,17 +134,6 @@ runs:
         failOnStdErr: false
         parameters: ./.azure/infrastructure/params.bicepparam
 
-    - name: Remediate standard tags policy
-      shell: pwsh
-      run: |
-        $rgName = "${{ inputs.AZURE_NAME_PREFIX }}-rg"
-        $subscriptionId = "${{ inputs.AZURE_SUBSCRIPTION_ID }}"
-        $assignmentId = "/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Authorization/policyAssignments/correspondence-standard-tags"
-        az policy remediation create `
-          --name "correspondence-standard-tags-remediation" `
-          --policy-assignment $assignmentId `
-          --resource-group $rgName
-
     - name: Logout from azure
       shell: bash
       if: ${{failure() || success()}}

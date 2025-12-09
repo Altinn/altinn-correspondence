@@ -43,18 +43,8 @@ var resourceGroupName = '${namePrefix}-rg'
 
 // Create resource groups
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
-  name: '${namePrefix}-rg'
+  name: resourceGroupName
   location: location
-  tags: {
-    finops_environment: environment
-    finops_product: 'melding'
-    finops_serviceownercode: 'digdir'
-    finops_serviceownerorgnr: '991825827'
-    repository: 'https://github.com/Altinn/altinn-correspondence'
-    env: environment
-    product: 'melding'
-    org: 'digdir'
-  }
 }
 
 module environmentKeyVault '../modules/keyvault/create.bicep' = {
