@@ -12,6 +12,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -105,9 +106,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -121,12 +119,21 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
-            _correspondenceStatusRepositoryMock.Verify(
-                x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
-                    list.Count == 2 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null) &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
-                ), It.IsAny<CancellationToken>()),
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Read &&                    
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Confirmed &&                    
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
                 Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
 
@@ -336,15 +343,35 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Verify correct calls to Correspondence repository
             _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
-
-            _correspondenceStatusRepositoryMock.Verify(
-               x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
-                   list.Count == 3 &&
-                   list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null) &&
-                   list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null) &&
-                   list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
-               ), It.IsAny<CancellationToken>()),
-               Times.Once);
+            // Verify statuses added to Repository from StatusEvents
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Read &&
+                    e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2023, 10, 1, 12, 0, 0, 0))) &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Confirmed &&
+                    e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2023, 10, 1, 12, 5, 0, 0))) &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Archived &&
+                    e.StatusChanged.Equals(new DateTimeOffset(new DateTime(2023, 10, 1, 12, 6, 0, 150))) &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            // Verify status added to Repository from DeleteEvents
             _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
                 It.Is<CorrespondenceStatusEntity>(e =>
                     e.CorrespondenceId == correspondenceId &&
@@ -392,10 +419,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
-
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
 
@@ -408,12 +431,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the status were added to Repository with SyncedFromAltinn2 set
-            _correspondenceStatusRepositoryMock.Verify(
-                x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
-                    list.Count == 1 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
-                ), It.IsAny<CancellationToken>()),
-                Times.Once);
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+               It.Is<CorrespondenceStatusEntity>(e =>
+                   e.CorrespondenceId == correspondenceId &&
+                   e.Status == CorrespondenceStatus.Read &&
+                   e.PartyUuid == _defaultUserPartyUuid &&
+                   e.SyncedFromAltinn2 != null),
+               It.IsAny<CancellationToken>()),
+               Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
 
             // Should not trigger any Dialogporten changes or background jobs
@@ -433,6 +458,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Build();
             var correspondenceId = correspondence.Id;
             var recipient = correspondence.Recipient;
+            DateTimeOffset readTime = DateTimeOffset.UtcNow;
+            DateTimeOffset confirmedTme = DateTimeOffset.UtcNow;
             var request = new SyncCorrespondenceStatusEventRequest
             {
                 CorrespondenceId = correspondenceId,
@@ -441,13 +468,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Read,
-                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusChanged = readTime,
                         PartyUuid = _defaultUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Confirmed,
-                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusChanged = confirmedTme,
                         PartyUuid = _defaultUserPartyUuid
                     }
                 }
@@ -457,10 +484,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);   
-            
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -474,12 +497,24 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
-            _correspondenceStatusRepositoryMock.Verify(
-                x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
-                    list.Count == 2 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Read && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null) &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Confirmed && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
-                ), It.IsAny<CancellationToken>()),
+
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Read &&
+                    e.StatusChanged == readTime &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Confirmed &&
+                    e.StatusChanged == confirmedTme &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
                 Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
 
@@ -508,6 +543,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Build();
             var correspondenceId = correspondence.Id;
             var recipient = correspondence.Recipient;
+            DateTimeOffset archiveTime = DateTimeOffset.UtcNow;
             var request = new SyncCorrespondenceStatusEventRequest
             {
                 CorrespondenceId = correspondenceId,
@@ -516,7 +552,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Archived,
-                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusChanged = archiveTime,
                         PartyUuid = _defaultUserPartyUuid
                     }
                 }
@@ -526,9 +562,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);           
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
@@ -545,11 +578,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
-            _correspondenceStatusRepositoryMock.Verify(
-                x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
-                    list.Count == 1 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == _defaultUserPartyUuid && e.SyncedFromAltinn2 != null)
-                ), It.IsAny<CancellationToken>()),
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Archived &&
+                    e.StatusChanged == archiveTime &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
                 Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
             
@@ -577,6 +613,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Build();
             var correspondenceId = correspondence.Id;
             var recipient = correspondence.Recipient;
+            DateTimeOffset archiveTime = DateTimeOffset.UtcNow;
             var request = new SyncCorrespondenceStatusEventRequest
             {
                 CorrespondenceId = correspondenceId,
@@ -585,7 +622,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Archived,
-                        StatusChanged = DateTimeOffset.UtcNow,
+                        StatusChanged = archiveTime,
                         PartyUuid = _selfIdentifiedUserPartyUuid
                     }
                 }
@@ -595,9 +632,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid, PartyTypeName = PartyType.SelfIdentified });
@@ -614,11 +648,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
-            _correspondenceStatusRepositoryMock.Verify(
-                x => x.AddCorrespondenceStatuses(It.Is<List<CorrespondenceStatusEntity>>(list =>
-                    list.Count == 1 &&
-                    list.Any(e => e.Status == CorrespondenceStatus.Archived && e.PartyUuid == _selfIdentifiedUserPartyUuid && e.SyncedFromAltinn2 != null)
-                ), It.IsAny<CancellationToken>()),
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Archived &&
+                    e.StatusChanged == archiveTime &&
+                    e.PartyUuid == _selfIdentifiedUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
                 Times.Once);
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
 
@@ -664,9 +701,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -752,10 +786,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync(correspondence);            
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -831,10 +862,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync(correspondence);            
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -910,10 +938,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync(correspondence);            
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -991,9 +1016,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>
@@ -1083,10 +1105,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync(correspondence);           
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -1185,10 +1204,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync(correspondence);            
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -1264,10 +1280,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync(correspondence);           
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -1345,9 +1358,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -1459,10 +1469,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync(correspondence);            
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -1595,10 +1602,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock correspondence repository
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
+                .ReturnsAsync(correspondence);            
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -1675,9 +1679,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
@@ -1764,9 +1765,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-            _correspondenceStatusRepositoryMock
-                .Setup(x => x.AddCorrespondenceStatuses(It.IsAny<List<CorrespondenceStatusEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceStatusEntity> r, CancellationToken _) => r);
             _correspondenceDeleteEventRepositoryMock
                 .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
