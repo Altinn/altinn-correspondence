@@ -90,7 +90,6 @@ public class PublishCorrespondenceHandler(
             logger.LogInformation("Correspondence {CorrespondenceId} was previously published in Altinn 2 at {PublishedAt}", correspondenceId, altinn2PublishStatus.StatusChanged);
             await correspondenceRepository.UpdatePublished(correspondenceId, altinn2PublishStatus.StatusChanged, cancellationToken);
             backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
-            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, altinn2PublishStatus.StatusChanged));
             return Task.CompletedTask;
         }
         var errorMessage = "";
