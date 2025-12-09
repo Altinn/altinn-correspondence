@@ -40,21 +40,22 @@ param maintenanceAdGroupName string
 
 var prodLikeEnvironment = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
+var standardTags = {
+  finops_environment: environment
+  finops_product: 'melding'
+  finops_serviceownercode: 'digdir'
+  finops_serviceownerorgnr: '991825827'
+  repository: 'https://github.com/Altinn/altinn-correspondence'
+  env: environment
+  product: 'melding'
+  org: 'digdir'
+}
 
 // Create resource groups
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
   location: location
-  tags: {
-    finops_environment: environment
-    finops_product: 'melding'
-    finops_serviceownercode: 'digdir'
-    finops_serviceownerorgnr: '991825827'
-    repository: 'https://github.com/Altinn/altinn-correspondence'
-    env: environment
-    product: 'melding'
-    org: 'digdir'
-  }
+  tags: standardTags
 }
 
 module environmentKeyVault '../modules/keyvault/create.bicep' = {
