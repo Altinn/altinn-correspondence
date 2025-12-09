@@ -482,7 +482,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             createDialogActivityRequest.PerformedBy.ActorName = actorName;
             createDialogActivityRequest.PerformedBy.ActorId = null;
         }
-        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities", createDialogActivityRequest, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
