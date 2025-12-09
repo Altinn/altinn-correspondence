@@ -3,12 +3,9 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using UUIDNext;
-using static Slack.Webhooks.Elements.TextObject;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
