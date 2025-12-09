@@ -126,12 +126,6 @@ module keyvaultSecrets '../modules/keyvault/upsertSecrets.bicep' = {
 // Create resources with dependencies to other resources
 // #####################################################
 
-var srcKeyVault = {
-  name: sourceKeyVaultName
-  subscriptionId: subscription().subscriptionId
-  resourceGroupName: resourceGroupName
-}
-
 module storageAccount '../modules/storageAccount/create.bicep' = {
   scope: resourceGroup
   name: storageAccountName
@@ -195,6 +189,13 @@ module reddis '../modules/redis/main.bicep' = {
     keyVaultName: sourceKeyVaultName
     prodLikeEnvironment: prodLikeEnvironment
     environment: environment
+  }
+}
+
+module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderRole.bicep' = {
+  name: 'grafana-monitoring-reader'
+  params: {
+    grafanaPrincipalId: grafanaMonitoringPrincipalId
   }
 }
 
