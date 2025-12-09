@@ -8,6 +8,7 @@ using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -226,9 +227,6 @@ namespace Altinn.Correspondence.API.Controllers
                 Problem
             );
         }
-        private ActionResult Problem(Error error) => Problem(
-            detail: error.Message, 
-            statusCode: (int)error.StatusCode, 
-            extensions: new Dictionary<string, object?> { { "errorCode", error.ErrorCode } });
+        private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
     }
 }
