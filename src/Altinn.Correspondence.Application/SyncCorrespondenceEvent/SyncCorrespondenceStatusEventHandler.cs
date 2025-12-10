@@ -38,7 +38,7 @@ public class SyncCorrespondenceStatusEventHandler(
         }
 
         // Only fetch Dialogporten enduserIds if we have events 
-        Dictionary<Guid, string> enduserIdByPartyUuid = enduserIdByPartyUuid = await GetDialogPortenEndUserIdsForEvents(request.SyncedEvents, request.SyncedDeleteEvents, cancellationToken);
+        Dictionary<Guid, string> enduserIdsByPartyUuids = await GetDialogPortenEndUserIdsForEvents(request.SyncedEvents, request.SyncedDeleteEvents, cancellationToken);
 
         var txResult = await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
@@ -99,11 +99,11 @@ public class SyncCorrespondenceStatusEventHandler(
                 {
                     if (evt.EventType == "Status")
                     {
-                        await ProcessStatusEvent(request, correspondence, enduserIdByPartyUuid, (CorrespondenceStatusEntity)evt.Event, cancellationToken);
+                        await ProcessStatusEvent(request, correspondence, enduserIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, cancellationToken);
                     }
                     else if (evt.EventType == "Delete")
                     {
-                        await ProcessDeleteEvent(request, correspondence, enduserIdByPartyUuid, (CorrespondenceDeleteEventEntity)evt.Event, cancellationToken);
+                        await ProcessDeleteEvent(request, correspondence, enduserIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, cancellationToken);
                     }
                 }
                 catch (Exception ex)
@@ -161,13 +161,13 @@ public class SyncCorrespondenceStatusEventHandler(
 
                 case CorrespondenceStatus.Archived:
                     {
-                        if (!enduserIdByPartyUuid.ContainsKey(eventToExecute.PartyUuid))
+                        if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
                         {
                             logger.LogWarning("Skipping updating dialog with SystemLabel Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
                         }
                         else
                         {
-                            backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, enduserIdByPartyUuid[eventToExecute.PartyUuid], new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                            backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, endUserId, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
                         }                        
                         break;
                     }
@@ -462,7 +462,7 @@ public class SyncCorrespondenceStatusEventHandler(
             {
                 logger.LogWarning("Skipping updating dialog for {EventType} for Purged correspondence {CorrespondenceId} at {EventOccurred}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
             }
-            else if (!enduserIdByPartyUuid.ContainsKey(deleteEventToSync.PartyUuid))
+            else if (!enduserIdByPartyUuid.TryGetValue(deleteEventToSync.PartyUuid, out var endUserId))
             {
                 logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to missing Dialogporten enduserId for party {PartyUuid}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred, deleteEventToSync.PartyUuid);
             }
@@ -470,7 +470,7 @@ public class SyncCorrespondenceStatusEventHandler(
             {
                 // Perform SoftDelete or Restore in Dialogporten
                 bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
-                await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, enduserIdByPartyUuid[deleteEventToSync.PartyUuid], deleteEventToSync.EventType, isArchived, cancellationToken);
+                await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived, cancellationToken);
             }
         }
     }
