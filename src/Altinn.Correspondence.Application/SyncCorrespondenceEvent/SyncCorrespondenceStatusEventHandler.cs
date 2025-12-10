@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -27,89 +28,122 @@ public class SyncCorrespondenceStatusEventHandler(
         int numSyncedEvents = request.SyncedEvents?.Count ?? 0;
         int numSyncedDeletes = request.SyncedDeleteEvents?.Count ?? 0;
 
-        var statusEventsToExecute = new List<CorrespondenceStatusEntity>();
-        var deletionEventsToExecute = new List<CorrespondenceDeleteEventEntity>();
+        logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} with {numSyncedEvents} status events and {numSyncedDeletes} delete events", 
+            request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
 
-        logger.LogInformation("Processing status Sync request for correspondence {CorrespondenceId} with {numSyncedEvents} # status events and {numSyncedDeletes} # delete events", request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
-
-        var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
-            request.CorrespondenceId,
-            CorrespondenceSyncType.StatusEvents,
-            cancellationToken);
-
-        if (correspondence == null)
+        if (numSyncedEvents == 0 && numSyncedDeletes == 0)
         {
-            logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
-            return CorrespondenceErrors.CorrespondenceNotFound;
-        }
-
-        if (numSyncedEvents > 0)
-        {
-            statusEventsToExecute = FilterStatusEvents(request, correspondence);
-            if (statusEventsToExecute.Count == 0)
-            {
-                logger.LogWarning("None of the Status Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
-            }
-        }
-
-        if (numSyncedDeletes > 0)
-        {
-            deletionEventsToExecute = await FilterDeleteEvents(request, cancellationToken);
-            if (deletionEventsToExecute.Count == 0)
-            {
-                logger.LogWarning("None of the Delete Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
-            }
-        }
-
-        if(deletionEventsToExecute.Count == 0 && statusEventsToExecute.Count == 0)
-        {
-            logger.LogInformation("No unique Status or Delete Events to sync for Correspondence {CorrespondenceId}. Exiting sync process.", request.CorrespondenceId);
+            logger.LogInformation("No events to sync for Correspondence {CorrespondenceId}. Exiting sync process.", request.CorrespondenceId);
             return request.CorrespondenceId;
         }
-
-        // Only fetch Dialogporten enduserIds if we have events to execute and the correspondence is fully migrated (IsMigrating = false)
-        Dictionary<Guid, string> enduserIdByPartyUuid = new Dictionary<Guid, string>();
-        if (correspondence.IsMigrating == false)
-        {
-            enduserIdByPartyUuid = await GetDialogPortenEndUserIdsForEvents(statusEventsToExecute, deletionEventsToExecute, cancellationToken);
-        }
-
-        // After populating both collections, combine them into a single sorted collection
-        var allEventsToExecute = statusEventsToExecute
-            .Select(e => new { EventType = "Status", Event = (object)e, Timestamp = e.StatusChanged })
-            .Concat(deletionEventsToExecute
-                .Select(e => new { EventType = "Delete", Event = (object)e, Timestamp = e.EventOccurred }))
-            .OrderBy(e => e.Timestamp)
-            .ToList();
 
         var txResult = await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            foreach(var evt in allEventsToExecute)
+            // Fetch correspondence with fresh data within transaction
+            var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
+                request.CorrespondenceId,
+                CorrespondenceSyncType.StatusEvents,
+                cancellationToken);
+
+            if (correspondence == null)
             {
-                logger.LogInformation("Executing status event sync transaction for correspondence {CorrespondenceId} with {SyncedEventsCount} # of status events", request.CorrespondenceId, statusEventsToExecute.Count);
-                
-                if (evt.EventType == "Status")
+                logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
+                return CorrespondenceErrors.CorrespondenceNotFound;
+            }
+
+            var statusEventsToProcess = new List<CorrespondenceStatusEntity>();
+            var deletionEventsToProcess = new List<CorrespondenceDeleteEventEntity>();
+
+            if (numSyncedEvents > 0)
+            {
+                statusEventsToProcess = FilterStatusEvents(request, correspondence);
+                if (statusEventsToProcess.Count == 0)
                 {
-                    ExecuteStatusEvent(request, correspondence, enduserIdByPartyUuid, (CorrespondenceStatusEntity)evt.Event, cancellationToken);
-                }
-                else if (evt.EventType == "Delete")
-                {
-                    ExecuteDeleteEvent(request, correspondence, enduserIdByPartyUuid, (CorrespondenceDeleteEventEntity)evt.Event, cancellationToken);
+                    logger.LogWarning("None of the Status Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
                 }
             }
+
+            if (numSyncedDeletes > 0)
+            {
+                deletionEventsToProcess = await FilterDeleteEvents(request, cancellationToken);
+                if (deletionEventsToProcess.Count == 0)
+                {
+                    logger.LogWarning("None of the Delete Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
+                }
+            }
+
+            if (deletionEventsToProcess.Count == 0 && statusEventsToProcess.Count == 0)
+            {
+                logger.LogInformation("No unique Status or Delete Events to sync for Correspondence {CorrespondenceId}. Exiting sync process.", request.CorrespondenceId);
+                return request.CorrespondenceId;
+            }
+
+            // Only fetch Dialogporten enduserIds if we have events to execute and the correspondence is fully migrated (IsMigrating = false)
+            Dictionary<Guid, string> enduserIdByPartyUuid = new Dictionary<Guid, string>();
+            if (correspondence.IsMigrating == false)
+            {
+                enduserIdByPartyUuid = await GetDialogPortenEndUserIdsForEvents(statusEventsToProcess, deletionEventsToProcess, cancellationToken);
+            }
+
+            // After filtering both collections, combine them into a single sorted collection, sorted by timestamp they occurred
+            var allEventsToProcess = statusEventsToProcess
+                .Select(e => new { EventType = "Status", Event = (object)e, Timestamp = e.StatusChanged })
+                .Concat(deletionEventsToProcess
+                    .Select(e => new { EventType = "Delete", Event = (object)e, Timestamp = e.EventOccurred }))
+                .OrderBy(e => e.Timestamp)
+                .ToList();
+
+            // Process events sequentially by chronological order to maintain granular control
+            foreach (var evt in allEventsToProcess)
+            {
+                logger.LogInformation("Processing {EventType} event for correspondence {CorrespondenceId} at {Timestamp}", 
+                    evt.EventType, request.CorrespondenceId, evt.Timestamp);
+                
+                try
+                {
+                    if (evt.EventType == "Status")
+                    {
+                        await ProcessStatusEvent(request, correspondence, enduserIdByPartyUuid, (CorrespondenceStatusEntity)evt.Event, cancellationToken);
+                    }
+                    else if (evt.EventType == "Delete")
+                    {
+                        await ProcessDeleteEvent(request, correspondence, enduserIdByPartyUuid, (CorrespondenceDeleteEventEntity)evt.Event, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to process {EventType} event for correspondence {CorrespondenceId} at {Timestamp}", 
+                        evt.EventType, request.CorrespondenceId, evt.Timestamp);
+                    throw; // Re-throw to trigger transaction rollback
+                }
+            }
+
+            logger.LogInformation("Successfully processed {TotalEvents} events for correspondence {CorrespondenceId}", 
+                allEventsToProcess.Count, request.CorrespondenceId);
+
             return request.CorrespondenceId;
         }, logger, cancellationToken);
 
-        txResult.Switch(
-        _ => logger.LogInformation("Successfully synced request for correspondence {CorrespondenceId} with {numSyncedEvents} # status events and {numSyncedDeletes} # delete events", request.CorrespondenceId, numSyncedEvents, numSyncedDeletes),
-            err => logger.LogWarning("Failed to sync request for correspondence {CorrespondenceId}: {Error}", request.CorrespondenceId, err));
-        return txResult;
+        return txResult.Match<OneOf<Guid, Error>>(
+            success => 
+            {
+                logger.LogInformation("Successfully synced request for correspondence {CorrespondenceId} with {numSyncedEvents} status events and {numSyncedDeletes} delete events", 
+                    request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
+                return success;
+            },
+            error => 
+            {
+                logger.LogWarning("Failed to sync request for correspondence {CorrespondenceId}: {Error}", 
+                    request.CorrespondenceId, error);
+                return error;
+            });
     }
 
-    private async void ExecuteStatusEvent(SyncCorrespondenceStatusEventRequest request, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, CancellationToken cancellationToken)
+    private async Task ProcessStatusEvent(SyncCorrespondenceStatusEventRequest request, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, CancellationToken cancellationToken)
     {
-        logger.LogDebug("Perform Sync status event {Status} for {CorrespondenceId}", eventToExecute.Status, request.CorrespondenceId);
+        logger.LogDebug("Process Sync status event {Status} for {CorrespondenceId}", eventToExecute.Status, request.CorrespondenceId);
         
+        // Execute background jobs first (these are queued, not executed immediately)
         if (correspondence.IsMigrating == false)
         {
             switch (eventToExecute.Status)
@@ -140,13 +174,13 @@ public class SyncCorrespondenceStatusEventHandler(
             }
         }
 
-        // Save status to Correspondence Database
+        // Save status to Correspondence Database - this is the critical database operation that must succeed within the transaction
         await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, cancellationToken);
     }
 
-    private async void ExecuteDeleteEvent(SyncCorrespondenceStatusEventRequest request, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, CancellationToken cancellationToken)
+    private async Task ProcessDeleteEvent(SyncCorrespondenceStatusEventRequest request, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, CancellationToken cancellationToken)
     {
-        logger.LogDebug("Perform sync of delete event {EventType} for {CorrespondenceId}", deletionEvent.EventType, request.CorrespondenceId);
+        logger.LogDebug("Process Sync delete event {EventType} for {CorrespondenceId}", deletionEvent.EventType, request.CorrespondenceId);
         switch (deletionEvent.EventType)
         {
             case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
@@ -166,22 +200,29 @@ public class SyncCorrespondenceStatusEventHandler(
         }
     }
 
-    private async Task<List<CorrespondenceDeleteEventEntity>> FilterDeleteEvents(SyncCorrespondenceStatusEventRequest request,  CancellationToken cancellationToken)
+    private async Task<List<CorrespondenceDeleteEventEntity>> FilterDeleteEvents(SyncCorrespondenceStatusEventRequest request, CancellationToken cancellationToken)
     {
         var deletionEventsFilteredForRequestDuplicates = FilterDuplicateDeleteEvents(request.SyncedDeleteEvents);
 
-        List<CorrespondenceDeleteEventEntity> deletionEventsToExecute = new List<CorrespondenceDeleteEventEntity>();
+        if (deletionEventsFilteredForRequestDuplicates.Count == 0)
+        {
+            return new List<CorrespondenceDeleteEventEntity>();
+        }
+
+        var deletionEventsToExecute = new List<CorrespondenceDeleteEventEntity>();
         var deletionEventsInDatabase = await correspondenceDeleteEventRepository.GetDeleteEventsForCorrespondenceId(request.CorrespondenceId, cancellationToken);
+        
         foreach (var deletionEventToSync in deletionEventsFilteredForRequestDuplicates)
         {
-            if (deletionEventsInDatabase.Any(
+            bool isDuplicate = deletionEventsInDatabase.Any(
                 e => e.EventType == deletionEventToSync.EventType
                 && e.EventOccurred.EqualsToSecond(deletionEventToSync.EventOccurred)
-                && e.PartyUuid == deletionEventToSync.PartyUuid)
-                )
+                && e.PartyUuid == deletionEventToSync.PartyUuid);
+
+            if (isDuplicate)
             {
-                logger.LogInformation("Current Deletion Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. EventType: {EventType} - EventOccurred: {EventOccurred} - PartyUuid: {PartyUuid}", request.CorrespondenceId, deletionEventToSync.EventType, deletionEventToSync.EventOccurred, deletionEventToSync.PartyUuid);
-                continue;
+                logger.LogInformation("Current Deletion Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. EventType: {EventType} - EventOccurred: {EventOccurred} - PartyUuid: {PartyUuid}", 
+                    request.CorrespondenceId, deletionEventToSync.EventType, deletionEventToSync.EventOccurred, deletionEventToSync.PartyUuid);
             }
             else
             {
@@ -195,28 +236,26 @@ public class SyncCorrespondenceStatusEventHandler(
     private List<CorrespondenceStatusEntity> FilterStatusEvents(SyncCorrespondenceStatusEventRequest request, CorrespondenceEntity correspondence)
     {
         var eventsFilteredForCorrectStatus = new List<CorrespondenceStatusEntity>();
+        
+        foreach (var statusEventToSync in request.SyncedEvents)
         {
-            foreach (var statusEventToSync in request.SyncedEvents)
+            // Validate if the status event is valid for this handler / sync operation (unlikely, but possible)
+            if (ValidateStatusUpdate(statusEventToSync))
             {
-                // Validate if the status event is valid for this handler / sync operation (unlikely, but possible)
-                if (ValidateStatusUpdate(statusEventToSync))
-                {
-                    eventsFilteredForCorrectStatus.Add(statusEventToSync);
-                }
-                else
-                {
-                    logger.LogInformation(
-                        "Status Event for {CorrespondenceId} has been deemed invalid and will be ignored. Status: {Status} - StatusChanged: {StatusChanged} - PartyUuid: {PartyUuid}",
-                        request.CorrespondenceId,
-                        statusEventToSync.Status,
-                        statusEventToSync.StatusChanged,
-                        statusEventToSync.PartyUuid);
-                }
+                eventsFilteredForCorrectStatus.Add(statusEventToSync);
+            }
+            else
+            {
+                logger.LogInformation(
+                    "Status Event for {CorrespondenceId} has been deemed invalid and will be ignored. Status: {Status} - StatusChanged: {StatusChanged} - PartyUuid: {PartyUuid}",
+                        request.CorrespondenceId, statusEventToSync.Status, statusEventToSync.StatusChanged, statusEventToSync.PartyUuid);
             }
         }
+        
         if (eventsFilteredForCorrectStatus.Count == 0)
         {
             logger.LogWarning("None of the Status Events for {CorrespondenceId} has been deemed valid and no sync will be performed.", request.CorrespondenceId);
+            return new List<CorrespondenceStatusEntity>();
         }
 
         // Remove possible duplicates from the request - This is because Altinn 2 uses two sets of data sources for status events, and we need to ensure that we only sync unique events.
@@ -227,14 +266,15 @@ public class SyncCorrespondenceStatusEventHandler(
         // Remove duplicate status events that are already present in the correspondence
         foreach (var syncedEvent in eventsFilteredForRequestDuplicates)
         {
-            if (correspondence.Statuses.Any(
+            bool isDuplicate = correspondence.Statuses.Any(
                 s => s.Status == syncedEvent.Status
                 && s.StatusChanged.EqualsToSecond(syncedEvent.StatusChanged)
-                && s.PartyUuid == syncedEvent.PartyUuid)
-                )
+                && s.PartyUuid == syncedEvent.PartyUuid);
+
+            if (isDuplicate)
             {
-                logger.LogInformation("Current Status Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. Status: {Status} - StatusChanged: {StatusChanged} - PartyUuid: {PartyUuid}", request.CorrespondenceId, syncedEvent.Status, syncedEvent.StatusChanged, syncedEvent.PartyUuid);
-                continue;
+                logger.LogInformation("Current Status Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. Status: {Status} - StatusChanged: {StatusChanged} - PartyUuid: {PartyUuid}", 
+                    request.CorrespondenceId, syncedEvent.Status, syncedEvent.StatusChanged, syncedEvent.PartyUuid);
             }
             else
             {
@@ -438,7 +478,7 @@ public class SyncCorrespondenceStatusEventHandler(
         statusEventToSync.CorrespondenceId = correspondence.Id;
         statusEventToSync.StatusText = $"Synced event {statusEventToSync.Status} from Altinn 2";
         statusEventToSync.SyncedFromAltinn2 = syncedTimestamp;        
-        
+ 
         await correspondenceStatusRepository.AddCorrespondenceStatus(statusEventToSync, cancellationToken);
     }
 
