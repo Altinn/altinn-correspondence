@@ -56,13 +56,14 @@ public class UploadAttachmentHandler(
                 request.AttachmentId, correspondences.Count);
             return AttachmentErrors.CantUploadToExistingCorrespondence;
         }
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var caller = user?.GetCallerPartyUrn();
+        var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
+            logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());
+        logger.LogInformation("Retrieved party UUID {PartyUuid} for caller {caller}", partyUuid, caller);
         try
         {
             var uploadResponse = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, false, cancellationToken);

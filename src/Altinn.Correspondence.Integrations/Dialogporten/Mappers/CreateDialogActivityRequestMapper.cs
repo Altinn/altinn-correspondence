@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Enums;
@@ -13,16 +14,16 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
     {
         internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, params string[] tokens)
         {
-            return CreateDialogActivityRequest(correspondence, actorType, textType, type, DateTime.UtcNow, null, tokens);
+            return CreateDialogActivityRequest(correspondence, actorType, textType, type, null, DateTime.UtcNow, tokens);
         }
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, string? partyUrn, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, string? partyUrn, DateTimeOffset dateOfDialog, params string[] tokens)
         {
             var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             var urnActorId = actorType switch
             {
                 DialogportenActorType.ServiceOwner => null,
-                DialogportenActorType.Sender => correspondence.GetSenderUrn(),
-                DialogportenActorType.Recipient => partyUrn ?? correspondence.GetRecipientUrn(),
+                DialogportenActorType.Sender => correspondence.GetSenderUrn().WithUrnPrefix(),
+                DialogportenActorType.Recipient => partyUrn?.WithUrnPrefix() ?? correspondence.GetRecipientUrn().WithUrnPrefix(),
                 _ => throw new NotImplementedException()
             };
             CreateDialogActivityRequest createDialogActivityRequest;

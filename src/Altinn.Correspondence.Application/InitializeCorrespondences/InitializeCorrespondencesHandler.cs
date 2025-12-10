@@ -85,10 +85,11 @@ public class InitializeCorrespondencesHandler(
             return AuthorizationErrors.IncorrectResourceType;
         }
 
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var caller = user?.GetCallerPartyUrn();
+        var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
+            logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         validatedData.PartyUuid = partyUuid;

@@ -11,7 +11,7 @@ public interface IDialogportenService
     Task<string> CreateDialogTransmission(Guid correspondenceId);
     Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId);
     Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens);
-    Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens);
+    Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string partyUrn, DateTimeOffset activityTimestamp, params string[] tokens);
     Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp);
     Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn);
     Task CreateConfirmedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp);

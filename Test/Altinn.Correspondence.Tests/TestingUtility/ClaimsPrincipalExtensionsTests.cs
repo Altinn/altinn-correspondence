@@ -43,7 +43,6 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             {
                 new Claim("jti", "f166b031-41cc-4f1d-9ed6-f9b069ac91fd"),
                 new Claim("l", "3"),
-                new Claim("p", "urn:altinn:person:identifier-no:18865196381"),
                 new Claim("s", "urn:altinn:resource:bruno-correspondence"),
                 new Claim("i", "019ae390-34e9-78da-b173-0e8c0244021d"),
                 new Claim("a", "read;write"),

@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -6,7 +7,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
-using Hangfire.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -63,6 +63,14 @@ public class MigrateCorrespondenceHandler(
                 {
                     var dialogJobId = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
                     hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, dialogJobId, CancellationToken.None);
+
+                    var altinn2PublishStatus = correspondence.Statuses.FirstOrDefault(statusEvent => statusEvent.Status == CorrespondenceStatus.Published && statusEvent.StatusText == "Correspondence Published in Altinn 2");
+                    if (altinn2PublishStatus != null)
+                    {
+                        logger.LogInformation("Correspondence {CorrespondenceId} was previously published in Altinn 2 at {PublishedAt}", correspondence.Id, altinn2PublishStatus.StatusChanged);
+                        await correspondenceRepository.UpdatePublished(correspondence.Id, altinn2PublishStatus.StatusChanged, cancellationToken);
+                        backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, CancellationToken.None));
+                    }
                 }
             }
             
