@@ -270,7 +270,7 @@ resource logLinePrefix 'Microsoft.DBforPostgreSQL/flexibleServers/configurations
 resource pgStatStatementsTrack 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'pg_stat_statements.track'
   parent: postgres
-  dependsOn: [database, sharedPreloadLibraries]
+  dependsOn: [database, logLinePrefix]
   properties: {
     value: 'all'
     source: 'user-override'
