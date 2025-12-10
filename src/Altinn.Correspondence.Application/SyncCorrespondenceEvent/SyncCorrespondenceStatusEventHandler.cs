@@ -470,7 +470,7 @@ public class SyncCorrespondenceStatusEventHandler(
             {
                 // Perform SoftDelete or Restore in Dialogporten
                 bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
-                await SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived, cancellationToken);
+                SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived);
             }
         }
     }
@@ -510,7 +510,7 @@ public class SyncCorrespondenceStatusEventHandler(
         await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
     }
 
-    private async Task SetSoftDeleteOrRestoreOnDialog(Guid correspondenceId, string endUserId, CorrespondenceDeleteEventType eventType, bool isArchived, CancellationToken cancellationToken)
+    private void SetSoftDeleteOrRestoreOnDialog(Guid correspondenceId, string endUserId, CorrespondenceDeleteEventType eventType, bool isArchived)
     {
         switch (eventType)
         {
