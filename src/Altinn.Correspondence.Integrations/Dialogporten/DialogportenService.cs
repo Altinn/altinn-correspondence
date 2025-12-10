@@ -186,10 +186,21 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 IdempotencyType.DialogportenActivity,
                 cancellationToken);
 
-            if (existingIdempotencyKey != null)
+            if (existingIdempotencyKey is null)
             {
-                createDialogActivityRequest.Id = existingIdempotencyKey.Id.ToString();
+                existingIdempotencyKey = await _idempotencyKeyRepository.CreateAsync(
+                    new IdempotencyKeyEntity
+                    {
+                        Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
+                        CorrespondenceId = correspondence.Id,
+                        AttachmentId = attachmentId,
+                        PartyUrn = partyUrn?.WithUrnPrefix(),
+                        StatusAction = StatusAction.AttachmentDownloaded,
+                        IdempotencyType = IdempotencyType.DialogportenActivity
+                    },
+                    cancellationToken);
             }
+            createDialogActivityRequest.Id = existingIdempotencyKey.Id.ToString();
         }
 
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
