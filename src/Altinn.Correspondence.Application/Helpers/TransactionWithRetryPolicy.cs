@@ -1,24 +1,21 @@
-using System.Transactions;
-
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-
 using Npgsql;
-using OneOf;
 using Polly;
 using Polly.Retry;
+using System.Transactions;
 
 namespace Altinn.Correspondence.Application.Helpers;
 public static class TransactionWithRetriesPolicy
 {
-    public static async Task<OneOf<T, Error>> Execute<T>(
-        Func<CancellationToken, Task<OneOf<T, Error>>> operation,
+    public static async Task<T> Execute<T>(
+        Func<CancellationToken, Task<T>> operation,
         ILogger logger,
         CancellationToken cancellationToken = default)
     {
-        var result = await RetryPolicy(logger).ExecuteAndCaptureAsync<OneOf<T, Error>>(async (cancellationToken) =>
+        var result = await RetryPolicy(logger).ExecuteAndCaptureAsync<T>(async (cancellationToken) =>
         {
             using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
             {
