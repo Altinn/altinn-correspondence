@@ -37,6 +37,9 @@ public class SyncCorrespondenceStatusEventHandler(
             return request.CorrespondenceId;
         }
 
+        // Only fetch Dialogporten enduserIds if we have events 
+        Dictionary<Guid, string> enduserIdByPartyUuid = enduserIdByPartyUuid = await GetDialogPortenEndUserIdsForEvents(request.SyncedEvents, request.SyncedDeleteEvents, cancellationToken);
+
         var txResult = await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             // Fetch correspondence with fresh data within transaction
@@ -76,13 +79,6 @@ public class SyncCorrespondenceStatusEventHandler(
             {
                 logger.LogInformation("No unique Status or Delete Events to sync for Correspondence {CorrespondenceId}. Exiting sync process.", request.CorrespondenceId);
                 return request.CorrespondenceId;
-            }
-
-            // Only fetch Dialogporten enduserIds if we have events to execute and the correspondence is fully migrated (IsMigrating = false)
-            Dictionary<Guid, string> enduserIdByPartyUuid = new Dictionary<Guid, string>();
-            if (correspondence.IsMigrating == false)
-            {
-                enduserIdByPartyUuid = await GetDialogPortenEndUserIdsForEvents(statusEventsToProcess, deletionEventsToProcess, cancellationToken);
             }
 
             // After filtering both collections, combine them into a single sorted collection, sorted by timestamp they occurred
@@ -302,16 +298,17 @@ public class SyncCorrespondenceStatusEventHandler(
         return filteredStatusEvents;
     }
 
-    private async Task<Dictionary<Guid, string>> GetDialogPortenEndUserIdsForEvents(List<CorrespondenceStatusEntity> statusEventsToExecute, List<CorrespondenceDeleteEventEntity> deletionEventsToExecute, CancellationToken cancellationToken)
+    private async Task<Dictionary<Guid, string>> GetDialogPortenEndUserIdsForEvents(List<CorrespondenceStatusEntity>? statusEventsToExecute, List<CorrespondenceDeleteEventEntity>? deletionEventsToExecute, CancellationToken cancellationToken)
     {
         var enduserIdByPartyUuid = new Dictionary<Guid, string>();
-        var partyUuidsToLookup = statusEventsToExecute
+        
+        var partyUuidsToLookup = (statusEventsToExecute ?? Enumerable.Empty<CorrespondenceStatusEntity>())
             .Where(e => e.Status == CorrespondenceStatus.Archived) // Only Archived status events require Dialogporten enduserId
             .Select(e => e.PartyUuid)
             .Distinct();
 
         partyUuidsToLookup = partyUuidsToLookup
-           .Concat(deletionEventsToExecute
+           .Concat((deletionEventsToExecute ?? Enumerable.Empty<CorrespondenceDeleteEventEntity>())
                .Where(e => e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient || e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient) // Only SoftDelete and Restore events require Dialogporten enduserId
                .Select(e => e.PartyUuid)
                .Distinct()
