@@ -254,7 +254,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var existingOpenIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
             correspondenceId,
             null, // No attachment for opened activity
-            partyUrn,
+            null,
             StatusAction.Fetched,
             IdempotencyType.DialogportenActivity,
             cancellationToken);
@@ -267,7 +267,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                     Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
                     CorrespondenceId = correspondence.Id,
                     AttachmentId = null, // No attachment for opened activity
-                    PartyUrn = partyUrn,
+                    PartyUrn = null, // One open per correspondence
                     StatusAction = StatusAction.Fetched,
                     IdempotencyType = IdempotencyType.DialogportenActivity
                 },
