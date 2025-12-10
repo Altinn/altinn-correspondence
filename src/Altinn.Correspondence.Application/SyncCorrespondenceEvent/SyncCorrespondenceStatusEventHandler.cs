@@ -165,7 +165,14 @@ public class SyncCorrespondenceStatusEventHandler(
 
                 case CorrespondenceStatus.Archived:
                     {
-                        await SetArchivedOnCorrespondenceDialog(correspondence, eventToExecute, enduserIdByPartyUuid, cancellationToken);
+                        if (!enduserIdByPartyUuid.ContainsKey(eventToExecute.PartyUuid))
+                        {
+                            logger.LogWarning("Skipping updating dialog with SystemLabel Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                        }
+                        else
+                        {
+                            backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, enduserIdByPartyUuid[eventToExecute.PartyUuid], new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                        }                        
                         break;
                     }
                 default:
@@ -202,6 +209,11 @@ public class SyncCorrespondenceStatusEventHandler(
 
     private async Task<List<CorrespondenceDeleteEventEntity>> FilterDeleteEvents(SyncCorrespondenceStatusEventRequest request, CancellationToken cancellationToken)
     {
+        if(request.SyncedDeleteEvents is null)
+        {
+            return new List<CorrespondenceDeleteEventEntity>();
+        }
+
         var deletionEventsFilteredForRequestDuplicates = FilterDuplicateDeleteEvents(request.SyncedDeleteEvents);
 
         if (deletionEventsFilteredForRequestDuplicates.Count == 0)
@@ -236,7 +248,12 @@ public class SyncCorrespondenceStatusEventHandler(
     private List<CorrespondenceStatusEntity> FilterStatusEvents(SyncCorrespondenceStatusEventRequest request, CorrespondenceEntity correspondence)
     {
         var eventsFilteredForCorrectStatus = new List<CorrespondenceStatusEntity>();
-        
+
+        if (request.SyncedEvents is null)
+        {
+            return eventsFilteredForCorrectStatus;
+        }
+
         foreach (var statusEventToSync in request.SyncedEvents)
         {
             // Validate if the status event is valid for this handler / sync operation (unlikely, but possible)
@@ -461,25 +478,18 @@ public class SyncCorrespondenceStatusEventHandler(
         }
     }
 
-    private async Task SetArchivedOnCorrespondenceDialog(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, Dictionary<Guid, string> enduserIdByPartyUuid, CancellationToken cancellationToken)
-    {
-        if (!enduserIdByPartyUuid.ContainsKey(statusEventToSync.PartyUuid))
-        {
-            logger.LogWarning("Skipping updating dialog with SystemLabel Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, statusEventToSync.StatusChanged, statusEventToSync.PartyUuid);
-        }
-        else
-        {
-            backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, enduserIdByPartyUuid[statusEventToSync.PartyUuid], new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
-        }   
-    }
-
     private async Task StoreStatusEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
     {
-        statusEventToSync.CorrespondenceId = correspondence.Id;
-        statusEventToSync.StatusText = $"Synced event {statusEventToSync.Status} from Altinn 2";
-        statusEventToSync.SyncedFromAltinn2 = syncedTimestamp;        
- 
-        await correspondenceStatusRepository.AddCorrespondenceStatus(statusEventToSync, cancellationToken);
+        CorrespondenceStatusEntity statusToSave = new CorrespondenceStatusEntity()
+        {
+            CorrespondenceId = correspondence.Id,
+            StatusText = $"Synced event {statusEventToSync.Status} from Altinn 2",
+            Status = statusEventToSync.Status,
+            StatusChanged = statusEventToSync.StatusChanged,
+            PartyUuid = statusEventToSync.PartyUuid,
+            SyncedFromAltinn2 = syncedTimestamp
+        };
+        await correspondenceStatusRepository.AddCorrespondenceStatus(statusToSave, cancellationToken);
     }
 
     private async Task StoreDeleteEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatus statusCodeToSave, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)

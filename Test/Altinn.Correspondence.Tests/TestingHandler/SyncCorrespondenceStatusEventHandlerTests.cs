@@ -468,7 +468,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondenceId = correspondence.Id;
             var recipient = correspondence.Recipient;
             DateTimeOffset readTime = DateTimeOffset.UtcNow;
-            DateTimeOffset confirmedTme = DateTimeOffset.UtcNow;
+            DateTimeOffset confirmedTime = DateTimeOffset.UtcNow;
             var request = new SyncCorrespondenceStatusEventRequest
             {
                 CorrespondenceId = correspondenceId,
@@ -483,7 +483,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Confirmed,
-                        StatusChanged = confirmedTme,
+                        StatusChanged = confirmedTime,
                         PartyUuid = _defaultUserPartyUuid
                     }
                 }
@@ -523,7 +523,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 It.Is<CorrespondenceStatusEntity>(e =>
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.Confirmed &&
-                    e.StatusChanged == confirmedTme &&
+                    e.StatusChanged == confirmedTime &&
                     e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
