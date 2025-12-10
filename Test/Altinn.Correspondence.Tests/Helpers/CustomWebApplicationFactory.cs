@@ -186,7 +186,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
         {
             new Claim("urn:altinn:authlevel", "3"),
             new Claim("client_amr", "virksomhetssertifikat"),
-            new Claim("pid", "11015699332"),
             new Claim("token_type", "Bearer"),
             new Claim("client_id", "5b7b5418-1196-4539-bd1b-5f7c6fdf5963"),
             new Claim("http://schemas.microsoft.com/claims/authnclassreference", "Level3"),
