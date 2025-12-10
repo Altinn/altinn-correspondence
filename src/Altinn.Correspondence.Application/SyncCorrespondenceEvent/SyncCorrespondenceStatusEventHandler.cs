@@ -139,7 +139,7 @@ public class SyncCorrespondenceStatusEventHandler(
     {
         logger.LogDebug("Process Sync status event {Status} for {CorrespondenceId}", eventToExecute.Status, request.CorrespondenceId);
         
-        // Execute background jobs first (these are queued, not executed immediately)
+        // Enqueue background jobs inside the transaction
         if (correspondence.IsMigrating == false)
         {
             switch (eventToExecute.Status)
@@ -147,7 +147,7 @@ public class SyncCorrespondenceStatusEventHandler(
                 case CorrespondenceStatus.Confirmed:
                     {
                         var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(request.CorrespondenceId));
-                        backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged), JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2;
+                        backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged), JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2
                         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
                         break;
                     }
@@ -432,14 +432,14 @@ public class SyncCorrespondenceStatusEventHandler(
         {
             var actorType = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
             var actorName = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? "avsender" : "mottaker";
-            var purgedActivityJob = backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
+            var purgedActivityJobId = backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
 
             var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
             if (dialogId is null)
             {   
                 throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
             }
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(purgedActivityJob, service => service.SoftDeleteDialog(dialogId));
+            backgroundJobClient.ContinueJobWith<IDialogportenService>(purgedActivityJobId, service => service.SoftDeleteDialog(dialogId), JobContinuationOptions.OnlyOnSucceededState);
         }
 
         return correspondence.Id;
@@ -468,7 +468,7 @@ public class SyncCorrespondenceStatusEventHandler(
             }
             else
             {
-                // Perform SoftDelete or Restore in Dialogporten
+                // Enqueue SoftDelete or Restore in Dialogporten
                 bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
                 SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived);
             }
@@ -538,5 +538,4 @@ public class SyncCorrespondenceStatusEventHandler(
                 throw new ArgumentException($"Cannot perform ChangeSoftDeleteLabelInDialogPorten for correspondence {correspondenceId} with event type {eventType}");
         }
     }
-
 }
