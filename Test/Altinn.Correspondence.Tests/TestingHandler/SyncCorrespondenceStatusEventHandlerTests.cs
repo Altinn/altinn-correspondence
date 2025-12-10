@@ -1464,6 +1464,190 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
+        public async Task Available_ReadAndConfirmed_ReversedOrderInRequest_OK()
+        {
+            // Arrange
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
+                .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            DateTimeOffset readTime = DateTimeOffset.UtcNow.AddSeconds(-30);
+            DateTimeOffset confirmedTme = DateTimeOffset.UtcNow;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Confirmed,
+                        StatusChanged = confirmedTme,
+                        PartyUuid = _defaultUserPartyUuid
+                    },
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Read,
+                        StatusChanged = readTime,
+                        PartyUuid = _defaultUserPartyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that the statuses were added to Repository with SyncedFromAltinn2, and in correct order of when they happended
+            var invocations = _correspondenceStatusRepositoryMock.Invocations
+                    .Where(i => i.Method.Name == nameof(ICorrespondenceStatusRepository.AddCorrespondenceStatus))
+                    .ToList();
+
+            Assert.Equal(2, invocations.Count);
+            var firstStatus = ((CorrespondenceStatusEntity)invocations[0].Arguments[0]).Status;
+            var secondStatus = ((CorrespondenceStatusEntity)invocations[1].Arguments[0]).Status;
+
+            Assert.Equal(CorrespondenceStatus.Read, firstStatus);
+            Assert.Equal(CorrespondenceStatus.Confirmed, secondStatus);
+
+            // Verify background job for Altinn Events
+            VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondenceReceiverRead, recipient);
+            VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondenceReceiverConfirmed, recipient);
+            // Verify background jobs Dialogporten activities
+            VerifyDialogportenServiceCreateInformationActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed, recipient);
+            VerifyDialogportenServicePatchCorrespondenceDialogToConfirmedEnqueued(correspondenceId);
+            VerifyDialogportenServiceCreateOpenedActivityEnqueued(correspondenceId);
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+            _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Available_SoftDeletedBeforeArchived_OK()
+        {
+            // Arrange
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
+                .WithStatus(CorrespondenceStatus.Read, DateTimeOffset.UtcNow.AddSeconds(-30))
+                .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            DateTimeOffset archivedTime = DateTimeOffset.UtcNow.AddSeconds(-10);
+            DateTimeOffset softDeletedTime = DateTimeOffset.UtcNow.AddSeconds(-15); // Not really a realistic scenario, but to test that the order is handled correctly
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Archived,
+                        StatusChanged = archivedTime,
+                        PartyUuid = _defaultUserPartyUuid
+                    }
+
+                },
+                SyncedDeleteEvents = new List<CorrespondenceDeleteEventEntity>
+                {
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
+                        EventOccurred = softDeletedTime,
+                        PartyUuid = _defaultUserPartyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
+            _correspondenceDeleteEventRepositoryMock
+                .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
+            _correspondenceDeleteEventRepositoryMock
+               .Setup(x => x.AddDeleteEvent(It.IsAny<CorrespondenceDeleteEventEntity>(), It.IsAny<CancellationToken>()))
+               .ReturnsAsync((CorrespondenceDeleteEventEntity r, CancellationToken _) => r);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that the statuses were added to Repository with SyncedFromAltinn2, and in correct order of when they happended
+            var addStatusInvocations = _correspondenceStatusRepositoryMock.Invocations
+                    .Where(i => i.Method.Name == nameof(ICorrespondenceStatusRepository.AddCorrespondenceStatus))
+                    .ToList();
+
+            Assert.Single(addStatusInvocations);
+            var firstStatusEventLogged = ((CorrespondenceStatusEntity)addStatusInvocations[0].Arguments[0]);
+            Assert.Equal(CorrespondenceStatus.Archived, firstStatusEventLogged.Status);
+
+            var addDeleteEventsInvocations = _correspondenceDeleteEventRepositoryMock.Invocations
+                    .Where(i => i.Method.Name == nameof(ICorrespondenceDeleteEventRepository.AddDeleteEvent))
+                    .ToList();
+
+            Assert.Single(addDeleteEventsInvocations);
+            var firstDeleteEventLogged = ((CorrespondenceDeleteEventEntity)addDeleteEventsInvocations[0].Arguments[0]);
+            Assert.Equal(CorrespondenceDeleteEventType.SoftDeletedByRecipient, firstDeleteEventLogged.EventType);
+
+            // Verify that the delete event was logged before the status event 
+            Assert.True(firstDeleteEventLogged.EventOccurred <= firstStatusEventLogged.StatusChanged, "Delete event should be logged before status event based on their timestamps.");
+
+            // Explicit verification of mock call to add delete event
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEvent(
+                It.Is<CorrespondenceDeleteEventEntity>(e =>
+                    e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
+                    && e.PartyUuid == _defaultUserPartyUuid
+                    && e.EventOccurred.Equals(softDeletedTime)
+                    && e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify background jobs Dialogporten activities     
+            VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, _defaultUserPartyIdentifier);
+            VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultUserPartyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task NotAvailable_PurgedByRecipient_OK()
         {
             // Arrange
