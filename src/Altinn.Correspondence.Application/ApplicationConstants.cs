@@ -20,7 +20,8 @@ public static class ApplicationConstants
         ".gif",
         ".bmp",
         ".png",
-        ".json"
+        ".json",
+        ".csv"
     ];
     public static readonly List<string> RequiredOrganizationRolesForCorrespondenceRecipient = 
     [
