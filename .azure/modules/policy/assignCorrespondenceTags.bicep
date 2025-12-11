@@ -1,12 +1,22 @@
 targetScope = 'resourceGroup'
 
 param policyDefinitionId string
+param userAssignedIdentityName string
+
+var userAssignedIdentityId = resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', userAssignedIdentityName)
+
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+  name: userAssignedIdentityName
+}
 
 resource correspondenceTagsAssignment 'Microsoft.Authorization/policyAssignments@2025-03-01' = {
   name: 'correspondence-standard-tags'
   location: resourceGroup().location
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentityId}': {}
+    }
   }
   properties: {
     displayName: 'Ensure standard tags on Correspondence resources'
@@ -16,10 +26,10 @@ resource correspondenceTagsAssignment 'Microsoft.Authorization/policyAssignments
 }
 
 resource correspondenceTagsAssignmentRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, 'correspondence-standard-tags-contributor')
+  name: guid(resourceGroup().id, correspondenceTagsAssignment.name, 'correspondence-standard-tags-contributor')
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c') // Contributor
-    principalId: correspondenceTagsAssignment.identity.principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4a9ae827-6dc8-4573-8ac7-8239d42aa03f') // Tag Contributor
+    principalId: userAssignedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
