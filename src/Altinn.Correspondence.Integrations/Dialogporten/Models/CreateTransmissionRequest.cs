@@ -51,6 +51,9 @@ public class TransmissionAttachment
 
     [JsonPropertyName("urls")]
     public List<TransmissionUrl> Urls { get; set; }
+
+    [JsonPropertyName("expiresAt")]
+    public DateTimeOffset? ExpiresAt { get; set; }
     }
 
     public class TransmissionContent
