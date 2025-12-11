@@ -81,7 +81,7 @@ public class CheckNotificationDeliveryHandler(
                     async (cancellationToken) => {
                         logger.LogInformation("Updating notification {NotificationId} as sent at {SentTime} to {Destinations}",
                             notificationId, sentTime, deliveryDestination);
-                        await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, CancellationToken.None);
+                        await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
 
                         // Create activity in Dialogporten for each recipient
                         // Choose the appropriate text type based on whether this is a reminder notification
@@ -101,7 +101,7 @@ public class CheckNotificationDeliveryHandler(
                         logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
                         return true;
                     }, cancellationToken);
-                if (successfullyUpdated.Result)
+                if (successfullyUpdated.Outcome == Polly.OutcomeType.Successful && successfullyUpdated.Result)
                 {
                     return true;
                 }
