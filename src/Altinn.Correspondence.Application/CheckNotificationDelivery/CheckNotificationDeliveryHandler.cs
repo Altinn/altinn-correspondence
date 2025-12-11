@@ -113,7 +113,7 @@ public class CheckNotificationDeliveryHandler(
             }
             
             logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
-            throw new Exception("Notification not yet sent. Throwing to retry.");
+            throw new InvalidOperationException("Notification not yet sent. Throwing to retry.");
         }
         catch (Exception ex)
         {
