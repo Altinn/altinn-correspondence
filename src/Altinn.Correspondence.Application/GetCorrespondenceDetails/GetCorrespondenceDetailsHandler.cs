@@ -57,7 +57,7 @@ public class GetCorrespondenceDetailsHandler(
             logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceDetailsResponse, Error>>(async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {

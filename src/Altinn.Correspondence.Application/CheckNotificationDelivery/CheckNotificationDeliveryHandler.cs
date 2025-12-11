@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -76,29 +77,43 @@ public class CheckNotificationDeliveryHandler(
                 // Mark notification as sent
                 // Notification sent time is the time of the first recipient that was sent (last update)
                 // According to Team Altinn Notification, last update reflects when we receive the delivery confirmation from the network operator.
-                await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
-                
-                // Create activity in Dialogporten for each recipient
-                // Choose the appropriate text type based on whether this is a reminder notification
-                var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
-                
-                foreach (var recipient in sentRecipients)
+                var successfullyUpdated = await TransactionWithRetriesPolicy.RetryPolicy(logger).ExecuteAndCaptureAsync<bool>(
+                    async (cancellationToken) => {
+                        logger.LogInformation("Updating notification {NotificationId} as sent at {SentTime} to {Destinations}",
+                            notificationId, sentTime, deliveryDestination);
+                        await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
+
+                        // Create activity in Dialogporten for each recipient
+                        // Choose the appropriate text type based on whether this is a reminder notification
+                        var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
+
+                        foreach (var recipient in sentRecipients)
+                        {
+                            await dialogportenService.CreateInformationActivity(
+                                correspondence.Id,
+                                DialogportenActorType.ServiceOwner,
+                                textType,
+                                operationTimestamp,
+                                recipient.Destination,
+                                recipient.Type.ToString());
+                        }
+
+                        logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
+                        return true;
+                    }, cancellationToken);
+                if (successfullyUpdated.Outcome == Polly.OutcomeType.Successful && successfullyUpdated.Result)
                 {
-                    await dialogportenService.CreateInformationActivity(
-                        correspondence.Id, 
-                        DialogportenActorType.ServiceOwner, 
-                        textType,
-                        operationTimestamp, 
-                        recipient.Destination,
-                        recipient.Type.ToString());
+                    return true;
                 }
-                
-                logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
-                return true;
+                else
+                {
+                    logger.LogError("Failed to update notification {NotificationId} as sent", notificationId);
+                    throw new Exception("Failed to update notification as sent");
+                }
             }
             
             logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
-            return false;
+            throw new InvalidOperationException("Notification not yet sent. Throwing to retry.");
         }
         catch (Exception ex)
         {
