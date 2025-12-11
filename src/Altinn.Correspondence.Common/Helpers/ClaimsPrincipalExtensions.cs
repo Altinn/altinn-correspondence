@@ -45,19 +45,19 @@ namespace Altinn.Correspondence.Common.Helpers
             var partyUrn = partyUrnClaim?.Value;
             if (!string.IsNullOrWhiteSpace(partyUrn))
             {
-                return partyUrn;
+                return partyUrn.WithUrnPrefix();
             }
             var partyIdClaim = user.Claims.FirstOrDefault(c => c.Type == UrnConstants.Party);
             partyUrn = partyIdClaim?.Value;
             if(!string.IsNullOrWhiteSpace(partyUrn))
             {
-                return partyUrn;
+                return $"{UrnConstants.Party}:{partyUrn.WithoutPrefix()}";
             }
             var pidClaim = user.Claims.FirstOrDefault(c => c.Type == "pid");
             partyUrn = pidClaim?.Value;
             if (!string.IsNullOrWhiteSpace(partyUrn))
             {
-                return partyUrn;
+                return partyUrn.WithUrnPrefix();
             }
             var systemUserClaim = user.Claims.FirstOrDefault(c => c.Type == "authorization_details");
             if (systemUserClaim is not null)
@@ -65,7 +65,7 @@ namespace Altinn.Correspondence.Common.Helpers
                 var systemUserAuthorizationDetails = JsonSerializer.Deserialize<SystemUserAuthorizationDetails>(systemUserClaim.Value);
                 return systemUserAuthorizationDetails?.SystemUserOrg.ID.WithoutPrefix().WithUrnPrefix();
             }
-            return partyUrn ?? GetCallerOrganizationId(user);
+            return partyUrn ?? GetCallerOrganizationId(user)?.WithUrnPrefix();
         }
 
         public static bool CallingAsSender(this ClaimsPrincipal user)

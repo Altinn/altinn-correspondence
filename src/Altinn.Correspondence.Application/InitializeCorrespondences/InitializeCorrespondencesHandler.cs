@@ -333,7 +333,7 @@ public class InitializeCorrespondencesHandler(
 
         var validatedData = validationResult.AsT0;
         logger.LogInformation("Initializing correspondences with validated data");
-        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
         {
             return await InitializeCorrespondences(
                 request,

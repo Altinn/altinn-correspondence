@@ -44,7 +44,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 return uploadError;
             }
             var (dataLocationUrl, checksum, size) = successResult;
-            return await TransactionWithRetriesPolicy.Execute<UploadAttachmentResponse>(async (cancellationToken) =>
+            return await TransactionWithRetriesPolicy.Execute<OneOf<UploadAttachmentResponse, Error>>(async (cancellationToken) =>
             {
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
                 logger.LogInformation("Set dataLocationUrl of {attachmentId}", attachmentId);

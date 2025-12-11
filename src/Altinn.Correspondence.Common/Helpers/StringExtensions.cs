@@ -151,6 +151,10 @@ public static class StringExtensions
         {
             return $"{UrnConstants.PersonIdAttribute}:{identifier}";
         }
+        else if (identifier.IsPartyId())
+        {
+            return $"{UrnConstants.Party}:{identifier.WithoutPrefix()}";
+        }
         throw new ArgumentException("Identifier is not a valid organization number or social security number", nameof(identifier));
     }
 }

@@ -66,7 +66,7 @@ public class GetCorrespondenceOverviewHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceOverviewResponse>(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceOverviewResponse, Error>>(async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
