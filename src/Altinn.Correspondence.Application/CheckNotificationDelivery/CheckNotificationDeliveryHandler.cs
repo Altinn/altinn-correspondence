@@ -77,30 +77,31 @@ public class CheckNotificationDeliveryHandler(
                 // Mark notification as sent
                 // Notification sent time is the time of the first recipient that was sent (last update)
                 // According to Team Altinn Notification, last update reflects when we receive the delivery confirmation from the network operator.
-                var successfullyUpdated = await TransactionWithRetriesPolicy.RetryPolicy(logger).ExecuteAndCaptureAsync<bool>(async (cancellationToken) => {
-                    logger.LogInformation("Updating notification {NotificationId} as sent at {SentTime} to {Destinations}",
-                        notificationId, sentTime, deliveryDestination);
-                    await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
+                var successfullyUpdated = await TransactionWithRetriesPolicy.RetryPolicy(logger).ExecuteAndCaptureAsync<bool>(
+                    async (cancellationToken) => {
+                        logger.LogInformation("Updating notification {NotificationId} as sent at {SentTime} to {Destinations}",
+                            notificationId, sentTime, deliveryDestination);
+                        await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, CancellationToken.None);
 
-                    // Create activity in Dialogporten for each recipient
-                    // Choose the appropriate text type based on whether this is a reminder notification
-                    var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
+                        // Create activity in Dialogporten for each recipient
+                        // Choose the appropriate text type based on whether this is a reminder notification
+                        var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
-                    foreach (var recipient in sentRecipients)
-                    {
-                        await dialogportenService.CreateInformationActivity(
-                            correspondence.Id,
-                            DialogportenActorType.ServiceOwner,
-                            textType,
-                            operationTimestamp,
-                            recipient.Destination,
-                            recipient.Type.ToString());
-                    }
+                        foreach (var recipient in sentRecipients)
+                        {
+                            await dialogportenService.CreateInformationActivity(
+                                correspondence.Id,
+                                DialogportenActorType.ServiceOwner,
+                                textType,
+                                operationTimestamp,
+                                recipient.Destination,
+                                recipient.Type.ToString());
+                        }
 
-                    logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
-                    return true;
-                }, logger, cancellationToken);
-                if (successfullyUpdated)
+                        logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
+                        return true;
+                    }, cancellationToken);
+                if (successfullyUpdated.Result)
                 {
                     return true;
                 }
@@ -112,7 +113,7 @@ public class CheckNotificationDeliveryHandler(
             }
             
             logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
-            return false;
+            throw new Exception("Notification not yet sent. Throwing to retry.");
         }
         catch (Exception ex)
         {
