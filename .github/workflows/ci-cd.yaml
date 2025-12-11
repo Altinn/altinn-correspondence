@@ -90,6 +90,7 @@ jobs:
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
           MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
           ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ secrets.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
+          GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
   deploy-at22:
     name: deploy at22
     runs-on: ubuntu-latest
@@ -140,6 +141,7 @@ jobs:
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
           MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
           ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ secrets.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
+          GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
   deploy-staging:
     name: Internal staging
     runs-on: ubuntu-latest
@@ -193,6 +195,7 @@ jobs:
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
           MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
           ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ secrets.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
+          GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
   deploy-production:
     name: Production
     runs-on: ubuntu-latest
@@ -246,6 +249,7 @@ jobs:
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
           MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ secrets.MIGRATION_WORKER_COUNT_PER_REPLICA }}
           ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ secrets.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
+          GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
   check-version-bump:
     name: Check if version was bumped
     runs-on: ubuntu-latest

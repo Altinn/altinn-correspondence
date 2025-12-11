@@ -44,6 +44,16 @@ public static class StringExtensions
     {
         return !string.IsNullOrWhiteSpace(identifier) && OrgPattern.IsMatch(identifier);
     }
+
+    /// <summary>
+    /// Checks if the provided string is a valid party id format.
+    /// </summary>
+    /// <param name="identifier">The string to validate.</param>
+    /// <returns>True if string starts with the party URN prefix, false otherwise.</returns>
+    public static bool IsPartyId(this string identifier)
+    {
+        return !string.IsNullOrWhiteSpace(identifier) && identifier.StartsWith(UrnConstants.Party);
+    }
     /// <summary>
     /// Extracts the identifier from a colon-separated string that may contain a prefix.
     /// </summary>
@@ -140,6 +150,10 @@ public static class StringExtensions
         else if (identifier.IsSocialSecurityNumberWithNoPrefix())
         {
             return $"{UrnConstants.PersonIdAttribute}:{identifier}";
+        }
+        else if (identifier.IsPartyId())
+        {
+            return $"{UrnConstants.Party}:{identifier.WithoutPrefix()}";
         }
         throw new ArgumentException("Identifier is not a valid organization number or social security number", nameof(identifier));
     }

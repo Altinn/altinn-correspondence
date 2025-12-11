@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -6,7 +7,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
-using Hangfire.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -61,11 +61,16 @@ public class MigrateCorrespondenceHandler(
                 }
                 else
                 {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
-                }
-                if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
-                {
-                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None);
+                    var dialogJobId = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
+                    hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, dialogJobId, CancellationToken.None);
+
+                    var altinn2PublishStatus = correspondence.Statuses.FirstOrDefault(statusEvent => statusEvent.Status == CorrespondenceStatus.Published && statusEvent.StatusText == "Correspondence Published in Altinn 2");
+                    if (altinn2PublishStatus != null)
+                    {
+                        logger.LogInformation("Correspondence {CorrespondenceId} was previously published in Altinn 2 at {PublishedAt}", correspondence.Id, altinn2PublishStatus.StatusChanged);
+                        await correspondenceRepository.UpdatePublished(correspondence.Id, altinn2PublishStatus.StatusChanged, cancellationToken);
+                        backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, CancellationToken.None));
+                    }
                 }
             }
             
@@ -187,7 +192,7 @@ public class MigrateCorrespondenceHandler(
                 backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
                 foreach (var correspondence in correspondences)
                 {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, request.CreateEvents));
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, true, null, request.CreateEvents));
                 }
                 logger.LogInformation("Finished queuing {count} correspondences", correspondences.Count);
             }
@@ -202,6 +207,11 @@ public class MigrateCorrespondenceHandler(
     }
 
     public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, CorrespondenceEntity? correspondenceEntity = null, bool createEvents = false)
+    {
+        return await MakeCorrespondenceAvailableInDialogportenAndApi(correspondenceId, cancellationToken, false, correspondenceEntity, createEvents);
+    }
+
+    public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, bool isPrepublished, CorrespondenceEntity ? correspondenceEntity = null, bool createEvents = false)
     {
         var correspondence = correspondenceEntity ?? await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken, true);
         if (correspondence == null)

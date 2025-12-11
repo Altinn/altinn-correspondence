@@ -51,13 +51,13 @@ public class GetCorrespondenceDetailsHandler(
             logger.LogWarning("No status found for correspondence {CorrespondenceId}", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
+            logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceDetailsResponse, Error>>(async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {

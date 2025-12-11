@@ -46,8 +46,13 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
+        string caller = party.SSN;
+        if (string.IsNullOrEmpty(caller))
+        {
+            caller = party.OrgNumber;
+        }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, operationTimestamp, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, caller, operationTimestamp, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
         return new DownloadCorrespondenceAttachmentResponse()
         {
             FileName = attachment.FileName,

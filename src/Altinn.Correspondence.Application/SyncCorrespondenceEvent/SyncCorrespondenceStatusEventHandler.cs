@@ -129,7 +129,7 @@ public class SyncCorrespondenceStatusEventHandler(
             enduserIdByPartyUuid = await GetDialogPortenEndUserIdsForEvents(statusEventsToExecute, deletionEventsToExecute, cancellationToken);
         }
 
-        var txResult = await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
+        var txResult = await TransactionWithRetriesPolicy.Execute<OneOf<Guid, Error>>(async (cancellationToken) =>
         {
             if (statusEventsToExecute.Count > 0)
             {
