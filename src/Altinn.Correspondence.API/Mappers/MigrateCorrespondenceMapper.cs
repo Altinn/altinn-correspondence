@@ -12,6 +12,8 @@ internal static class MigrateCorrespondenceMapper
 {
     internal static async Task<MigrateCorrespondenceRequest> MapToRequestAsync(MigrateCorrespondenceExt migrateCorrespondenceExt, ServiceOwnerHelper serviceOwnerHelper, CancellationToken cancellationToken)
     {
+        var publishedTime = migrateCorrespondenceExt.EventHistory.FirstOrDefault(e => e.Status == MigrateCorrespondenceStatusExt.Published)?.StatusChanged;
+
         var correspondence = new CorrespondenceEntity
         {
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
@@ -43,7 +45,7 @@ internal static class MigrateCorrespondenceMapper
             IsConfirmationNeeded = migrateCorrespondenceExt.CorrespondenceData.Correspondence.IsConfirmationNeeded,
             IsMigrating = migrateCorrespondenceExt.IsMigrating,
             PartyId = migrateCorrespondenceExt.PartyId,
-            Published = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Published
+            Published = publishedTime
         };
         
         return new MigrateCorrespondenceRequest()
@@ -86,7 +88,9 @@ internal static class MigrateCorrespondenceMapper
             CorrespondenceId = maExt.CorrespondenceId,
             CorrespondenceIds = maExt.CorrespondenceIds,
             AsyncProcessing = maExt.AsyncProcessing,
-            BatchSize = maExt.BatchSize
+            BatchSize = maExt.BatchSize,
+            CreatedFrom = maExt.CreatedFrom,
+            CreatedTo = maExt.CreatedTo
         };
     }
 

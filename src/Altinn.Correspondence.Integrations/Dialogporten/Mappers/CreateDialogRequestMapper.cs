@@ -1,12 +1,11 @@
 ﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using UUIDNext;
 using Microsoft.Extensions.Logging;
-using System.Text.RegularExpressions;
-using Altinn.Correspondence.Common.Helpers;
+using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -31,14 +30,25 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 dueAt = null;
             }
+            var actualPublishStatus = correspondence.Statuses.OrderBy(status => status.StatusChanged).FirstOrDefault(status => status.Status == CorrespondenceStatus.Published);
+            DateTimeOffset? publishTime = actualPublishStatus != null ? actualPublishStatus.StatusChanged : null;
+            var createdAt = correspondence.Created;
+            if (publishTime is not null && createdAt > publishTime)
+            {
+                createdAt = (DateTimeOffset)publishTime;
+            }
+            if (publishTime > currentDateTimeUtcNow)
+            {
+                publishTime = currentDateTimeUtcNow;
+            }
 
             return new CreateDialogRequest
             {
                 Id = dialogId,
                 ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
                 Party = correspondence.GetRecipientUrn(),
-                CreatedAt = correspondence.Created,
-                UpdatedAt = correspondence.Altinn2CorrespondenceId is not null ? GetUpdatedAt(correspondence, currentDateTimeUtcNow) : null,
+                CreatedAt = createdAt,
+                UpdatedAt = publishTime,
                 VisibleFrom = correspondence.RequestedPublishTime < currentDateTimeUtcNow.AddMinutes(1) ? null : correspondence.RequestedPublishTime,
                 Process = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenProcessId)?.ReferenceValue,
                 DueAt = dueAt,
@@ -49,31 +59,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                Activities = includeActivities ? GetActivitiesForCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
+                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
             };
-        }
-
-        /// <summary>
-        /// Method to get appropriate UpdatedAt value for Dialogporten that is not in the future.
-        /// This is primarily to handle cases where a Migrated correspondence has a "Published" status in the future due to a future RequestedVisibleTime
-        /// </summary>
-        /// <param name="correspondence">The correspondence to get for</param>
-        /// <param name="currentUtcNow">Current UTCNow time, to enable unit testing</param>
-        /// <returns></returns>
-        private static DateTimeOffset GetUpdatedAt(CorrespondenceEntity correspondence, DateTimeOffset currentUtcNow)
-        {
-            var latestStatusChange = (correspondence.Statuses is { Count: > 0 })
-                ? correspondence.Statuses.Max(s => s.StatusChanged)
-                : correspondence.Created;
-
-            if (latestStatusChange > currentUtcNow)
-            {
-                latestStatusChange = currentUtcNow;
-            }
-
-            return latestStatusChange;
         }
 
         private static string GetSystemLabelForCorrespondence(CorrespondenceEntity correspondence, bool isSoftDeleted)
@@ -95,7 +84,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static string GetDialogStatusForCorrespondence(CorrespondenceEntity correspondence)
         {
-            if (correspondence.IsConfirmationNeeded)
+            if (correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
             {
                 return "RequiresAttention";
             }
@@ -115,7 +104,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 }
             },
-            Summary = string.IsNullOrWhiteSpace(correspondence.Content.MessageSummary) ? null : new ContentValue()
+            Summary = string.IsNullOrWhiteSpace(TextValidation.StripSummaryForHtmlAndMarkdown(correspondence.Content.MessageSummary ?? "")) ? null : new ContentValue()
             {
                 MediaType = "text/plain",
                 Value = new List<DialogValue> {
@@ -187,7 +176,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return list;
         }
 
-        private static List<Activity> GetActivitiesForCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
+        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
         {
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
@@ -350,7 +339,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var guiActions = new List<GuiAction>();
 
             // Add ReplyOptions as GUI actions first
-            if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any())
+            if (correspondence.ReplyOptions != null && correspondence.ReplyOptions.Any() && correspondence.ReplyOptions.Count <= 3)
             {
                 // Add each ReplyOption from the request
                 foreach (var replyOption in correspondence.ReplyOptions)
@@ -385,7 +374,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     });
                 }
             }
-            if (correspondence.IsConfirmationNeeded)
+            if (correspondence.IsConfirmationNeeded && !correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
             {
                 guiActions.Add(new GuiAction()
                 {
@@ -452,9 +441,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<Attachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
+            var baseTimestamp = DateTimeOffset.UtcNow;
             return correspondence.Content?.Attachments.Select((attachment, index) => new Attachment
             {
-                Id = Guid.CreateVersion7().ToString(),
+                Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
                 DisplayName = new List<DisplayName>
                 {
                     new DisplayName

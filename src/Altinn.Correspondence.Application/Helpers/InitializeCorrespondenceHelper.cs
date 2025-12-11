@@ -170,6 +170,16 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return NotificationErrors.MissingPreferredReminderChannel;
             }
+            if ((notification.NotificationChannel == NotificationChannel.EmailAndSms) &&
+                (string.IsNullOrEmpty(notification.EmailBody) || string.IsNullOrEmpty(notification.EmailSubject) || string.IsNullOrEmpty(notification.SmsBody)))
+            {
+                return NotificationErrors.MissingEmailAndSmsContent;
+            }
+            if ((reminderNotificationChannel == NotificationChannel.EmailAndSms) &&
+                notification.SendReminder && (string.IsNullOrEmpty(notification.ReminderEmailBody) || string.IsNullOrEmpty(notification.ReminderEmailSubject) || string.IsNullOrEmpty(notification.ReminderSmsBody)))
+            {
+                return NotificationErrors.MissingEmailAndSmsReminderContent;
+            }
             return null;
         }
 
@@ -258,6 +268,31 @@ namespace Altinn.Correspondence.Application.Helpers
 
             return null;
         }
+
+        /// <summary>
+        /// Validate external references
+        /// </summary>
+        public Error? ValidateExternalReferences(List<ExternalReferenceEntity> externalReferences)
+        {
+            var hasDialogId = externalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
+            var transmissionTypeRefs = externalReferences
+                .Where(er => er.ReferenceType == ReferenceType.DialogportenTransmissionType)
+                .ToList();
+
+            if (transmissionTypeRefs.Count > 1)
+            {
+                logger.LogWarning("Multiple DialogportenTransmissionType external references found");
+                return CorrespondenceErrors.MultipleDialogportenTransmissionTypeExternalReferences;
+            }
+
+            if (transmissionTypeRefs.Count == 1 && !hasDialogId)
+            {
+                logger.LogWarning("DialogportenTransmissionType external reference provided without a DialogportenDialogId external reference");
+                return CorrespondenceErrors.DialogportenTransmissionTypeRequiresDialogId;
+            }
+
+            return null;
+        }
         private bool TextContainsTag(string? text, string tag)
         {
             if (text == null) return false;
@@ -300,6 +335,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
             var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);
 
+            var baseTimestamp = DateTimeOffset.UtcNow;
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
@@ -311,8 +347,9 @@ namespace Altinn.Correspondence.Application.Helpers
                 MessageSender = request.Correspondence.MessageSender,
                 Content = new CorrespondenceContentEntity
                 {
-                    Attachments = attachmentsToBeUploaded.Select(a => new CorrespondenceAttachmentEntity
+                    Attachments = attachmentsToBeUploaded.Select((a, index) => new CorrespondenceAttachmentEntity
                     {
+                        Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)),
                         Attachment = a,
                         Created = DateTimeOffset.UtcNow,
                     }).ToList(),

@@ -125,16 +125,55 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task SetStorageProvider(Guid attachmentId, StorageProviderEntity storageProvider, string dataLocationUrl, CancellationToken cancellationToken)
-        {
-            var attachment = await _context.Attachments.SingleOrDefaultAsync(a => a.Id == attachmentId);
-            if (attachment == null)
+		public async Task SetStorageProvider(Guid attachmentId, StorageProviderEntity storageProvider, string dataLocationUrl, CancellationToken cancellationToken)
+		{
+			var attachment = await _context.Attachments.SingleOrDefaultAsync(a => a.Id == attachmentId);
+			if (attachment == null)
+			{
+				throw new ArgumentException($"Attachment with id {attachmentId} does not exist", nameof(attachmentId));
+			}
+			attachment.StorageProvider = storageProvider;
+			attachment.DataLocationUrl = dataLocationUrl;
+			await _context.SaveChangesAsync(cancellationToken);
+		}
+
+		public async Task<int> HardDeleteOrphanedAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken)
+		{
+			var orphanAttachments = await _context.Attachments
+				.Where(a => attachmentIds.Contains(a.Id))
+				.Where(a => !_context.CorrespondenceAttachments.Any(ca => ca.AttachmentId == a.Id))
+				.ToListAsync(cancellationToken);
+
+			if (orphanAttachments.Count == 0)
+			{
+				return 0;
+			}
+            if (orphanAttachments.Count > 1000) // Safety margin
             {
-                throw new ArgumentException($"Attachment with id {attachmentId} does not exist", nameof(attachmentId));
+                throw new ArgumentException($"Too many orphaned attachments to delete. Total attachments in requested hard delete operation: {orphanAttachments.Count}");
             }
-            attachment.StorageProvider = storageProvider;
-            attachment.DataLocationUrl = dataLocationUrl;
-            await _context.SaveChangesAsync(cancellationToken);
+
+			_context.Attachments.RemoveRange(orphanAttachments);
+			return await _context.SaveChangesAsync(cancellationToken);
+		}
+
+        public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, CancellationToken cancellationToken)
+        {
+            return await _context.Attachments
+                .Where(a => a.ResourceId == resourceId)
+                .Select(a => a.Id)
+                .ToListAsync(cancellationToken);
         }
-    }
+
+        public async Task<List<AttachmentEntity>> GetAttachmentsByIds(List<Guid> attachmentIds, bool includeStatus = false, CancellationToken cancellationToken = default)
+        {
+            var attachments = _context.Attachments.AsQueryable();
+            if (includeStatus)
+            {
+                attachments = attachments.Include(a => a.Statuses);
+            }
+            attachments = attachments.Include(a => a.StorageProvider);
+            return await attachments.Where(a => attachmentIds.Contains(a.Id)).ToListAsync(cancellationToken);
+        }
+	}
 }

@@ -59,7 +59,8 @@ public class GetCorrespondenceOverviewHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var caller = user?.GetCallerPartyUrn();
+        var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
@@ -82,27 +83,29 @@ public class GetCorrespondenceOverviewHandler(
                     StatusChanged = operationTimestamp,
                     PartyUuid = partyUuid
                 }, cancellationToken);
-                if (request.OnlyGettingContent && !correspondence.StatusHasBeen(CorrespondenceStatus.Read))
+                if (request.OnlyGettingContent)
                 {
-                    await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondence.Id,
-                        Status = CorrespondenceStatus.Read,
-                        StatusText = CorrespondenceStatus.Read.ToString(),
-                        StatusChanged = operationTimestamp,
-                        PartyUuid = partyUuid
-                    }, cancellationToken);
-                    if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
-                    {
-                        backgroundJobClient.Enqueue<IAltinnStorageService>(
-                            syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
-                                correspondence.Altinn2CorrespondenceId.Value,
-                                party.PartyId,
-                                operationTimestamp,
-                                SyncEventType.Read,
-                                CancellationToken.None));
+                    if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read)) { 
+                        await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                        {
+                            CorrespondenceId = correspondence.Id,
+                            Status = CorrespondenceStatus.Read,
+                            StatusText = CorrespondenceStatus.Read.ToString(),
+                            StatusChanged = operationTimestamp,
+                            PartyUuid = partyUuid
+                        }, cancellationToken);
+                        if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
+                        {
+                            backgroundJobClient.Enqueue<IAltinnStorageService>(
+                                syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
+                                    correspondence.Altinn2CorrespondenceId.Value,
+                                    party.PartyId,
+                                    operationTimestamp,
+                                    SyncEventType.Read,
+                                    CancellationToken.None));
+                        }
                     }
-                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
+                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller));
 
                 }
             }
@@ -116,10 +119,34 @@ public class GetCorrespondenceOverviewHandler(
                 });
             }
 
+            CorrespondenceContentEntity? content = null;
+            if (hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published))
+            {
+                content = correspondence.Content;
+                if (content != null && correspondence.ReplyOptions?.Count > 3)
+                {
+                    var replyLabel = content.Language?.ToLower() switch
+                    {
+                        "en" => "Reply options:",
+                        "nn" => "Svarval:",
+                        _ => "Svarvalg:"
+                    };
+                    content = new CorrespondenceContentEntity
+                    {
+                        Language = content.Language,
+                        MessageTitle = content.MessageTitle,
+                        MessageSummary = content.MessageSummary,
+                        MessageBody = content.MessageBody + "\n\n" + replyLabel + "\n" +
+                            string.Join("\n", correspondence.ReplyOptions.Select(ro => $"{ro.LinkText}: {ro.LinkURL}")),
+                        Attachments = content.Attachments
+                    };
+                }
+            }
+
             var response = new GetCorrespondenceOverviewResponse
             {
                 CorrespondenceId = correspondence.Id,
-                Content = hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published) ? correspondence.Content : null,
+                Content = content,
                 Status = latestStatus.Status,
                 StatusText = latestStatus.StatusText,
                 StatusChanged = latestStatus.StatusChanged,

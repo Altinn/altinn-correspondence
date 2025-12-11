@@ -128,6 +128,17 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithExternalReferencesTransmissionType(string transmissionTypeValue)
+        {
+            _correspondence.Correspondence.ExternalReferences ??= new List<ExternalReferenceExt>();
+            _correspondence.Correspondence.ExternalReferences.Add(new ExternalReferenceExt
+            {
+                ReferenceType = ReferenceTypeExt.DialogportenTransmissionType,
+                ReferenceValue = transmissionTypeValue
+            });
+            return this;
+        }
+
         public CorrespondenceBuilder WithExternalReferencesTransmissionId()
         {
             _correspondence.Correspondence.ExternalReferences = new List<ExternalReferenceExt>(){

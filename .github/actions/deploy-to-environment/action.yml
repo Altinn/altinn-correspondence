@@ -98,8 +98,14 @@ inputs:
   STATISTICS_API_KEY:
     description: "API Key for authentication to Statistics endpoints"
     required: true
+  GRAFANA_MONITORING_PRINCIPAL_ID:
+    description: "Principal ID for Grafana monitoring service principal"
+    required: true
   MIGRATION_WORKER_COUNT_PER_REPLICA:
     description: "Number of workers to use for Dialogporten migration"
+    required: false
+  ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED:
+    description: "Comma separated list of Arbeidsflate origins"
     required: false
 
 runs:
@@ -131,6 +137,7 @@ runs:
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         STATISTICS_API_KEY: ${{ inputs.STATISTICS_API_KEY }}
+        GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
 
     - name: Migrate database
       uses: ./.github/actions/migrate-database
@@ -170,3 +177,4 @@ runs:
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ inputs.APIM_IP }}
         MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
+        ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ inputs.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}

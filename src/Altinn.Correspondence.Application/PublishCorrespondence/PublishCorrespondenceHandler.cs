@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.Application.CancelNotification;
-using Altinn.Correspondence.Application.Helpers;
+﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -17,6 +16,7 @@ using OneOf;
 using Slack.Webhooks;
 using System.Security.Claims;
 using Altinn.Correspondence.Integrations.Redlock;
+using Altinn.Correspondence.Application.SendNotificationOrder;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -32,7 +32,6 @@ public class PublishCorrespondenceHandler(
     IBackgroundJobClient backgroundJobClient,
     IDistributedLockHelper distributedLockHelper) : IHandler<Guid, Task>
 {
-
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting publish process for correspondence {CorrespondenceId}", correspondenceId);
@@ -98,7 +97,7 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Party for recipient {correspondence.Recipient} not found in Altinn Register when publishing";
         }
-        else if (!await IsCorrespondenceReadyForPublish(correspondence, senderPartyUuid.Value, cancellationToken))
+        else if (!await IsCorrespondenceReadyForPublish(correspondence, senderPartyUuid.Value, operationTimestamp, cancellationToken))
         {
             errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
@@ -130,7 +129,7 @@ public class PublishCorrespondenceHandler(
                 {
                     CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.Failed,
-                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusChanged = operationTimestamp,
                     StatusText = errorMessage,
                     PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
@@ -140,12 +139,10 @@ public class PublishCorrespondenceHandler(
                     logger.LogError("Failed to send Slack notification for failed correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
                 }
                 eventType = AltinnEventType.CorrespondencePublishFailed;
-                logger.LogInformation("Cancelling notifications for failed correspondence {CorrespondenceId}", correspondenceId);
-                var cancelNotificationJob = backgroundJobClient.Enqueue<CancelNotificationHandler>(handler => handler.Process(null, correspondenceId, null, cancellationToken));
                 if (hasDialogportenDialog)
                 {
                     logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
-                    backgroundJobClient.ContinueJobWith<IDialogportenService>(cancelNotificationJob, dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
+                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
                 }
             }
             else
@@ -155,13 +152,13 @@ public class PublishCorrespondenceHandler(
                 {
                     CorrespondenceId = correspondenceId,
                     Status = CorrespondenceStatus.Published,
-                    StatusChanged = DateTimeOffset.UtcNow,
+                    StatusChanged = operationTimestamp,
                     StatusText = CorrespondenceStatus.Published.ToString(),
                     PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
                 backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
-                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.CorrespondencePublished, operationTimestamp));
+                backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
@@ -175,7 +172,7 @@ public class PublishCorrespondenceHandler(
         }, logger, cancellationToken);
     }
 
-    private async Task<bool> IsCorrespondenceReadyForPublish(CorrespondenceEntity correspondence, Guid partyUuid, CancellationToken cancellationToken)
+    private async Task<bool> IsCorrespondenceReadyForPublish(CorrespondenceEntity correspondence, Guid partyUuid, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
     {
         if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
         {
@@ -186,7 +183,7 @@ public class PublishCorrespondenceHandler(
                     {
                         CorrespondenceId = correspondence.Id,
                         Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = DateTime.UtcNow,
+                        StatusChanged = operationTimestamp.AddMilliseconds(-1),
                         StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
                         PartyUuid = partyUuid
                     },

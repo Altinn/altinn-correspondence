@@ -1,6 +1,9 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
@@ -11,20 +14,20 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
     {
         internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, params string[] tokens)
         {
-            return CreateDialogActivityRequest(correspondence, actorType, textType, type, DateTime.UtcNow, tokens);
+            return CreateDialogActivityRequest(correspondence, actorType, textType, type, null, DateTime.UtcNow, tokens);
         }
-        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, DateTimeOffset dateOfDialog, params string[] tokens)
+        internal static CreateDialogActivityRequest CreateDialogActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DialogportenTextType? textType, ActivityType type, string? partyUrn, DateTimeOffset dateOfDialog, params string[] tokens)
         {
             var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(); // Dialogporten requires time-stamped GUIDs, not supported natively until .NET 9.0
             var urnActorId = actorType switch
             {
                 DialogportenActorType.ServiceOwner => null,
-                DialogportenActorType.Sender => correspondence.GetSenderUrn(),
-                DialogportenActorType.Recipient => correspondence.GetRecipientUrn(),
+                DialogportenActorType.Sender => correspondence.GetSenderUrn().WithUrnPrefix(),
+                DialogportenActorType.Recipient => partyUrn?.WithUrnPrefix() ?? correspondence.GetRecipientUrn().WithUrnPrefix(),
                 _ => throw new NotImplementedException()
             };
-
-            var createDialogActivityRequest = new CreateDialogActivityRequest()
+            CreateDialogActivityRequest createDialogActivityRequest;
+            createDialogActivityRequest = new CreateDialogActivityRequest()
             {
                 Id = dialogActivityId,
                 CreatedAt = dateOfDialog,
@@ -35,7 +38,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 },
                 Type = type
             };
-
+            if (TransmissionValidator.IsTransmission(correspondence) && type == ActivityType.TransmissionOpened)
+            {
+                var transmissionId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId)?.ReferenceValue;
+                if (transmissionId == null)
+                {
+                    throw new ArgumentException("Correspondence does not have a Dialogporten Transmission Id reference");
+                }
+                createDialogActivityRequest.TransmissionId = transmissionId;
+            }
             if (type == ActivityType.Information)
             {
                 if (textType is null)

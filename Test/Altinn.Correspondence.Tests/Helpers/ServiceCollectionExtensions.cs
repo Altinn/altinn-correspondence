@@ -48,6 +48,16 @@ public static class ServiceCollectionExtensions
             });
 
         altinnAuthorizationService
+            .Setup(x => x.CheckAttachmentAccessAsRecipient(
+                It.IsAny<ClaimsPrincipal>(),
+                It.IsAny<CorrespondenceEntity>(),
+                It.IsAny<AttachmentEntity>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((ClaimsPrincipal? user, CorrespondenceEntity corr, AttachmentEntity attachment, CancellationToken token) => {
+                return Task.FromResult(NotRecipient(user));
+            });
+
+        altinnAuthorizationService
             .Setup(x => x.CheckAccessAsSender(
                 It.IsAny<ClaimsPrincipal>(),
                 It.IsAny<CorrespondenceEntity>(),

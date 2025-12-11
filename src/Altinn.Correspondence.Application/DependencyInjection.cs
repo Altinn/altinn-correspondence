@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Application.CancelNotification;
 using Altinn.Correspondence.Application.CheckNotification;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
@@ -30,6 +29,7 @@ using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 using Altinn.Correspondence.Application.ExpireAttachment;
+using Altinn.Correspondence.Application.CleanupBruksmonster;
 
 namespace Altinn.Correspondence.Application;
 
@@ -64,13 +64,14 @@ public static class DependencyInjection
         services.AddScoped<MalwareScanResultHandler>();
         services.AddScoped<CheckNotificationHandler>();
         services.AddScoped<ProcessLegacyPartyHandler>();
-        services.AddScoped<CancelNotificationHandler>();
 
         // Maintenance
         services.AddScoped<CleanupOrphanedDialogsHandler>();
         services.AddScoped<CleanupPerishingDialogs.CleanupPerishingDialogsHandler>();
         services.AddScoped<CleanupMarkdownAndHTMLInSummary.CleanupMarkdownAndHTMLInSummaryHandler>();
         services.AddScoped<RestoreSoftDeletedDialogsHandler>();
+        services.AddScoped<CleanupBruksmonsterHandler>();
+        services.AddScoped<CleanupConfirmedMigratedCorrespondences.CleanupConfirmedMigratedCorrespondencesHandler>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();

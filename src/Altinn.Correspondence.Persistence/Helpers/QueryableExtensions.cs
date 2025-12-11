@@ -78,7 +78,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
                     statusesToFilter.Add(CorrespondenceStatus.Read);
                     statusesToFilter.Add(CorrespondenceStatus.Confirmed);
                     statusesToFilter.Add(CorrespondenceStatus.Replied);
-                    //statusesToFilter.Add(CorrespondenceStatus.AttachmentsDownloaded);
+                    statusesToFilter.Add(CorrespondenceStatus.AttachmentsDownloaded);
                 }
 
                 if (includeArchived) // Include correspondences with active status
@@ -88,7 +88,11 @@ namespace Altinn.Correspondence.Persistence.Helpers
             }
 
             return query.Where(cs =>
-                statusesToFilter.Contains(cs.Statuses.Max(s => s.Status)));
+                cs.Statuses.Any() && statusesToFilter.Contains(
+                    cs.Statuses
+                        .OrderBy(s => s.StatusChanged)
+                        .ThenBy(s => s.Id)
+                        .Last().Status));
         }
 
         public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
@@ -135,6 +139,17 @@ namespace Altinn.Correspondence.Persistence.Helpers
             }
             return query
                 .Where(cs => !cs.Altinn2CorrespondenceId.HasValue);
+        }
+
+
+        /// <summary>
+        /// Includes only correspondences that have been migrated
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns>Filtered query containing only correspondences with Altinn2CorrespondenceId and IsMigrating == false</returns>
+        public static IQueryable<CorrespondenceEntity> IncludeOnlyMigrated(this IQueryable<CorrespondenceEntity> query)
+        {
+            return query.Where(cs => cs.Altinn2CorrespondenceId.HasValue && cs.IsMigrating == false);
         }
     }
 }

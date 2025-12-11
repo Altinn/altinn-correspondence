@@ -34,7 +34,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
 
     public CustomWebApplicationFactory()
     {
-        _hangfireSchemaName = $"hangfire_test";
+        _hangfireSchemaName = $"hangfire_test_{Guid.NewGuid().ToString("N")[..8]}";
     }
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
@@ -65,6 +65,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                     }
                 );
                 config.UseColouredConsoleLogProvider();
+                config.UseFilter(new BackgroundJobClientFilter());
+                config.UseFilter(new BackgroundJobServerFilter());
             });
             
             services.AddHangfireServer(options => 
@@ -72,9 +74,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
                 options.WorkerCount = 5;
                 options.Queues = new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration };
-                options.ServerTimeout = TimeSpan.FromSeconds(2);
-                options.ShutdownTimeout = TimeSpan.FromSeconds(1);
-                options.StopTimeout = TimeSpan.FromSeconds(1);
+                options.ServerTimeout = TimeSpan.FromSeconds(30);
+                options.ShutdownTimeout = TimeSpan.FromSeconds(5);
+                options.StopTimeout = TimeSpan.FromSeconds(5);
             });
 
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
@@ -150,7 +152,27 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             {
                 Console.WriteLine($"Error during base application disposal: {ex}");
             }
-            dataSource?.Dispose();
+
+            // Drop per-test Hangfire schema to avoid cross-test collisions
+            if (dataSource != null)
+            {
+                try
+                {
+                    using var conn = dataSource.CreateConnection();
+                    conn.Open();
+                    using var drop = conn.CreateCommand();
+                    drop.CommandText = $"DROP SCHEMA IF EXISTS {_hangfireSchemaName} CASCADE";
+                    drop.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error dropping schema {_hangfireSchemaName}: {ex.Message}");
+                }
+                finally
+                {
+                    dataSource.Dispose();
+                }
+            }
         }
         else
         {
@@ -164,7 +186,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
         {
             new Claim("urn:altinn:authlevel", "3"),
             new Claim("client_amr", "virksomhetssertifikat"),
-            new Claim("pid", "11015699332"),
             new Claim("token_type", "Bearer"),
             new Claim("client_id", "5b7b5418-1196-4539-bd1b-5f7c6fdf5963"),
             new Claim("http://schemas.microsoft.com/claims/authnclassreference", "Level3"),
@@ -176,8 +197,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             new Claim("actual_iss", "mock"),
             new Claim("nbf", "1721893243"),
             new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", "1"),
-            new Claim("urn:altinn:userid", "1"),
-            new Claim("urn:altinn:partyid", "1")
+            new Claim("urn:altinn:userid", "1")
         };
         var claimsWithDuplicatesAllowed = new List<string> { "scope" };
         foreach (var (type, value) in claims)

@@ -1,0 +1,20 @@
+meta {
+  name: Get subscriptions
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{platform_base_url}}/events/api/v1/subscriptions/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

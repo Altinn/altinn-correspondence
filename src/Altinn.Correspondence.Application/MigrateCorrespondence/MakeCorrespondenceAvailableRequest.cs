@@ -8,4 +8,8 @@ public class MakeCorrespondenceAvailableRequest
     public bool AsyncProcessing { get; set; }
     public int? BatchSize { get; set; }
     public int? BatchOffset { get; set; }
+    public DateTimeOffset? CursorCreated { get; set; }
+    public Guid? CursorId { get; set; }
+    public DateTimeOffset? CreatedFrom { get; set; }
+    public DateTimeOffset? CreatedTo { get; set; }
 }

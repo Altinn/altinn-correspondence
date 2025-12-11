@@ -13,5 +13,5 @@ public class GeneralSettings
     public string ApplicationInsightsConnectionString { get; set; } = string.Empty;
     public bool DisableTelemetryForMigration { get; set; } = true;
     public bool DisableTelemetryForSync { get; set; } = false;
-    public int MigrationWorkerCountPerReplica { get; set; } = 1;
+    public int MigrationWorkerCountPerReplica { get; set; } = 2;
 }

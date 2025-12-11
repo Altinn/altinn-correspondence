@@ -20,6 +20,8 @@ public class IdempotencyKeyEntity
     [ForeignKey(nameof(AttachmentId))]
     public AttachmentEntity? Attachment { get; set; }
 
+    public string? PartyUrn { get; set; }
+
     public StatusAction? StatusAction { get; set; }
 
     [Required]

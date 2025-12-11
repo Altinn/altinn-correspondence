@@ -11,10 +11,15 @@ using Microsoft.Extensions.Logging;
 namespace Altinn.Correspondence.Application.Helpers
 {
     public class HangfireScheduleHelper(IBackgroundJobClient backgroundJobClient,
-                                        IHybridCacheWrapper hybridCacheWrapper,
-                                        ICorrespondenceRepository correspondenceRepository,
-                                        ILogger<HangfireScheduleHelper> logger)
+        IHybridCacheWrapper hybridCacheWrapper,
+        ICorrespondenceRepository correspondenceRepository,
+        ILogger<HangfireScheduleHelper> logger)
     {
+
+        public void SchedulePublishAfterDialogCreated(Guid correspondenceId, string dialogJobId, CancellationToken cancellationToken)
+        {
+            backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+        }
 
         public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)
         {

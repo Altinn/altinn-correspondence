@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Common.Helpers.Models;
+﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers.Models;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -36,6 +37,35 @@ namespace Altinn.Correspondence.Common.Helpers
                 return dialogportenTokenUserId.WithoutPrefix(); // Normalize to same format as elsewhere
             }
             return null;
+        }
+
+        public static string? GetCallerPartyUrn(this ClaimsPrincipal user)
+        {
+            var partyUrnClaim = user.Claims.FirstOrDefault(c => c.Type == "c");
+            var partyUrn = partyUrnClaim?.Value;
+            if (!string.IsNullOrWhiteSpace(partyUrn))
+            {
+                return partyUrn.WithUrnPrefix();
+            }
+            var partyIdClaim = user.Claims.FirstOrDefault(c => c.Type == UrnConstants.Party);
+            partyUrn = partyIdClaim?.Value;
+            if(!string.IsNullOrWhiteSpace(partyUrn))
+            {
+                return $"{UrnConstants.Party}:{partyUrn.WithoutPrefix()}";
+            }
+            var pidClaim = user.Claims.FirstOrDefault(c => c.Type == "pid");
+            partyUrn = pidClaim?.Value;
+            if (!string.IsNullOrWhiteSpace(partyUrn))
+            {
+                return partyUrn.WithUrnPrefix();
+            }
+            var systemUserClaim = user.Claims.FirstOrDefault(c => c.Type == "authorization_details");
+            if (systemUserClaim is not null)
+            {
+                var systemUserAuthorizationDetails = JsonSerializer.Deserialize<SystemUserAuthorizationDetails>(systemUserClaim.Value);
+                return systemUserAuthorizationDetails?.SystemUserOrg.ID.WithoutPrefix().WithUrnPrefix();
+            }
+            return partyUrn ?? GetCallerOrganizationId(user)?.WithUrnPrefix();
         }
 
         public static bool CallingAsSender(this ClaimsPrincipal user)

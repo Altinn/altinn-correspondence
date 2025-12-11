@@ -24,6 +24,8 @@ public static class DependencyInjection
             config.UseLogProvider(new AspNetCoreLogProvider(provider.GetRequiredService<ILoggerFactory>()));
             config.UseFilter(new HangfireAppRequestFilter());
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+            config.UseFilter(new BackgroundJobClientFilter());
+            config.UseFilter(new BackgroundJobServerFilter());
             config.UseFilter(
                 new SlackExceptionHandler(
                     provider.GetRequiredService<SlackExceptionNotificationHandler>(),

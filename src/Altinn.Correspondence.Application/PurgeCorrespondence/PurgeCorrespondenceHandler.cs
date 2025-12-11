@@ -59,28 +59,23 @@ public class PurgeCorrespondenceHandler(
             return authError;
         }
 
-        var callerId = user.GetCallerOrganizationId();
-        if (callerId is null)
-        {
-            logger.LogError("Could not determine caller organization ID for correspondence {CorrespondenceId}", correspondenceId);
-            return AuthorizationErrors.CouldNotDetermineCaller;
-        }
-
-        var party = await altinnRegisterService.LookUpPartyById(callerId, cancellationToken);
+        var caller = user.GetCallerPartyUrn() ?? user.GetCallerOrganizationId();
+        var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for organization {OrganizationId}", callerId);
+            logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, callerId);
+        logger.LogInformation("Retrieved party UUID {PartyUuid} for caller {caller}", partyUuid, caller);
         logger.LogInformation("Starting purge process for correspondence {CorrespondenceId} as {Role}", 
             correspondenceId, 
             isSender ? "sender" : "recipient");
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
-            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.PartyId, operationTimestamp, cancellationToken);
+            var partyUrn = user?.GetCallerPartyUrn();
+            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.PartyId, operationTimestamp, cancellationToken, partyUrn);
             logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", result);
             return result;
         }, logger, cancellationToken);

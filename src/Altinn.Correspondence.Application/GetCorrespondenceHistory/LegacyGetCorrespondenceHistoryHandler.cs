@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
@@ -14,10 +15,12 @@ public class LegacyGetCorrespondenceHistoryHandler(
     IAltinnRegisterService altinnRegisterService,
     IAltinnAuthorizationService altinnAuthorizationService,
     NotificationMapper notificationMapper,
-    UserClaimsHelper userClaimsHelper) : IHandler<Guid, List<LegacyGetCorrespondenceHistoryResponse>>
+    UserClaimsHelper userClaimsHelper,
+    ILogger<LegacyGetCorrespondenceHistoryHandler> logger) : IHandler<Guid, List<LegacyGetCorrespondenceHistoryResponse>>
 {
     public async Task<OneOf<List<LegacyGetCorrespondenceHistoryResponse>, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Processing legacy get correspondence history for correspondenceId: {correspondenceId}", correspondenceId);
         if (userClaimsHelper.GetPartyId() is not int partyId)
         {
             return AuthorizationErrors.InvalidPartyId;
@@ -43,6 +46,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var correspondenceHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
+
+        logger.LogInformation("Assembling correspondence status history for correspondenceId: {correspondenceId} with {statusCount} statuses", correspondenceId, correspondence.Statuses.Count);
         foreach (var correspondenceStatus in correspondence.Statuses)
         {
             if (correspondenceStatus.Status.IsAvailableForLegacyRecipient())
@@ -51,6 +56,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             }
         }
 
+        logger.LogInformation("Assembling notification history for correspondenceId: {correspondenceId} with {notificationCount} notifications", correspondenceId, correspondence.Notifications.Count);
         var notificationHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var notification in correspondence.Notifications)
         {
@@ -106,6 +112,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             }
         }
 
+        logger.LogInformation("Assembling forwarding event history for correspondenceId: {correspondenceId} with {forwardingEventCount} forwarding events", correspondenceId, correspondence.ForwardingEvents.Count);
         var forwardingEventHistory = new List<LegacyGetCorrespondenceHistoryResponse>();
         foreach (var forwardingEvent in correspondence.ForwardingEvents)
         {

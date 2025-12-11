@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
@@ -58,9 +59,10 @@ public class DialogportenServiceTests
             .Returns(Task.CompletedTask);
 
         var mockLogger = new Mock<ILogger<DialogportenService>>();
+        var mockResourceRegistryService = new Mock<IResourceRegistryService>();
         var options = Options.Create(new GeneralSettings { CorrespondenceBaseUrl = "https://correspondence.example" });
 
-        var service = new DialogportenService(httpClient, mockRepo.Object, options, mockLogger.Object, mockIdem.Object);
+        var service = new DialogportenService(httpClient, mockRepo.Object, options, mockLogger.Object, mockIdem.Object, mockResourceRegistryService.Object);
         return (service, () => capturedRequestBody);
     }
 

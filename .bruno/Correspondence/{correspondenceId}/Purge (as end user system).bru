@@ -1,0 +1,15 @@
+meta {
+  name: Purge (as end user system)
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}/purge
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{recipient_altinn_token}}
+}

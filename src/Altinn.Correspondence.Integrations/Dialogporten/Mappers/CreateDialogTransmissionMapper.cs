@@ -2,6 +2,9 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -19,6 +22,22 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 dueAt = null;
             }
 
+            var typeReference = correspondence.ExternalReferences
+                .FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionType);
+
+            TransmissionType transmissionType = TransmissionType.Information;
+            if (typeReference is not null)
+            {
+                if (Enum.TryParse<TransmissionType>(typeReference.ReferenceValue, ignoreCase: true, out var parsedType))
+                {
+                    transmissionType = parsedType;
+                }
+                else
+                {
+                    throw new ArgumentException($"Correspondence {correspondence.Id} has an invalid Dialogporten Transmission Type external reference: {typeReference.ReferenceValue}");
+                }
+            }
+
             return new CreateTransmissionRequest
             {
                 Id = dialogId,
@@ -27,7 +46,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 IsAuthorized = true,
                 ExternalReference = correspondence.SendersReference,
                 RelatedTransmissionId = null,
-                Type = TransmissionType.Information,
+                Type = transmissionType,
                 Sender = CreateTransmissionSender(correspondence),
                 Content = CreateTransmissionContent(correspondence, baseUrl),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
@@ -75,9 +94,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static List<TransmissionAttachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
+            var baseTimestamp = DateTimeOffset.UtcNow;
             return correspondence.Content?.Attachments.Select((attachment, index) => new TransmissionAttachment
             {
-                Id = Guid.CreateVersion7().ToString(),
+                Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
                 DisplayName = new List<TransmissionDisplayName>
                 {
                     new TransmissionDisplayName
@@ -104,10 +124,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static TransmissionSender CreateTransmissionSender(CorrespondenceEntity correspondence)
         {
+            if (!string.IsNullOrWhiteSpace(correspondence.MessageSender))
+            {
+                return new TransmissionSender
+                {
+                    ActorName = correspondence.MessageSender,
+                    ActorType = nameof(DialogportenActorType.PartyRepresentative)
+                };
+            }
             return new TransmissionSender
             {
-                ActorId = correspondence.GetRecipientUrn(),
-                ActorType = "PartyRepresentative",
+                ActorType = nameof(DialogportenActorType.ServiceOwner),
 
             };
         }

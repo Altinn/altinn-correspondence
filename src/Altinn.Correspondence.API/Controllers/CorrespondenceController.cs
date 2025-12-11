@@ -77,6 +77,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1048: DialogId must be a valid non-empty GUID</li>
         /// <li>1049: Could not find dialog in Dialogporten with the given DialogId</li>
         /// <li>1050: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence</li>
+        /// <li>1052: Only one DialogportenTransmissionType external reference is allowed</li>
+        /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -90,6 +92,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>3017: Custom recipient with multiple recipients is not allowed</li>
         /// <li>3018: Custom recipient with multiple identifiers is not allowed</li>
         /// <li>3019: Custom recipient without identifier is not allowed</li>
+        /// <li>3024: Email body, subject and SMS body must be provided when sending email and SMS notifications</li>
+        /// <li>3025: Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
         /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>
@@ -180,6 +184,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1048: DialogId must be a valid non-empty GUID</li>
         /// <li>1049: Could not find dialog in Dialogporten with the given DialogId</li>
         /// <li>1050: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence</li>
+        /// <li>1052: Only one DialogportenTransmissionType external reference is allowed</li>
+        /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
@@ -201,6 +207,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>3017: Custom recipient with multiple recipients is not allowed</li>
         /// <li>3018: Custom recipient with multiple identifiers is not allowed</li>
         /// <li>3019: Custom recipient without identifier is not allowed</li>
+        /// <li>3024: Email body, subject and SMS body must be provided when sending email and SMS notifications</li>
+        /// <li>3025: Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
         /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>

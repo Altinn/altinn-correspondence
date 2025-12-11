@@ -12,9 +12,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public async Task PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
+        public Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
         {
-            await Task.CompletedTask;
+        
+            return Task.FromResult(true);
         }
 
         public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
@@ -84,14 +85,34 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(true);
         }
 
-        public Task<bool?> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(true as bool?);
-        }
-
-        public Task<bool> DoesDialogExist(string dialogId, CancellationToken cancellationToken = default)
+        public Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(true);
+        }
+
+        public Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, DateTimeOffset activityTimestamp, params string[] tokens)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CreateConfirmedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp, string? partyUrn)
+        {
+            return Task.CompletedTask;
         }
     }
 }

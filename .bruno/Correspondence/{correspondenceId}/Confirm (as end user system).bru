@@ -1,0 +1,15 @@
+meta {
+  name: Confirm (as end user system)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}/confirm
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{recipient_altinn_token}}
+}

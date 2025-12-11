@@ -58,12 +58,18 @@ namespace Altinn.Correspondence.Core.Repositories
         Task UpdatePublished(Guid correspondenceId, DateTimeOffset published, CancellationToken cancellationToken);
         Task UpdateIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken);
         Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default);
-        Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, int offset, CancellationToken cancellationToken = default);
+        Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, DateTimeOffset? cursorCreated, Guid? cursorId, DateTimeOffset? createdFrom, DateTimeOffset? createdTo, CancellationToken cancellationToken = default);
         Task<List<CorrespondenceEntity>> GetCorrespondencesWindowAfter(
             int limit,
             DateTimeOffset? lastCreated,
             Guid? lastId,
             bool filterMigrated,
+            CancellationToken cancellationToken);
+
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWindowBefore(
+            int limit,
+            DateTimeOffset? lastCreated,
+            Guid? lastId,
             CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
@@ -83,10 +89,18 @@ namespace Altinn.Correspondence.Core.Repositories
             ReferenceType referenceType,
             CancellationToken cancellationToken);
 
+        Task<int> HardDeleteCorrespondencesByIds(IEnumerable<Guid> correspondenceIds, CancellationToken cancellationToken);
+
+        Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, CancellationToken cancellationToken);
+
         Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity?>> GetCorrespondencesByNoAltinn2IdAndExistingDialog(List<Guid> windowIds, ReferenceType referenceType, CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(List<Guid> windowIds, CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatusUsingCursor(
+            Guid? cursorId,
+            CancellationToken cancellationToken);
     }
 }

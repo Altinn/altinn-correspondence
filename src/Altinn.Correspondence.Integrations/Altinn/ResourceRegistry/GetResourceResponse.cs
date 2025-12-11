@@ -13,7 +13,7 @@ internal class GetResourceResponse
     public required Dictionary<string, string> Title { get; set; }
 
     [JsonPropertyName("description")]
-    public required Dictionary<string, string> Description { get; set; }
+    public Dictionary<string, string>? Description { get; set; }
 
     [JsonPropertyName("rightDescription")]
     public Dictionary<string, string>? RightDescription { get; set; }

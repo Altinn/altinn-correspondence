@@ -44,16 +44,18 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             // Arrange
             await using var context = _fixture.CreateDbContext();
             var correspondenceRepository = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-            var from = DateTimeOffset.UtcNow.AddDays(-1);
-            var to = DateTimeOffset.UtcNow.AddDays(1);
+            var baseTime = new DateTimeOffset(new DateTime(2001, 1, 1, 0, 0, 0), TimeSpan.Zero);
+            var from = baseTime.AddDays(-1);
+            var to = baseTime.AddDays(1);
             var recipient = "0192:987654321";
             var resource = "LegacyCorrespondenceSearch_CorrespondencesAddedForParty_GetCorrespondencesForPartyReturnsSome";
             var entity = new CorrespondenceEntityBuilder()
                 .WithRecipient(recipient)
                 .WithResourceId(resource)
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.ReadyForPublish)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithRequestedPublishTime(baseTime)
+                .WithStatus(CorrespondenceStatus.Initialized, baseTime)
+                .WithStatus(CorrespondenceStatus.ReadyForPublish, baseTime.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(2))
                 .Build();
             var addedCorrespondence = await correspondenceRepository.CreateCorrespondence(entity, CancellationToken.None);
 
@@ -64,7 +66,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.NotNull(correspondences);
             Assert.NotEmpty(correspondences);
             Assert.Equal(1, correspondences?.Count);
-            Assert.Equal(addedCorrespondence.Id, correspondences.FirstOrDefault()?.Id);
+            Assert.Equal(addedCorrespondence.Id, correspondences?.FirstOrDefault()?.Id);
         }
 
         [Fact]
@@ -213,6 +215,207 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             Assert.Single(result);
             Assert.Equal(entity.Id, result[0].Id);
+        }
+
+        [Fact]
+        public async Task GetCorrespondencesForParties_ReturnsWhenLatestIsAttachmentsDownloaded()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var recipient = "0192:111111111";
+            var from = new DateTimeOffset(new DateTime(2007, 1, 1, 0, 0, 0), TimeSpan.Zero);
+            var to = from.AddDays(1);
+            var baseTime = from.AddHours(1);
+
+            var c = new CorrespondenceEntityBuilder()
+                .WithRecipient(recipient)
+                .WithRequestedPublishTime(baseTime)
+                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.AttachmentsDownloaded, baseTime.AddMinutes(2))
+                .Build();
+
+            context.Correspondences.Add(c);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetCorrespondencesForParties(
+                limit: 10,
+                from: from,
+                to: to,
+                status: null,
+                recipientIds: [recipient],
+                includeActive: true,
+                includeArchived: true,
+                searchString: string.Empty,
+                cancellationToken: CancellationToken.None);
+
+            Assert.Single(result);
+            Assert.Equal(c.Id, result[0].Id);
+        }
+
+        [Fact]
+        public async Task GetCorrespondencesForParties_AttachmentsDownloadedExistsButSincePurged_ReturnsNothingOnIncludeOnlyActive()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var recipient = "0192:222222222";
+            var from = new DateTimeOffset(new DateTime(2008, 1, 1, 0, 0, 0), TimeSpan.Zero);
+            var to = from.AddDays(1);
+            var baseTime = from.AddHours(1);
+
+            var c = new CorrespondenceEntityBuilder()
+                .WithRecipient(recipient)
+                .WithRequestedPublishTime(baseTime)
+                .WithStatus(CorrespondenceStatus.AttachmentsDownloaded, baseTime.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, baseTime.AddMinutes(2))
+                .Build();
+
+            context.Correspondences.Add(c);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetCorrespondencesForParties(
+                limit: 10,
+                from: from,
+                to: to,
+                status: null,
+                recipientIds: [recipient],
+                includeActive: true,
+                includeArchived: false,
+                searchString: string.Empty,
+                cancellationToken: CancellationToken.None);
+
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task HardDeleteCorrespondencesByIds_DeletesOnlySpecifiedIds()
+        {
+            // Arrange
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var correspondenceA = new CorrespondenceEntityBuilder().Build();
+            var correspondenceB = new CorrespondenceEntityBuilder().Build();
+            var correspondenceC = new CorrespondenceEntityBuilder().Build();
+            context.Correspondences.AddRange(correspondenceA, correspondenceB, correspondenceC);
+            await context.SaveChangesAsync();
+
+            // Act
+            var deleted = await repo.HardDeleteCorrespondencesByIds([correspondenceA.Id, correspondenceC.Id], CancellationToken.None);
+
+            // Assert
+            Assert.Equal(2, deleted);
+            Assert.Null(await context.Correspondences.FindAsync(correspondenceA.Id));
+            Assert.NotNull(await context.Correspondences.FindAsync(correspondenceB.Id));
+            Assert.Null(await context.Correspondences.FindAsync(correspondenceC.Id));
+        }
+
+        [Fact]
+        public async Task HardDeleteCorrespondencesByIds_ExceedsSafetyMargin_ThrowsArgumentException()
+        {
+            // Arrange
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
+
+            // Create 1001 correspondences (one over the safety margin of 1000)
+            var correspondences = Enumerable.Range(0, 1001)
+                .Select(_ => new CorrespondenceEntityBuilder()
+                    .WithResourceId(uniqueResourceId)
+                    .Build())
+                .ToList();
+            context.Correspondences.AddRange(correspondences);
+            await context.SaveChangesAsync();
+
+            var idsToDelete = correspondences.Select(c => c.Id).ToList();
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => repo.HardDeleteCorrespondencesByIds(idsToDelete, CancellationToken.None));
+            
+            Assert.Contains("1001", exception.Message);
+            Assert.Contains("Too many correspondences to delete", exception.Message);
+            
+            // Verify no correspondences were deleted by counting only our test data
+            var remainingCount = await context.Correspondences
+                .Where(c => c.ResourceId == uniqueResourceId)
+                .CountAsync();
+            Assert.Equal(1001, remainingCount);
+        }
+
+        [Fact]
+        public async Task HardDeleteCorrespondencesByIds_ExactlyAtSafetyMargin_DeletesSuccessfully()
+        {
+            // Arrange
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
+
+            // Create 1000 correspondences (at the safety margin limit)
+            var correspondences = Enumerable.Range(0, 1000)
+                .Select(_ => new CorrespondenceEntityBuilder()
+                    .WithResourceId(uniqueResourceId)
+                    .Build())
+                .ToList();
+            context.Correspondences.AddRange(correspondences);
+            await context.SaveChangesAsync();
+
+            var idsToDelete = correspondences.Select(c => c.Id).ToList();
+
+            // Act
+            var deleted = await repo.HardDeleteCorrespondencesByIds(idsToDelete, CancellationToken.None);
+
+            // Assert
+            Assert.Equal(1000, deleted);
+            // Verify all our test correspondences were deleted
+            var remainingCount = await context.Correspondences
+                .Where(c => c.ResourceId == uniqueResourceId)
+                .CountAsync();
+            Assert.Equal(0, remainingCount);
+        }
+
+        [Fact]
+        public async Task GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus_FiltersOutInvalidCandidates()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var baseTime = new DateTime(2010, 1, 1, 0, 0, 0);
+
+            var valid = new CorrespondenceEntityBuilder()
+                .WithRequestedPublishTime(baseTime)
+                .WithAltinn2CorrespondenceId(5001)
+                .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(1))
+                .Build();
+
+            var migrating = new CorrespondenceEntityBuilder()
+                .WithRequestedPublishTime(baseTime.AddMinutes(1))
+                .WithAltinn2CorrespondenceId(5002)
+                .WithIsMigrating(true)
+                .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(2))
+                .Build();
+
+            var notConfirmed = new CorrespondenceEntityBuilder()
+                .WithRequestedPublishTime(baseTime.AddMinutes(2))
+                .WithAltinn2CorrespondenceId(5003)
+                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(2))
+                .Build();
+
+            var noAltinn2Id = new CorrespondenceEntityBuilder()
+                .WithRequestedPublishTime(baseTime.AddMinutes(3))
+                .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(3))
+                .Build();
+
+            context.Correspondences.AddRange(valid, migrating, notConfirmed, noAltinn2Id);
+            await context.SaveChangesAsync();
+
+            var windowIds = new List<Guid> { valid.Id, migrating.Id, notConfirmed.Id, noAltinn2Id.Id };
+
+            var result = await repo.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(windowIds, CancellationToken.None);
+
+            Assert.Single(result);
+            Assert.Equal(valid.Id, result[0].Id);
         }
     }
 }

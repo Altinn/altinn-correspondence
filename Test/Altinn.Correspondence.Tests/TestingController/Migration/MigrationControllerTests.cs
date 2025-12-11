@@ -379,10 +379,6 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
         CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
         Assert.NotNull(resultObj.DialogId);
-        
-        // Verify that correspondence has IsMigrating set to false, which means we can retrieve it through GetOverview.
-        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
-        Assert.True(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
     }
 
     [Fact]
@@ -560,6 +556,30 @@ public class MigrationControllerTests : MigrationTestBase
         // Assert
         Assert.NotNull(correspondence);
         Assert.True(correspondence.IsMigrating);
+    }
+
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_PublishedOnCorrespondenceData_IsPersistedOnEntity()
+    {
+        // Arrange
+        var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .Build();
+        var publishedEvent = migrateCorrespondenceExt.EventHistory.FirstOrDefault(statusEvent => statusEvent.Status == MigrateCorrespondenceStatusExt.Published);
+
+        // Act
+        var initializeResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        Assert.True(initializeResponse.IsSuccessStatusCode, await initializeResponse.Content.ReadAsStringAsync());
+        var result = await initializeResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
+
+        using var scope = _factory.Services.CreateScope();
+        var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(result.CorrespondenceId, true, true, false, CancellationToken.None, true);
+
+        // Assert
+        Assert.NotNull(correspondence);
+        Assert.Equal(publishedEvent.StatusChanged, correspondence.Published);
     }
 
     [Fact]

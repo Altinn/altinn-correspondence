@@ -37,7 +37,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   }
   sku: prodLikeEnvironment
     ? {
-        name: 'Standard_D8ads_v5'
+        name: 'Standard_D32ads_v5'
         tier: 'GeneralPurpose'
       }
     : {
@@ -145,12 +145,62 @@ resource parallelTupleCost 'Microsoft.DBforPostgreSQL/flexibleServers/configurat
   }
 }
 
-resource sessionReplicationRole 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
-  name: 'session_replication_role'
+resource autovacuumVacuumScaleFactor 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'autovacuum_vacuum_scale_factor'
   parent: postgres
   dependsOn: [database, parallelTupleCost]
   properties: {
-    value: 'Replica'
+    value: '0.01'
+    source: 'user-override'
+  }
+}
+
+resource autovacuumVacuumThreshold 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'autovacuum_vacuum_threshold'
+  parent: postgres
+  dependsOn: [database, autovacuumVacuumScaleFactor]
+  properties: {
+    value: '5000'
+    source: 'user-override'
+  }
+}
+
+resource autovacuumAnalyzeScaleFactor 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'autovacuum_analyze_scale_factor'
+  parent: postgres
+  dependsOn: [database, autovacuumVacuumThreshold]
+  properties: {
+    value: '0.005'
+    source: 'user-override'
+  }
+}
+
+resource autovacuumNaptime 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'autovacuum_naptime'
+  parent: postgres
+  dependsOn: [database, autovacuumAnalyzeScaleFactor]
+  properties: {
+    value: '10'
+    source: 'user-override'
+  }
+}
+
+resource autovacuumMaxWorkers 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'autovacuum_max_workers'
+  parent: postgres
+  dependsOn: [database, autovacuumNaptime]
+  properties: {
+    value: '6'
+    source: 'user-override'
+  }
+}
+
+resource sessionReplicationRole 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'session_replication_role'
+  parent: postgres
+  dependsOn: [database, autovacuumMaxWorkers]
+  properties: {
+    value: 'Origin'
     source: 'user-override'
   }
 }
@@ -220,7 +270,7 @@ resource logLinePrefix 'Microsoft.DBforPostgreSQL/flexibleServers/configurations
 resource pgStatStatementsTrack 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'pg_stat_statements.track'
   parent: postgres
-  dependsOn: [database, sharedPreloadLibraries]
+  dependsOn: [database, logLinePrefix]
   properties: {
     value: 'all'
     source: 'user-override'

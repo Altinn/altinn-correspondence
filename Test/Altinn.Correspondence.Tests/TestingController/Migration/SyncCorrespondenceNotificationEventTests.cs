@@ -103,11 +103,11 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceNotificationEventUrl, request);
 
         // Assert
-        Assert.True(response.IsSuccessStatusCode);
+        Assert.True(response.IsSuccessStatusCode, "Response was not successful with code (" + response.StatusCode + "): " + await response.Content.ReadAsStringAsync());
 
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
-        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);        
+        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
     }
 
     [Fact]
@@ -149,8 +149,6 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
 
         // Assert
         Assert.True(response.IsSuccessStatusCode);
-
-        // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
         Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
     }
@@ -199,7 +197,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
     private async Task<CorrespondenceDetailsExt> GetCorrespondenceDetailsAsync(Guid correspondenceId)
     {
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
-        Assert.True(getCorrespondenceDetailsResponse.IsSuccessStatusCode);
+        Assert.True(getCorrespondenceDetailsResponse.IsSuccessStatusCode, "Response was not successful with code (" + getCorrespondenceDetailsResponse.StatusCode + "): " + await getCorrespondenceDetailsResponse.Content.ReadAsStringAsync());
         return await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
     }
 }

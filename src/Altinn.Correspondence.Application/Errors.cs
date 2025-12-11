@@ -53,8 +53,13 @@ public static class CorrespondenceErrors
     public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the party of the dialog of the transmission", HttpStatusCode.BadRequest);
     public static Error IdempotencyKeyNotAllowedWithMultipleRecipients = new Error(1047, "Idempotency key is not supported for requests with multiple recipients", HttpStatusCode.BadRequest);
     public static Error InvalidCorrespondenceDialogId = new Error(1048, "DialogId must be a valid non-empty GUID", HttpStatusCode.BadRequest);
-    public static Error DialogNotFoundWithDialogId = new Error(1049, "Could not find dialog in Dialogporten with the given DialogId", HttpStatusCode.BadRequest);
-    public static Error AttachmentExpirationTooSoonAfterRequestedPublishTime = new Error(1050, "The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence", HttpStatusCode.BadRequest);
+
+    public static Error AttachmentExpirationTooSoonAfterRequestedPublishTime = new Error(1049, "The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence", HttpStatusCode.BadRequest);
+    public static Error InvalidServiceOwner = new Error(1050, "The service owner of a transmission can not differ from the service owner of the dialog", HttpStatusCode.BadRequest);
+    public static Error TransmissionNotAllowedWithGuiActions = new Error(1051, "Correspondences with GUI actions (ReplyOptions or IsConfirmationNeeded) cannot be sent as transmissions", HttpStatusCode.BadRequest);
+    public static Error MultipleDialogportenTransmissionTypeExternalReferences = new Error(1052, "Only one DialogportenTransmissionType external reference is allowed", HttpStatusCode.BadRequest);
+    public static Error DialogportenTransmissionTypeRequiresDialogId = new Error(1053, "DialogportenTransmissionType external reference requires a DialogportenDialogId external reference", HttpStatusCode.BadRequest);
+    public static Error DialogportenDialogIdNotFound = new Error(1054, "Dialogporten dialog with the given id was not found", HttpStatusCode.NotFound);
 }
 
 public static class AttachmentErrors
@@ -97,6 +102,8 @@ public static class NotificationErrors
     public static Error NotificationDetailsNotFound = new Error(3021, "Cannot retrieve notification details from Altinn Notification API", HttpStatusCode.NotFound);
     public static Error OverrideRegisteredContactInformationRequiresCustomRecipients = new Error(3022, "OverrideRegisteredContactInformation flag can only be used when CustomRecipients is provided", HttpStatusCode.BadRequest);
     public static Error InvalidNotificationTemplate = new Error(3023, "Invalid notification template", HttpStatusCode.BadRequest);
+    public static Error MissingEmailAndSmsContent = new Error(3024, "Email body, subject and SMS body must be provided when sending email and SMS notifications", HttpStatusCode.BadRequest);
+    public static Error MissingEmailAndSmsReminderContent = new Error(3025, "Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications", HttpStatusCode.BadRequest);
 }
 public static class AuthorizationErrors
 {

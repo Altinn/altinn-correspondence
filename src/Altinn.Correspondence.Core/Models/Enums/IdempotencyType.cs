@@ -14,5 +14,10 @@ public enum IdempotencyType
     /// <summary>
     /// Indicates that this is a idempotency key for a correspondence
     /// </summary>
-    Correspondence = 1
+    Correspondence = 1,
+
+    /// <summary>
+    /// Indicates that this is a idempotency key for a notification order
+    /// </summary>
+    NotificationOrder = 2,
 } 

@@ -1,0 +1,20 @@
+meta {
+  name: Overview
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviceowner_altinn_token}}
+}
+
+script:post-response {
+  const responseData = res.body;
+  bru.setVar("attachment_id", responseData.content.attachments[0].id);
+}
