@@ -483,8 +483,29 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
+        var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
+            correspondence.Id,
+            null, // No attachment for purged activity
+            null,
+            StatusAction.PurgedByRecipient,
+            IdempotencyType.DialogportenActivity,
+            cancellationToken);
+
+        if (existingIdempotencyKey is null)
+        {
+            existingIdempotencyKey = new IdempotencyKeyEntity
+            {
+                Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
+                CorrespondenceId = correspondence.Id,
+                AttachmentId = null,
+                StatusAction = StatusAction.Confirmed,
+                IdempotencyType = IdempotencyType.DialogportenActivity
+            };
+            await _idempotencyKeyRepository.CreateAsync(existingIdempotencyKey, cancellationToken);
+        }
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogDeleted, partyUrn, activityTimestamp);
+        createDialogActivityRequest.Id = existingIdempotencyKey.Id.ToString(); 
         if (actorType != DialogportenActorType.ServiceOwner)
         {
             createDialogActivityRequest.PerformedBy.ActorName = actorName;

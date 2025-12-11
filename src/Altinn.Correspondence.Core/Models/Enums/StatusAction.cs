@@ -27,4 +27,9 @@ public enum StatusAction
     /// Indicates that an attachment download has started
     /// </summary>
     AttachmentDownloaded = 9,
-} 
+
+    /// <summary>
+    /// Indicates that a correspondence has been purged by the recipient
+    /// </summary>
+    PurgedByRecipient = 11,
+}
