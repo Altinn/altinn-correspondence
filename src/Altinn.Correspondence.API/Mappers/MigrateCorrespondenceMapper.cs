@@ -47,14 +47,28 @@ internal static class MigrateCorrespondenceMapper
             PartyId = migrateCorrespondenceExt.PartyId,
             Published = publishedTime
         };
-        
+
+        var deleteEvents = MapCorrespondenceStatusEventsToDeleteEvents(migrateCorrespondenceExt.EventHistory);
+
         return new MigrateCorrespondenceRequest()
         {
             CorrespondenceEntity = correspondence,
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
             ExistingAttachments = migrateCorrespondenceExt.CorrespondenceData.ExistingAttachments ?? new List<Guid>(),
-            MakeAvailable = migrateCorrespondenceExt.MakeAvailable
+            MakeAvailable = migrateCorrespondenceExt.MakeAvailable,
+            DeleteEventEntities = deleteEvents
         };
+    }
+
+    private static List<CorrespondenceDeleteEventEntity> MapCorrespondenceStatusEventsToDeleteEvents(List<MigrateCorrespondenceStatusEventExt> eventHistory)
+    {
+        return eventHistory
+            .Where(e => e.Status is MigrateCorrespondenceStatusExt.SoftDeletedByRecipient 
+            or MigrateCorrespondenceStatusExt.RestoredByRecipient 
+            or MigrateCorrespondenceStatusExt.PurgedByRecipient // Should never occur as we do not migrate hard deletes
+            or MigrateCorrespondenceStatusExt.PurgedByAltinn)  // Should never occur as we do not migrate hard deletes
+            .Select(MapCorrespondenceStatusEventToDeleteEvent)
+            .ToList();
     }
 
     private static List<CorrespondenceStatusEntity> MapMigrateCorrespondenceStatusesExtToInternal(List<MigrateCorrespondenceStatusEventExt> eventHistory)

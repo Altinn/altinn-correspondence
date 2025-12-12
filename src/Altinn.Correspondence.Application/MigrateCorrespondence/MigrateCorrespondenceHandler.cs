@@ -47,6 +47,18 @@ public class MigrateCorrespondenceHandler(
         try
         {
             var correspondence = await correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
+
+            // Save any delete events associated with the correspondence
+            if (request.DeleteEventEntities != null && request.DeleteEventEntities.Any())
+            {
+                foreach(var deleteEvent in request.DeleteEventEntities)
+                {
+                    deleteEvent.CorrespondenceId = correspondence.Id;
+                    deleteEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
+                    await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEvent, cancellationToken);
+                }
+            }
+
             string dialogId = "";
             if (request.MakeAvailable)
             {
