@@ -2,12 +2,13 @@
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Tests.Factories;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
-using Hangfire.Storage;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -32,6 +33,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockDialogportenService = new Mock<IDialogportenService>();
             _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
             _mockHostEnvironment = new Mock<IHostEnvironment>();
+            _mockHostEnvironment.Setup(x => x.EnvironmentName).Returns(Environments.Development);
             _mockLogger = new Mock<ILogger<MigrateCorrespondenceHandler>>();
             var mockCache = new Mock<IHybridCacheWrapper>();
 
@@ -451,6 +453,294 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Contains("Test exception", response.Statuses[0].Error);
         }
 
+        [Fact]
+        public async Task ProcessAndMakeAvailable_Read_OK()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 12345;
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithId(Guid.Empty) // Not set before creation
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)                    
+                    .WithStatus(CorrespondenceStatus.Published)
+                    .WithStatus(CorrespondenceStatus.Read)                    
+                    .Build();
+
+            var correspondenceMockReturn = new CorrespondenceEntity
+            {
+                Id = correspondenceId,
+                ResourceId = correspondenceRequestObject.ResourceId,
+                Recipient = correspondenceRequestObject.Recipient,
+                Sender = correspondenceRequestObject.Sender,
+                SendersReference = correspondenceRequestObject.SendersReference,
+                RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
+                Statuses = correspondenceRequestObject.Statuses,
+                ExternalReferences = correspondenceRequestObject.ExternalReferences,
+                Created = correspondenceRequestObject.Created,
+                Altinn2CorrespondenceId = correspondenceRequestObject.Altinn2CorrespondenceId
+            };
+
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                MakeAvailable = true
+            };
+
+            _mockCorrespondenceRepository.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondenceMockReturn);
+            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(
+                correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .ReturnsAsync(correspondenceMockReturn);
+
+            _mockDialogportenService.Setup(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
+                correspondenceId, It.IsAny<CorrespondenceEntity>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .ReturnsAsync($"dialog-{correspondenceId}");
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+
+            _mockCorrespondenceRepository.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId &&
+                c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published) &&
+                c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read)
+            ), It.IsAny<CancellationToken>()), Times.Once);
+
+            _mockCorrespondenceRepository.Verify(x => x.AddExternalReference(
+                correspondenceId, ReferenceType.DialogportenDialogId, $"dialog-{correspondenceId}", It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.Verify(x => x.UpdateIsMigrating(
+                correspondenceId, false, It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.VerifyNoOtherCalls();
+
+            _mockDialogportenService.Verify(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
+                correspondenceId, It.IsAny<CorrespondenceEntity>(), It.IsAny<bool>(), false), Times.Once);
+            _mockDialogportenService.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task ProcessAndMakeAvailable_ReadAndSoftDeleted_OK()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 12345;
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithId(Guid.Empty) // Not set before creation
+                    .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddDays(-1))
+                    .WithStatus(CorrespondenceStatus.Read, DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(5))
+                    .Build();
+            var correspondenceMockReturn = new CorrespondenceEntity
+            {
+                Id = correspondenceId,
+                ResourceId = correspondenceRequestObject.ResourceId,
+                Recipient = correspondenceRequestObject.Recipient,
+                Sender = correspondenceRequestObject.Sender,
+                SendersReference = correspondenceRequestObject.SendersReference,
+                RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
+                Statuses = correspondenceRequestObject.Statuses,
+                ExternalReferences = correspondenceRequestObject.ExternalReferences,
+                Created = correspondenceRequestObject.Created,
+                Altinn2CorrespondenceId = correspondenceRequestObject.Altinn2CorrespondenceId
+            };
+
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                DeleteEventEntities = new List<CorrespondenceDeleteEventEntity>
+                {
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        CorrespondenceId = correspondenceId,
+                        EventOccurred = DateTimeOffset.UtcNow.AddDays(-1),
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient
+                    }
+                },
+                MakeAvailable = true
+            };
+
+            _mockCorrespondenceRepository.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondenceMockReturn);
+            _mockCorrespondenceDeleteRepository.Setup(x => x.AddDeleteEvent(It.IsAny<CorrespondenceDeleteEventEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((CorrespondenceDeleteEventEntity e, CancellationToken _) => e);
+            _mockCorrespondenceDeleteRepository.Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>
+                {
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        CorrespondenceId = correspondenceId,
+                        EventOccurred = DateTimeOffset.UtcNow.AddDays(-1),
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
+                        SyncedFromAltinn2 = DateTimeOffset.UtcNow,
+                    }
+                });
+            _mockDialogportenService.Setup(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
+                correspondenceId, It.IsAny<CorrespondenceEntity>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .ReturnsAsync($"dialog-{correspondenceId}");
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+
+            _mockCorrespondenceRepository.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId &&
+                c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published) &&
+                c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read)
+            ), It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.Verify(x => x.AddExternalReference(
+               correspondenceId, ReferenceType.DialogportenDialogId, $"dialog-{correspondenceId}", It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.Verify(x => x.UpdateIsMigrating(
+                correspondenceId, false, It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.VerifyNoOtherCalls();
+
+            _mockCorrespondenceDeleteRepository.Verify(x => x.AddDeleteEvent(It.Is<CorrespondenceDeleteEventEntity>(e =>
+                e.CorrespondenceId == correspondenceId &&
+                e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient &&
+                e.EventOccurred == request.DeleteEventEntities[0].EventOccurred &&
+                e.SyncedFromAltinn2 != null
+            ), It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceDeleteRepository.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.VerifyNoOtherCalls();
+
+            _mockDialogportenService.Verify(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
+                correspondenceId, It.IsAny<CorrespondenceEntity>(), It.IsAny<bool>(), true), Times.Once);
+            _mockDialogportenService.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task ProcessAndMakeAvailable_SoftDeletedAndRestoredMultiple_OK()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 12345;
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithId(Guid.Empty) // Not set before creation
+                    .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddDays(-1))
+                    .WithStatus(CorrespondenceStatus.Read, DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(5))
+                    .Build();
+            var correspondenceMockReturn = new CorrespondenceEntity
+            {
+                Id = correspondenceId,
+                ResourceId = correspondenceRequestObject.ResourceId,
+                Recipient = correspondenceRequestObject.Recipient,
+                Sender = correspondenceRequestObject.Sender,
+                SendersReference = correspondenceRequestObject.SendersReference,
+                RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
+                Statuses = correspondenceRequestObject.Statuses,
+                ExternalReferences = correspondenceRequestObject.ExternalReferences,
+                Created = correspondenceRequestObject.Created,
+                Altinn2CorrespondenceId = correspondenceRequestObject.Altinn2CorrespondenceId
+            };
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                DeleteEventEntities = new List<CorrespondenceDeleteEventEntity>
+                {
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventOccurred = DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(6),
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient
+                    },
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventOccurred = DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(7),
+                        EventType = CorrespondenceDeleteEventType.RestoredByRecipient
+                    },
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventOccurred = DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(8),
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient
+                    },
+                },
+                MakeAvailable = true
+            };
+
+            _mockCorrespondenceRepository.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondenceMockReturn);
+            _mockCorrespondenceDeleteRepository.Setup(x => x.AddDeleteEvent(It.IsAny<CorrespondenceDeleteEventEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((CorrespondenceDeleteEventEntity e, CancellationToken _) => e);
+            _mockCorrespondenceDeleteRepository.Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>
+                {
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        CorrespondenceId = correspondenceId,
+                        EventOccurred = DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(6),
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
+                        SyncedFromAltinn2 = DateTimeOffset.UtcNow,
+                    },
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        CorrespondenceId = correspondenceId,
+                        EventOccurred = DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(7),
+                        EventType = CorrespondenceDeleteEventType.RestoredByRecipient,
+                        SyncedFromAltinn2 = DateTimeOffset.UtcNow,
+                    },
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        CorrespondenceId = correspondenceId,
+                        EventOccurred = DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(8),
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
+                        SyncedFromAltinn2 = DateTimeOffset.UtcNow,
+                    },
+                });
+            _mockDialogportenService.Setup(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
+                correspondenceId, It.IsAny<CorrespondenceEntity>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .ReturnsAsync($"dialog-{correspondenceId}");
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+
+            _mockCorrespondenceRepository.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId &&
+                c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published) &&
+                c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read)
+            ), It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.Verify(x => x.AddExternalReference(
+                 correspondenceId, ReferenceType.DialogportenDialogId, $"dialog-{correspondenceId}", It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.Verify(x => x.UpdateIsMigrating(
+                correspondenceId, false, It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceRepository.VerifyNoOtherCalls();
+
+            _mockCorrespondenceDeleteRepository.Verify(x => x.AddDeleteEvent(It.Is<CorrespondenceDeleteEventEntity>(e =>
+                e.CorrespondenceId == correspondenceId &&
+                e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient &&
+                e.EventOccurred == request.DeleteEventEntities[0].EventOccurred &&
+                e.SyncedFromAltinn2 != null
+            ), It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceDeleteRepository.Verify(x => x.AddDeleteEvent(It.Is<CorrespondenceDeleteEventEntity>(e =>
+                e.CorrespondenceId == correspondenceId &&
+                e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient &&
+                e.EventOccurred == request.DeleteEventEntities[1].EventOccurred &&
+                e.SyncedFromAltinn2 != null
+            ), It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceDeleteRepository.Verify(x => x.AddDeleteEvent(It.Is<CorrespondenceDeleteEventEntity>(e =>
+                e.CorrespondenceId == correspondenceId &&
+                e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient &&
+                e.EventOccurred == request.DeleteEventEntities[2].EventOccurred &&
+                e.SyncedFromAltinn2 != null
+            ), It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceDeleteRepository.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _mockCorrespondenceDeleteRepository.VerifyNoOtherCalls();
+
+            _mockDialogportenService.Verify(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
+                correspondenceId, It.IsAny<CorrespondenceEntity>(), It.IsAny<bool>(), true), Times.Once);
+            _mockDialogportenService.VerifyNoOtherCalls();
+        }
+
         private static CorrespondenceEntity CreateMockCorrespondence(Guid id)
         {
             return new CorrespondenceEntity
@@ -465,6 +755,17 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 ExternalReferences = new List<ExternalReferenceEntity>(),
                 Created = DateTimeOffset.UtcNow
             };
+        }
+
+        private static CorrespondenceEntity CreateMockMigratedCorrespondence(Guid correspondenceId, int altinn2CorrespondenceId)
+        {
+            return new CorrespondenceEntityBuilder()
+                .WithResourceId("TTD-migratedCorrespondence-1-1")
+                .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                .WithId(correspondenceId)
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Read)                
+                .Build();
         }
     }
 }
