@@ -58,6 +58,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _attachmentStatusRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
+                _dialogPortenServiceMock.Object,
                 _correspondenceRepositoryMock.Object);
             _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
 
