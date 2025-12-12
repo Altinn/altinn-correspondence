@@ -40,11 +40,22 @@ param maintenanceAdGroupName string
 
 var prodLikeEnvironment = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
+var standardTags = {
+  finops_environment: environment
+  finops_product: 'melding'
+  finops_serviceownercode: 'digdir'
+  finops_serviceownerorgnr: '991825827'
+  repository: 'https://github.com/Altinn/altinn-correspondence'
+  env: environment
+  product: 'melding'
+  org: 'digdir'
+}
 
 // Create resource groups
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
-  name: '${namePrefix}-rg'
+  name: resourceGroupName
   location: location
+  tags: standardTags
 }
 
 module environmentKeyVault '../modules/keyvault/create.bicep' = {
@@ -65,6 +76,15 @@ module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerR
     keyvaultName: sourceKeyVaultName
     principalObjectId: test_client_id
     principalType: 'Group'
+  }
+}
+
+module correspondenceTagsIdentity '../modules/identity/createUserAssigned.bicep' = {
+  scope: resourceGroup
+  name: 'correspondence-tags-identity'
+  params: {
+    identityName: '${namePrefix}-correspondence-tags-mi'
+    location: location
   }
 }
 
@@ -115,12 +135,6 @@ module keyvaultSecrets '../modules/keyvault/upsertSecrets.bicep' = {
 // #####################################################
 // Create resources with dependencies to other resources
 // #####################################################
-
-var srcKeyVault = {
-  name: sourceKeyVaultName
-  subscriptionId: subscription().subscriptionId
-  resourceGroupName: resourceGroupName
-}
 
 module storageAccount '../modules/storageAccount/create.bicep' = {
   scope: resourceGroup
@@ -192,6 +206,22 @@ module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderR
   name: 'grafana-monitoring-reader'
   params: {
     grafanaPrincipalId: grafanaMonitoringPrincipalId
+  }
+}
+
+module correspondenceTagsPolicy '../modules/policy/correspondenceTagsPolicy.bicep' = {
+  name: 'correspondence-standard-tags-definition'
+  params: {
+    environment: environment
+  }
+}
+
+module correspondenceTagsAssignment '../modules/policy/assignCorrespondenceTags.bicep' = {
+  name: 'correspondence-standard-tags-assignment'
+  scope: resourceGroup
+  params: {
+    policyDefinitionId: correspondenceTagsPolicy.outputs.policyDefinitionId
+    userAssignedIdentityName: correspondenceTagsIdentity.outputs.name
   }
 }
 

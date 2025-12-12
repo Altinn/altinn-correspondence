@@ -41,9 +41,8 @@ var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
 
 var resourceGroupName = '${namePrefix}-rg'
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' existing = {
   name: resourceGroupName
-  location: location
 }
 
 module appIdentity '../../modules/identity/create.bicep' = {
