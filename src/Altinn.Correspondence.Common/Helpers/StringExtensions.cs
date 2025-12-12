@@ -57,7 +57,7 @@ public static class StringExtensions
         {
             return false;
         }
-        return identifier.StartsWith(UrnConstants.Party) || (identifier?.Length == 8 && identifier.All(character => character.IsDigit());
+        return identifier.StartsWith(UrnConstants.Party) || (identifier?.Length == 8 && identifier.All(character => character.IsDigit()));
     }
     /// <summary>
     /// Extracts the identifier from a colon-separated string that may contain a prefix.
