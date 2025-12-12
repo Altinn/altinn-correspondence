@@ -75,10 +75,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>1048: DialogId must be a valid non-empty GUID</li>
-        /// <li>1049: Could not find dialog in Dialogporten with the given DialogId</li>
-        /// <li>1050: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence</li>
+        /// <li>1049: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence (1 day in non-production environments)</li>
+        /// <li>1050: The service owner of a transmission can not differ from the service owner of the dialog</li>
         /// <li>1052: Only one DialogportenTransmissionType external reference is allowed</li>
         /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
+        /// <li>1054: Dialogporten dialog with the given id was not found</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -182,10 +183,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>1048: DialogId must be a valid non-empty GUID</li>
-        /// <li>1049: Could not find dialog in Dialogporten with the given DialogId</li>
-        /// <li>1050: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence</li>
+        /// <li>1049: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence (1 days in non-production environments)</li>
+        /// <li>1050: The service owner of a transmission can not differ from the service owner of the dialog</li>
         /// <li>1052: Only one DialogportenTransmissionType external reference is allowed</li>
         /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
+        /// <li>1054: Dialogporten dialog with the given id was not found</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
