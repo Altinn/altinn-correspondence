@@ -113,6 +113,11 @@ public class CheckNotificationDeliveryHandler(
             }
             
             logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
+            if (correspondence.StatusHasBeen(Core.Models.Enums.CorrespondenceStatus.Read))
+            {
+                logger.LogInformation("Correspondence has been read. Hence no notification was sent");
+                return true;
+            }
             throw new InvalidOperationException("Notification not yet sent. Throwing to retry.");
         }
         catch (Exception ex)
