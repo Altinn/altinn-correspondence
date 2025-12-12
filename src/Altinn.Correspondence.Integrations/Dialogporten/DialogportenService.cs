@@ -498,7 +498,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
                 CorrespondenceId = correspondence.Id,
                 AttachmentId = null,
-                StatusAction = StatusAction.Confirmed,
+                StatusAction = StatusAction.PurgedByRecipient,
                 IdempotencyType = IdempotencyType.DialogportenActivity
             };
             await _idempotencyKeyRepository.CreateAsync(existingIdempotencyKey, cancellationToken);
