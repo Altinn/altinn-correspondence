@@ -125,7 +125,7 @@ public class PurgeCorrespondenceHelper(
         foreach (var notification in notificationEntities)
         {
             if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
-            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
+            await dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp);
         }
     }
 }
