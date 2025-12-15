@@ -63,7 +63,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_Succeeds_AddsStatusPurged_PurgesBlob_PublishesEvent()
+        public async Task Process_Succeeds_AddsStatusPurgedAndPurgesBlobAndPublishesEvent()
         {
             // Arrange
             var attachmentId = Guid.NewGuid();
