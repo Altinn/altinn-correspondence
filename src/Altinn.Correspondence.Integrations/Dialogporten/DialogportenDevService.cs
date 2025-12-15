@@ -114,5 +114,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
+
+        public Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences)
+        {
+            return Task.FromResult(DialogPortenSystemLabel.Default);
+        }
     }
 }

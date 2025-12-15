@@ -505,7 +505,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         }
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogDeleted, partyUrn, activityTimestamp);
-        createDialogActivityRequest.Id = existingIdempotencyKey.Id.ToString(); 
+        createDialogActivityRequest.Id = existingIdempotencyKey.Id.ToString();
         if (actorType != DialogportenActorType.ServiceOwner)
         {
             createDialogActivityRequest.PerformedBy.ActorName = actorName;
@@ -629,7 +629,6 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         var dialogResource = dialog.ServiceResource.WithoutPrefix();
         var normalizedTransmissionResourceId = transmissionResourceId.WithoutPrefix();
-        
         var dialogResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(dialogResource, cancellationToken);
         var transmissionResourceOwner = await _resourceRegistryService.GetServiceOwnerNameOfResource(normalizedTransmissionResourceId, cancellationToken);
         if (string.IsNullOrWhiteSpace(dialogResourceOwner) || string.IsNullOrWhiteSpace(transmissionResourceOwner))
@@ -649,6 +648,23 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         {
             return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceOpened, partyUrn, activityTimestamp);
         }
+    }
+
+    public async Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences)
+    {
+        var dialogId = externalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (string.IsNullOrWhiteSpace(dialogId))
+        {
+            throw new ArgumentException("No dialog found in external references");
+        }
+
+        var dialog = await GetDialog(dialogId);
+        if (Enum.TryParse(dialog.SystemLabel, ignoreCase: true, out DialogPortenSystemLabel label))
+        {
+            return label;
+        }
+
+        return DialogPortenSystemLabel.Default;
     }
 
 
@@ -719,7 +735,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException("enduserId cannot be null or whitespace", nameof(enduserId));
         }
 
-        if((systemLabelsToAdd == null || systemLabelsToAdd.Count == 0) && (systemLabelsToRemove == null || systemLabelsToRemove.Count == 0))
+        if ((systemLabelsToAdd == null || systemLabelsToAdd.Count == 0) && (systemLabelsToRemove == null || systemLabelsToRemove.Count == 0))
         {
             throw new ArgumentException("Either systemLabelsToAdd or systemLabelsToRemove must be provided");
         }
@@ -757,7 +773,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         if (!Guid.TryParse(dialogId, out var dialogGuid))
         {
             logger.LogError("DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}", dialogId, correspondenceId);
-            throw new ArgumentException( $"DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}");
+            throw new ArgumentException($"DialogId {dialogId} is not a valid GUID for correspondence {correspondenceId}");
         }
         var request = SetDialogSystemLabelsMapper
             .CreateSetDialogSystemLabelRequest(
