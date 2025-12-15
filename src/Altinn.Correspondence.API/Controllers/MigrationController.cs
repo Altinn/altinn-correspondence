@@ -8,6 +8,7 @@ using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Helpers;
+using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -1,7 +1,7 @@
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GenerateReport;
-using Altinn.Correspondence.Helpers;
+using Altinn.Correspondence.API.Helpers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers;

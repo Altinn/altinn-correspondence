@@ -3,7 +3,7 @@ using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
 using Altinn.Correspondence.Application.CleanupPerishingDialogs;
 using Altinn.Correspondence.Application.CleanupMarkdownAndHTMLInSummary;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Helpers;
+using Altinn.Correspondence.API.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
