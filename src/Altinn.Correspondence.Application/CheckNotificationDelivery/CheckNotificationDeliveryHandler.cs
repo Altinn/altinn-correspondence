@@ -16,7 +16,7 @@ public class CheckNotificationDeliveryHandler(
     ILogger<CheckNotificationDeliveryHandler> logger)
 {
     [AutomaticRetry(
-        Attempts = 10, // initial run + 4 retries
+        Attempts = 10,
         DelaysInSeconds = new[] 
         {
             60,
