@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -14,6 +15,21 @@ public class CheckNotificationDeliveryHandler(
     IDialogportenService dialogportenService,
     ILogger<CheckNotificationDeliveryHandler> logger)
 {
+    [AutomaticRetry(
+        Attempts = 10, // initial run + 4 retries
+        DelaysInSeconds = new[] 
+        {
+            60,
+            15 * 60,
+            4 * 60 * 60,
+            8 * 60 * 60,
+            12 * 60 * 60,
+            16 * 60 * 60,
+            36 * 60 * 60,
+            48 * 60 * 60,
+            72 * 60 * 60
+        }
+    )]
     public async Task<OneOf<bool, Error>> Process(Guid notificationId, CancellationToken cancellationToken)
     {
         var operationTimestamp = DateTimeOffset.UtcNow;
