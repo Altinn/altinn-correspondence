@@ -9,13 +9,9 @@ on:
         default: 'test'
         type: choice
         options:
-        - yt01
-        - test
-        - staging
-        - production
-        - at22
-        - at23
-        - at24
+        - use-case-test
+        - use-case-staging
+        - use-case-production
   workflow_call:
     inputs:
       environment:
@@ -40,6 +36,7 @@ jobs:
         mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
         mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
         mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
+        recipient: ${{ secrets.BRUKSMONSTER_RECIPIENT }}
       with:
         filename: Test/Altinn.Correspondence.UseCaseTests/case_initialize_correspondence.js
 
