@@ -382,6 +382,30 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
+    public async Task MakeCorrespondenceAvailable_SoftDeleted_OnCall()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, new DateTime(2024, 1, 25, 10, 00, 00))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        SetNotificationHistory(migrateCorrespondenceExt);
+
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+        CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
+        Assert.NotNull(resultObj.DialogId);
+    }
+
+    [Fact]
     public async Task MakeCorrespondenceAvailable_OnCall_SelfIdentified_NotMadeAvailable()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()

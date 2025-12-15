@@ -104,9 +104,8 @@ public class GetCorrespondenceOverviewHandler(
                                     SyncEventType.Read,
                                     CancellationToken.None));
                         }
+                        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller));
                     }
-                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller));
-
                 }
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();

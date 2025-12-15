@@ -12,6 +12,7 @@ public class PurgeCorrespondenceHelper(
     IAttachmentStatusRepository attachmentStatusRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
+    IDialogportenService dialogportenService,
     ICorrespondenceRepository correspondenceRepository)
 {
     public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
@@ -100,21 +101,21 @@ public class PurgeCorrespondenceHelper(
         }
         
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
-        var reportToDialogportenJob = ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp, partyUrn);
-        var reportNotificationCancelledJob = backgroundJobClient.ContinueJobWith(reportToDialogportenJob, () => ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp));
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
         {
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(reportNotificationCancelledJob, service => service.SoftDeleteDialog(dialogId.ReferenceValue));
+            await ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp, partyUrn);
+            await ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp);
+            await dialogportenService.SoftDeleteDialog(dialogId.ReferenceValue);
         }
         return correspondence.Id;
     }
 
-    public string ReportActivityToDialogporten(bool isSender, Guid correspondenceId, DateTimeOffset operationTimestamp, string? partyUrn)
+    public async Task ReportActivityToDialogporten(bool isSender, Guid correspondenceId, DateTimeOffset operationTimestamp, string? partyUrn)
     {
         var actorType = isSender ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
         var actorName = isSender ? "avsender" : "mottaker";
-        return backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName, operationTimestamp, partyUrn));
+        await dialogportenService.CreateCorrespondencePurgedActivity(correspondenceId, actorType, actorName, operationTimestamp, partyUrn);
     }
 
     public async Task ReportNotificationCancelledToDialogporten(Guid correspondenceId, DateTimeOffset operationTimestamp)
@@ -124,7 +125,7 @@ public class PurgeCorrespondenceHelper(
         foreach (var notification in notificationEntities)
         {
             if (notification.RequestedSendTime <= DateTimeOffset.UtcNow) continue; // Notification has already been sent
-            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp));
+            await dialogportenService.CreateInformationActivity(notification.CorrespondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCancelled, operationTimestamp);
         }
     }
 }

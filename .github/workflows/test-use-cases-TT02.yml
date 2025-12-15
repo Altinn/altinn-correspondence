@@ -9,5 +9,5 @@ jobs:
     name: Run use case tests on staging
     uses: ./.github/workflows/test-use-cases.yml
     with:
-      environment: staging
+      environment: use-case-staging
     secrets: inherit

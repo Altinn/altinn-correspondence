@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -14,6 +15,21 @@ public class CheckNotificationDeliveryHandler(
     IDialogportenService dialogportenService,
     ILogger<CheckNotificationDeliveryHandler> logger)
 {
+    [AutomaticRetry(
+        Attempts = 10,
+        DelaysInSeconds = new[] 
+        {
+            60,
+            15 * 60,
+            4 * 60 * 60,
+            8 * 60 * 60,
+            12 * 60 * 60,
+            16 * 60 * 60,
+            36 * 60 * 60,
+            48 * 60 * 60,
+            72 * 60 * 60
+        }
+    )]
     public async Task<OneOf<bool, Error>> Process(Guid notificationId, CancellationToken cancellationToken)
     {
         var operationTimestamp = DateTimeOffset.UtcNow;
@@ -113,6 +129,11 @@ public class CheckNotificationDeliveryHandler(
             }
             
             logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
+            if (correspondence.StatusHasBeen(Core.Models.Enums.CorrespondenceStatus.Read))
+            {
+                logger.LogInformation("Correspondence has been read. Hence no notification was sent");
+                return true;
+            }
             throw new InvalidOperationException("Notification not yet sent. Throwing to retry.");
         }
         catch (Exception ex)
