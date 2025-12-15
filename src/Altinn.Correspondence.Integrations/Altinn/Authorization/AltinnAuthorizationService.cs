@@ -179,6 +179,11 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequest(user, resourceId, party, correspondenceId, actionIds);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
+        if (!validationResult)
+        {
+            _logger.LogWarning("Authorization response validation failed for party {party} and resource {resourceId} with pdp request: {pdpRequest}", party.SanitizeForLogging(), resourceId.SanitizeForLogging(), JsonSerializer.Serialize(jsonRequest.Request));
+            return false;
+        }
         return validationResult;
     }
 
