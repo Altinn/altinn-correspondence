@@ -1,7 +1,8 @@
-﻿using System.Globalization;
+﻿using Altinn.Correspondence.Common.Constants;
+using Markdig.Helpers;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Altinn.Correspondence.Common.Constants;
 namespace Altinn.Correspondence.Common.Helpers;
 public static class StringExtensions
 {
@@ -43,6 +44,20 @@ public static class StringExtensions
     public static bool IsOrganizationNumber(this string identifier)
     {
         return !string.IsNullOrWhiteSpace(identifier) && OrgPattern.IsMatch(identifier);
+    }
+
+    /// <summary>
+    /// Checks if the provided string is a valid party id format.
+    /// </summary>
+    /// <param name="identifier">The string to validate.</param>
+    /// <returns>True if string starts with the party URN prefix, false otherwise.</returns>
+    public static bool IsPartyId(this string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return false;
+        }
+        return identifier.StartsWith(UrnConstants.Party) || (identifier?.Length == 8 && identifier.All(character => character.IsDigit()));
     }
     /// <summary>
     /// Extracts the identifier from a colon-separated string that may contain a prefix.
@@ -140,6 +155,10 @@ public static class StringExtensions
         else if (identifier.IsSocialSecurityNumberWithNoPrefix())
         {
             return $"{UrnConstants.PersonIdAttribute}:{identifier}";
+        }
+        else if (identifier.IsPartyId())
+        {
+            return $"{UrnConstants.Party}:{identifier.WithoutPrefix()}";
         }
         throw new ArgumentException("Identifier is not a valid organization number or social security number", nameof(identifier));
     }

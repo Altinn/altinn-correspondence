@@ -5,8 +5,8 @@ import { buildInitializeCorrespondenceWithNewAttachmentPayload } from './helpers
 import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.js';
 
 const baseUrl = __ENV.base_url;
+const recipient = __ENV.recipient;
 const resourceId = 'correspondence-bruksmonstertester-ressurs';
-const isProduction = (baseUrl.toLowerCase().includes('platform.altinn.no')) ? true : false;
 const ATTACHMENT_PATH = './fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';
 const ATTACHMENT_FILENAME = 'usecase-attachment.txt';
@@ -46,8 +46,6 @@ export default async function () {
 async function TC01_InitializeCorrespondenceWithAttachment() {
     const token = await getSenderAltinnToken();
     check(token, { 'Sender altinn token obtained for initialize correspondence': t => typeof t === 'string' && t.length > 0 });
-
-    const recipient = isProduction ? '16086000923' : '26818099001';
 
     const formBody = buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId, recipient, ATTACHMENT_FILE_BIN, ATTACHMENT_FILENAME, ATTACHMENT_MIME);
 

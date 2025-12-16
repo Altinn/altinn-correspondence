@@ -95,7 +95,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(true);
         }
 
-        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, DateTimeOffset activityTimestamp, params string[] tokens)
         {
             return Task.CompletedTask;
         }
@@ -113,6 +113,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         public Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp, string? partyUrn)
         {
             return Task.CompletedTask;
+        }
+
+        public Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences)
+        {
+            return Task.FromResult(DialogPortenSystemLabel.Default);
         }
     }
 }

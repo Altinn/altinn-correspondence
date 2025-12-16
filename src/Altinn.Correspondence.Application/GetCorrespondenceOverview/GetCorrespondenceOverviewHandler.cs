@@ -59,13 +59,14 @@ public class GetCorrespondenceOverviewHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var caller = user?.GetCallerPartyUrn();
+        var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceOverviewResponse>(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceOverviewResponse, Error>>(async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
@@ -82,29 +83,29 @@ public class GetCorrespondenceOverviewHandler(
                     StatusChanged = operationTimestamp,
                     PartyUuid = partyUuid
                 }, cancellationToken);
-                if (request.OnlyGettingContent && !correspondence.StatusHasBeen(CorrespondenceStatus.Read))
+                if (request.OnlyGettingContent)
                 {
-                    await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondence.Id,
-                        Status = CorrespondenceStatus.Read,
-                        StatusText = CorrespondenceStatus.Read.ToString(),
-                        StatusChanged = operationTimestamp,
-                        PartyUuid = partyUuid
-                    }, cancellationToken);
-                    if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
-                    {
-                        backgroundJobClient.Enqueue<IAltinnStorageService>(
-                            syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
-                                correspondence.Altinn2CorrespondenceId.Value,
-                                party.PartyId,
-                                operationTimestamp,
-                                SyncEventType.Read,
-                                CancellationToken.None));
+                    if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read)) { 
+                        await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                        {
+                            CorrespondenceId = correspondence.Id,
+                            Status = CorrespondenceStatus.Read,
+                            StatusText = CorrespondenceStatus.Read.ToString(),
+                            StatusChanged = operationTimestamp,
+                            PartyUuid = partyUuid
+                        }, cancellationToken);
+                        if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
+                        {
+                            backgroundJobClient.Enqueue<IAltinnStorageService>(
+                                syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
+                                    correspondence.Altinn2CorrespondenceId.Value,
+                                    party.PartyId,
+                                    operationTimestamp,
+                                    SyncEventType.Read,
+                                    CancellationToken.None));
+                        }
+                        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller));
                     }
-                    var partyUrn = user?.GetCallerPartyUrn();
-                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, partyUrn));
-
                 }
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();

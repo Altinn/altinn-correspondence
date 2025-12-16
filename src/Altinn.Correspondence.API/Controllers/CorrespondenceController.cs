@@ -14,6 +14,7 @@ using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Mappers;
@@ -93,6 +94,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>3017: Custom recipient with multiple recipients is not allowed</li>
         /// <li>3018: Custom recipient with multiple identifiers is not allowed</li>
         /// <li>3019: Custom recipient without identifier is not allowed</li>
+        /// <li>3024: Email body, subject and SMS body must be provided when sending email and SMS notifications</li>
+        /// <li>3025: Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
         /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>
@@ -206,6 +209,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>3017: Custom recipient with multiple recipients is not allowed</li>
         /// <li>3018: Custom recipient with multiple identifiers is not allowed</li>
         /// <li>3019: Custom recipient without identifier is not allowed</li>
+        /// <li>3024: Email body, subject and SMS body must be provided when sending email and SMS notifications</li>
+        /// <li>3025: Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
         /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
         /// </ul></response>

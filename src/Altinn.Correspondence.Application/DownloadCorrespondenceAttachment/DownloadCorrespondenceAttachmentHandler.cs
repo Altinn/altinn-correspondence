@@ -62,7 +62,8 @@ public class DownloadCorrespondenceAttachmentHandler(
         // Check for existing idempotency key
         var existingKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
             request.CorrespondenceId, 
-            request.AttachmentId, 
+            request.AttachmentId,
+            null, // Log once for each Correspondence x Attachment, not per recipient
             StatusAction.AttachmentDownloaded,
             IdempotencyType.DialogportenActivity,
             cancellationToken);
@@ -89,13 +90,14 @@ public class DownloadCorrespondenceAttachmentHandler(
             await _idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
         }
 
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var caller = user.GetCallerPartyUrn();
+		var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            _logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
+            _logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        _logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());
+        _logger.LogInformation("Retrieved party UUID {PartyUuid} for caller {caller}", partyUuid, caller);
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
         
         return await TransactionWithRetriesPolicy.Execute<DownloadCorrespondenceAttachmentResponse>(async (cancellationToken) =>
@@ -116,16 +118,15 @@ public class DownloadCorrespondenceAttachmentHandler(
                 _logger.LogError(e, "Error when adding status to correspondence {CorrespondenceId}", request.CorrespondenceId);
             }
 
-            var partyUrn = user?.GetCallerPartyUrn();
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => 
             dialogportenService.CreateInformationActivity(
                 request.CorrespondenceId,
                 DialogportenActorType.Recipient, 
                 DialogportenTextType.DownloadStarted,
+                caller,
                 operationTimestamp,
                 attachment.DisplayName ?? attachment.FileName,
-                request.AttachmentId.ToString(),
-                partyUrn));
+                request.AttachmentId.ToString()));
             _logger.LogInformation("Successfully processed download request for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
                 request.CorrespondenceId, request.AttachmentId);
             return new DownloadCorrespondenceAttachmentResponse()

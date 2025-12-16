@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Core.Exceptions;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -84,10 +85,11 @@ public class InitializeCorrespondencesHandler(
             return AuthorizationErrors.IncorrectResourceType;
         }
 
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var caller = user?.GetCallerPartyUrn();
+        var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
+            logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         validatedData.PartyUuid = partyUuid;
@@ -331,7 +333,7 @@ public class InitializeCorrespondencesHandler(
 
         var validatedData = validationResult.AsT0;
         logger.LogInformation("Initializing correspondences with validated data");
-        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
         {
             return await InitializeCorrespondences(
                 request,
@@ -496,7 +498,8 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.InvalidCorrespondenceDialogId;
         }
-        var validateResourceOwnerMatch = await dialogportenService.DialogValidForTransmission(dialogId, correspondence.ResourceId, cancellationToken);
+        try{
+            var validateResourceOwnerMatch = await dialogportenService.DialogValidForTransmission(dialogId, correspondence.ResourceId, cancellationToken);
         if (validateResourceOwnerMatch == false)
         {
             return CorrespondenceErrors.InvalidServiceOwner;
@@ -507,7 +510,11 @@ public class InitializeCorrespondencesHandler(
         {
             return CorrespondenceErrors.RecipientMismatch;
         }
-        else
+        }
+        catch (DialogNotFoundException)
+        {
+            return CorrespondenceErrors.DialogportenDialogIdNotFound;
+        }
         {
             return Task.CompletedTask;
         }

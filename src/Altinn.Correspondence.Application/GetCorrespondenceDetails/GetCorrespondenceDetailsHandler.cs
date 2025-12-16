@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -17,6 +18,7 @@ public class GetCorrespondenceDetailsHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IDialogportenService dialogportenService,
     NotificationMapper notificationMapper,
     ILogger<GetCorrespondenceDetailsHandler> logger) : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
 {
@@ -51,13 +53,32 @@ public class GetCorrespondenceDetailsHandler(
             logger.LogWarning("No status found for correspondence {CorrespondenceId}", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerOrganizationId(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for organization {OrganizationId}", user.GetCallerOrganizationId());
+            logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceDetailsResponse>(async (cancellationToken) =>
+        DialogPortenSystemLabel? systemLabel = null;
+        if (correspondence.ExternalReferences?.Count > 0)
+        {
+            try
+            {
+                systemLabel = await dialogportenService.GetDialogportenSystemLabel(correspondence.ExternalReferences);
+            }
+            catch (DialogNotFoundException ex)
+            {
+                logger.LogWarning(ex, "Dialog not found when resolving system label for correspondence {CorrespondenceId}", request.CorrespondenceId);
+                systemLabel = DialogPortenSystemLabel.Default;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to resolve system label for correspondence {CorrespondenceId}", request.CorrespondenceId);
+                systemLabel = DialogPortenSystemLabel.Default;
+            }
+        }
+
+        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceDetailsResponse, Error>>(async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
@@ -140,7 +161,8 @@ public class GetCorrespondenceDetailsHandler(
                 PropertyList = correspondence.PropertyList,
                 Published = correspondence.Published,
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
-                IsConfidential = correspondence.IsConfidential
+                IsConfidential = correspondence.IsConfidential,
+                SystemLabel = systemLabel
             };
         }, logger, cancellationToken);
     }
