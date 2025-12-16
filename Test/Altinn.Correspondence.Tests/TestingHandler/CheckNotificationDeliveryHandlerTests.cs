@@ -199,7 +199,7 @@ public class CheckNotificationDeliveryHandlerTests
     }
 
     [Fact]
-    public async Task Process_WhenNotificationNotDelivered_ReturnsFalse()
+    public async Task Process_WhenNotificationNotDelivered_ThrowsException()
     {
         // Arrange
         var notificationId = Guid.NewGuid();
@@ -215,7 +215,6 @@ public class CheckNotificationDeliveryHandlerTests
             Created = DateTimeOffset.UtcNow,
             RequestedSendTime = DateTimeOffset.UtcNow
         };
-
         var correspondence = new CorrespondenceEntity
         {
             Id = correspondenceId,
@@ -227,22 +226,20 @@ public class CheckNotificationDeliveryHandlerTests
             Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow
         };
-
         var notificationDetailsV2 = new NotificationStatusResponseV2
         {
             ShipmentId = shipmentId,
             Recipients = new List<RecipientStatus>
+        {
+            new()
             {
-                new()
-                {
-                    Type = NotificationType.Email,
-                    Destination = "test@example.com",
-                    Status = NotificationStatusV2.Email_New,
-                    LastUpdate = DateTimeOffset.UtcNow
-                }
+                Type = NotificationType.Email,
+                Destination = "test@example.com",
+                Status = NotificationStatusV2.Email_New,
+                LastUpdate = DateTimeOffset.UtcNow
             }
+        }
         };
-
         _notificationRepositoryMock.Setup(x => x.GetNotificationById(notificationId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(notification);
         _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
@@ -250,19 +247,16 @@ public class CheckNotificationDeliveryHandlerTests
         _notificationServiceMock.Setup(x => x.GetNotificationDetailsV2(shipmentId.ToString(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(notificationDetailsV2);
 
-        // Act
-        var result = await _handler.Process(notificationId, CancellationToken.None);
-
-        // Assert
-        Assert.True(result.IsT0);
-        Assert.False(result.AsT0);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _handler.Process(notificationId, CancellationToken.None)
+        );
 
         _notificationRepositoryMock.Verify(x => x.UpdateNotificationSent(
             It.IsAny<Guid>(),
             It.IsAny<DateTimeOffset>(),
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
-
         _dialogportenServiceMock.Verify(x => x.CreateInformationActivity(
             It.IsAny<Guid>(),
             It.IsAny<DialogportenActorType>(),

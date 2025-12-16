@@ -1,6 +1,8 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -13,6 +15,21 @@ public class CheckNotificationDeliveryHandler(
     IDialogportenService dialogportenService,
     ILogger<CheckNotificationDeliveryHandler> logger)
 {
+    [AutomaticRetry(
+        Attempts = 10,
+        DelaysInSeconds = new[] 
+        {
+            60,
+            15 * 60,
+            4 * 60 * 60,
+            8 * 60 * 60,
+            12 * 60 * 60,
+            16 * 60 * 60,
+            36 * 60 * 60,
+            48 * 60 * 60,
+            72 * 60 * 60
+        }
+    )]
     public async Task<OneOf<bool, Error>> Process(Guid notificationId, CancellationToken cancellationToken)
     {
         var operationTimestamp = DateTimeOffset.UtcNow;
@@ -76,29 +93,48 @@ public class CheckNotificationDeliveryHandler(
                 // Mark notification as sent
                 // Notification sent time is the time of the first recipient that was sent (last update)
                 // According to Team Altinn Notification, last update reflects when we receive the delivery confirmation from the network operator.
-                await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
-                
-                // Create activity in Dialogporten for each recipient
-                // Choose the appropriate text type based on whether this is a reminder notification
-                var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
-                
-                foreach (var recipient in sentRecipients)
+                var successfullyUpdated = await TransactionWithRetriesPolicy.RetryPolicy(logger).ExecuteAndCaptureAsync<bool>(
+                    async (cancellationToken) => {
+                        logger.LogInformation("Updating notification {NotificationId} as sent at {SentTime} to {Destinations}",
+                            notificationId, sentTime, deliveryDestination);
+                        await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
+
+                        // Create activity in Dialogporten for each recipient
+                        // Choose the appropriate text type based on whether this is a reminder notification
+                        var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
+
+                        foreach (var recipient in sentRecipients)
+                        {
+                            await dialogportenService.CreateInformationActivity(
+                                correspondence.Id,
+                                DialogportenActorType.ServiceOwner,
+                                textType,
+                                operationTimestamp,
+                                recipient.Destination,
+                                recipient.Type.ToString());
+                        }
+
+                        logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
+                        return true;
+                    }, cancellationToken);
+                if (successfullyUpdated.Outcome == Polly.OutcomeType.Successful && successfullyUpdated.Result)
                 {
-                    await dialogportenService.CreateInformationActivity(
-                        correspondence.Id, 
-                        DialogportenActorType.ServiceOwner, 
-                        textType,
-                        operationTimestamp, 
-                        recipient.Destination,
-                        recipient.Type.ToString());
+                    return true;
                 }
-                
-                logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
-                return true;
+                else
+                {
+                    logger.LogError("Failed to update notification {NotificationId} as sent", notificationId);
+                    throw new Exception("Failed to update notification as sent");
+                }
             }
             
             logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
-            return false;
+            if (correspondence.StatusHasBeen(Core.Models.Enums.CorrespondenceStatus.Read))
+            {
+                logger.LogInformation("Correspondence has been read. Hence no notification was sent");
+                return true;
+            }
+            throw new InvalidOperationException("Notification not yet sent. Throwing to retry.");
         }
         catch (Exception ex)
         {

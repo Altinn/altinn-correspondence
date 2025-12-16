@@ -120,7 +120,7 @@ namespace Altinn.Correspondence.Tests.Factories
         }
 
         public MigrateCorrespondenceBuilder WithStatusEvent(MigrateCorrespondenceStatusExt status, DateTime occurred, Guid? userPartyUuid = null, Guid? userUuid = null)
-        {
+         {
             if (userPartyUuid == null)
             {
                 userPartyUuid = _defaultUserPartyUuid;

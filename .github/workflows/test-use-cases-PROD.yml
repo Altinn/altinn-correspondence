@@ -9,5 +9,5 @@ jobs:
     name: Run use case tests on production
     uses: ./.github/workflows/test-use-cases.yml
     with:
-      environment: production
+      environment: use-case-production
     secrets: inherit

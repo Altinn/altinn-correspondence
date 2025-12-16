@@ -66,7 +66,7 @@ public class GetCorrespondenceOverviewHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        return await TransactionWithRetriesPolicy.Execute<GetCorrespondenceOverviewResponse>(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceOverviewResponse, Error>>(async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
@@ -104,9 +104,8 @@ public class GetCorrespondenceOverviewHandler(
                                     SyncEventType.Read,
                                     CancellationToken.None));
                         }
+                        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller));
                     }
-                    backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller));
-
                 }
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();
