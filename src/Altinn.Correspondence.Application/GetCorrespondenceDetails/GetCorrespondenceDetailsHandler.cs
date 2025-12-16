@@ -69,10 +69,12 @@ public class GetCorrespondenceDetailsHandler(
             catch (DialogNotFoundException ex)
             {
                 logger.LogWarning(ex, "Dialog not found when resolving system label for correspondence {CorrespondenceId}", request.CorrespondenceId);
+                systemLabel = DialogPortenSystemLabel.Default;
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Failed to resolve system label for correspondence {CorrespondenceId}", request.CorrespondenceId);
+                systemLabel = DialogPortenSystemLabel.Default;
             }
         }
 

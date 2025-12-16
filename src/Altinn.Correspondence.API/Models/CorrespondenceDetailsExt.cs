@@ -24,6 +24,6 @@ namespace Altinn.Correspondence.API.Models
         /// The systemLabel of the correspondence
         /// </summary>
         [JsonPropertyName("systemLabel")]
-        public DialogPortenSystemLabel SystemLabel { get; set; }
+        public DialogPortenSystemLabel? SystemLabel { get; set; }
     }
 }

@@ -655,7 +655,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var dialogId = externalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (string.IsNullOrWhiteSpace(dialogId))
         {
-            throw new ArgumentException("No dialog found in external references");
+            throw new ArgumentException("Missing or empty dialog ID in external references");
         }
 
         var dialog = await GetDialog(dialogId);
