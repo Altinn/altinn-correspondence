@@ -27,4 +27,5 @@ public interface IDialogportenService
     Task<bool> TryRemoveMarkdownAndHtmlFromSummary(string dialogId, string newSummary, CancellationToken cancellationToken = default);
     Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default);
     Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default);
+    Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences);
 }

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -18,5 +19,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("notifications")]
         public new List<NotificationExt>? Notifications { get; set; } = new List<NotificationExt>();
+
+        /// <summary>
+        /// The systemLabel of the correspondence
+        /// </summary>
+        [JsonPropertyName("systemLabel")]
+        public DialogPortenSystemLabel? SystemLabel { get; set; }
     }
 }

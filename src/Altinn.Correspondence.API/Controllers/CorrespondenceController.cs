@@ -14,6 +14,7 @@ using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;

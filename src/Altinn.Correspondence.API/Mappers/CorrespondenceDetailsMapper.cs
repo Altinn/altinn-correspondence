@@ -1,7 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
-
+using Altinn.Correspondence.Core.Models.Enums;
 namespace Altinn.Correspondence.Mappers;
 
 internal static class CorrespondenceDetailsMapper
@@ -34,7 +34,8 @@ internal static class CorrespondenceDetailsMapper
             Published = correspondenceDetails.Published,
             IsConfirmationNeeded = correspondenceDetails.IsConfirmationNeeded,
             IsConfidential = correspondenceDetails.IsConfidential,
-            Altinn2CorrespondenceId = correspondenceDetails.Altinn2CorrespondenceId
+            Altinn2CorrespondenceId = correspondenceDetails.Altinn2CorrespondenceId,
+            SystemLabel = correspondenceDetails.SystemLabel ?? DialogPortenSystemLabel.Default
         };
         return Correspondence;
     }
