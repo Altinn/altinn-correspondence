@@ -526,7 +526,7 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 var publishTime = requestedPublishTime > DateTimeOffset.UtcNow ? requestedPublishTime : DateTimeOffset.UtcNow;
                 var minimumDays = hostEnvironment.IsProduction() ? 14 : 1;
-                var minimumExpiration = publishTime.AddDays(minimumDays);
+                var minimumExpiration = publishTime.AddMinutes(minimumDays); //TODO: Change to days when we have tested this
                 foreach (var attachment in attachments)
                 {
                     if (attachment.ExpirationTime < minimumExpiration)
