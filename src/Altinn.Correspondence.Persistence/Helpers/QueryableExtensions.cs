@@ -41,7 +41,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             {
                 return query.Where(c => (c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo)) &&
                     status.HasValue ?
-                    (!blacklistSender.Contains(status)) && status == c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status :
+                    (!blacklistSender.Contains(status)) && c.Statuses.Any(statusEntity => statusEntity.Status == status) :
                     (!blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
             }
 
@@ -49,7 +49,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             {
                 return query.Where(c => c.Recipient.Contains(orgNo) &&
                     status.HasValue ?
-                    (!blacklistRecipient.Contains(status)) && status == c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status :
+                    (!blacklistRecipient.Contains(status)) && c.Statuses.Any(statusEntity => statusEntity.Status == status) :
                     (!blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
             }
             return role switch
