@@ -178,3 +178,11 @@ runs:
         APIM_IP: ${{ inputs.APIM_IP }}
         MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
         ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ inputs.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
+
+    - name: Remediate standard tags
+      uses: ./.github/actions/remediate-standard-tags
+      with:
+        AZURE_CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
+        AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
+        AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        AZURE_NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}

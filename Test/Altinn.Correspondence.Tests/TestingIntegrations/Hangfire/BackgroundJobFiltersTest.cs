@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics;
 using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
@@ -26,21 +25,22 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
         public async Task ServerAndClientFilters_PropagateOrigin_ToChildJobs()
         {
             using var factory = new UnitWebApplicationFactory(_ => { });
-            var storage = factory.Services.GetRequiredService<JobStorage>();
             var client = factory.Services.GetRequiredService<IBackgroundJobClient>();
 
-            BackgroundJobContext.Origin = "migrate";
-            var parentId = client.Enqueue<PropagationJobs>(x => x.ParentEnqueueChild());
-            BackgroundJobContext.Origin = null;
-            OriginProbe.LastObservedOrigin = null;
+            OriginProbe.Reset();
 
-            // Wait for child job to capture context
-            var wait = Stopwatch.StartNew();
-            while (wait.Elapsed < TimeSpan.FromSeconds(30) && OriginProbe.LastObservedOrigin == null)
+            try
             {
-                await Task.Delay(100);
+                BackgroundJobContext.Origin = "migrate";
+                _ = client.Enqueue<PropagationJobs>(x => x.ParentEnqueueChild());
+
+                var observedOrigin = await OriginProbe.WaitForOriginAsync(TimeSpan.FromSeconds(30));
+                Assert.Equal("migrate", observedOrigin);
             }
-            Assert.Equal("migrate", OriginProbe.LastObservedOrigin);
+            finally
+            {
+                BackgroundJobContext.Origin = null;
+            }
         }
 
         public class PropagationJobs(IBackgroundJobClient client)
@@ -55,10 +55,45 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
 
         public static class OriginProbe
         {
+            private static readonly object _lock = new();
+            private static TaskCompletionSource<string?> _tcs = CreateTcs();
+
             public static volatile string? LastObservedOrigin;
+
+            private static TaskCompletionSource<string?> CreateTcs() =>
+                new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public static void Reset()
+            {
+                lock (_lock)
+                {
+                    LastObservedOrigin = null;
+                    _tcs = CreateTcs();
+                }
+            }
+
             public static void Capture()
             {
                 LastObservedOrigin = BackgroundJobContext.Origin;
+                // Best-effort signal; safe if already completed.
+                _tcs.TrySetResult(LastObservedOrigin);
+            }
+
+            public static async Task<string?> WaitForOriginAsync(TimeSpan timeout)
+            {
+                Task<string?> task;
+                lock (_lock)
+                {
+                    task = _tcs.Task;
+                }
+
+                var completed = await Task.WhenAny(task, Task.Delay(timeout));
+                if (completed != task)
+                {
+                    throw new TimeoutException("Timed out waiting for Hangfire child job to capture origin.");
+                }
+
+                return await task;
             }
         }
     }
