@@ -79,15 +79,6 @@ module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerR
   }
 }
 
-module correspondenceTagsIdentity '../modules/identity/createUserAssigned.bicep' = {
-  scope: resourceGroup
-  name: 'correspondence-tags-identity'
-  params: {
-    identityName: '${namePrefix}-correspondence-tags-mi'
-    location: location
-  }
-}
-
 var secrets = [
   {
     name: 'maskinporten-client-id'
@@ -221,7 +212,7 @@ module correspondenceTagsAssignment '../modules/policy/assignCorrespondenceTags.
   scope: resourceGroup
   params: {
     policyDefinitionId: correspondenceTagsPolicy.outputs.policyDefinitionId
-    userAssignedIdentityName: correspondenceTagsIdentity.outputs.name
+    userAssignedIdentityName: '${namePrefix}-correspondence-tags-mi'
   }
 }
 
