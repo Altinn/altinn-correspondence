@@ -8,6 +8,7 @@ using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
@@ -256,8 +257,5 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
             Problem
         );
     }
-    private ActionResult Problem(Error error) => Problem(
-        detail: error.Message, 
-        statusCode: (int)error.StatusCode, 
-        extensions: new Dictionary<string, object?> { { "errorCode", error.ErrorCode } });
+    private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
 }

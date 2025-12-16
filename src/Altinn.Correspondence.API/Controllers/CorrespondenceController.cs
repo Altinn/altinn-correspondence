@@ -16,6 +16,7 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Helpers;
+using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -614,9 +615,6 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
-        private ActionResult Problem(Error error) => Problem(
-            detail: error.Message,
-            statusCode: (int)error.StatusCode, 
-            extensions: new Dictionary<string, object?> { { "errorCode", error.ErrorCode } });
+        private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
     }
 }
