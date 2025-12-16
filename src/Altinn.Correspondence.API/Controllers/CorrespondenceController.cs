@@ -183,7 +183,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>1048: DialogId must be a valid non-empty GUID</li>
-        /// <li>1049: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence (1 days in non-production environments)</li>
+        /// <li>1049: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence (1 day in non-production environments)</li>
         /// <li>1050: The service owner of a transmission can not differ from the service owner of the dialog</li>
         /// <li>1052: Only one DialogportenTransmissionType external reference is allowed</li>
         /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
