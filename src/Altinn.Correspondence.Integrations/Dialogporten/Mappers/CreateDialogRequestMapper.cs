@@ -143,15 +143,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static List<SearchTag> GetSearchTagsForCorrespondence(CorrespondenceEntity correspondence, ILogger? logger)
         {
             var list = new List<SearchTag>();
-            list = AddSearchTagIfValid(list, correspondence.SendersReference, correspondence, logger);
-            list = AddSearchTagIfValid(list, correspondence.Sender, correspondence, logger);
-            list = AddSearchTagIfValid(list, correspondence.ResourceId, correspondence, logger);
-            list = AddSearchTagIfValid(list, correspondence.MessageSender, correspondence, logger);
-            foreach (var reference in correspondence.ExternalReferences)
-            {
-                list = AddSearchTagIfValid(list, reference.ReferenceType.ToString(), correspondence, logger);
-                list = AddSearchTagIfValid(list, reference.ReferenceValue.ToString(), correspondence, logger);
-            }
             foreach (var property in correspondence.PropertyList)
             {
                 list = AddSearchTagIfValid(list, property.Value, correspondence, logger);    
