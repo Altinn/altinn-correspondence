@@ -200,6 +200,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <li>2006: File has already been purged</li>
     /// <li>2007: Attachment cannot be purged as it is linked to at least one existing correspondence</li>
     /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
+    /// <li>2018: File has expired</li>
     /// </ul></response>
     /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
