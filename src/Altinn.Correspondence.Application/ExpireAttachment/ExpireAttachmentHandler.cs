@@ -29,9 +29,9 @@ public class ExpireAttachmentHandler(
             throw new InvalidOperationException($"Attachment {attachmentId} not found");
         }
 
-        if (attachment.StatusHasBeen(AttachmentStatus.Purged))
+        if (attachment.StatusHasBeen(AttachmentStatus.Purged) || attachment.StatusHasBeen(AttachmentStatus.Expired))
         {
-            logger.LogInformation("Attachment {AttachmentId} already purged; skipping expiration", attachmentId);
+            logger.LogInformation("Attachment {AttachmentId} already purged or expired; skipping expiration", attachmentId);
             return Task.CompletedTask;
         }
 
@@ -59,7 +59,7 @@ public class ExpireAttachmentHandler(
             await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
             {
                 AttachmentId = attachment.Id,
-                Status = AttachmentStatus.Purged,
+                Status = AttachmentStatus.Expired,
                 StatusText = "The attachment has expired",
                 StatusChanged = DateTimeOffset.UtcNow,
                 PartyUuid = partyUuid
@@ -68,14 +68,14 @@ public class ExpireAttachmentHandler(
             await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
 
             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
-                AltinnEventType.AttachmentPurged,
+                AltinnEventType.AttachmentExpired,
                 attachment.ResourceId,
                 attachment.Id.ToString(),
                 "Expiration",
                 attachment.Sender,
                 CancellationToken.None));
 
-            logger.LogInformation("Successfully expired attachment {AttachmentId}", attachmentId);
+            logger.LogInformation("Successfully expired attachment {AttachmentId} with filename {FileName}", attachmentId, attachment.FileName);
             return Task.CompletedTask;
         }, logger, cancellationToken);
     }

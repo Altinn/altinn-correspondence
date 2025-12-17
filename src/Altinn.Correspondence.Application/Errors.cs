@@ -84,6 +84,7 @@ public static class AttachmentErrors
     public static Error AttachedToAPublishedCorrespondence = new Error(2016, "This attachment is associated with a published correspondence and can no longer be accessed by service owner", HttpStatusCode.BadRequest);
     public static Error AttachmentExpirationPriorMinimumDaysFromNow(int minimumDays) =>
         new Error(2017, $"Attachment expirationTime must be at least {minimumDays} days from now", HttpStatusCode.BadRequest);
+    public static Error FileHasBeenExpired = new Error(2018, "File has expired and cannot be purged", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {

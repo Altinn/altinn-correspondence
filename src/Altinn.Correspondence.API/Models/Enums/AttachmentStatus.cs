@@ -28,6 +28,11 @@
         /// <summary>
         /// Attachment has failed during processing
         /// </summary>
-        Failed = 4
+        Failed = 4,
+
+        /// <summary>
+        /// Attachment has expired
+        /// </summary>
+        Expired = 5
     }
 }

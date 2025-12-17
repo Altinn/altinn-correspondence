@@ -32,7 +32,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_AttachmentAlreadyPurged_IsIdempotent()
+        public async Task Process_AttachmentAlreadyExpiredOrPurged_IsIdempotent()
         {
             // Arrange
             var attachmentId = Guid.NewGuid();
@@ -46,7 +46,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 AttachmentSize = 1,
                 Statuses = new List<AttachmentStatusEntity>
                 {
-                    new AttachmentStatusEntity { AttachmentId = attachmentId, Status = AttachmentStatus.Purged, StatusChanged = DateTimeOffset.UtcNow.AddMinutes(-1) }
+                    new AttachmentStatusEntity { AttachmentId = attachmentId, Status = AttachmentStatus.Expired, StatusChanged = DateTimeOffset.UtcNow.AddMinutes(-1) }
                 }
             };
             _attachmentRepositoryMock
@@ -63,7 +63,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_Succeeds_AddsStatusPurgedAndPurgesBlobAndPublishesEvent()
+        public async Task Process_Succeeds_AddsStatusExpiredAndPurgesBlobAndPublishesEvent()
         {
             // Arrange
             var attachmentId = Guid.NewGuid();
@@ -93,7 +93,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Assert
             Assert.True(result.IsT0);
             _attachmentStatusRepositoryMock.Verify(x => x.AddAttachmentStatus(
-                It.Is<AttachmentStatusEntity>(s => s.AttachmentId == attachmentId && s.Status == AttachmentStatus.Purged && s.StatusText == "The attachment has expired"),
+                It.Is<AttachmentStatusEntity>(s => s.AttachmentId == attachmentId && s.Status == AttachmentStatus.Expired && s.StatusText == "The attachment has expired"),
                 It.IsAny<CancellationToken>()), Times.Once);
 
             _storageRepositoryMock.Verify(x => x.PurgeAttachment(attachmentId, attachment.StorageProvider, It.IsAny<CancellationToken>()), Times.Once);
