@@ -622,6 +622,82 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
+        public async Task Available_ArchivedByEUS_OK()
+        {
+            // Arrange
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId("dialog-id-123")
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var recipient = correspondence.Recipient;
+            Guid eusOrgpartyUuid = Guid.NewGuid();
+            string eusOrgNumber = "999888777";
+            string eusOrgNumberIdentifier = $"{UrnConstants.OrganizationNumberAttribute}:{eusOrgNumber}";
+            DateTimeOffset archiveTime = DateTimeOffset.UtcNow;
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceStatusEntity>
+                {
+                    new CorrespondenceStatusEntity
+                    {
+                        Status = CorrespondenceStatus.Archived,
+                        StatusChanged = archiveTime,
+                        PartyUuid = eusOrgpartyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondence);
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(eusOrgpartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = eusOrgpartyUuid, OrgNumber = eusOrgNumber, PartyTypeName = PartyType.Organization });
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that the statuses were added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Archived &&
+                    e.StatusChanged == archiveTime &&
+                    e.PartyUuid == eusOrgpartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify background jobs Dialogporten activities            
+            VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, eusOrgNumberIdentifier);
+
+            // Verify register lookup performed
+            _altinnRegisterServiceMock.Verify(_altinnRegisterServiceMock => _altinnRegisterServiceMock.LookUpPartyByPartyUuid(eusOrgpartyUuid, It.IsAny<CancellationToken>()), Times.Once);
+            _altinnRegisterServiceMock.VerifyNoOtherCalls();
+
+            // Should not trigger any additional Dialogporten changes or background jobs
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+            _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task Available_ArchivedBySelfIdentifiedUser_NoDPUpdate()
         {
             // Arrange
