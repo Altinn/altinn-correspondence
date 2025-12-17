@@ -12,7 +12,7 @@ public static class MessageBodyHelpers
         var html = TextValidation.ConvertToHtml(input); // Normalizes to html
         var config = new Config
         {
-            UnknownTags = Config.UnknownTagsOption.Drop, 
+            UnknownTags = Config.UnknownTagsOption.Bypass, 
             GithubFlavored = true, 
             RemoveComments = true,
             SmartHrefHandling = true,
