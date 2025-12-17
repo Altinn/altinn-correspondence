@@ -7,7 +7,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-      <PackageReference Include="Altinn.Authorization.ProblemDetails" Version="4.0.1" />
       <PackageReference Include="Hangfire.Core" Version="1.8.22" />
       <PackageReference Include="libphonenumber-csharp" Version="9.0.18" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.10" />

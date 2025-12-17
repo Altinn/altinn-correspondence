@@ -1,7 +1,6 @@
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GenerateReport;
-using Altinn.Correspondence.API.Helpers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers;
@@ -133,5 +132,8 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
 
 
 
-    private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
+    private ActionResult Problem(Error error) => Problem(
+        detail: error.Message,
+        statusCode: (int)error.StatusCode,
+        extensions: new Dictionary<string, object?> { { "errorCode", error.ErrorCode } });
 }
