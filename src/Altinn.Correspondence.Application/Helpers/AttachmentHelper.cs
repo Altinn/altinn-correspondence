@@ -173,7 +173,7 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateAttachmentExpiration(AttachmentEntity attachment)
         {
             var minimumDays = hostEnvironment.IsProduction() ? 14 : 1;
-            if (attachment.ExpirationTime != null && attachment.ExpirationTime < DateTimeOffset.UtcNow.AddMinutes(minimumDays)) //TODO: Change to days when we have tested this
+            if (attachment.ExpirationTime != null && attachment.ExpirationTime < DateTimeOffset.UtcNow.AddDays(minimumDays))
             {
                 return AttachmentErrors.AttachmentExpirationPriorMinimumDaysFromNow(minimumDays);
             }
