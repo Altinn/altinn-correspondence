@@ -28,6 +28,11 @@
         /// <summary>
         /// Failed
         /// </summary>
-        Failed = 4
+        Failed = 4,
+
+        /// <summary>
+        /// Expired
+        /// </summary>
+        Expired = 5
     }
 }

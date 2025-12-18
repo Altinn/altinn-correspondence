@@ -525,12 +525,13 @@ namespace Altinn.Correspondence.Application.Helpers
             if (attachments != null && attachments.Count > 0)
             {
                 var publishTime = requestedPublishTime > DateTimeOffset.UtcNow ? requestedPublishTime : DateTimeOffset.UtcNow;
-                var minimumExpiration = publishTime.AddDays(14);
+                var minimumDays = hostEnvironment.IsProduction() ? 14 : 1;
+                var minimumExpiration = publishTime.AddDays(minimumDays);
                 foreach (var attachment in attachments)
                 {
                     if (attachment.ExpirationTime < minimumExpiration)
                     {
-                        return CorrespondenceErrors.AttachmentExpirationTooSoonAfterRequestedPublishTime;
+                        return CorrespondenceErrors.AttachmentExpirationTooSoonAfterRequestedPublishTime(minimumDays);
                     }
                 }
             }
