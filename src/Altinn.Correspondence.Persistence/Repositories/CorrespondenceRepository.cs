@@ -167,7 +167,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                                                            || status.Status == CorrespondenceStatus.Failed)
                      && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
                             correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
-                         && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged))) // No attachments can be purged
+                         && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged || statusEntity.Status == AttachmentStatus.Expired))) // No attachments can be purged or expired
                 .ToListAsync(cancellationToken);
 
             return correspondences;

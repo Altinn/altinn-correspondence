@@ -49,6 +49,13 @@ public class PurgeAttachmentHandler(
                 attachment.Statuses.FirstOrDefault(s => s.Status == AttachmentStatus.Purged)?.StatusChanged);
             return AttachmentErrors.FileHasBeenPurged;
         }
+        if (attachment.StatusHasBeen(AttachmentStatus.Expired))
+        {
+            logger.LogWarning("Attachment {AttachmentId} expired at {ExpiredTime} and cannot be purged", 
+                attachmentId,
+                attachment.Statuses.FirstOrDefault(s => s.Status == AttachmentStatus.Expired)?.StatusChanged);
+            return AttachmentErrors.FileHasBeenExpired;
+        }
         logger.LogInformation("Checking for existing correspondences for attachment {AttachmentId}", attachmentId);
         var correspondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(attachmentId, false);
         if (correspondences.Count != 0)

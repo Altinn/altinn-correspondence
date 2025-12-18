@@ -81,11 +81,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         }
 
         [Fact]
-        public async Task InitializeAttachment_WithExpirationBeforeNowPlus14_ReturnsBadRequest()
+        public async Task InitializeAttachment_WithExpirationBeforeMinimum_ReturnsBadRequest()
         {
             var attachment = new AttachmentBuilder()
                 .CreateAttachment()
-                .WithExpirationTime(DateTimeOffset.UtcNow.AddDays(13))
+                .WithExpirationTime(DateTimeOffset.UtcNow.AddHours(12))
                 .Build();
             
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
@@ -93,11 +93,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         }
 
         [Fact]
-        public async Task InitializeAttachment_WithExpirationAtOrAfterNowPlus14_ReturnsOk()
+        public async Task InitializeAttachment_WithExpirationAtOrAfterMinimum_ReturnsOk()
         {
             var attachment = new AttachmentBuilder()
                 .CreateAttachment()
-                .WithExpirationTime(DateTimeOffset.UtcNow.AddDays(15))
+                .WithExpirationTime(DateTimeOffset.UtcNow.AddDays(2))
                 .Build();
             
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);

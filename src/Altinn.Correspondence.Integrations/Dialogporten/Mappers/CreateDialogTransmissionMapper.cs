@@ -95,26 +95,36 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static List<TransmissionAttachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
             var baseTimestamp = DateTimeOffset.UtcNow;
-            return correspondence.Content?.Attachments.Select((attachment, index) => new TransmissionAttachment
+            return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
             {
-                Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
-                DisplayName = new List<TransmissionDisplayName>
+                var transmissionAttachment = new TransmissionAttachment
                 {
-                    new TransmissionDisplayName
+                    Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
+                    DisplayName = new List<TransmissionDisplayName>
                     {
-                        LanguageCode = correspondence.Content.Language,
-                        Value = attachment.Attachment.DisplayName ?? attachment.Attachment.FileName
+                        new TransmissionDisplayName
+                        {
+                            LanguageCode = correspondence.Content.Language,
+                            Value = correspondenceAttachment!.Attachment!.DisplayName ?? correspondenceAttachment!.Attachment!.FileName!
+                        }
+                    },
+                    Urls = new List<TransmissionUrl>
+                    {
+                        new TransmissionUrl
+                        {
+                            ConsumerType = "Gui",
+                            MediaType = "application/vnd.dialogporten.frontchannelembed-url;type=text/markdown",
+                            Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, correspondenceAttachment.AttachmentId)
+                        }
                     }
-                },
-                Urls = new List<TransmissionUrl>
+                };
+
+                if (correspondenceAttachment.Attachment.ExpirationTime.HasValue)
                 {
-                    new TransmissionUrl
-                    {
-                        ConsumerType = "Gui",
-                        MediaType = "application/vnd.dialogporten.frontchannelembed-url;type=text/markdown",
-                        Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, attachment.AttachmentId)
-                    }
+                    transmissionAttachment.ExpiresAt = correspondenceAttachment.Attachment.ExpirationTime.Value;
                 }
+
+                return transmissionAttachment;
             }).ToList() ?? new List<TransmissionAttachment>();
         }
         private static string GetDownloadAttachmentEndpoint(string baseUrl, Guid correspondenceId, Guid attachmentId)
