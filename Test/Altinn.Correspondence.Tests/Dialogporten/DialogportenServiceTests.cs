@@ -74,7 +74,10 @@ public class DialogportenServiceTests
         var longValue = new string('A', 100);
         var correspondence = new CorrespondenceEntityBuilder()
             .WithStatus(CorrespondenceStatus.Initialized)
-            .WithSendersReference(longValue)
+            .WithPropertyList(new Dictionary<string, string>
+            {
+                { "longValue", longValue }
+            })
             .WithId(correspondenceId)
             .Build();
         var (service, getBody) = CreateServiceWithMockedDialogPost(correspondence);

@@ -230,5 +230,11 @@ namespace Altinn.Correspondence.Tests.Factories
             }
             return this;
         }
+
+        public CorrespondenceEntityBuilder WithPropertyList(Dictionary<string, string> propertyList)
+        {
+            _correspondenceEntity.PropertyList = propertyList;
+            return this;
+        }
     }
 }
