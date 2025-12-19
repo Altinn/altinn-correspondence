@@ -17,10 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: projectA
-            secret: POLARIS_PROJECT_ID_1   # Legg til prosjekt 1
-          - name: projectB
-            secret: POLARIS_PROJECT_ID_2   # Legg til prosjekt 2
+          - name: altinn-broker
+            secret: POLARIS_PROJECT_ID_ALTINN_BROKER   # Prosjekt 1
+          - name: correspondence
+            secret: POLARIS_PROJECT_ID_CORRESPONDENCE  # Prosjekt 2
 
     steps:
       - name: Checkout code
@@ -35,7 +35,7 @@ jobs:
         run: pip install requests
 
       - name: Run extract_findings.py
-        working-directory: ./path_to_your_script_directory #Update path to script directory
+        working-directory: ./.github/tools
         env:
           POLARIS_URL: ${{ secrets.POLARIS_URL }}
           POLARIS_TOKEN: ${{ secrets.POLARIS_TOKEN }}
@@ -48,6 +48,6 @@ jobs:
       - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: "./path_to_your_script_directory/polaris_issues_${{ matrix.name }}.sarif" #Update path to script directory
+          sarif_file: ".github/tools/polaris_issues_${{ matrix.name }}.sarif"
           category: "polaris-${{ matrix.name }}"
 
