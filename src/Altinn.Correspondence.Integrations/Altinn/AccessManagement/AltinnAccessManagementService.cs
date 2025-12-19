@@ -82,8 +82,8 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
                 {
                     PartyId = p.partyId,
                     PartyUuid = p.partyUuid,
-                    OrgNumber = p.organizationNumber!,
-                    SSN = p.personId!,
+                    OrgNumber = p.organizationNumber,
+                    SSN = p.personId,
                     Resources = p.authorizedResources ?? [],
                     PartyTypeName = GetType(p.type!),
                 });
