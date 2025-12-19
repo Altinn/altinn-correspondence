@@ -85,7 +85,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
                     OrgNumber = p.organizationNumber,
                     SSN = p.personId,
                     Resources = p.authorizedResources ?? [],
-                    PartyTypeName = GetType(p.type!),
+                    PartyTypeName = GetType(p.type),
                 });
             }
             if (p.subunits != null && p.subunits.Count > 0)
@@ -130,10 +130,10 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 
                 PartyId = subunit.partyId,
                 PartyUuid = subunit.partyUuid,
-                OrgNumber = subunit.organizationNumber!,
-                SSN = subunit.personId!,
+                OrgNumber = subunit.organizationNumber,
+                SSN = subunit.personId,
                 Resources = subunit.authorizedResources ?? [],
-                PartyTypeName = GetType(subunit.type!),
+                PartyTypeName = GetType(subunit.type),
             });
             if (subunit.subunits != null && subunit.subunits.Count > 0)
             {
