@@ -433,26 +433,36 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static List<Attachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
             var baseTimestamp = DateTimeOffset.UtcNow;
-            return correspondence.Content?.Attachments.Select((attachment, index) => new Attachment
+            return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
             {
-                Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
-                DisplayName = new List<DisplayName>
+                var attachment = new Attachment
                 {
-                    new DisplayName
+                    Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
+                    DisplayName = new List<DisplayName>
                     {
-                        LanguageCode = correspondence.Content.Language,
-                        Value = attachment.Attachment.DisplayName ?? attachment.Attachment.FileName
+                        new DisplayName
+                        {
+                            LanguageCode = correspondence.Content.Language,
+                            Value = correspondenceAttachment!.Attachment!.DisplayName ?? correspondenceAttachment!.Attachment!.FileName!
+                        }
+                    },
+                    Urls = new List<DialogUrl>
+                    {
+                        new DialogUrl
+                        {
+                            ConsumerType = "Gui",
+                            MediaType = "application/octet-stream",
+                            Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, correspondenceAttachment.AttachmentId)
+                        }
                     }
-                },
-                Urls = new List<DialogUrl>
+                };
+
+                if (correspondenceAttachment.Attachment.ExpirationTime.HasValue)
                 {
-                    new DialogUrl
-                    {
-                        ConsumerType = "Gui",
-                        MediaType = "application/octet-stream",
-                        Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, attachment.AttachmentId)
-                    }
+                    attachment.ExpiresAt = correspondenceAttachment.Attachment.ExpirationTime.Value;
                 }
+
+                return attachment;
             }).ToList() ?? new List<Attachment>();
         }
     }

@@ -172,9 +172,10 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public Error? ValidateAttachmentExpiration(AttachmentEntity attachment)
         {
-            if (attachment.ExpirationTime != null && attachment.ExpirationTime < DateTimeOffset.UtcNow.AddDays(14))
+            var minimumDays = hostEnvironment.IsProduction() ? 14 : 1;
+            if (attachment.ExpirationTime != null && attachment.ExpirationTime < DateTimeOffset.UtcNow.AddDays(minimumDays))
             {
-                return AttachmentErrors.AttachmentExpirationPriorTwoWeeksFromNow;
+                return AttachmentErrors.AttachmentExpirationPriorMinimumDaysFromNow(minimumDays);
             }
             return null;
         }
