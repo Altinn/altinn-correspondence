@@ -60,7 +60,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
         };
-        var response = await _httpClient.PostAsJsonAsync($"/accessmanagement/api/v1/resourceowner/authorizedparties?includeAltinn2=true&includeRoles=false&includeAccessPackages=false&includeResources=false&includeInstances=false", request, serializerOptions, cancellationToken: cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"/accessmanagement/api/v1/resourceowner/authorizedparties?includeAltinn2=true&includeRoles=false&includeAccessPackages=false&includeInstances=false", request, serializerOptions, cancellationToken: cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(await response.Content.ReadAsStringAsync(cancellationToken));
