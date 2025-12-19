@@ -3,7 +3,6 @@ using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
 using Altinn.Correspondence.Application.CleanupPerishingDialogs;
 using Altinn.Correspondence.Application.CleanupMarkdownAndHTMLInSummary;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.API.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
@@ -202,5 +201,8 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         );
     }
 
-    private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
+    private ActionResult Problem(Error error) => Problem(
+        detail: error.Message,
+        statusCode: (int)error.StatusCode,
+        extensions: new Dictionary<string, object?> { { "errorCode", error.ErrorCode } });
 }

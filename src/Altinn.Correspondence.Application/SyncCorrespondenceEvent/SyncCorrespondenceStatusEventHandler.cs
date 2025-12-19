@@ -163,7 +163,7 @@ public class SyncCorrespondenceStatusEventHandler(
                     {
                         if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
                         {
-                            logger.LogWarning("Skipping updating dialog for Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                            logger.LogWarning("Skipping updating dialog with SystemLabel Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
                         }
                         else
                         {
@@ -172,7 +172,7 @@ public class SyncCorrespondenceStatusEventHandler(
                         break;
                     }
                 default:
-                    logger.LogWarning("Unsupported Status Event type {Status} for Correspondence {CorrespondenceId} at {StatusChanged}. The event will be ignored.", eventToExecute.Status, request.CorrespondenceId, eventToExecute.StatusChanged);
+                    logger.LogWarning("Unsupported Status Event type {Status} for Correspondence {CorrespondenceId}. The event will be ignored.", eventToExecute.Status, request.CorrespondenceId);
                     break;
             }
         }
@@ -319,18 +319,14 @@ public class SyncCorrespondenceStatusEventHandler(
         {
             var party = await altinnRegisterService.LookUpPartyByPartyUuid(uuid, cancellationToken)
                         ?? throw new ArgumentException($"Party with UUID {uuid} not found in Altinn Register.");
-            switch (party.PartyTypeName)
+            if(party.PartyTypeName != PartyType.Person)
             {
-                case PartyType.Person:
-                    enduserIdByPartyUuid[uuid] = $"{UrnConstants.PersonIdAttribute}:{party.SSN}";
-                    break;
-                case PartyType.Organization:
-                    enduserIdByPartyUuid[uuid] = $"{UrnConstants.OrganizationNumberAttribute}:{party.OrgNumber}";
-                    break;
-                default:
-                    logger.LogWarning("Party with UUID {PartyUuid} has unsupported PartyType {PartyTypeName}. Cannot map to Dialogporten enduserId.", uuid, party.PartyTypeName);
-                    break;
+                logger.LogWarning("Party with UUID {PartyUuid} has unsupported PartyType {PartyTypeName}. Cannot map to Dialogporten enduserId.", uuid, party.PartyTypeName);
             }
+            else
+            {
+                enduserIdByPartyUuid[uuid] = $"{UrnConstants.PersonIdAttribute}:{party.SSN}";
+            }   
         }
 
         return enduserIdByPartyUuid;
@@ -464,7 +460,7 @@ public class SyncCorrespondenceStatusEventHandler(
         {
             if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn) || correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
             {
-                logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to the Correspondence being purged.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
+                logger.LogWarning("Skipping updating dialog for {EventType} for Purged correspondence {CorrespondenceId} at {EventOccurred}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
             }
             else if (!enduserIdByPartyUuid.TryGetValue(deleteEventToSync.PartyUuid, out var endUserId))
             {
