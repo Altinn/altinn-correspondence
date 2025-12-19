@@ -22,4 +22,9 @@ public class AltinnAccessManagementDevService : IAltinnAccessManagementService
         };
         return Task.FromResult(new List<Party> { party });
     }
+
+    public Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, string? userId, IReadOnlyCollection<int> partyIdsFilter, CancellationToken cancellationToken = default)
+    {
+        return GetAuthorizedParties(partyToRequestFor, userId, cancellationToken);
+    }
 }

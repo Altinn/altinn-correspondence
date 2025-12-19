@@ -56,7 +56,11 @@ public class LegacyGetCorrespondencesHandler(
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, userClaimsHelper.GetUserId(), cancellationToken);
+            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(
+                userParty,
+                userClaimsHelper.GetUserId(),
+                request.InstanceOwnerPartyIdList,
+                cancellationToken);
             authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
@@ -110,7 +114,7 @@ public class LegacyGetCorrespondencesHandler(
                 var resourceOwnerParty = await altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
                 Senders.Add(new PartyInfo(orgNr, resourceOwnerParty));
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Senders.Add(new PartyInfo(orgNr, null));
             }

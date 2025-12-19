@@ -21,6 +21,8 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
     private readonly IHybridCacheWrapper _cache;
     private readonly HybridCacheEntryOptions _cacheOptions;
     private readonly int _MAX_DEPTH_FOR_SUBUNITS = 20;
+    private const string AuthorizedPartiesQuery =
+        "includeAltinn2=true&includeRoles=false&includeAccessPackages=false&includeResources=false&includeInstances=false";
 
     public AltinnAccessManagementService(
         HttpClient httpClient, 
@@ -55,12 +57,56 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 
         AuthorizedPartiesRequest request = new(partyToRequestFor, userId);
         _logger.LogInformation("PartyId {partyId} has partyType {partyType} with userId {userId}", partyToRequestFor.PartyId, request.Type, userId);
+        var parties = await FetchAuthorizedParties(request, cancellationToken);
+
+        try {
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, parties, _cache, _cacheOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error storing response content to cache when looking up authorized parties in Access Management Service.");
+        }
+
+        return parties;
+    }
+
+    public Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, string? userId, IReadOnlyCollection<int> partyIdsFilter, CancellationToken cancellationToken = default)
+    {
+        if (partyIdsFilter is null || partyIdsFilter.Count == 0)
+        {
+            return GetAuthorizedParties(partyToRequestFor, userId, cancellationToken);
+        }
+
+        // Filtered requests are expected to vary per call; skip cache to avoid unbounded cache keys.
+        AuthorizedPartiesRequest request = new(partyToRequestFor, userId)
+        {
+            PartyFilter = partyIdsFilter
+                .Distinct()
+                .Select(id => new PartyFilterItem(UrnConstants.Party, id.ToString()))
+                .ToList()
+        };
+
+        _logger.LogInformation(
+            "Requesting authorized parties with partyFilter (count={partyFilterCount}) for PartyId {partyId}",
+            request.PartyFilter.Count,
+            partyToRequestFor.PartyId);
+
+        return FetchAuthorizedParties(request, cancellationToken);
+    }
+
+    private async Task<List<Party>> FetchAuthorizedParties(AuthorizedPartiesRequest request, CancellationToken cancellationToken)
+    {
         JsonSerializerOptions serializerOptions = new()
         {
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
         };
-        var response = await _httpClient.PostAsJsonAsync($"/accessmanagement/api/v1/resourceowner/authorizedparties?includeAltinn2=true&includeRoles=false&includeAccessPackages=false&includeInstances=false", request, serializerOptions, cancellationToken: cancellationToken);
+
+        var response = await _httpClient.PostAsJsonAsync(
+            $"/accessmanagement/api/v1/resourceowner/authorizedparties?{AuthorizedPartiesQuery}",
+            request,
+            serializerOptions,
+            cancellationToken: cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(await response.Content.ReadAsStringAsync(cancellationToken));
@@ -94,15 +140,6 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             }
         }
         _logger.LogInformation("Retrieved {Count} authorized parties from Access Management Service.", parties.Count);
-
-        try {
-            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, parties, _cache, _cacheOptions, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error storing response content to cache when looking up authorized parties in Access Management Service.");
-        }
-
         return parties;
     }
     public PartyType GetType(string type)
@@ -145,8 +182,11 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 
     internal sealed class AuthorizedPartiesRequest
     {
-        public string Type { get; init; }
-        public string Value { get; init; }
+        public string Type { get; init; } = null!;
+        public string Value { get; init; } = null!;
+
+        [JsonPropertyName("partyFilter")]
+        public List<PartyFilterItem>? PartyFilter { get; init; }
 
         public AuthorizedPartiesRequest(Party party, string? userId)
         {
@@ -167,13 +207,15 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             }
         }
     }
+
+    internal sealed record PartyFilterItem(string Type, string Value);
     internal sealed class AuthroizedPartiesResponse
     {
         public Guid partyUuid { get; set; }
         public string? name { get; set; }
         public string? organizationNumber { get; set; }
         public string? personId { get; set; }
-        public required string type { get; set; }
+        public string type { get; set; } = null!;
         public int partyId { get; set; }
         public string? unitType { get; set; }
         public bool isDeleted { get; set; }
