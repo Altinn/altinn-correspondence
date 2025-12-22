@@ -60,7 +60,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
         };
-        var response = await _httpClient.PostAsJsonAsync("/accessmanagement/api/v1/resourceowner/authorizedparties?includeAltinn2=true", request, serializerOptions, cancellationToken: cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync($"/accessmanagement/api/v1/resourceowner/authorizedparties?includeAltinn2=true&includeRoles=false&includeAccessPackages=false&includeInstances=false&includeResources=false", request, serializerOptions, cancellationToken: cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(await response.Content.ReadAsStringAsync(cancellationToken));
@@ -84,7 +84,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
                     PartyUuid = p.partyUuid,
                     OrgNumber = p.organizationNumber,
                     SSN = p.personId,
-                    Resources = p.authorizedResources,
+                    Resources = p.authorizedResources ?? [],
                     PartyTypeName = GetType(p.type),
                 });
             }
@@ -132,7 +132,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
                 PartyUuid = subunit.partyUuid,
                 OrgNumber = subunit.organizationNumber,
                 SSN = subunit.personId,
-                Resources = subunit.authorizedResources,
+                Resources = subunit.authorizedResources ?? [],
                 PartyTypeName = GetType(subunit.type),
             });
             if (subunit.subunits != null && subunit.subunits.Count > 0)
@@ -169,18 +169,17 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
     }
     internal sealed class AuthroizedPartiesResponse
     {
-
         public Guid partyUuid { get; set; }
-        public string name { get; set; }
-        public string organizationNumber { get; set; }
-        public string personId { get; set; }
+        public string? name { get; set; }
+        public string? organizationNumber { get; set; }
+        public string? personId { get; set; }
         public string type { get; set; }
         public int partyId { get; set; }
-        public string unitType { get; set; }
+        public string? unitType { get; set; }
         public bool isDeleted { get; set; }
         public bool onlyHierarchyElementWithNoAccess { get; set; }
-        public List<string> authorizedResources { get; set; }
-        public List<string> authorizedRoles { get; set; }
-        public List<AuthroizedPartiesResponse> subunits { get; set; }
+        public List<string>? authorizedResources { get; set; }
+        public List<string>? authorizedRoles { get; set; }
+        public List<AuthroizedPartiesResponse>? subunits { get; set; }
     }
 }

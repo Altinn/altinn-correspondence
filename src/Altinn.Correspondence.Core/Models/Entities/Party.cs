@@ -25,22 +25,22 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// <summary>
         /// Gets the parties org number
         /// </summary>
-        public string OrgNumber { get; set; }
+        public string? OrgNumber { get; set; }
 
         /// <summary>
         /// Gets the parties ssn
         /// </summary>
-        public string SSN { get; set; }
+        public string? SSN { get; set; }
 
         /// <summary>
         /// Gets or sets the UnitType
         /// </summary>
-        public string UnitType { get; set; }
+        public string? UnitType { get; set; }
 
         /// <summary>
         /// Gets or sets the Name
         /// </summary>
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Gets or sets the IsDeleted
@@ -55,7 +55,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// <summary>
         /// Gets or sets the value of ChildParties
         /// </summary>
-        public List<Party> ChildParties { get; set; }
+        public List<Party>? ChildParties { get; set; }
 
         public List<string>? Resources { get; set; }
     }
