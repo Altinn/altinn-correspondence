@@ -242,6 +242,82 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task GetCorrespondences_WhenSearchingForPublished_IncludesCorrespondencesThatHaveBeenRead()
+        {
+            // Arrange
+            var resourceId = Guid.NewGuid().ToString();
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId(resourceId)
+                .Build();
+
+            var initialized = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initialized.CorrespondenceId;
+
+            // Ensure correspondence is published
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            // Fetch as recipient so the correspondence can be marked as read
+            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+
+            // Act - mark as read
+            var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+            readResponse.EnsureSuccessStatusCode();
+
+            // Wait until current status is Read
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_recipientClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Read);
+
+            // Search for Published correspondences
+            int status = (int)CorrespondenceStatusExt.Published;
+            var correspondences = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={status}&role={"recipient"}");
+
+            // Assert - correspondence should still be returned when filtering on Published
+            Assert.NotNull(correspondences);
+            Assert.Contains(correspondenceId, correspondences.Ids);
+        }
+
+        [Fact]
+        public async Task GetCorrespondences_WhenSearchingForPublished_IncludesCorrespondencesThatHaveBeenConfirmed()
+        {
+            // Arrange
+            var resourceId = Guid.NewGuid().ToString();
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId(resourceId)
+                .Build();
+
+            var initialized = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initialized.CorrespondenceId;
+
+            // Ensure correspondence is published
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            // Fetch as recipient so the correspondence can be marked as read / confirmed
+            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}");
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+
+            // Mark as read
+            var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+            readResponse.EnsureSuccessStatusCode();
+
+            // Mark as confirmed
+            var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
+            confirmResponse.EnsureSuccessStatusCode();
+
+            // Wait until current status is Confirmed
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_recipientClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Confirmed);
+
+            // Search for Published correspondences
+            int status = (int)CorrespondenceStatusExt.Published;
+            var correspondences = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={status}&role={"recipient"}");
+
+            // Assert - correspondence should still be returned when filtering on Published
+            Assert.NotNull(correspondences);
+            Assert.Contains(correspondenceId, correspondences.Ids);
+        }
+
+        [Fact]
         public async Task GetCorrespondences_WithoutStatusSpecified_AsReceiver_ReturnsAllExceptBlacklisted()
         {
             // Arrange
