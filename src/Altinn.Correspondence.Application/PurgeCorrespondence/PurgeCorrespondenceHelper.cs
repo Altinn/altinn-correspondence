@@ -59,7 +59,7 @@ public class PurgeCorrespondenceHelper(
         foreach (var attachment in attachments)
         {
             var canBeDeleted = await attachmentRepository.CanAttachmentBeDeleted(attachment.Id, cancellationToken);
-            if (!canBeDeleted || attachment.StatusHasBeen(AttachmentStatus.Purged))
+            if (!canBeDeleted || attachment.StatusHasBeen(AttachmentStatus.Purged) || attachment.StatusHasBeen(AttachmentStatus.Expired))
             {
                 continue;
             }
