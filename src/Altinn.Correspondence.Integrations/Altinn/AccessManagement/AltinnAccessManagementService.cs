@@ -173,7 +173,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         public string? name { get; set; }
         public string? organizationNumber { get; set; }
         public string? personId { get; set; }
-        public required string type { get; set; }
+        public string type { get; set; }
         public int partyId { get; set; }
         public string? unitType { get; set; }
         public bool isDeleted { get; set; }
