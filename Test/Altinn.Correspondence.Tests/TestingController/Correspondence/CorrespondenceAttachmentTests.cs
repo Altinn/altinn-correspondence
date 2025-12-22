@@ -199,7 +199,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var fileStream = file.OpenReadStream();
 
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
-            attachmentMetaData.ExpirationTime = DateTimeOffset.UtcNow.AddDays(13);
+            attachmentMetaData.ExpirationTime = DateTimeOffset.UtcNow.AddHours(12);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
@@ -222,7 +222,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var fileStream = file.OpenReadStream();
 
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
-            attachmentMetaData.ExpirationTime = DateTimeOffset.UtcNow.AddDays(15);
+            attachmentMetaData.ExpirationTime = DateTimeOffset.UtcNow.AddDays(2);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])

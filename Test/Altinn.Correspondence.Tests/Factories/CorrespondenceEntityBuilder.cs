@@ -159,7 +159,12 @@ namespace Altinn.Correspondence.Tests.Factories
 
         public CorrespondenceEntityBuilder WithAttachment(string attachmentName)
         {
-            _correspondenceEntity.Content.Attachments.Add(new CorrespondenceAttachmentEntity
+            return WithAttachment(attachmentName, null);
+        }
+
+        public CorrespondenceEntityBuilder WithAttachment(string attachmentName, DateTimeOffset? expirationTime)
+        {
+            _correspondenceEntity.Content!.Attachments.Add(new CorrespondenceAttachmentEntity
             {
                 Id = Guid.NewGuid(),
                 Attachment = new AttachmentEntity
@@ -169,7 +174,8 @@ namespace Altinn.Correspondence.Tests.Factories
                     FileName = attachmentName,
                     SendersReference = "test-attachment-senders-reference",
                     Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
-                    Created = _correspondenceEntity.Created
+                    Created = _correspondenceEntity.Created,
+                    ExpirationTime = expirationTime
                 }
             });
             return this;
@@ -222,6 +228,12 @@ namespace Altinn.Correspondence.Tests.Factories
             {
                 _correspondenceEntity.Content.MessageSummary = messageSummary;
             }
+            return this;
+        }
+
+        public CorrespondenceEntityBuilder WithPropertyList(Dictionary<string, string> propertyList)
+        {
+            _correspondenceEntity.PropertyList = propertyList;
             return this;
         }
     }

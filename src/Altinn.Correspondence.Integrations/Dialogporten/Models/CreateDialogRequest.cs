@@ -116,6 +116,9 @@ public class Attachment
 
     [JsonPropertyName("urls")]
     public List<DialogUrl> Urls { get; set; }
+
+    [JsonPropertyName("expiresAt")]
+    public DateTimeOffset? ExpiresAt { get; set; }
 }
 
 public class Content

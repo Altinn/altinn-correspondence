@@ -110,6 +110,26 @@ public class CreateDialogRequestMapperTests
     }
 
     [Fact]
+    public void CreateCorrespondenceDialog_WithAttachmentExpiration_SetsExpiresAtOnDialogAttachment()
+    {
+        // Arrange
+        var expirationTime = DateTimeOffset.UtcNow.AddDays(30);
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithMessageTitle("Has attachment with expiration")
+            .WithAttachment("test.txt", expirationTime)
+            .Build();
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl);
+
+        // Assert
+        Assert.NotNull(result.Attachments);
+        Assert.Single(result.Attachments);
+        Assert.Equal(expirationTime, result.Attachments[0].ExpiresAt);
+    }
+
+    [Fact]
     public void CreateCorrespondenceDialog_WithFuturePublishTime_UpdatedAtShouldBeNow()
     {
         // Arrange

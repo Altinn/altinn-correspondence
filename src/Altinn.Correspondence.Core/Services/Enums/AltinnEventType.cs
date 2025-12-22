@@ -8,6 +8,7 @@ public enum AltinnEventType
     AttachmentUploadFailed,
     AttachmentPurged,
     AttachmentDownloaded,
+    AttachmentExpired,
 
     CorrespondenceInitialized,
     CorrespondencePublished,
