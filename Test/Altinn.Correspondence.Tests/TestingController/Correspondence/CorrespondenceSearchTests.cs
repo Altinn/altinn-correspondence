@@ -235,7 +235,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var responseWithPublished = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={(int)CorrespondenceStatusExt.Published}&role={"sender"}");
 
             // Assert
-            var expectedInitialized = payload.Recipients.Count;
+            var expectedInitialized = payload.Recipients.Count + payloadPublished.Recipients.Count;
             Assert.Equal(expectedInitialized, responseWithReadyForPublish?.Ids.Count);
             var expectedPublished = payloadPublished.Recipients.Count;
             Assert.Equal(expectedPublished, responseWithPublished?.Ids.Count);
