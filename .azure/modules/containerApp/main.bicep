@@ -81,6 +81,7 @@ var probes = [
 
 var containerAppEnvVarsDefault = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
+  { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'application-insights-connection-string' }
   { name: 'DatabaseOptions__ConnectionString', secretRef: 'correspondence-ado-connection-string' }
   { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-connection-string' }
