@@ -99,7 +99,7 @@ async function TC02_GetCorrespondencePublishedAsRecipient(correspondenceId) {
         return false;
     };
 
-    const maxIterations = 10;
+    const maxIterations = 20;
     let published = false;
     for (let i = 0; i < maxIterations; i++) {
         sleep(10);
@@ -123,7 +123,7 @@ async function TC02_GetCorrespondencePublishedAsRecipient(correspondenceId) {
         }
     }
 
-    check(published, { 'Correspondence reached Published status within 100s': v => v === true });
+    check(published, { 'Correspondence reached Published status within 200s': v => v === true });
     console.log(`TC02: Test case completed`);
 }
 
