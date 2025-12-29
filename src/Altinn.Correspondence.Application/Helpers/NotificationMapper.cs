@@ -24,7 +24,7 @@ public class NotificationMapper
             LastUpdate = notification.NotificationSent.Value.UtcDateTime
         };
 
-        if (notification.NotificationChannel == Core.Models.Enums.NotificationChannel.Sms)
+        if (notification.NotificationChannel == NotificationChannel.Sms)
         {
             nsd.Sms = new SmsNotificationWithResult()
             {
@@ -52,8 +52,8 @@ public class NotificationMapper
         return new NotificationStatusResponse
         {
             SendersReference = null,
-            RequestedSendTime = notification.RequestedSendTime.DateTime,
-            Created = notification.Created.DateTime,
+            RequestedSendTime = notification.RequestedSendTime,
+            Created = notification.Created,
             Creator = correspondence?.ResourceId != null ? await _resourceRegistryService.GetServiceOwnerOrgCode(correspondence.ResourceId) : "Not found",
             IsReminder = notification.IsReminder,
             NotificationChannel = notification.NotificationChannel,
@@ -91,8 +91,8 @@ public class NotificationMapper
         {
             Id = notificationDetails.ShipmentId.ToString(),
             SendersReference = notificationDetails.SendersReference,
-            RequestedSendTime = notification.RequestedSendTime.DateTime,
-            Created = notification.Created.DateTime,
+            RequestedSendTime = notification.RequestedSendTime,
+            Created = notification.Created,
             Creator = correspondence?.ResourceId != null ? await _resourceRegistryService.GetServiceOwnerOrgCode(correspondence.ResourceId) : "Not found",
             IsReminder = notification.IsReminder,
             NotificationChannel = notification.NotificationChannel,
@@ -101,7 +101,7 @@ public class NotificationMapper
             ProcessingStatus = new StatusExt
             {
                 Status = notificationDetails.Status,
-                LastUpdate = notificationDetails.LastUpdate.DateTime
+                LastUpdate = notificationDetails.LastUpdate
             },
             NotificationsStatusDetails = new NotificationsStatusDetails
             {
@@ -114,7 +114,7 @@ public class NotificationMapper
                     SendStatus = new StatusExt
                     {
                         Status = latestEmailRecipient?.Status.ToString() ?? string.Empty,
-                        LastUpdate = latestEmailRecipient?.LastUpdate.DateTime ?? DateTime.MinValue
+                        LastUpdate = latestEmailRecipient?.LastUpdate ?? DateTimeOffset.MinValue
                     },
                     Succeeded = latestEmailRecipient?.IsSent() ?? false
                 } : null,
@@ -127,7 +127,7 @@ public class NotificationMapper
                     SendStatus = new StatusExt
                     {
                         Status = latestSmsRecipient?.Status.ToString() ?? string.Empty,
-                        LastUpdate = latestSmsRecipient?.LastUpdate.DateTime ?? DateTime.MinValue
+                        LastUpdate = latestSmsRecipient?.LastUpdate ?? DateTimeOffset.MinValue
                     },
                     Succeeded = latestSmsRecipient?.IsSent() ?? false
                 } : null,
@@ -140,7 +140,7 @@ public class NotificationMapper
                     SendStatus = new StatusExt
                     {
                         Status = r.Status.ToString(),
-                        LastUpdate = r.LastUpdate.DateTime
+                        LastUpdate = r.LastUpdate
                     },
                     Succeeded = r.IsSent()
                 })] : null,
@@ -153,7 +153,7 @@ public class NotificationMapper
                     SendStatus = new StatusExt
                     {
                         Status = r.Status.ToString(),
-                        LastUpdate = r.LastUpdate.DateTime
+                        LastUpdate = r.LastUpdate
                     },
                     Succeeded = r.IsSent() 
                 })] : null,
