@@ -21,7 +21,7 @@ public class NotificationMapper
         var sendStatus = new StatusExt()
         {
             Status = "Completed",
-            LastUpdate = notification.NotificationSent.Value.UtcDateTime
+            LastUpdate = notification.NotificationSent.Value
         };
 
         if (notification.NotificationChannel == NotificationChannel.Sms)
