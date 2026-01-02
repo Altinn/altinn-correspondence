@@ -85,6 +85,8 @@ public static class AttachmentErrors
     public static Error AttachmentExpirationPriorMinimumDaysFromNow(int minimumDays) =>
         new Error(2017, $"Attachment expirationTime must be at least {minimumDays} days from now", HttpStatusCode.BadRequest);
     public static Error FileHasBeenExpired = new Error(2018, "File has expired", HttpStatusCode.BadRequest);
+    public static Error CannotDownloadPurgedAttachment = new Error(2019, "The attachment has been purged and cannot be downloaded", HttpStatusCode.BadRequest);
+    public static Error CannotDownloadExpiredAttachment = new Error(2020, "The attachment has expired and cannot be downloaded", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {
