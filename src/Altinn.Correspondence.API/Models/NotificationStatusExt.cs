@@ -26,5 +26,5 @@ public class NotificationStatusExt
     /// The date time of when the status was last updated
     /// </summary>
     [JsonPropertyName("lastUpdate")]
-    public DateTime LastUpdate { get; set; }
+    public DateTimeOffset LastUpdate { get; set; }
 }

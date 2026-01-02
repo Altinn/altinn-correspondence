@@ -11,5 +11,5 @@ public class StatusExt
     public string? StatusDescription { get; set; }
 
     [JsonPropertyName("lastUpdate")]
-    public DateTime LastUpdate { get; set; }
+    public DateTimeOffset LastUpdate { get; set; }
 }
