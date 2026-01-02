@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Core.Models.Entities;
+using AsyncKeyedLock;
 using Azure.Core;
 using Azure.Identity;
 using Azure.ResourceManager;
@@ -17,7 +18,7 @@ namespace Altinn.Correspondence.Integrations.Azure
         private readonly AzureResourceManagerOptions _resourceManagerOptions;
         private readonly ConcurrentDictionary<string, (DateTime Created, string Token)> _sasTokens =
             new ConcurrentDictionary<string, (DateTime Created, string Token)>();
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+        private readonly AsyncKeyedLocker<string> _locker = new();
         private readonly ArmClient _armClient;
         private readonly ILogger<SasTokenService> _logger;
 
@@ -41,8 +42,7 @@ namespace Altinn.Correspondence.Integrations.Azure
 
             _sasTokens.TryRemove(storageAccountName, out _);
 
-            await _semaphore.WaitAsync();
-            try
+            using (await _locker.LockAsync(storageAccountName))
             {
                 if (_sasTokens.TryGetValue(storageAccountName, out sasToken))
                 {
@@ -55,10 +55,6 @@ namespace Altinn.Correspondence.Integrations.Azure
                 _sasTokens.TryAdd(storageAccountName, newSasToken);
 
                 return newSasToken.Token;
-            }
-            finally
-            {
-                _semaphore.Release();
             }
         }
         private async Task<string> CreateSasToken(StorageProviderEntity storageProviderEntity, string storageAccountName)

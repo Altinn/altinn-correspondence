@@ -55,7 +55,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
 
         public static class OriginProbe
         {
-            private static readonly object _lock = new();
+            private static readonly Lock _lock = new();
             private static TaskCompletionSource<string?> _tcs = CreateTcs();
 
             public static volatile string? LastObservedOrigin;

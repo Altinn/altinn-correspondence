@@ -33,7 +33,7 @@ public class DatabasePopulator
     {
         var allIds = new ConcurrentBag<string>();
         var processedCount = 0;
-        var syncLock = new object();
+        var syncLock = new Lock();
         var batches = CreateBatches(totalCount, _options.BatchSize);
         var startTime = DateTime.Now;
 
