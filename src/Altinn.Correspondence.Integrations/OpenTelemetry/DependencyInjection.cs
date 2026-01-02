@@ -65,7 +65,7 @@ public static class DependencyInjection
                 metrics.AddAzureMonitorMetricExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
 
             services.ConfigureOpenTelemetryTracerProvider(tracing =>
-                tracing.AddAzureMonitorTraceExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString).AddProcessor(new HttpDependencyNameProcessor()));
+                tracing.AddProcessor(new HttpDependencyNameProcessor()).AddAzureMonitorTraceExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
 
             services.ConfigureOpenTelemetryLoggerProvider(logging =>
                 logging.AddAzureMonitorLogExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
