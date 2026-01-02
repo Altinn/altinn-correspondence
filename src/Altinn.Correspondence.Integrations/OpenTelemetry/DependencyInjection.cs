@@ -8,6 +8,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using System.Net.Http;
 
 namespace Altinn.Correspondence.Integrations.OpenTelemetry;
 
@@ -51,7 +52,26 @@ public static class DependencyInjection
                                    !path.Contains("/migration");
                         };
                     })
-                    .AddHttpClientInstrumentation()
+                    .AddHttpClientInstrumentation(options =>
+                    {
+                        options.EnrichWithHttpRequestMessage = (activity, request) =>
+                        {
+                            var method = request.Method.ToString();
+                            var uri = request.RequestUri;
+
+                            if (uri != null)
+                            {
+                                var normalizedPath = NormalizeUrlPath(uri.PathAndQuery);
+                                var displayName = $"{method} {uri.Host}{normalizedPath}";
+
+                                // Set the operation name that Application Insights will use
+                                activity.DisplayName = displayName;
+
+                                // Also set the http.route tag for better grouping
+                                activity.SetTag("http.route", normalizedPath);
+                            }
+                        };
+                    })
                     .AddProcessor(new RequestFilterProcessor(generalSettings, new HttpContextAccessor()));
             })
             .WithLogging(logging =>
@@ -71,5 +91,22 @@ public static class DependencyInjection
         }
 
         return services;
+    }
+    private static string NormalizeUrlPath(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return path;
+
+        // Replace GUIDs/UUIDs (with or without dashes)
+        var normalized = System.Text.RegularExpressions.Regex.Replace(
+            path,
+            @"\b[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}\b",
+            "{id}",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // Remove query parameters
+        normalized = normalized.Split('?').FirstOrDefault();
+
+        return normalized;
     }
 }
