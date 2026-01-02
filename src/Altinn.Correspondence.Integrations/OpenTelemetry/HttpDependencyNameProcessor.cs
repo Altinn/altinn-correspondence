@@ -16,26 +16,35 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
         if (activity.Kind != ActivityKind.Client)
             return;
 
-        // Check if this is an HTTP dependency
         var httpMethod = activity.GetTagItem("http.method") as string
                         ?? activity.GetTagItem("http.request.method") as string;
 
         if (string.IsNullOrEmpty(httpMethod))
             return;
 
-        var url = activity.GetTagItem("url.full") as string
-                 ?? activity.GetTagItem("http.url") as string;
+        // Get the path from the tags that Azure Monitor uses
+        var httpTarget = activity.GetTagItem("http.target") as string;
+        var urlPath = activity.GetTagItem("url.path") as string;
 
-        if (string.IsNullOrEmpty(url))
+        var pathToNormalize = httpTarget ?? urlPath;
+
+        if (string.IsNullOrEmpty(pathToNormalize))
             return;
 
-        var uri = new Uri(url);
-        var normalizedPath = NormalizeUrlPath(uri.PathAndQuery);
+        var normalizedPath = NormalizeUrlPath(pathToNormalize);
 
-        // Set the display name that Azure Monitor will use as the dependency name
+        // Update the tags that Azure Monitor uses to construct the dependency name
+        if (httpTarget != null)
+        {
+            activity.SetTag("http.target", normalizedPath);
+        }
+        if (urlPath != null)
+        {
+            activity.SetTag("url.path", normalizedPath);
+        }
+
+        // Also set DisplayName and http.route
         activity.DisplayName = $"{httpMethod} {normalizedPath}";
-
-        // Optionally set http.route for additional grouping
         activity.SetTag("http.route", normalizedPath);
     }
 
