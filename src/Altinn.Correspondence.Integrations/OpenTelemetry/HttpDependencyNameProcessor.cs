@@ -16,6 +16,13 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
         if (activity.Kind != ActivityKind.Client)
             return;
 
+        // Debug: log all tags
+        Console.WriteLine($"Activity: {activity.DisplayName}");
+        foreach (var tag in activity.Tags)
+        {
+            Console.WriteLine($"  {tag.Key} = {tag.Value}");
+        }
+
         // Check if this is an HTTP request
         var httpMethod = activity.GetTagItem("http.method") as string
                         ?? activity.GetTagItem("http.request.method") as string;
