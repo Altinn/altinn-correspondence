@@ -12,39 +12,28 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
 
     public override void OnEnd(Activity activity)
     {
-        // Only process HTTP client activities
+        // Only process HTTP client activities (outgoing requests)
         if (activity.Kind != ActivityKind.Client)
             return;
 
+        // Check if this is an HTTP request
         var httpMethod = activity.GetTagItem("http.method") as string
                         ?? activity.GetTagItem("http.request.method") as string;
 
         if (string.IsNullOrEmpty(httpMethod))
             return;
 
-        // Get the path from the tags that Azure Monitor uses
-        var httpTarget = activity.GetTagItem("http.target") as string;
-        var urlPath = activity.GetTagItem("url.path") as string;
+        // Get the URL path
+        var urlPath = activity.GetTagItem("url.path") as string
+                     ?? activity.GetTagItem("http.target") as string;
 
-        var pathToNormalize = httpTarget ?? urlPath;
-
-        if (string.IsNullOrEmpty(pathToNormalize))
+        if (string.IsNullOrEmpty(urlPath))
             return;
 
-        var normalizedPath = NormalizeUrlPath(pathToNormalize);
+        // Normalize the path by replacing IDs with placeholders
+        var normalizedPath = NormalizeUrlPath(urlPath);
 
-        // Update the tags that Azure Monitor uses to construct the dependency name
-        if (httpTarget != null)
-        {
-            activity.SetTag("http.target", normalizedPath);
-        }
-        if (urlPath != null)
-        {
-            activity.SetTag("url.path", normalizedPath);
-        }
-
-        // Also set DisplayName and http.route
-        activity.DisplayName = $"{httpMethod} {normalizedPath}";
+        // Set http.route which Azure Monitor uses for dependency name
         activity.SetTag("http.route", normalizedPath);
     }
 
@@ -53,8 +42,11 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
         if (string.IsNullOrEmpty(path))
             return path;
 
+        // Remove query string if present
+        var pathWithoutQuery = path.Split('?')[0];
+
         // Replace GUIDs/UUIDs
-        var normalized = GuidRegex.Replace(path, "{id}");
+        var normalized = GuidRegex.Replace(pathWithoutQuery, "{id}");
 
         return normalized;
     }
