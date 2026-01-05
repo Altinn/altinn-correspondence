@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.ConfirmCorrespondence;
+using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
