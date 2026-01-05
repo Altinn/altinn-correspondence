@@ -8,19 +8,11 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Integrations.OpenTelemetry;
 
 public static class DependencyInjection
 {
-    private static readonly Regex GuidRegex = new(
-        @"\b[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}\b",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly Regex ResourceIdRegex = new(
-        @"/resourceregistry/api/v1/resource/[a-zA-Z0-9\-_]+(?=/|$)",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
     public static IServiceCollection ConfigureOpenTelemetry(
         this IServiceCollection services,
         GeneralSettings generalSettings)
@@ -59,21 +51,8 @@ public static class DependencyInjection
                                    !path.Contains("/migration");
                         };
                     })
-                    .AddHttpClientInstrumentation(options => options.EnrichWithHttpResponseMessage = (activity, httpResponse) =>
-                    {
-                        var requestUri = httpResponse.RequestMessage?.RequestUri;
-                        var responseMethod = httpResponse.RequestMessage?.Method.Method;
-                        if (requestUri is not null)
-                        {
-                            var statusCode = (int)httpResponse.StatusCode;
-                            var responsePath = requestUri.AbsolutePath;
-                            var normalizedPath = NormalizeUrlPath(responsePath);
-                            activity.SetTag("http.method", responseMethod);
-                            activity.SetTag("http.route", normalizedPath);
-                            activity.SetTag("http.status_code", statusCode);
-                            activity.DisplayName = $"{responseMethod} {normalizedPath}";
-                        }
-                    })
+                    .AddHttpClientInstrumentation(options =>
+                        options.EnrichWithHttpResponseMessage = HttpClientActivityEnricher.EnrichHttpClientActivity)
                     .AddProcessor(new RequestFilterProcessor(generalSettings, new HttpContextAccessor()));
             })
             .WithLogging();
@@ -91,14 +70,5 @@ public static class DependencyInjection
         }
 
         return services;
-    }
-    private static string NormalizeUrlPath(string path)
-    {
-        if (string.IsNullOrEmpty(path))
-            return path;
-
-        var normalized = ResourceIdRegex.Replace(path, "/resourceregistry/api/v1/resource/{resourceId}");
-        
-        return GuidRegex.Replace(normalized, "{id}");
     }
 }
