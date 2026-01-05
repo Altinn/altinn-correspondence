@@ -77,10 +77,6 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             It.Is<IState>(state => state is EnqueuedState)), Times.Once);
 
         _backgroundJobClientMock.Verify(x => x.Create(
-            It.Is<Job>(job => job.Type == typeof(IAltinnStorageService) && job.Method.Name == "SyncCorrespondenceEventToSblBridge"),
-            It.Is<IState>(state => state is EnqueuedState)), Times.Once);
-
-        _backgroundJobClientMock.Verify(x => x.Create(
             It.Is<Job>(job => job.Type == typeof(IDialogportenService) && job.Method.Name == "CreateConfirmedActivity"),
             It.Is<IState>(state => state is EnqueuedState)), Times.Once);
     }

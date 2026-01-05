@@ -76,7 +76,7 @@ public class ConfirmCorrespondenceHandler(
 
         var verifyJobId = backgroundJobClient.Schedule<VerifyCorrespondenceConfirmationHandler>(
             handler => handler.VerifyPatchAndCommitConfirmation(correspondence.Id, partyUuid, party.PartyId, operationTimestamp, caller, CancellationToken.None),
-            TimeSpan.FromSeconds(5));
+            TimeSpan.FromSeconds(2));
         
         try
         {
