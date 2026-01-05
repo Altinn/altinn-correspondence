@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Application.ConfirmCorrespondence;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -9,6 +8,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 
 namespace Altinn.Correspondence.Tests.TestingHandler;
 
