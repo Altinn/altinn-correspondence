@@ -1,4 +1,3 @@
-using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -8,7 +7,7 @@ using Hangfire;
 using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Core.Services.Enums;
 
-namespace Altinn.Correspondence.Application.ConfirmCorrespondence;
+namespace Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 
 /// <summary>
 /// Background job that verifies Dialogporten is patched correctly and then persists Confirmed status + schedules side-effects.

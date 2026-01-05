@@ -30,6 +30,7 @@ using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 using Altinn.Correspondence.Application.ExpireAttachment;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
+using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 
 namespace Altinn.Correspondence.Application;
 
