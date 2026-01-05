@@ -15,6 +15,7 @@ using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Integrations.OpenTelemetry;
 using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
@@ -89,6 +90,7 @@ public static class DependencyInjection
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
+            .AddHttpMessageHandler<NormalizedHttpActivityHandler>()
             .AddStandardRetryPolicy();
     }
 
@@ -142,6 +144,7 @@ public static class DependencyInjection
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(baseAddress))
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
+            .AddHttpMessageHandler<NormalizedHttpActivityHandler>()
             .AddStandardRetryPolicy();
     }
 }

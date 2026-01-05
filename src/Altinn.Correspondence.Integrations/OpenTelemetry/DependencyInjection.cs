@@ -52,7 +52,6 @@ public static class DependencyInjection
                         };
                     })
                     .AddHttpClientInstrumentation()
-                    .AddProcessor(new HttpDependencyNameProcessor())
                     .AddProcessor(new RequestFilterProcessor(generalSettings, new HttpContextAccessor()));
             })
             .WithLogging(logging =>
