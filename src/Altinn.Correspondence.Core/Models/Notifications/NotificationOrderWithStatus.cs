@@ -12,13 +12,13 @@ public class NotificationOrderWithStatus
     public string? SendersReference { get; set; }
 
     [JsonPropertyName("requestedSendTime")]
-    public DateTime RequestedSendTime { get; set; }
+    public DateTimeOffset RequestedSendTime { get; set; }
 
     [JsonPropertyName("creator")]
     public string Creator { get; set; } = string.Empty;
 
     [JsonPropertyName("created")]
-    public DateTime Created { get; set; }
+    public DateTimeOffset Created { get; set; }
 
     [JsonPropertyName("notificationChannel")]
     [JsonConverter(typeof(JsonStringEnumConverter))]

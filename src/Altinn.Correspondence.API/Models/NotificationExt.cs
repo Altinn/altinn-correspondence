@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.API.Models
         /// The requested send time of the notification
         /// </summary>
         [JsonPropertyName("requestedSendTime")]
-        public DateTime RequestedSendTime { get; set; }
+        public DateTimeOffset RequestedSendTime { get; set; }
 
         /// <summary>
         /// The short name of the creator of the notification order
@@ -36,7 +36,7 @@ namespace Altinn.Correspondence.API.Models
         /// The date and time of when the notification order was created
         /// </summary>
         [JsonPropertyName("created")]
-        public DateTime Created { get; set; }
+        public DateTimeOffset Created { get; set; }
 
         /// <summary>
         /// whether the notification is a reminder notification

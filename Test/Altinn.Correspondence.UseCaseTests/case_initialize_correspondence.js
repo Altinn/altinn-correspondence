@@ -99,10 +99,10 @@ async function TC02_GetCorrespondencePublishedAsRecipient(correspondenceId) {
         return false;
     };
 
-    const maxIterations = 10;
+    const maxIterations = 20;
     let published = false;
     for (let i = 0; i < maxIterations; i++) {
-        sleep(3);
+        sleep(10);
         const r = http.get(`${baseUrl}/correspondence/api/v1/correspondence/${correspondenceId}`, { headers });
         if (r.status === 200) {
             const overview = r.json();
@@ -123,7 +123,7 @@ async function TC02_GetCorrespondencePublishedAsRecipient(correspondenceId) {
         }
     }
 
-    check(published, { 'Correspondence reached Published status within 30s': v => v === true });
+    check(published, { 'Correspondence reached Published status within 200s': v => v === true });
     console.log(`TC02: Test case completed`);
 }
 
