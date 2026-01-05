@@ -15,12 +15,10 @@ using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Integrations.Dialogporten;
-using Altinn.Correspondence.Integrations.OpenTelemetry;
 using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http;
 using Slack.Webhooks;
 using System.Net.Security;
 
