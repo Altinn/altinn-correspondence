@@ -1,6 +1,7 @@
-﻿using System.Diagnostics;
+﻿using OpenTelemetry;
+using System.Diagnostics;
+using System.Reflection;
 using System.Text.RegularExpressions;
-using OpenTelemetry;
 
 namespace Altinn.Correspondence.Integrations.OpenTelemetry;
 
@@ -10,42 +11,41 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
         @"\b[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+
+    private static readonly FieldInfo? OperationNameField = typeof(Activity)
+        .GetField("_operationName", BindingFlags.Instance | BindingFlags.NonPublic);
+
     public override void OnEnd(Activity activity)
     {
         // Only process HTTP client activities (outgoing requests)
         if (activity.Kind != ActivityKind.Client)
             return;
 
-        // Check if this is an HTTP request using new semantic conventions
         var httpMethod = activity.GetTagItem("http.request.method") as string
                         ?? activity.GetTagItem("http.method") as string;
 
         if (string.IsNullOrEmpty(httpMethod))
             return;
 
-        // Get the full URL from the new semantic convention
         var urlFull = activity.GetTagItem("url.full") as string
                      ?? activity.GetTagItem("http.url") as string;
 
         if (string.IsNullOrEmpty(urlFull))
             return;
 
-        // Parse the URL and extract the path
         if (!Uri.TryCreate(urlFull, UriKind.Absolute, out var uri))
             return;
 
-        var path = uri.AbsolutePath; // This gets just the path without query string
+        var path = uri.AbsolutePath; 
 
         // Normalize the path by replacing IDs with placeholders
         var normalizedPath = NormalizeUrlPath(path);
 
-        // Set http.route which should be used by Azure Monitor
-        activity.SetTag("http.route", normalizedPath);
-
-        // Also update DisplayName
         activity.DisplayName = $"{httpMethod} {normalizedPath}";
-
-        Console.WriteLine($"Set http.route to: {normalizedPath}");
+        if (OperationNameField != null)
+        {
+            OperationNameField.SetValue(activity, activity.DisplayName);
+        }
     }
 
     private static string NormalizeUrlPath(string path)
