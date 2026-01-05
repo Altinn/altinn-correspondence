@@ -44,7 +44,11 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
         activity.DisplayName = $"{httpMethod} {normalizedPath}";
         if (OperationNameField != null)
         {
+            Console.WriteLine("Setting operation name field to " + activity.DisplayName);
             OperationNameField.SetValue(activity, activity.DisplayName);
+        } else
+        {
+            Console.WriteLine("Could not find operation name field");
         }
     }
 
