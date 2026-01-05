@@ -16,32 +16,36 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
         if (activity.Kind != ActivityKind.Client)
             return;
 
-        // Debug: log all tags
-        Console.WriteLine($"Activity: {activity.DisplayName}");
-        foreach (var tag in activity.Tags)
-        {
-            Console.WriteLine($"  {tag.Key} = {tag.Value}");
-        }
-
-        // Check if this is an HTTP request
-        var httpMethod = activity.GetTagItem("http.method") as string
-                        ?? activity.GetTagItem("http.request.method") as string;
+        // Check if this is an HTTP request using new semantic conventions
+        var httpMethod = activity.GetTagItem("http.request.method") as string
+                        ?? activity.GetTagItem("http.method") as string;
 
         if (string.IsNullOrEmpty(httpMethod))
             return;
 
-        // Get the URL path
-        var urlPath = activity.GetTagItem("url.path") as string
-                     ?? activity.GetTagItem("http.target") as string;
+        // Get the full URL from the new semantic convention
+        var urlFull = activity.GetTagItem("url.full") as string
+                     ?? activity.GetTagItem("http.url") as string;
 
-        if (string.IsNullOrEmpty(urlPath))
+        if (string.IsNullOrEmpty(urlFull))
             return;
 
-        // Normalize the path by replacing IDs with placeholders
-        var normalizedPath = NormalizeUrlPath(urlPath);
+        // Parse the URL and extract the path
+        if (!Uri.TryCreate(urlFull, UriKind.Absolute, out var uri))
+            return;
 
-        // Set http.route which Azure Monitor uses for dependency name
+        var path = uri.AbsolutePath; // This gets just the path without query string
+
+        // Normalize the path by replacing IDs with placeholders
+        var normalizedPath = NormalizeUrlPath(path);
+
+        // Set http.route which should be used by Azure Monitor
         activity.SetTag("http.route", normalizedPath);
+
+        // Also update DisplayName
+        activity.DisplayName = $"{httpMethod} {normalizedPath}";
+
+        Console.WriteLine($"Set http.route to: {normalizedPath}");
     }
 
     private static string NormalizeUrlPath(string path)
@@ -49,11 +53,8 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
         if (string.IsNullOrEmpty(path))
             return path;
 
-        // Remove query string if present
-        var pathWithoutQuery = path.Split('?')[0];
-
         // Replace GUIDs/UUIDs
-        var normalized = GuidRegex.Replace(pathWithoutQuery, "{id}");
+        var normalized = GuidRegex.Replace(path, "{id}");
 
         return normalized;
     }
