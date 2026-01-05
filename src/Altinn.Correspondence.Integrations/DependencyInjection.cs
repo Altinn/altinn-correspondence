@@ -20,6 +20,7 @@ using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Slack.Webhooks;
 using System.Net.Security;
 
@@ -35,7 +36,16 @@ public static class DependencyInjection
         services.AddScoped<IResourceManager, AzureResourceManagerService>();
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
         services.AddSingleton<SasTokenService, SasTokenService>();
-        
+        services.AddTransient<NormalizedHttpActivityHandler>();
+        services.ConfigureAll<HttpClientFactoryOptions>(options =>
+        {
+            options.HttpMessageHandlerBuilderActions.Add(builder =>
+            {
+                builder.AdditionalHandlers.Add(
+                    builder.Services.GetRequiredService<NormalizedHttpActivityHandler>());
+            });
+        });
+
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
@@ -90,7 +100,6 @@ public static class DependencyInjection
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(altinnOptions.PlatformGatewayUrl))
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
-            .AddHttpMessageHandler<NormalizedHttpActivityHandler>()
             .AddStandardRetryPolicy();
     }
 
@@ -144,7 +153,6 @@ public static class DependencyInjection
         services.RegisterMaskinportenClientDefinition<SettingsJwkClientDefinition>(typeof(TClient).FullName, maskinportenSettings);
         services.AddHttpClient<TClient, TImplementation>((client) => client.BaseAddress = new Uri(baseAddress))
             .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
-            .AddHttpMessageHandler<NormalizedHttpActivityHandler>()
             .AddStandardRetryPolicy();
     }
 }
