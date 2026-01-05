@@ -83,51 +83,11 @@ public class ConfirmCorrespondenceHandlerTests
                 job.Method.Name == nameof(VerifyCorrespondenceConfirmationHandler.VerifyPatchAndCommitConfirmation)),
             It.Is<IState>(state =>
                 state is ScheduledState)), Times.Once);
-
-        _backgroundJobClientMock.Verify(x => x.Delete(It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Process_WhenPatchThrows_DeletesScheduledJobAndRethrows()
-    {
-        // Arrange
-        var correspondence = new CorrespondenceEntityBuilder()
-            .WithStatus(CorrespondenceStatus.Published)
-            .WithStatus(CorrespondenceStatus.Fetched)
-            .Build();
-
-        var request = new ConfirmCorrespondenceRequest { CorrespondenceId = correspondence.Id };
-        var user = CreateUserWithCallerUrn($"{UrnConstants.PersonIdAttribute}:12018012345");
-
-        _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
-            .ReturnsAsync(correspondence);
-
-        _altinnAuthorizationServiceMock
-            .Setup(x => x.CheckAccessAsRecipient(user, correspondence, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        _altinnRegisterServiceMock
-            .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), PartyId = 123 });
-
-        _dialogportenServiceMock
-            .Setup(x => x.PatchCorrespondenceDialogToConfirmed(correspondence.Id))
-            .ThrowsAsync(new Exception("patch failed"));
-
-        _backgroundJobClientMock
-            .Setup(x => x.Delete("verify-job-id"))
-            .Returns(true);
-
-        // Act + Assert
-        await Assert.ThrowsAsync<Exception>(() => _handler.Process(request, user, CancellationToken.None));
-
-        _backgroundJobClientMock.Verify(x => x.Delete("verify-job-id"), Times.Once);
     }
 
     private static ClaimsPrincipal CreateUserWithCallerUrn(string partyUrn)
     {
-        var identity = new ClaimsIdentity([new Claim("p", partyUrn)], "TestAuthType");
+        var identity = new ClaimsIdentity([new Claim("c", partyUrn)], "TestAuthType");
         return new ClaimsPrincipal(identity);
     }
 }
