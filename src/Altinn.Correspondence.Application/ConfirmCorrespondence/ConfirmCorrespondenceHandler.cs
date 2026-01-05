@@ -16,9 +16,7 @@ public class ConfirmCorrespondenceHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
-    IEventBus eventBus,
     IDialogportenService dialogportenService,
     ILogger<ConfirmCorrespondenceHandler> logger) : IHandler<ConfirmCorrespondenceRequest, Guid>
 {
@@ -64,6 +62,11 @@ public class ConfirmCorrespondenceHandler(
         }
 
         var caller = user?.GetCallerPartyUrn();
+        if (string.IsNullOrWhiteSpace(caller))
+        {
+            return AuthorizationErrors.CouldNotDetermineCaller;
+        }
+
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
@@ -71,35 +74,26 @@ public class ConfirmCorrespondenceHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        logger.LogInformation("Executing confirmation transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
-        await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+        var verifyJobId = backgroundJobClient.Schedule<VerifyCorrespondenceConfirmationHandler>(
+            handler => handler.VerifyPatchAndCommitConfirmation(correspondence.Id, partyUuid, party.PartyId, operationTimestamp, caller, CancellationToken.None),
+            TimeSpan.FromSeconds(5));
+        
+        try
         {
-            await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            await dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id);
+        }
+        catch (Exception)
+        {
+            var deleted = backgroundJobClient.Delete(verifyJobId);
+            if (!deleted)
             {
-                CorrespondenceId = correspondence.Id,
-                Status = CorrespondenceStatus.Confirmed,
-                StatusChanged = operationTimestamp,
-                StatusText = CorrespondenceStatus.Confirmed.ToString(),
-                PartyUuid = partyUuid
-            }, cancellationToken);
-            var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id));
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller), JobContinuationOptions.OnlyOnSucceededState);
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-
-            if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
-            {
-                backgroundJobClient.Enqueue<IAltinnStorageService>((syncToAltinn2) =>
-                    syncToAltinn2.SyncCorrespondenceEventToSblBridge(
-                        correspondence.Altinn2CorrespondenceId.Value,
-                        party.PartyId,
-                        operationTimestamp,
-                        SyncEventType.Confirm,
-                        CancellationToken.None));
+                logger.LogWarning("Failed to delete verify job {VerifyJobId} after patch failure for correspondence {CorrespondenceId}. Job may retry until attempts are exhausted.",
+                    verifyJobId,
+                    correspondence.Id);
             }
-
-            return Task.CompletedTask;
-        }, logger, cancellationToken);
-
+            throw;
+        }
+        
         logger.LogInformation("Successfully confirmed correspondence {CorrespondenceId}", 
             request.CorrespondenceId);
         return request.CorrespondenceId;

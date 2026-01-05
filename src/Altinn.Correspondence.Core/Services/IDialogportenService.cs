@@ -10,6 +10,7 @@ public interface IDialogportenService
     Task<string> CreateCorrespondenceDialog(Guid correspondenceId);
     Task<string> CreateDialogTransmission(Guid correspondenceId);
     Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId);
+    Task<bool> VerifyCorrespondenceDialogPatchedToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default);
     Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens);
     Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string partyUrn, DateTimeOffset activityTimestamp, params string[] tokens);
     Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp);

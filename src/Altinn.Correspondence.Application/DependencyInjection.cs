@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<GetCorrespondenceDetailsHandler>();
         services.AddScoped<GetCorrespondenceOverviewHandler>();
         services.AddScoped<ConfirmCorrespondenceHandler>();
+        services.AddScoped<VerifyCorrespondenceConfirmationHandler>();
         services.AddScoped<MarkCorrespondenceAsReadHandler>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
