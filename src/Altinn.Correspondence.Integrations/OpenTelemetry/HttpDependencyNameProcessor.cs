@@ -13,7 +13,7 @@ public class HttpDependencyNameProcessor : BaseProcessor<Activity>
 
 
     private static readonly FieldInfo? OperationNameField = typeof(Activity)
-        .GetField("_operationName", BindingFlags.Instance | BindingFlags.NonPublic);
+        .GetField("_displayName", BindingFlags.Instance | BindingFlags.NonPublic);
 
     public override void OnEnd(Activity activity)
     {
