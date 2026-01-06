@@ -76,11 +76,13 @@ public class ConfirmCorrespondenceHandler(
 
         var verifyJobId = backgroundJobClient.Schedule<VerifyCorrespondenceConfirmationHandler>(
             handler => handler.VerifyPatchAndCommitConfirmation(correspondence.Id, partyUuid, party.PartyId, operationTimestamp, caller, CancellationToken.None),
-            TimeSpan.FromSeconds(2));
+            TimeSpan.FromSeconds(4));
         
         try
         {
-            await dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id);
+            using var patchCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            patchCancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(2));
+            await dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondence.Id, patchCancellationTokenSource.Token);
         }
         catch (Exception)
         {
