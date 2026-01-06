@@ -106,7 +106,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 _senderClient,
                 _responseSerializerOptions,
                 correspondenceId,
-                CorrespondenceStatusExt.Confirmed);
+                CorrespondenceStatusExt.Confirmed,
+                maxRetries: 10,
+                delayMs: 1000);
 
             var deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
 

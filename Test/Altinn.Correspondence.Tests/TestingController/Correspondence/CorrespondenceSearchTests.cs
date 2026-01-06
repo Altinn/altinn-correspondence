@@ -306,7 +306,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             confirmResponse.EnsureSuccessStatusCode();
 
             // Wait until current status is Confirmed
-            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_recipientClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Confirmed);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
+                _recipientClient,
+                _responseSerializerOptions,
+                correspondenceId,
+                CorrespondenceStatusExt.Confirmed,
+                maxRetries: 10,
+                delayMs: 1000);
 
             // Search for Published correspondences
             int status = (int)CorrespondenceStatusExt.Published;
