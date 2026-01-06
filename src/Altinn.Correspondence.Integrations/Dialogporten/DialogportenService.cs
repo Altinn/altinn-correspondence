@@ -85,10 +85,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return transmissionResponse;
     }
 
-    public async Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
+    public async Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default)
     {
-        var cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = cancellationTokenSource.Token;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
         {
@@ -131,14 +129,44 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}?isSilentUpdate=true", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            var responseContent = await response.Content.ReadAsStringAsync();
             logger.LogError("Response from Dialogporten when patching dialog {dialogId} to confirmed for correspondence {correspondenceId} was not successful: {statusCode}: {responseContent}",
                 dialogId,
                 correspondenceId,
                 response.StatusCode,
-                await response.Content.ReadAsStringAsync());
-            return false;
+                responseContent);
+            throw new Exception($"Dialogporten patch to confirmed failed: {response.StatusCode}: {responseContent}");
         }
         return true;
+    }
+
+    public async Task<bool> VerifyCorrespondenceDialogPatchedToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default)
+    {
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                // Nothing to verify for migrated correspondences without a dialog.
+                return true;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
+        }
+
+        var dialog = await GetDialog(dialogId);
+        string confirmEndpointUrl = $"{generalSettings.Value.CorrespondenceBaseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm";
+
+        var hasGuiAction = dialog.GuiActions?.Any(a => a.Url == confirmEndpointUrl) ?? false;
+        var hasApiAction = dialog.ApiActions?.Any(a => a.Endpoints.Any(e => e.Url == confirmEndpointUrl)) ?? false;
+        var statusOk = !string.Equals(dialog.Status, "RequiresAttention", StringComparison.OrdinalIgnoreCase);
+
+        return !hasGuiAction && !hasApiAction && statusOk;
     }
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, DateTimeOffset activityTimestamp, params string[] tokens)
     {

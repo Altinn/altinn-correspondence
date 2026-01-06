@@ -30,6 +30,7 @@ using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 using Altinn.Correspondence.Application.ExpireAttachment;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
+using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 
 namespace Altinn.Correspondence.Application;
 
@@ -53,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<GetCorrespondenceDetailsHandler>();
         services.AddScoped<GetCorrespondenceOverviewHandler>();
         services.AddScoped<ConfirmCorrespondenceHandler>();
+        services.AddScoped<VerifyCorrespondenceConfirmationHandler>();
         services.AddScoped<MarkCorrespondenceAsReadHandler>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
