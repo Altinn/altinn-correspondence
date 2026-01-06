@@ -66,7 +66,7 @@ public class ConfirmCorrespondenceHandlerTests
             .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), PartyId = 123 });
 
         _dialogportenServiceMock
-            .Setup(x => x.PatchCorrespondenceDialogToConfirmed(correspondence.Id))
+            .Setup(x => x.PatchCorrespondenceDialogToConfirmed(correspondence.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         // Act
@@ -76,7 +76,7 @@ public class ConfirmCorrespondenceHandlerTests
         Assert.True(result.IsT0);
         Assert.Equal(correspondence.Id, result.AsT0);
 
-        _dialogportenServiceMock.Verify(x => x.PatchCorrespondenceDialogToConfirmed(correspondence.Id), Times.Once);
+        _dialogportenServiceMock.Verify(x => x.PatchCorrespondenceDialogToConfirmed(correspondence.Id, It.IsAny<CancellationToken>()), Times.Once);
 
         _backgroundJobClientMock.Verify(x => x.Create(
             It.Is<Job>(job =>

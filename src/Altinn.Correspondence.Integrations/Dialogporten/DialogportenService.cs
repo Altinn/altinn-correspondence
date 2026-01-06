@@ -85,10 +85,8 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         return transmissionResponse;
     }
 
-    public async Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
+    public async Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default)
     {
-        var cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = cancellationTokenSource.Token;
         var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         if (correspondence is null)
         {
