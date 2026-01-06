@@ -197,7 +197,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 _senderClient,
                 _responseSerializerOptions,
                 correspondenceId,
-                CorrespondenceStatusExt.Confirmed);
+                CorrespondenceStatusExt.Confirmed,
+                maxRetries: 10,
+                delayMs: 1000);
             Assert.Equal(CorrespondenceStatusExt.Confirmed, overview.Status);
         }
 
@@ -225,7 +227,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 _senderClient,
                 _responseSerializerOptions,
                 correspondenceId,
-                CorrespondenceStatusExt.Confirmed);
+                CorrespondenceStatusExt.Confirmed,
+                maxRetries: 10,
+                delayMs: 1000);
 
             var secondConfirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
 
