@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Hangfire.Common;
+using Hangfire;
 using Hangfire.States;
 using Hangfire.Server;
 using Altinn.Correspondence.Integrations.Slack;
@@ -44,6 +45,11 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                     _logger.LogInformation("Skipping Slack exception notification for migration related job {JobId}", jobId);
                     return;
                 }
+                if (IsCheckNotificationDeliveryJob(filterContext.BackgroundJob.Job) && !IsLastRetryAttempt(filterContext.BackgroundJob.Job, retryCount))
+                {
+                    _logger.LogInformation("Skipping Slack exception notification for CheckNotificationDelivery job attempt (jobId {JobId}, retryCount {RetryCount})", jobId, retryCount);
+                    return;
+                }
                 await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);
             }
         }
@@ -68,8 +74,41 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                     _logger.LogInformation("Skipping Slack exception notification for migrate related job {JobId}", jobId);
                     return;
                 }
+                if (IsCheckNotificationDeliveryJob(context.BackgroundJob.Job) && !IsLastRetryAttempt(context.BackgroundJob.Job, retryCount))
+                {
+                    _logger.LogInformation("Skipping Slack exception notification for CheckNotificationDelivery job attempt (jobId {JobId}, retryCount {RetryCount})", jobId, retryCount);
+                    return;
+                }
                 await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);
             }
+        }
+
+        private static bool IsCheckNotificationDeliveryJob(Job job)
+        {
+            return job.Type.FullName?.EndsWith(".CheckNotificationDeliveryHandler", StringComparison.Ordinal) == true
+                   && string.Equals(job.Method?.Name, "Process", StringComparison.Ordinal);
+        }
+
+        private static bool IsLastRetryAttempt(Job job, int retryCount)
+        {
+            var attempts = GetConfiguredRetryAttempts(job) ?? 10; // Hangfire default
+            return attempts > 0 && retryCount >= attempts - 1;
+        }
+
+        private static int? GetConfiguredRetryAttempts(Job job)
+        {
+            var methodAttr = job.Method.GetCustomAttributes(typeof(AutomaticRetryAttribute), inherit: true)
+                .OfType<AutomaticRetryAttribute>()
+                .FirstOrDefault();
+            if (methodAttr != null)
+            {
+                return methodAttr.Attempts;
+            }
+
+            var typeAttr = job.Type.GetCustomAttributes(typeof(AutomaticRetryAttribute), inherit: true)
+                .OfType<AutomaticRetryAttribute>()
+                .FirstOrDefault();
+            return typeAttr?.Attempts;
         }
     }
 }
