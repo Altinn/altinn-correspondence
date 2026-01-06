@@ -40,8 +40,8 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
             .ReturnsAsync([c1, c2]);
 
         var dialog = new Mock<IDialogportenService>();
-        dialog.Setup(d => d.PatchCorrespondenceDialogToConfirmed(c1.Id)).ReturnsAsync(true);
-        dialog.Setup(d => d.PatchCorrespondenceDialogToConfirmed(c2.Id)).ReturnsAsync(false);
+        dialog.Setup(d => d.PatchCorrespondenceDialogToConfirmed(c1.Id, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        dialog.Setup(d => d.PatchCorrespondenceDialogToConfirmed(c2.Id, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var bg = new Mock<IBackgroundJobClient>();
         var logger = new Mock<ILogger<CleanupConfirmedMigratedCorrespondencesHandler>>();
@@ -51,8 +51,8 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         await handler.ExecuteCleanupInBackground(50, null, CancellationToken.None);
 
         // Assert
-        dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(c1.Id), Times.Once);
-        dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(c2.Id), Times.Once);
+        dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(c1.Id, It.IsAny<CancellationToken>()), Times.Once);
+        dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(c2.Id, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         await handler.ExecuteCleanupInBackground(25, null, CancellationToken.None);
 
         // Assert
-        dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>()), Times.Never);
+        dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -108,6 +108,6 @@ public class CleanupConfirmedMigratedCorrespondencesHandlerTests
         await handler.ExecuteCleanupInBackground(10, null, CancellationToken.None);
 
         // Assert
-        dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>()), Times.Never);
+        dialog.Verify(d => d.PatchCorrespondenceDialogToConfirmed(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
