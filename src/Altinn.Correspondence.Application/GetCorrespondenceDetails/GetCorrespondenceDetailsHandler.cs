@@ -92,7 +92,7 @@ public class GetCorrespondenceDetailsHandler(
                 logger.LogInformation("Adding Fetched status for correspondence {CorrespondenceId} by recipient {PartyUuid}",
                     request.CorrespondenceId,
                     partyUuid);
-                await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                await correspondenceStatusRepository.AddCorrespondenceStatusFetched(new CorrespondenceStatusFetchedEntity
                 {
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,
@@ -133,6 +133,28 @@ public class GetCorrespondenceDetailsHandler(
             logger.LogInformation("Successfully retrieved details for correspondence {CorrespondenceId} with status {Status}",
                 request.CorrespondenceId,
                 latestStatus.Status);
+
+            var fetchedStatuses = await correspondenceStatusRepository.GetCorrespondenceStatusesFetched(correspondence.Id, cancellationToken);
+            var fetchedStatusesAsStatusEntities = fetchedStatuses
+                .Select(s => new CorrespondenceStatusEntity
+                {
+                    Id = s.Id,
+                    Status = s.Status,
+                    StatusText = s.StatusText,
+                    StatusChanged = s.StatusChanged,
+                    CorrespondenceId = s.CorrespondenceId,
+                    PartyUuid = s.PartyUuid,
+                    SyncedFromAltinn2 = s.SyncedFromAltinn2
+                })
+                .ToList();
+
+            var statusHistory = (correspondence.Statuses ?? new List<CorrespondenceStatusEntity>())
+                .Concat(fetchedStatusesAsStatusEntities)
+                .Where(statusEntity => hasAccessAsRecipient ? true : statusEntity.Status.IsAvailableForSender())
+                .OrderBy(s => s.StatusChanged)
+                .ThenBy(s => s.Id)
+                .ToList();
+
             return new GetCorrespondenceDetailsResponse
             {
                 CorrespondenceId = correspondence.Id,
@@ -148,10 +170,7 @@ public class GetCorrespondenceDetailsHandler(
                 Content = hasAccessAsRecipient || !correspondence.StatusHasBeen(CorrespondenceStatus.Published) ? correspondence.Content : null,
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
                 Notifications = notificationStatus,
-                StatusHistory = correspondence.Statuses
-                    .Where(statusEntity => hasAccessAsRecipient ? true : statusEntity.Status.IsAvailableForSender())
-                    .OrderBy(s => s.StatusChanged)
-                    .ToList(),
+                StatusHistory = statusHistory,
                 ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
                 ResourceId = correspondence.ResourceId,
                 RequestedPublishTime = correspondence.RequestedPublishTime,

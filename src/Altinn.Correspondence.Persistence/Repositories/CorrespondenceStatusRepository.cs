@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories;
@@ -21,5 +22,22 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
         await _context.CorrespondenceStatuses.AddRangeAsync(correspondenceStatusEntities, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return correspondenceStatusEntities;
+    }
+
+    public async Task<Guid> AddCorrespondenceStatusFetched(CorrespondenceStatusFetchedEntity status, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Adding fetched {Status} status for correspondence {CorrespondenceId}", status.StatusText, status.CorrespondenceId);
+        await _context.CorrespondenceFetches.AddAsync(status, cancellationToken);
+        await _context.SaveChangesAsync();
+        return status.Id;
+    }
+
+    public async Task<List<CorrespondenceStatusFetchedEntity>> GetCorrespondenceStatusesFetched(Guid correspondenceId, CancellationToken cancellationToken)
+    {
+        return await _context.CorrespondenceFetches
+            .AsNoTracking()
+            .Where(s => s.CorrespondenceId == correspondenceId)
+            .OrderBy(s => s.StatusChanged)
+            .ToListAsync(cancellationToken);
     }
 }
