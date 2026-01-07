@@ -46,8 +46,8 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
        var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
         if (cannotDownloadAttachmentError is not null)
         {
-                return cannotDownloadAttachmentError;
-            }
+            return cannotDownloadAttachmentError;
+        }
         var latestStatus = correspondence.GetHighestStatusForLegacyCorrespondence();
         if (!latestStatus.Status.IsAvailableForLegacyRecipient())
         {

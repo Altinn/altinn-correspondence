@@ -41,8 +41,8 @@ public class DownloadAttachmentHandler(
         if (cannotDownloadAttachmentError is not null)
         {
             logger.LogError("Attachment with id {AttachmentId} cannot be downloaded due to its status", request.AttachmentId);
-                return cannotDownloadAttachmentError;
-            }
+            return cannotDownloadAttachmentError;
+        }
 
         var associatedCorrespondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(attachment.Id, true, cancellationToken);
         foreach (var correspondence in associatedCorrespondences)
