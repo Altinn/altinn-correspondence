@@ -50,12 +50,11 @@ public static class DependencyInjection
                                    !path.Contains("/health");
                         };
                     })
-                    .AddHttpClientInstrumentation()
+                    .AddHttpClientInstrumentation(options =>
+                        options.EnrichWithHttpResponseMessage = HttpClientActivityEnricher.EnrichHttpClientActivity)
                     .AddProcessor(new RequestFilterProcessor(generalSettings, new HttpContextAccessor()));
             })
-            .WithLogging(logging =>
-            {
-            });
+            .WithLogging();
 
         if (!string.IsNullOrWhiteSpace(generalSettings.ApplicationInsightsConnectionString))
         {
