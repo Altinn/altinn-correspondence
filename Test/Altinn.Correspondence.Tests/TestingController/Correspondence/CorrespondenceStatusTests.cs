@@ -193,8 +193,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             confirmResponse.EnsureSuccessStatusCode();
 
             // Assert
-            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
-            Assert.Equal(CorrespondenceStatusExt.Confirmed, overview?.Status);
+            var overview = await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
+                _senderClient,
+                _responseSerializerOptions,
+                correspondenceId,
+                CorrespondenceStatusExt.Confirmed,
+                maxRetries: 10,
+                delayMs: 1000);
+            Assert.Equal(CorrespondenceStatusExt.Confirmed, overview.Status);
         }
 
         [Fact]
@@ -215,6 +221,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             readResponse.EnsureSuccessStatusCode();
             var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
             confirmResponse.EnsureSuccessStatusCode();
+
+            // Wait until confirmation is persisted before attempting the second confirm.
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
+                _senderClient,
+                _responseSerializerOptions,
+                correspondenceId,
+                CorrespondenceStatusExt.Confirmed,
+                maxRetries: 10,
+                delayMs: 1000);
 
             var secondConfirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null);
 

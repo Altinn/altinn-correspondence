@@ -12,9 +12,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId)
+        public Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
         
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> VerifyCorrespondenceDialogPatchedToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default)
+        {
             return Task.FromResult(true);
         }
 
