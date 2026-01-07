@@ -21,6 +21,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         private readonly ILogger<StorageRepository> _logger;
         private readonly ConcurrentDictionary<string, BlobServiceClient> _blobServiceClients;
         private readonly BlobClientOptions _blobClientOptions;
+        private BlobServiceClient? _legacyBlobServiceClient;
 
         private const int BLOCK_SIZE = 32 * 1024 * 1024; // 32 MB
         private const int CONCURRENT_UPLOAD_THREADS = 3;
@@ -70,15 +71,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 _logger.LogInformation("Using Correspondence's storage account");
                 var connectionString = _options.ConnectionString;
-                var blobServiceClient = new BlobServiceClient(connectionString,
-                    new BlobClientOptions()
-                    {
-                        Retry =
-                            {
-                                NetworkTimeout = TimeSpan.FromHours(1),
-                            }
-                    });
-                return blobServiceClient.GetBlobContainerClient("attachments");
+                if (_legacyBlobServiceClient is null)
+                {
+                    _legacyBlobServiceClient = new BlobServiceClient(connectionString, _blobClientOptions);
+                }
+                return _legacyBlobServiceClient.GetBlobContainerClient("attachments");
             }
         }
 
