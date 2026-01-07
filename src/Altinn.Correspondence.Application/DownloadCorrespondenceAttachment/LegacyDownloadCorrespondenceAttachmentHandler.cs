@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Core.Models.Enums;
 using Hangfire;
 using OneOf;
 using System.Security.Claims;
@@ -40,6 +41,14 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         if (attachment is null)
         {
             return AttachmentErrors.AttachmentNotFound;
+        }
+        if (attachment.StatusHasBeen(AttachmentStatus.Purged))
+        {
+            return AttachmentErrors.CannotDownloadPurgedAttachment;
+        }
+        if (attachment.StatusHasBeen(AttachmentStatus.Expired) || (attachment.ExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow))
+        {
+            return AttachmentErrors.CannotDownloadExpiredAttachment;
         }
         var latestStatus = correspondence.GetHighestStatusForLegacyCorrespondence();
         if (!latestStatus.Status.IsAvailableForLegacyRecipient())

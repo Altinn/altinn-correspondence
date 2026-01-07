@@ -45,6 +45,16 @@ public class DownloadCorrespondenceAttachmentHandler(
             _logger.LogError("Attachment with id {AttachmentId} not found in correspondence {CorrespondenceId}", request.AttachmentId, request.CorrespondenceId);
             return AttachmentErrors.AttachmentNotFound;
         }
+        if (attachment.StatusHasBeen(AttachmentStatus.Purged))
+        {
+            _logger.LogWarning("Attachment {AttachmentId} has been purged and cannot be downloaded", request.AttachmentId);
+            return AttachmentErrors.CannotDownloadPurgedAttachment;
+        }
+        if (attachment.StatusHasBeen(AttachmentStatus.Expired) || (attachment.ExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow))
+        {
+            _logger.LogWarning("Attachment {AttachmentId} has expired and cannot be downloaded", request.AttachmentId);
+            return AttachmentErrors.CannotDownloadExpiredAttachment;
+        }
         var hasAccess = await altinnAuthorizationService.CheckAttachmentAccessAsRecipient(user, correspondence, attachment, cancellationToken);
         if (!hasAccess)
         {
