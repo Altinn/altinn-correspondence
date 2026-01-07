@@ -15,6 +15,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
     ICorrespondenceRepository correspondenceRepository,
     UserClaimsHelper userClaimsHelper,
     IBackgroundJobClient backgroundJobClient,
+    AttachmentHelper attachmentHelper,
     IAltinnRegisterService altinnRegisterService) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
 
@@ -42,14 +43,11 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         {
             return AttachmentErrors.AttachmentNotFound;
         }
-        if (attachment.StatusHasBeen(AttachmentStatus.Purged))
+       var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
+        if (cannotDownloadAttachmentError is not null)
         {
-            return AttachmentErrors.CannotDownloadPurgedAttachment;
-        }
-        if (attachment.StatusHasBeen(AttachmentStatus.Expired) || (attachment.ExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow))
-        {
-            return AttachmentErrors.CannotDownloadExpiredAttachment;
-        }
+                return cannotDownloadAttachmentError;
+            }
         var latestStatus = correspondence.GetHighestStatusForLegacyCorrespondence();
         if (!latestStatus.Status.IsAvailableForLegacyRecipient())
         {

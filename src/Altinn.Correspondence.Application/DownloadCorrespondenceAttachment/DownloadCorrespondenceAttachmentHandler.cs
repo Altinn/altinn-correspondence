@@ -21,6 +21,7 @@ public class DownloadCorrespondenceAttachmentHandler(
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
+    AttachmentHelper attachmentHelper,
     ILogger<DownloadCorrespondenceAttachmentHandler> logger) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
@@ -45,16 +46,12 @@ public class DownloadCorrespondenceAttachmentHandler(
             _logger.LogError("Attachment with id {AttachmentId} not found in correspondence {CorrespondenceId}", request.AttachmentId, request.CorrespondenceId);
             return AttachmentErrors.AttachmentNotFound;
         }
-        if (attachment.StatusHasBeen(AttachmentStatus.Purged))
+        var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
+        if (cannotDownloadAttachmentError is not null)
         {
-            _logger.LogWarning("Attachment {AttachmentId} has been purged and cannot be downloaded", request.AttachmentId);
-            return AttachmentErrors.CannotDownloadPurgedAttachment;
-        }
-        if (attachment.StatusHasBeen(AttachmentStatus.Expired) || (attachment.ExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow))
-        {
-            _logger.LogWarning("Attachment {AttachmentId} has expired and cannot be downloaded", request.AttachmentId);
-            return AttachmentErrors.CannotDownloadExpiredAttachment;
-        }
+            _logger.LogError("Attachment with id {AttachmentId} in correspondence {CorrespondenceId} cannot be downloaded due to its status", request.AttachmentId, request.CorrespondenceId);
+                return cannotDownloadAttachmentError;
+            }
         var hasAccess = await altinnAuthorizationService.CheckAttachmentAccessAsRecipient(user, correspondence, attachment, cancellationToken);
         if (!hasAccess)
         {

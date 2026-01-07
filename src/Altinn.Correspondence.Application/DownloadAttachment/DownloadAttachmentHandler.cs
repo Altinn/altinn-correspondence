@@ -13,6 +13,7 @@ public class DownloadAttachmentHandler(
     IStorageRepository storageRepository,
     IAttachmentRepository attachmentRepository,
     ILogger<DownloadAttachmentHandler> logger,
+    AttachmentHelper attachmentHelper,
     ICorrespondenceRepository correspondenceRepository) : IHandler<DownloadAttachmentRequest, Stream>
 {
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -36,17 +37,12 @@ public class DownloadAttachmentHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
 
-        if (attachment.StatusHasBeen(AttachmentStatus.Purged))
+        var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
+        if (cannotDownloadAttachmentError is not null)
         {
-            logger.LogWarning("Attachment {AttachmentId} has been purged and cannot be downloaded", request.AttachmentId);
-            return AttachmentErrors.CannotDownloadPurgedAttachment;
-        }
-
-        if (attachment.StatusHasBeen(AttachmentStatus.Expired) || (attachment.ExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow))
-        {
-            logger.LogWarning("Attachment {AttachmentId} has expired and cannot be downloaded", request.AttachmentId);
-            return AttachmentErrors.CannotDownloadExpiredAttachment;
-        }
+            logger.LogError("Attachment with id {AttachmentId} cannot be downloaded due to its status", request.AttachmentId);
+                return cannotDownloadAttachmentError;
+            }
 
         var associatedCorrespondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(attachment.Id, true, cancellationToken);
         foreach (var correspondence in associatedCorrespondences)
