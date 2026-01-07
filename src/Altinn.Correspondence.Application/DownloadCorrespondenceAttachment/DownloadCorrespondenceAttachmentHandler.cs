@@ -56,8 +56,8 @@ public class DownloadCorrespondenceAttachmentHandler(
         if (cannotDownloadAttachmentError is not null)
         {
             _logger.LogError("Attachment with id {AttachmentId} in correspondence {CorrespondenceId} cannot be downloaded due to its status", request.AttachmentId, request.CorrespondenceId);
-                return cannotDownloadAttachmentError;
-            }
+            return cannotDownloadAttachmentError;
+        }
         var latestStatus = correspondence.GetHighestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())
         {
