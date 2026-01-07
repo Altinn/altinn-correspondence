@@ -435,6 +435,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var baseTimestamp = DateTimeOffset.UtcNow;
             return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
             {
+                var attachmentFileName = correspondenceAttachment?.Attachment?.FileName;
+                var mediaType = GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
+
                 var attachment = new Attachment
                 {
                     Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
@@ -451,7 +454,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         new DialogUrl
                         {
                             ConsumerType = "Gui",
-                            MediaType = "application/octet-stream",
+                            MediaType = mediaType,
                             Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, correspondenceAttachment.AttachmentId)
                         }
                     }
@@ -464,6 +467,40 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
                 return attachment;
             }).ToList() ?? new List<Attachment>();
+        }
+
+        private static string? GetDialogportenAttachmentMediaTypeForFileName(string? fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return null;
+            }
+
+            var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
+            return ext switch
+            {
+                ".pdf" => "application/pdf",
+                ".xml" => "application/xml",
+                ".html" => "text/html",
+                ".json" => "application/json",
+                ".jpg" => "image/jpeg",
+                ".png" => "image/png",
+                ".csv" => "text/csv",
+                ".txt" => "text/plain",
+                ".zip" => "application/zip",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".xls" => "application/vnd.ms-excel",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+                // Supported by correspondence, but not in Dialogporten's attachment media type list
+                ".ppt" => "PPT",
+                ".pps" => "PPS",
+                ".gif" => "GIF",
+                ".bmp" => "BMP",
+
+                _ => null
+            };
         }
     }
 }

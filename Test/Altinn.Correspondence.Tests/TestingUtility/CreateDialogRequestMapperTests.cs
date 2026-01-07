@@ -129,6 +129,46 @@ public class CreateDialogRequestMapperTests
         Assert.Equal(expirationTime, result.Attachments[0].ExpiresAt);
     }
 
+    [Theory]
+    [InlineData("test.pdf", "application/pdf")]
+    [InlineData("test.xml", "application/xml")]
+    [InlineData("test.html", "text/html")]
+    [InlineData("test.json", "application/json")]
+    [InlineData("test.jpg", "image/jpeg")]
+    [InlineData("test.png", "image/png")]
+    [InlineData("test.csv", "text/csv")]
+    [InlineData("test.txt", "text/plain")]
+    [InlineData("test.zip", "application/zip")]
+    [InlineData("test.doc", "application/msword")]
+    [InlineData("test.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")]
+    [InlineData("test.xls", "application/vnd.ms-excel")]
+    [InlineData("test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+    [InlineData("test.ppt", "PPT")]
+    [InlineData("test.pps", "PPS")]
+    [InlineData("test.gif", "GIF")]
+    [InlineData("test.bmp", "BMP")]
+    [InlineData("test.unknown", null)]
+    [InlineData("noextension", null)]
+    public void CreateCorrespondenceDialog_WithAttachmentFileType_SetsDialogportenAttachmentMediaType(string fileName, string? expectedMediaType)
+    {
+        // Arrange
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithMessageTitle("Has attachment")
+            .WithAttachment(fileName)
+            .Build();
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl);
+
+        // Assert
+        Assert.NotNull(result.Attachments);
+        Assert.Single(result.Attachments);
+        Assert.NotNull(result.Attachments[0].Urls);
+        Assert.Single(result.Attachments[0].Urls);
+        Assert.Equal(expectedMediaType, result.Attachments[0].Urls[0].MediaType);
+    }
+
     [Fact]
     public void CreateCorrespondenceDialog_WithFuturePublishTime_UpdatedAtShouldBeNow()
     {
