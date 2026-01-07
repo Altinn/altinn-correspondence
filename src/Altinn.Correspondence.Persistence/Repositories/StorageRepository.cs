@@ -71,10 +71,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 _logger.LogInformation("Using Correspondence's storage account");
                 var connectionString = _options.ConnectionString;
-                if (_legacyBlobServiceClient is null)
-                {
-                    _legacyBlobServiceClient = new BlobServiceClient(connectionString, _blobClientOptions);
-                }
+                var blobServiceClient = GetOrCreateBlobServiceClient(GetAccountNameFromConnectionString(_options.ConnectionString));
                 return _legacyBlobServiceClient.GetBlobContainerClient("attachments");
             }
         }
