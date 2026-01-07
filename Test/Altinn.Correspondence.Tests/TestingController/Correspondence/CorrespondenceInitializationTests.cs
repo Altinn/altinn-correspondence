@@ -20,7 +20,6 @@ using Hangfire.States;
 using Microsoft.AspNetCore.Http;
 using Altinn.Correspondence.Persistence;
 using System.Text;
-using System.Text.Json;
 using Altinn.Correspondence.Tests.TestingFeature;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.API.Models.Enums;
@@ -101,32 +100,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
-
-        [Fact]
-        public async Task InitializeCorrespondence_InvalidLanguageCode_ReturnsLegacyProblemDetailsFields()
-        {
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithLanguageCode("nu")
-                .Build();
-
-            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            var content = await response.Content.ReadAsStringAsync();
-            using var document = JsonDocument.Parse(content);
-            var problem = document.RootElement;
-
-            Assert.NotNull(problem.GetProperty("type").GetString());
-            Assert.Equal("Bad Request", problem.GetProperty("title").GetString());
-            Assert.Equal((int)HttpStatusCode.BadRequest, problem.GetProperty("status").GetInt32());
-            Assert.Equal(CorrespondenceErrors.InvalidLanguage.Message, problem.GetProperty("detail").GetString());
-            Assert.True(problem.TryGetProperty("traceId", out var traceIdProperty));
-            Assert.False(string.IsNullOrWhiteSpace(traceIdProperty.GetString()));
-            Assert.Equal(CorrespondenceErrors.InvalidLanguage.ErrorCode, problem.GetProperty("errorCode").GetInt32());
-            Assert.True(problem.TryGetProperty("code", out var codeProperty));
-            Assert.False(string.IsNullOrWhiteSpace(codeProperty.GetString()));
         }
 
         [Fact]

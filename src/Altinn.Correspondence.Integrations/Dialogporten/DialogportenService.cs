@@ -819,6 +819,12 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            logger.LogError("Failed to update system labels on dialog {dialogId} for correspondence {correspondenceId}. Response: {statusCode} - {responseContent}",
+                dialogId,
+                correspondenceId,
+                response.StatusCode,
+                await response.Content.ReadAsStringAsync()
+            );
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting system labels for dialogid {dialogId} for correpondence {correspondenceId}");
         }
     }

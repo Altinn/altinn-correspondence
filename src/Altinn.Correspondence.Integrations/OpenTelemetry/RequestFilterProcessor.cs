@@ -134,7 +134,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
             return _generalSettings.DisableTelemetryForSync;
         }
 
-        if (_generalSettings.DisableTelemetryForMigration)
+        if (false)
         {
             return pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.OrdinalIgnoreCase)
                 || pathSpan.Contains("/correspondence/api/v1/migration/makemigratedcorrespondenceavailable".AsSpan(), StringComparison.OrdinalIgnoreCase)
