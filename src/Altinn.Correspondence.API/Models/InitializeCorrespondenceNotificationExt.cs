@@ -21,11 +21,10 @@ namespace Altinn.Correspondence.API.Models
 
         /// <summary>
         /// The emails subject for the main notification.
-        /// Maximum length is 128 characters, this is recommended by the Altinn Notifications service,
-        /// to make sure the email subject is displayed correctly in the email client.
+        /// Maximum length is 512 characters.
         /// </summary>
         [JsonPropertyName("emailSubject")]
-        [StringLength(128, MinimumLength = 0)]
+        [StringLength(512, MinimumLength = 0)]
         public string? EmailSubject { get; set; }
 
         /// <summary>
@@ -60,11 +59,10 @@ namespace Altinn.Correspondence.API.Models
 
         /// <summary>
         /// The email subject to use for the reminder notification
-        /// Maximum length is 128 characters, this is recommended by the Altinn Notifications service,
-        /// to make sure the email subject is displayed correctly in the email client.
+        /// Maximum length is 512 characters.
         /// </summary>
         [JsonPropertyName("reminderEmailSubject")]
-        [StringLength(128, MinimumLength = 0)]
+        [StringLength(512, MinimumLength = 0)]
         public string? ReminderEmailSubject { get; set; }
 
         /// <summary>
