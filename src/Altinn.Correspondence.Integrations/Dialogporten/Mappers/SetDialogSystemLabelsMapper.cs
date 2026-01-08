@@ -1,5 +1,6 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 {
@@ -7,28 +8,36 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
     {
         internal static SetDialogSystemLabelRequest CreateSetDialogSystemLabelsRequestForArchived(
             Guid dialogId,
-            string enduserId)
+            string performedByActorId,
+            DialogportenActorType performedByactorType)
         {
             return new SetDialogSystemLabelRequest
             {
-                DialogId = dialogId,
-                EnduserId = enduserId,
                 AddLabels = new List<Models.SystemLabel>
                 {
                     Models.SystemLabel.Archive
                 },
+                PerformedBy = new Actor
+                {
+                    ActorType = performedByactorType,
+                    ActorId = performedByActorId
+                }
             };
         }
 
         internal static SetDialogSystemLabelRequest CreateSetDialogSystemLabelRequest(
             Guid dialogId,
-            string enduserId,
+            string performedByActorId,
+            DialogportenActorType performedByactorType,
             List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
         {
             SetDialogSystemLabelRequest request = new SetDialogSystemLabelRequest
             {
-                DialogId = dialogId,
-                EnduserId = enduserId,
+                PerformedBy = new Actor
+                {
+                    ActorType = performedByactorType,
+                    ActorId = performedByActorId
+                }
             };
 
             if (systemLabelsToAdd != null)

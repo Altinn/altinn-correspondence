@@ -167,7 +167,7 @@ public class SyncCorrespondenceStatusEventHandler(
                         }
                         else
                         {
-                            backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, endUserId, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                            backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
                         }                        
                         break;
                     }
@@ -520,7 +520,7 @@ public class SyncCorrespondenceStatusEventHandler(
         {
             case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
                 {
-                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }, null));
+                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }, null));
                     break;
                 }
 
@@ -529,11 +529,11 @@ public class SyncCorrespondenceStatusEventHandler(
                     if (isArchived)
                     {
                         // Add "Archive" label if the correspondence has been archived
-                        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
                     }
                     else
                     {
-                        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, null, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }));
+                        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, null, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }));
                     }
                     break;
                 }
