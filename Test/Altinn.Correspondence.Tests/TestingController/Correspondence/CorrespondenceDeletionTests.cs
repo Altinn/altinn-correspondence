@@ -101,6 +101,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
             var confirmResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/confirm", null); // Confirm in order to be able to delete
             Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
+                _senderClient,
+                _responseSerializerOptions,
+                correspondenceId,
+                CorrespondenceStatusExt.Confirmed,
+                maxRetries: 10,
+                delayMs: 1000);
+
             var deleteResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
 
             // Assert

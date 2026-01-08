@@ -34,7 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IResourceManager, AzureResourceManagerService>();
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
         services.AddSingleton<SasTokenService, SasTokenService>();
-        
+
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
             services.AddScoped<IEventBus, ConsoleLogEventBus>();
