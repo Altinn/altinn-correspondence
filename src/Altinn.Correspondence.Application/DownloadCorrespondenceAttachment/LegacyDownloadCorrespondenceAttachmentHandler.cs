@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Core.Models.Enums;
 using Hangfire;
 using OneOf;
 using System.Security.Claims;
@@ -14,6 +15,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
     ICorrespondenceRepository correspondenceRepository,
     UserClaimsHelper userClaimsHelper,
     IBackgroundJobClient backgroundJobClient,
+    AttachmentHelper attachmentHelper,
     IAltinnRegisterService altinnRegisterService) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
 
@@ -40,6 +42,11 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         if (attachment is null)
         {
             return AttachmentErrors.AttachmentNotFound;
+        }
+       var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
+        if (cannotDownloadAttachmentError is not null)
+        {
+            return cannotDownloadAttachmentError;
         }
         var latestStatus = correspondence.GetHighestStatusForLegacyCorrespondence();
         if (!latestStatus.Status.IsAvailableForLegacyRecipient())
