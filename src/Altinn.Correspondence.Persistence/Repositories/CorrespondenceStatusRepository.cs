@@ -31,13 +31,4 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
         await _context.SaveChangesAsync();
         return status.Id;
     }
-
-    public async Task<List<CorrespondenceStatusFetchedEntity>> GetCorrespondenceStatusesFetched(Guid correspondenceId, CancellationToken cancellationToken)
-    {
-        return await _context.CorrespondenceFetches
-            .AsNoTracking()
-            .Where(s => s.CorrespondenceId == correspondenceId)
-            .OrderBy(s => s.StatusChanged)
-            .ToListAsync(cancellationToken);
-    }
 }

@@ -134,7 +134,7 @@ public class GetCorrespondenceDetailsHandler(
                 request.CorrespondenceId,
                 latestStatus.Status);
 
-            var fetchedStatuses = await correspondenceStatusRepository.GetCorrespondenceStatusesFetched(correspondence.Id, cancellationToken);
+            var fetchedStatuses = correspondence.StatusFetched;
             var fetchedStatusesAsStatusEntities = fetchedStatuses
                 .Select(s => new CorrespondenceStatusEntity
                 {
