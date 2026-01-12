@@ -750,12 +750,13 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     /// </summary>
     /// <param name="correspondenceId">ID of the correspondence</param>
     /// <param name="performedByActorId">Actor id of the user who performed the action</param>
+    /// <param name="performedByactorType">Type of actor who performed the action</param>
     /// <param name="systemLabelsToAdd">list of labels to add</param>
     /// <param name="systemLabelsToRemove">list of labels to remove</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string performedByActorId, DialogportenActorType performedByactorType, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
+    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string performedByActorId, DialogportenActorType performedByActorType , List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
     {
         if (string.IsNullOrWhiteSpace(performedByActorId))
         {
@@ -807,7 +808,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             .CreateSetDialogSystemLabelRequest(
                 dialogGuid,
                 performedByActorId,
-                performedByactorType,
+                performedByActorType ,
                 systemLabelsToAdd,
                 systemLabelsToRemove);
         logger.LogDebug("Updating system labels on dialog {dialogId} for correspondence {correspondenceId} for {performedByActorId}. Adding: {systemLabelsToAdd}, Removing: {systemLabelsToRemove}",
