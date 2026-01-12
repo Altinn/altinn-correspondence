@@ -13,6 +13,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             return new SetDialogSystemLabelRequest
             {
+                DialogId = dialogId,
                 AddLabels = new List<Models.SystemLabel>
                 {
                     Models.SystemLabel.Archive
@@ -33,6 +34,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             SetDialogSystemLabelRequest request = new SetDialogSystemLabelRequest
             {
+                DialogId = dialogId,
                 PerformedBy = new Actor
                 {
                     ActorType = performedByactorType,
