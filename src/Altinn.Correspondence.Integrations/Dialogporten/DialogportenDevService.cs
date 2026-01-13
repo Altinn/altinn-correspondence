@@ -76,7 +76,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string performedByActorId, DialogportenActorType performedByActorType , List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
+        public Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string performedByActorId, DialogportenActorType performedByActorType, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
         {
             return Task.CompletedTask;
         }

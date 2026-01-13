@@ -756,7 +756,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string performedByActorId, DialogportenActorType performedByActorType , List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
+    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string performedByActorId, DialogportenActorType performedByActorType, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
     {
         if (string.IsNullOrWhiteSpace(performedByActorId))
         {
@@ -808,7 +808,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             .CreateSetDialogSystemLabelRequest(
                 dialogGuid,
                 performedByActorId,
-                performedByActorType ,
+                performedByActorType,
                 systemLabelsToAdd,
                 systemLabelsToRemove);
         logger.LogDebug("Updating system labels on dialog {dialogId} for correspondence {correspondenceId} for {performedByActorId}. Adding: {systemLabelsToAdd}, Removing: {systemLabelsToRemove}",

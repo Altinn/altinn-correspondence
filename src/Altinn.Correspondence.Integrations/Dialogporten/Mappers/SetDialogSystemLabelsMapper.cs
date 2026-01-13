@@ -9,7 +9,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         internal static SetDialogSystemLabelRequest CreateSetDialogSystemLabelsRequestForArchived(
             Guid dialogId,
             string performedByActorId,
-            DialogportenActorType performedByActorType )
+            DialogportenActorType performedByActorType)
         {
             return new SetDialogSystemLabelRequest
             {
@@ -20,7 +20,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 },
                 PerformedBy = new Actor
                 {
-                    ActorType = performedByActorType ,
+                    ActorType = performedByActorType,
                     ActorId = performedByActorId
                 }
             };
@@ -29,7 +29,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         internal static SetDialogSystemLabelRequest CreateSetDialogSystemLabelRequest(
             Guid dialogId,
             string performedByActorId,
-            DialogportenActorType performedByActorType ,
+            DialogportenActorType performedByActorType,
             List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
         {
             SetDialogSystemLabelRequest request = new SetDialogSystemLabelRequest
@@ -37,7 +37,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 DialogId = dialogId,
                 PerformedBy = new Actor
                 {
-                    ActorType = performedByActorType ,
+                    ActorType = performedByActorType,
                     ActorId = performedByActorId
                 }
             };
