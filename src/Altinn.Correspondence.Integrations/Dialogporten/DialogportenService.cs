@@ -811,10 +811,11 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 performedByActorType,
                 systemLabelsToAdd,
                 systemLabelsToRemove);
-        logger.LogDebug("Updating system labels on dialog {dialogId} for correspondence {correspondenceId} for {performedByActorId}. Adding: {systemLabelsToAdd}, Removing: {systemLabelsToRemove}",
+        logger.LogDebug("Updating system labels on dialog {dialogId} for correspondence {correspondenceId} for {performedByActorId}, type {performedByActorType}. Adding: {systemLabelsToAdd}, Removing: {systemLabelsToRemove}",
             dialogId,
             correspondenceId,
             performedByActorId,
+            performedByActorType,
             systemLabelsToAdd != null ? string.Join(", ", systemLabelsToAdd) : "None",
             systemLabelsToRemove != null ? string.Join(", ", systemLabelsToRemove) : "None"
         );
