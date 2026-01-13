@@ -750,7 +750,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     /// </summary>
     /// <param name="correspondenceId">ID of the correspondence</param>
     /// <param name="performedByActorId">Actor id of the user who performed the action</param>
-    /// <param name="performedByactorType">Type of actor who performed the action</param>
+    /// <param name="performedByActorType">Type of actor who performed the action</param>
     /// <param name="systemLabelsToAdd">list of labels to add</param>
     /// <param name="systemLabelsToRemove">list of labels to remove</param>
     /// <returns></returns>
