@@ -131,10 +131,10 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
 
         if (pathSpan.Contains("/correspondence/api/v1/migration/correspondence/sync".AsSpan(), StringComparison.OrdinalIgnoreCase))
         {
-            return _generalSettings.DisableTelemetryForSync;
+            return true;
         }
 
-        if (_generalSettings.DisableTelemetryForMigration)
+        if (true)
         {
             return pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.OrdinalIgnoreCase)
                 || pathSpan.Contains("/correspondence/api/v1/migration/makemigratedcorrespondenceavailable".AsSpan(), StringComparison.OrdinalIgnoreCase)
