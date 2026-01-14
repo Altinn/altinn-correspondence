@@ -10,9 +10,11 @@ using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using Altinn.Correspondence.Application;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -313,6 +315,41 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
             Assert.NotNull(data);
+        }
+
+        [Fact]
+        public async Task DownloadCorrespondenceAttachment_WhenAttachmentExpired_Fails()
+        {
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId])
+                .Build();
+
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var attachmentStatusRepository = scope.ServiceProvider.GetRequiredService<IAttachmentStatusRepository>();
+                await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+                {
+                    AttachmentId = attachmentId,
+                    Status = Altinn.Correspondence.Core.Models.Enums.AttachmentStatus.Expired,
+                    StatusText = "The attachment has expired",
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    PartyUuid = Guid.NewGuid()
+                }, CancellationToken.None);
+            }
+
+            // Act
+            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/attachment/{attachmentId}/download");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, downloadResponse.StatusCode);
+            var data = await downloadResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.Equal(AttachmentErrors.CannotDownloadExpiredAttachment.Message, data?.Detail);
         }
 
         [Fact]

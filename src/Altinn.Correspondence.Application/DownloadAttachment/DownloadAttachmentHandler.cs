@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -12,42 +13,52 @@ public class DownloadAttachmentHandler(
     IStorageRepository storageRepository,
     IAttachmentRepository attachmentRepository,
     ILogger<DownloadAttachmentHandler> logger,
+    AttachmentHelper attachmentHelper,
     ICorrespondenceRepository correspondenceRepository) : IHandler<DownloadAttachmentRequest, Stream>
 {
     public async Task<OneOf<Stream, Error>> Process(DownloadAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing download request for attachment {AttachmentId}", request.AttachmentId);
-        var attachment = await attachmentRepository.GetAttachmentById(request.AttachmentId, false, cancellationToken);
+        var attachment = await attachmentRepository.GetAttachmentById(request.AttachmentId, includeStatus: true, cancellationToken);
         if (attachment is null)
         {
             logger.LogWarning("Attachment {AttachmentId} not found", request.AttachmentId);
             return AttachmentErrors.AttachmentNotFound;
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsSender(
-            user, 
-            attachment.ResourceId, 
-            attachment.Sender.WithoutPrefix(), 
-            null, 
+            user,
+            attachment.ResourceId,
+            attachment.Sender.WithoutPrefix(),
+            null,
             cancellationToken);
         if (!hasAccess)
         {
             logger.LogWarning("Access denied for attachment {AttachmentId} - user does not have sender access", request.AttachmentId);
             return AuthorizationErrors.NoAccessToResource;
         }
+
+        var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
+        if (cannotDownloadAttachmentError is not null)
+        {
+            logger.LogError("Attachment with id {AttachmentId} cannot be downloaded due to its status", request.AttachmentId);
+            return cannotDownloadAttachmentError;
+        }
+
         var associatedCorrespondences = await correspondenceRepository.GetCorrespondencesByAttachmentId(attachment.Id, true, cancellationToken);
-        foreach(var correspondence in associatedCorrespondences)
+        foreach (var correspondence in associatedCorrespondences)
         {
             if (correspondence.StatusHasBeen(Core.Models.Enums.CorrespondenceStatus.Published))
             {
                 return AttachmentErrors.AttachedToAPublishedCorrespondence;
             }
-        }        
+        }
+        
         var attachmentStream = await storageRepository.DownloadAttachment(
-            attachment.Id, 
-            attachment.StorageProvider, 
+            attachment.Id,
+            attachment.StorageProvider,
             cancellationToken);
-        logger.LogInformation("Successfully downloaded attachment {AttachmentId} with filename {FileName}", 
-            request.AttachmentId, 
+        logger.LogInformation("Successfully downloaded attachment {AttachmentId} with filename {FileName}",
+            request.AttachmentId,
             attachment.FileName);
         return attachmentStream;
     }

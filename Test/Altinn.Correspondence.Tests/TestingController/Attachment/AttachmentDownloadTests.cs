@@ -4,7 +4,10 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Attachment.Base;
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -68,6 +71,50 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.True(downloadResponseAfterAttached.StatusCode == HttpStatusCode.BadRequest, await downloadResponseAfterAttached.Content.ReadAsStringAsync());
             var data = await downloadResponseAfterAttached.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.Equal(data.Detail, AttachmentErrors.AttachedToAPublishedCorrespondence.Message);
+        }
+
+        [Fact]
+        public async Task DownloadAttachment_AsSenderAfterPurged_Fails()
+        {
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+
+            // Act
+            var purgeResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/attachment/{attachmentId}");
+            Assert.True(purgeResponse.IsSuccessStatusCode, await purgeResponse.Content.ReadAsStringAsync());
+            var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, downloadResponse.StatusCode);
+            var data = await downloadResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.Equal(AttachmentErrors.CannotDownloadPurgedAttachment.Message, data?.Detail);
+        }
+
+        [Fact]
+        public async Task DownloadAttachment_AsSenderAfterExpired_Fails()
+        {
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var attachmentStatusRepository = scope.ServiceProvider.GetRequiredService<IAttachmentStatusRepository>();
+                await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+                {
+                    AttachmentId = attachmentId,
+                    Status = Altinn.Correspondence.Core.Models.Enums.AttachmentStatus.Expired,
+                    StatusText = "The attachment has expired",
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    PartyUuid = Guid.NewGuid()
+                }, CancellationToken.None);
+            }
+
+            // Act
+            var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/attachment/{attachmentId}/download");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, downloadResponse.StatusCode);
+            var data = await downloadResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.Equal(AttachmentErrors.CannotDownloadExpiredAttachment.Message, data?.Detail);
         }
     }
 }

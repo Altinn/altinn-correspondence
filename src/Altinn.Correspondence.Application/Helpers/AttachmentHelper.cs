@@ -180,6 +180,19 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
+        public Error? ValidateDownloadAttachment(AttachmentEntity attachment)
+        {
+            if (attachment.StatusHasBeen(AttachmentStatus.Purged))
+            {
+                return AttachmentErrors.CannotDownloadPurgedAttachment;
+            }
+            if (attachment.StatusHasBeen(AttachmentStatus.Expired) || (attachment.ExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow))
+            {
+                return AttachmentErrors.CannotDownloadExpiredAttachment;
+            }
+            return null;
+        }
+
         /// <summary>
         /// Simulates a malware scan result for local development and tests by calling the MalwareScanResultHandler with fake ScanResultData.
         /// </summary>

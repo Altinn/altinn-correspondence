@@ -329,7 +329,8 @@ public class DialogUrl
     public string Url { get; set; }
 
     [JsonPropertyName("mediaType")]
-    public string MediaType { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MediaType { get; set; }
 
     [JsonPropertyName("consumerType")]
     public string ConsumerType { get; set; }
