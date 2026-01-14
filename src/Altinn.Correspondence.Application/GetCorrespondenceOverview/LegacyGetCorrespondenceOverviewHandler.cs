@@ -82,7 +82,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
         {
             try
             {
-                await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                await correspondenceStatusRepository.AddCorrespondenceStatusFetched(new CorrespondenceStatusFetchedEntity
                 {
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,

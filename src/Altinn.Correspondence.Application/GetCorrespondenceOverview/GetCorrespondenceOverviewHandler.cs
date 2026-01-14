@@ -75,7 +75,7 @@ public class GetCorrespondenceOverviewHandler(
                     logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
                     return CorrespondenceErrors.CorrespondenceNotFound;
                 }
-                await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                await correspondenceStatusRepository.AddCorrespondenceStatusFetched(new CorrespondenceStatusFetchedEntity
                 {
                     CorrespondenceId = correspondence.Id,
                     Status = CorrespondenceStatus.Fetched,
