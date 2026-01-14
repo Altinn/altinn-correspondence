@@ -83,6 +83,6 @@ public static class CorrespondenceStatusExtensions
     }
     public static bool StatusHasBeen(this CorrespondenceEntity correspondence, CorrespondenceStatus status)
     {
-        return correspondence.Statuses.Any(s => s.Status == status);
+        return correspondence.Statuses.Any(s => s.Status == status) || correspondence.StatusFetched.Any(s => s.Status == status);
     }
 }

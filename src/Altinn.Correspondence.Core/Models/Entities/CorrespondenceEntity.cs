@@ -60,6 +60,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public required List<CorrespondenceStatusEntity> Statuses { get; set; }
 
+        public List<CorrespondenceStatusFetchedEntity> StatusFetched { get; set; } = new();
+
         public List<CorrespondenceForwardingEventEntity>? ForwardingEvents { get; set; }
 
         public List<IdempotencyKeyEntity> IdempotencyKeys { get; set; } = [];

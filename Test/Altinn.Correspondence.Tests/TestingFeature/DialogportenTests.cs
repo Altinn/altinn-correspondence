@@ -149,6 +149,7 @@ public class DialogportenTests
                     StatusChanged = DateTimeOffset.UtcNow
                 }
             },
+            StatusFetched = new List<Core.Models.Entities.CorrespondenceStatusFetchedEntity>(),
             ExternalReferences = new List<Core.Models.Entities.ExternalReferenceEntity>()
             {
                 new Core.Models.Entities.ExternalReferenceEntity()
@@ -203,6 +204,7 @@ public class DialogportenTests
                     StatusChanged = DateTimeOffset.UtcNow
                 }
             },
+            StatusFetched = new List<Core.Models.Entities.CorrespondenceStatusFetchedEntity>(),
         }, CancellationToken.None);
         var correspondenceId = initializedCorrespondence.Id;
         var handler = scope.ServiceProvider.GetRequiredService<PublishCorrespondenceHandler>();
