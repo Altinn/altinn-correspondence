@@ -1,0 +1,29 @@
+using Altinn.Correspondence.Core.Models.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Altinn.Correspondence.Core.Models.Entities
+{
+    public class CorrespondenceStatusFetchedEntity
+    {
+        [Key]
+        public Guid Id { get; set; }
+
+        [Required]
+        public CorrespondenceStatus Status { get; set; }
+
+        public string StatusText { get; set; } = string.Empty;
+
+        [Required]
+        public DateTimeOffset StatusChanged { get; set; }
+
+        public Guid CorrespondenceId { get; set; }
+        
+        [ForeignKey("CorrespondenceId")]
+        public CorrespondenceEntity? Correspondence { get; set; }
+        
+        public Guid PartyUuid { get; set; }
+
+        public DateTimeOffset? SyncedFromAltinn2 { get; set; }
+    }
+}
