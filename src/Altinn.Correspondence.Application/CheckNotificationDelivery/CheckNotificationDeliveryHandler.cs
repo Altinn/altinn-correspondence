@@ -13,6 +13,7 @@ public class CheckNotificationDeliveryHandler(
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IAltinnNotificationService altinnNotificationService,
     IDialogportenService dialogportenService,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<CheckNotificationDeliveryHandler> logger)
 {
     [AutomaticRetry(
@@ -79,6 +80,14 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
+            var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
+            if (hasFailedStatus)
+            {
+                logger.LogError("Notification {NotificationId} has failed status", notificationId);
+                SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                return NotificationErrors.NotificationFailed(notificationId);
+            }
+
             var sentRecipients = notificationDetailsV2.Recipients
                 .Where(r => r.IsSent())
                 .ToList();
@@ -141,5 +150,11 @@ public class CheckNotificationDeliveryHandler(
             logger.LogError(ex, "Error checking delivery status for notification {NotificationId}", notificationId);
             throw;
         }
+    }
+
+    private void SendFailedEvent(string resourceId, string correspondenceId, string sender) 
+    {
+        logger.LogInformation("Enqueuing CorrespondenceNotificationFailed event for correspondence {CorrespondenceId}", correspondenceId);
+        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationFailed, resourceId, correspondenceId, "correspondence", sender, CancellationToken.None));
     }
 }
