@@ -173,7 +173,7 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateAttachmentExpiration(AttachmentEntity attachment)
         {
             var minimumDays = hostEnvironment.IsProduction() ? 14 : 1;
-            if (attachment.ExpirationTime != null && attachment.ExpirationTime < DateTimeOffset.UtcNow.AddDays(minimumDays))
+            if (attachment.ExpirationInDays.HasValue && attachment.ExpirationInDays.Value < minimumDays)
             {
                 return AttachmentErrors.AttachmentExpirationPriorMinimumDaysFromNow(minimumDays);
             }
@@ -186,7 +186,22 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return AttachmentErrors.CannotDownloadPurgedAttachment;
             }
-            if (attachment.StatusHasBeen(AttachmentStatus.Expired) || (attachment.ExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow))
+            if (attachment.StatusHasBeen(AttachmentStatus.Expired))
+            {
+                return AttachmentErrors.CannotDownloadExpiredAttachment;
+            }
+            return null;
+        }
+
+        public Error? ValidateDownloadCorrespondenceAttachment(AttachmentEntity attachment, DateTimeOffset? correspondenceAttachmentExpirationTime)
+        {
+            var baseError = ValidateDownloadAttachment(attachment);
+            if (baseError is not null)
+            {
+                return baseError;
+            }
+
+            if (correspondenceAttachmentExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow)
             {
                 return AttachmentErrors.CannotDownloadExpiredAttachment;
             }

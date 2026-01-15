@@ -9,7 +9,6 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Notifications.Core.Helpers;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Text.RegularExpressions;
@@ -18,7 +17,6 @@ namespace Altinn.Correspondence.Application.Helpers
 {
     public class InitializeCorrespondenceHelper(
         IAttachmentRepository attachmentRepository,
-        IHostEnvironment hostEnvironment,
         AttachmentHelper attachmentHelper,
         MobileNumberHelper mobileNumberHelper,
         ServiceOwnerHelper serviceOwnerHelper,
@@ -336,6 +334,9 @@ namespace Altinn.Correspondence.Application.Helpers
             var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);
 
             var baseTimestamp = DateTimeOffset.UtcNow;
+            var expirationAnchorTime = request.Correspondence.RequestedPublishTime > baseTimestamp
+                ? request.Correspondence.RequestedPublishTime
+                : baseTimestamp;
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
@@ -352,6 +353,7 @@ namespace Altinn.Correspondence.Application.Helpers
                         Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)),
                         Attachment = a,
                         Created = DateTimeOffset.UtcNow,
+                        ExpirationTime = a.ExpirationInDays.HasValue ? expirationAnchorTime.AddDays(a.ExpirationInDays.Value) : null,
                     }).ToList(),
                     Language = request.Correspondence.Content.Language,
                     MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.Name),
@@ -520,18 +522,20 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
-        public Error? ValidateAttachmentsExpiration(List<AttachmentEntity> attachments, DateTimeOffset requestedPublishTime)
+        public async Task<Error?> ValidateAttachmentsExpiration(List<AttachmentEntity> attachments, CancellationToken cancellationToken)
         {
             if (attachments != null && attachments.Count > 0)
             {
-                var publishTime = requestedPublishTime > DateTimeOffset.UtcNow ? requestedPublishTime : DateTimeOffset.UtcNow;
-                var minimumDays = hostEnvironment.IsProduction() ? 14 : 1;
-                var minimumExpiration = publishTime.AddDays(minimumDays);
+                var now = DateTimeOffset.UtcNow;
+                var expiringSoonThreshold = 6;
+                var ids = attachments.Select(a => a.Id).Distinct().ToList();
+                var maxByAttachmentId = await attachmentRepository.GetMaxExpirationTimesForAttachments(ids, cancellationToken);
+
                 foreach (var attachment in attachments)
                 {
-                    if (attachment.ExpirationTime < minimumExpiration)
+                    if (maxByAttachmentId.TryGetValue(attachment.Id, out var maxExpiration) && maxExpiration is DateTimeOffset t && t <= now.AddHours(expiringSoonThreshold))
                     {
-                        return CorrespondenceErrors.AttachmentExpirationTooSoonAfterRequestedPublishTime(minimumDays);
+                        return CorrespondenceErrors.ExistingAttachmentExpiringSoon(expiringSoonThreshold);
                     }
                 }
             }

@@ -56,7 +56,7 @@ public class GetAttachmentDetailsHandler(
             Sender = attachment.Sender,
             IsEncrypted = attachment.IsEncrypted,
             Checksum = attachment.Checksum,
-            ExpirationTime = attachment.ExpirationTime,
+            ExpirationInDays = attachment.ExpirationInDays,
         };
         logger.LogInformation("Successfully retrieved details for attachment {AttachmentId} with status {Status}", 
             attachmentId, 

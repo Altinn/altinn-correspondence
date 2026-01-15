@@ -27,7 +27,7 @@ internal static class AttachmentOverviewMapper
             DataType = contentType,
             SendersReference = attachmentOverview.SendersReference,
             CorrespondenceIds = attachmentOverview.CorrespondenceIds ?? new List<Guid>(),
-            ExpirationTime = attachmentOverview.ExpirationTime,
+            ExpirationInDays = attachmentOverview.ExpirationInDays,
         };
         return attachment;
     }

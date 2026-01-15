@@ -29,5 +29,5 @@ public class GetAttachmentOverviewResponse
 
     public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();
 
-    public DateTimeOffset? ExpirationTime { get; set; } = null;
+    public int? ExpirationInDays { get; set; } = null;
 }

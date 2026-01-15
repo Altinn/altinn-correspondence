@@ -49,7 +49,7 @@ public class GetAttachmentOverviewHandler(
             FileName = attachment.FileName,
             DisplayName = attachment.DisplayName,
             Sender = attachment.Sender,
-            ExpirationTime = attachment.ExpirationTime,
+            ExpirationInDays = attachment.ExpirationInDays,
         };
         logger.LogInformation("Successfully retrieved overview for attachment {AttachmentId} with status {Status}", 
             attachmentId, 

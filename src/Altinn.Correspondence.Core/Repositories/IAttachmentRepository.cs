@@ -13,6 +13,8 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<bool> SetChecksum(AttachmentEntity attachmentEntity, string? checksum, CancellationToken cancellationToken);
         Task<bool> SetAttachmentSize(AttachmentEntity attachmentEntity, long size, CancellationToken cancellationToken);
         Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken);
+        Task<DateTimeOffset?> GetMaxExpirationTimeForAttachment(Guid attachmentId, CancellationToken cancellationToken);
+        Task<Dictionary<Guid, DateTimeOffset?>> GetMaxExpirationTimesForAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken);
         Task<List<AttachmentEntity>> GetAttachmentsByCorrespondence(Guid correspondenceId, CancellationToken cancellationToken);
         Task<AttachmentEntity?> GetAttachmentByCorrespondenceIdAndAttachmentId(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken);
         Task<List<AttachmentEntity>> GetAttachmentsByResourceIdWithoutStorageProvider(string resourceId, CancellationToken cancellationToken);

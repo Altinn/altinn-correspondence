@@ -34,5 +34,5 @@ public class GetAttachmentDetailsResponse
     public List<AttachmentStatusEntity> Statuses { get; set; } = new List<AttachmentStatusEntity>();
     public List<Guid> CorrespondenceIds { get; set; } = new List<Guid>();
 
-    public DateTimeOffset? ExpirationTime { get; set; } = null;
+    public int? ExpirationInDays { get; set; } = null;
 }

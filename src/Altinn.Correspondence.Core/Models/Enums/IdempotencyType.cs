@@ -20,4 +20,9 @@ public enum IdempotencyType
     /// Indicates that this is a idempotency key for a notification order
     /// </summary>
     NotificationOrder = 2,
+
+    /// <summary>
+    /// Indicates that this is an idempotency key for expiring an attachment
+    /// </summary>
+    ExpireAttachment = 3,
 } 

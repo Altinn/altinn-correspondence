@@ -119,9 +119,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 };
 
-                if (correspondenceAttachment.Attachment.ExpirationTime.HasValue)
+                if (correspondenceAttachment.ExpirationTime.HasValue)
                 {
-                    transmissionAttachment.ExpiresAt = correspondenceAttachment.Attachment.ExpirationTime.Value;
+                    transmissionAttachment.ExpiresAt = correspondenceAttachment.ExpirationTime.Value;
                 }
 
                 return transmissionAttachment;

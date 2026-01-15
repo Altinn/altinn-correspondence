@@ -43,7 +43,8 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         {
             return AttachmentErrors.AttachmentNotFound;
         }
-       var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
+        var correspondenceAttachment = correspondence.Content?.Attachments?.FirstOrDefault(a => a.AttachmentId == request.AttachmentId);
+        var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadCorrespondenceAttachment(attachment, correspondenceAttachment?.ExpirationTime);
         if (cannotDownloadAttachmentError is not null)
         {
             return cannotDownloadAttachmentError;
