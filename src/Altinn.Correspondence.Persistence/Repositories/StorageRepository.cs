@@ -59,26 +59,22 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         private async Task<BlobContainerClient> GetBlobContainerClient(Guid fileId, StorageProviderEntity? storageProviderEntity)
         {
-            string storageResourceName;
-
             if (storageProviderEntity is not null)
             {
-                var blobServiceClient = GetOrCreateBlobServiceClient(storageProviderEntity.StorageResourceName);
-                return blobServiceClient.GetBlobContainerClient("attachments");
+                return GetOrCreateBlobServiceClient(storageProviderEntity.StorageResourceName).GetBlobContainerClient("attachments");
             }
-            else // Legacy implementation
+            else
             {
                 _logger.LogInformation("Using Correspondence's storage account");
                 var connectionString = _options.ConnectionString;
-                var blobServiceClient = new BlobServiceClient(connectionString,
-                    new BlobClientOptions()
-                    {
-                        Retry =
-                            {
-                                NetworkTimeout = TimeSpan.FromHours(1),
-                            }
-                    });
-                return blobServiceClient.GetBlobContainerClient("attachments");
+                var connectionStringParts = connectionString.Split(';');
+                if (connectionStringParts.Any(connectionStringPart => connectionStringPart.StartsWith("AccountName="))) // Using Correspondence's storage account
+                {
+                    var storageResourceName = GetAccountNameFromConnectionString(connectionString) ?? throw new Exception("Failed to extract AccountName from connection string");
+                    return GetOrCreateBlobServiceClient(storageProviderEntity.StorageResourceName).GetBlobContainerClient("attachments");
+                }
+                // For local testing
+                return new BlobServiceClient(connectionString).GetBlobContainerClient("attachments");
             }
         }
 
