@@ -1,5 +1,4 @@
 using System.Text;
-using System;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Tests.Helpers;
 
