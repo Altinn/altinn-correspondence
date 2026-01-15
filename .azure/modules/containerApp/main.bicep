@@ -128,7 +128,7 @@ var containerAppEnvVarsDefault = [
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
   { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
-  { name: 'GeneralSettings__WorkerCountPerReplica, value: int(workerCountPerReplica) }
+  { name: 'GeneralSettings__WorkerCountPerReplica', value: int(workerCountPerReplica) }
   { name: 'GeneralSettings__MigrationWorkerCountPerReplica', value: int(migrationWorkerCountPerReplica) }
 ]
 
