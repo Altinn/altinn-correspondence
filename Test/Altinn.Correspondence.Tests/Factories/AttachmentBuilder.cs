@@ -1,4 +1,5 @@
 using System.Text;
+using System;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Tests.Helpers;
 
@@ -52,9 +53,9 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public AttachmentBuilder WithExpirationTime(DateTimeOffset expirationTime)
+        public AttachmentBuilder WithExpirationInDays(int expirationInDays)
         {
-            _attachment.ExpirationTime = expirationTime;
+            _attachment.ExpirationInDays = expirationInDays;
             return this;
         }
     }
