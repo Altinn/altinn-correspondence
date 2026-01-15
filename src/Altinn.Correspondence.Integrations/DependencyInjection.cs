@@ -33,7 +33,6 @@ public static class DependencyInjection
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
         services.AddScoped<IResourceManager, AzureResourceManagerService>();
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
-        services.AddSingleton<SasTokenService, SasTokenService>();
 
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {
