@@ -101,6 +101,9 @@ inputs:
   GRAFANA_MONITORING_PRINCIPAL_ID:
     description: "Principal ID for Grafana monitoring service principal"
     required: true
+  WORKER_COUNT_PER_REPLICA:
+    description: "Number of workers to use for Altinn 3 Correspondence operations"
+    required: false
   MIGRATION_WORKER_COUNT_PER_REPLICA:
     description: "Number of workers to use for Dialogporten migration"
     required: false
@@ -176,6 +179,7 @@ runs:
         MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ inputs.APIM_IP }}
+        WORKER_COUNT_PER_REPLICA: ${{ inputs.WORKER_COUNT_PER_REPLICA }}
         MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
         ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ inputs.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
 
