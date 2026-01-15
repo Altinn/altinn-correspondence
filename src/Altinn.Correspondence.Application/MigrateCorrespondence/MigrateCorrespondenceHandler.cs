@@ -96,8 +96,7 @@ public class MigrateCorrespondenceHandler(
         }
         catch (DbUpdateException e)
         {
-            var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-            if (sqlState == "23505")
+            if (e.IsPostgresUniqueViolation())
             {
                 var correspondence = await correspondenceRepository.GetCorrespondenceByAltinn2Id((int)request.CorrespondenceEntity.Altinn2CorrespondenceId, cancellationToken);
                 return new MigrateCorrespondenceResponse()

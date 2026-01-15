@@ -309,8 +309,7 @@ public class CreateNotificationOrderHandler(
                 }
                 catch (DbUpdateException e)
                 {
-                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-                    if (sqlState == "23505")
+                    if (e.IsPostgresUniqueViolation())
                     {
                         logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on correspondence {CorrespondenceId}. Skipping.", notificationOrderRequest.IdempotencyId, correspondence.Id);
                         return Task.CompletedTask;
