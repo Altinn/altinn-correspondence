@@ -198,6 +198,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>2011: Filename is too long</li>
         /// <li>2012: Filename contains invalid characters</li>
         /// <li>2013: Filetype not allowed</li>
+        /// <li>2017: Attachment expirationTime must be at least 14 days from now (1 day in non-production environments)</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>

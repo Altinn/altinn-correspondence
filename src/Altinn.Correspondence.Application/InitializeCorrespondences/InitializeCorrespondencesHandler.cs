@@ -5,7 +5,6 @@ using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -15,7 +14,6 @@ using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
 
@@ -23,6 +21,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
 public class InitializeCorrespondencesHandler(
     InitializeCorrespondenceHelper initializeCorrespondenceHelper,
+    AttachmentHelper attachmentHelper,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
@@ -34,7 +33,6 @@ public class InitializeCorrespondencesHandler(
     IHybridCacheWrapper hybridCacheWrapper,
     HangfireScheduleHelper hangfireScheduleHelper,
     IIdempotencyKeyRepository idempotencyKeyRepository,
-    IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private class ValidatedData
@@ -208,7 +206,7 @@ public class InitializeCorrespondencesHandler(
 
         logger.LogDebug("Validating expiration times for attachments");
         var uploadAttachments = uploadAttachmentMetadata.Select(a => a.Attachment).Where(a => a != null).Select(a => a!).ToList();
-        var uploadAttachmentsExpirationError = await initializeCorrespondenceHelper.ValidateAttachmentsExpiration(uploadAttachments, cancellationToken);
+        var uploadAttachmentsExpirationError = attachmentHelper.ValidateAttachmentsExpiration(uploadAttachments);
         if (uploadAttachmentsExpirationError != null)
         {
             logger.LogWarning("Expiration time validation failed for uploaded attachments: {Error}", uploadAttachmentsExpirationError);

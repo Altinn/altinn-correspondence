@@ -180,6 +180,11 @@ namespace Altinn.Correspondence.Application.Helpers
             return null;
         }
 
+        public Error? ValidateAttachmentsExpiration(List<AttachmentEntity> attachments)
+        {
+            return attachments.Select(ValidateAttachmentExpiration).FirstOrDefault(error => error is not null);
+        }
+
         public Error? ValidateDownloadAttachment(AttachmentEntity attachment)
         {
             if (attachment.StatusHasBeen(AttachmentStatus.Purged))
