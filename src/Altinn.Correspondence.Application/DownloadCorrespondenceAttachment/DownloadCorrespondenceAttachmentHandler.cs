@@ -21,6 +21,7 @@ public class DownloadCorrespondenceAttachmentHandler(
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
+    AttachmentHelper attachmentHelper,
     ILogger<DownloadCorrespondenceAttachmentHandler> logger) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
@@ -50,6 +51,12 @@ public class DownloadCorrespondenceAttachmentHandler(
         {
             _logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
             return AuthorizationErrors.NoAccessToResource;
+        }
+        var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
+        if (cannotDownloadAttachmentError is not null)
+        {
+            _logger.LogError("Attachment with id {AttachmentId} in correspondence {CorrespondenceId} cannot be downloaded due to its status", request.AttachmentId, request.CorrespondenceId);
+            return cannotDownloadAttachmentError;
         }
         var latestStatus = correspondence.GetHighestStatus();
         if (!latestStatus.Status.IsAvailableForRecipient())

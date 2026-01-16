@@ -96,7 +96,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             if (includeStatus)
             {
-                correspondences = correspondences.Include(c => c.Statuses);
+                correspondences = correspondences
+                    .Include(c => c.Statuses)
+                    .Include(c => c.StatusFetched);
             }
             if (includeContent)
             {
@@ -488,7 +490,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     ServiceOwnerMigrationStatus = c.ServiceOwnerMigrationStatus,
                     Altinn2CorrespondenceId = c.Altinn2CorrespondenceId,
                     MessageSender = c.MessageSender,
-                    Statuses = new List<CorrespondenceStatusEntity>() // Initialize required property
+                    Statuses = new List<CorrespondenceStatusEntity>(), // Initialize required property
+                    StatusFetched = new List<CorrespondenceStatusFetchedEntity>()
                 })
                 .ToListAsync(cancellationToken);
         }

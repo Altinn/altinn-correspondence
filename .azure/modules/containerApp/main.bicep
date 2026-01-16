@@ -16,6 +16,7 @@ param idportenIssuer string
 param dialogportenIssuer string
 param maskinporten_token_exchange_environment string
 param eventGridIps array
+param workerCountPerReplica string
 param migrationWorkerCountPerReplica string
 param arbeidsflateOriginsCommaSeparated string
 
@@ -50,7 +51,7 @@ param containerAppResources object = prodLikeEnvironment ? {
 }
 param containerAppScale ContainerAppScale = prodLikeEnvironment ? {
   minReplicas: 5
-  maxReplicas: 5
+  maxReplicas: 10
 } : {
   minReplicas: 1
   maxReplicas: 1
@@ -127,6 +128,7 @@ var containerAppEnvVarsDefault = [
   { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
   { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
+  { name: 'GeneralSettings__WorkerCountPerReplica', value: int(workerCountPerReplica) }
   { name: 'GeneralSettings__MigrationWorkerCountPerReplica', value: int(migrationWorkerCountPerReplica) }
 ]
 

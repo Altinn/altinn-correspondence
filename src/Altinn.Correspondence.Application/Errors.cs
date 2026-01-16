@@ -85,6 +85,8 @@ public static class AttachmentErrors
     public static Error AttachmentExpirationPriorMinimumDaysFromNow(int minimumDays) =>
         new Error(2017, $"Attachment expirationTime must be at least {minimumDays} days from now", HttpStatusCode.BadRequest);
     public static Error FileHasBeenExpired = new Error(2018, "File has expired", HttpStatusCode.BadRequest);
+    public static Error CannotDownloadPurgedAttachment = new Error(2019, "The attachment has been purged and cannot be downloaded", HttpStatusCode.BadRequest);
+    public static Error CannotDownloadExpiredAttachment = new Error(2020, "The attachment has expired and cannot be downloaded", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {
@@ -107,7 +109,8 @@ public static class NotificationErrors
     public static Error InvalidNotificationTemplate = new Error(3023, "Invalid notification template", HttpStatusCode.BadRequest);
     public static Error MissingEmailAndSmsContent = new Error(3024, "Email body, subject and SMS body must be provided when sending email and SMS notifications", HttpStatusCode.BadRequest);
     public static Error MissingEmailAndSmsReminderContent = new Error(3025, "Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications", HttpStatusCode.BadRequest);
-}
+    public static Error NotificationFailed(Guid notificationId) => new Error(3026, $"Notification ({notificationId}) has failed status", HttpStatusCode.InternalServerError);}
+    
 public static class AuthorizationErrors
 {
     public static Error NoAccessToResource = new Error(4001, "You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization", HttpStatusCode.Unauthorized);

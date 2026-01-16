@@ -5,6 +5,9 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -16,6 +19,7 @@ public class CheckNotificationDeliveryHandlerTests
     private readonly Mock<ICorrespondenceNotificationRepository> _notificationRepositoryMock;
     private readonly Mock<IAltinnNotificationService> _notificationServiceMock;
     private readonly Mock<IDialogportenService> _dialogportenServiceMock;
+    private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
     private readonly Mock<ILogger<CheckNotificationDeliveryHandler>> _loggerMock;
     private readonly CheckNotificationDeliveryHandler _handler;
 
@@ -25,6 +29,7 @@ public class CheckNotificationDeliveryHandlerTests
         _notificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();
         _notificationServiceMock = new Mock<IAltinnNotificationService>();
         _dialogportenServiceMock = new Mock<IDialogportenService>();
+        _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
         _loggerMock = new Mock<ILogger<CheckNotificationDeliveryHandler>>();
 
         _handler = new CheckNotificationDeliveryHandler(
@@ -32,6 +37,7 @@ public class CheckNotificationDeliveryHandlerTests
             _notificationRepositoryMock.Object,
             _notificationServiceMock.Object,
             _dialogportenServiceMock.Object,
+            _backgroundJobClientMock.Object,
             _loggerMock.Object);
     }
 
@@ -264,5 +270,93 @@ public class CheckNotificationDeliveryHandlerTests
             It.IsAny<DateTimeOffset>(),
             It.IsAny<string>(),
             It.IsAny<string>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(NotificationStatusV2.Email_Failed)]
+    [InlineData(NotificationStatusV2.Email_Failed_Bounced)]
+    [InlineData(NotificationStatusV2.Email_Failed_Quarantined)]
+    [InlineData(NotificationStatusV2.SMS_Failed)]
+    [InlineData(NotificationStatusV2.SMS_Failed_TTL)]
+    [InlineData(NotificationStatusV2.SMS_Failed_RecipientNotIdentified)]
+    public async Task Process_WhenNotificationFails_ReturnsNotificationFailedAndCreatesFailedEvent(NotificationStatusV2 recipientStatus)
+    {
+        // Arrange
+        var notificationId = Guid.NewGuid();
+        var correspondenceId = Guid.NewGuid();
+        var shipmentId = Guid.NewGuid();
+        var notification = new CorrespondenceNotificationEntity
+        {
+            Id = notificationId,
+            CorrespondenceId = correspondenceId,
+            ShipmentId = shipmentId,
+            NotificationChannel = NotificationChannel.Email,
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+            Created = DateTimeOffset.UtcNow,
+            RequestedSendTime = DateTimeOffset.UtcNow
+        };
+        var correspondence = new CorrespondenceEntity
+        {
+            Id = correspondenceId,
+            Recipient = "12345678901",
+            Sender = "test_sender",
+            ResourceId = "test_resource",
+            SendersReference = "test_reference",
+            RequestedPublishTime = DateTimeOffset.UtcNow,
+            Statuses = new List<CorrespondenceStatusEntity>(),
+            Created = DateTimeOffset.UtcNow
+        };
+        var notificationDetailsV2 = new NotificationStatusResponseV2
+        {
+            ShipmentId = shipmentId,
+            Recipients = new List<RecipientStatus>
+        {
+            new()
+            {
+                Type = recipientStatus >= NotificationStatusV2.SMS_New && recipientStatus < NotificationStatusV2.Unknown
+                    ? NotificationType.SMS
+                    : NotificationType.Email,
+                Destination = "test@example.com",
+                Status = recipientStatus,
+                LastUpdate = DateTimeOffset.UtcNow
+            }
+        }
+        };
+        _notificationRepositoryMock.Setup(x => x.GetNotificationById(notificationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notification);
+        _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(correspondence);
+        _notificationServiceMock.Setup(x => x.GetNotificationDetailsV2(shipmentId.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notificationDetailsV2);
+
+        // Act
+        var result = await _handler.Process(notificationId, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsT1);
+        Assert.Equal(Altinn.Correspondence.Application.NotificationErrors.NotificationFailed(notificationId), result.AsT1);
+
+        _notificationRepositoryMock.Verify(x => x.UpdateNotificationSent(
+            It.IsAny<Guid>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _dialogportenServiceMock.Verify(x => x.CreateInformationActivity(
+            It.IsAny<Guid>(),
+            It.IsAny<DialogportenActorType>(),
+            It.IsAny<DialogportenTextType>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<string>(),
+            It.IsAny<string>()), Times.Never);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceNotificationFailed &&
+                (string)job.Args[1] == correspondence.ResourceId &&
+                (string)job.Args[2] == correspondence.Id.ToString() &&
+                (string)job.Args[3] == "correspondence" &&
+                (string)job.Args[4] == correspondence.Sender),
+            It.Is<IState>(state => state is EnqueuedState)), Times.Once);
     }
 }
