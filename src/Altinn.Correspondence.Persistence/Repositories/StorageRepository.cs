@@ -71,7 +71,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 if (connectionStringParts.Any(connectionStringPart => connectionStringPart.StartsWith("AccountName="))) // Using Correspondence's storage account
                 {
                     var storageResourceName = GetAccountNameFromConnectionString(connectionString) ?? throw new Exception("Failed to extract AccountName from connection string");
-                    return GetOrCreateBlobServiceClient(storageProviderEntity.StorageResourceName).GetBlobContainerClient("attachments");
+                    return GetOrCreateBlobServiceClient(storageResourceName).GetBlobContainerClient("attachments");
                 }
                 // For local testing
                 return new BlobServiceClient(connectionString).GetBlobContainerClient("attachments");
