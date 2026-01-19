@@ -103,11 +103,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: [
-      '/bin/bash',
-      '-c',
-      'apt-get update && apt-get install -y wget unzip && wget -O /tmp/azcopy.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xzf /tmp/azcopy.tar.gz -C /tmp --strip-components=1 && export PATH=$PATH:/tmp && export AZCOPY_AUTO_LOGIN_TYPE=MSI && export AZCOPY_MSI_CLIENT_ID=$AZURE_CLIENT_ID && azcopy copy "https://$STORAGE_ACCOUNT_NAME.file.core.windows.net/$FILE_SHARE_NAME/bundle.exe" "/tmp/bundle.exe" --backup && azcopy copy "https://$STORAGE_ACCOUNT_NAME.file.core.windows.net/$FILE_SHARE_NAME/appsettings.json" "/tmp/appsettings.json" --backup && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe'
-    ]
+    command: ['/bin/bash', '-c', 'apt-get update && apt-get install -y wget unzip && wget -O /tmp/azcopy.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xzf /tmp/azcopy.tar.gz -C /tmp --strip-components=1 && export PATH=$PATH:/tmp && export AZCOPY_AUTO_LOGIN_TYPE=MSI && export AZCOPY_MSI_CLIENT_ID=$AZURE_CLIENT_ID && azcopy copy "https://$STORAGE_ACCOUNT_NAME.file.core.windows.net/$FILE_SHARE_NAME/bundle.exe" "/tmp/bundle.exe" --backup && azcopy copy "https://$STORAGE_ACCOUNT_NAME.file.core.windows.net/$FILE_SHARE_NAME/appsettings.json" "/tmp/appsettings.json" --backup && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe']
     image: 'ubuntu:latest'
     principalId: userAssignedIdentity.id
   }
