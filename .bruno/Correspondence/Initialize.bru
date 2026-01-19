@@ -18,10 +18,10 @@ body:json {
   {
     "correspondence": {
       "resourceId": "{{resource_id}}",
-      "sendersReference": "3",
+      "sendersReference": "1",
       "content": {
         "language": "nb",
-        "messageTitle": "Dette er den tredje testmeldingen",
+        "messageTitle": "Testmelding tittel",
         "messageSummary": "Ett sammendrag for meldingen",
         "messageBody": "MessageBody kan være plain text eller **markdown**",
         "attachments": []
@@ -55,7 +55,8 @@ body:json {
       "IsConfirmationNeeded": true
     },
     "Recipients": [
-      "urn:altinn:organization:identifier-no:{{recipient_orgnumber}}"
+      "urn:altinn:organization:identifier-no:{{recipient_orgnumber}}",
+      "urn:altinn:person:identifier-no:{{recipient_ssn}}"
     ],
     "existingAttachments": []
   }
