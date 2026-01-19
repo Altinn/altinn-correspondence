@@ -77,7 +77,6 @@ resource containerAppEnvironmentStorage 'Microsoft.App/managedEnvironments/stora
       accessMode: 'ReadOnly'
       accountName: storageAccountName
       shareName: 'migrations'
-      storageType: 'AzureFiles'
     }
   }
 }
