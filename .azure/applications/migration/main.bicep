@@ -96,6 +96,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: containerAppJobName
   dependsOn: [
     keyvaultAddReaderRolesMigrationIdentity
+    grantMigrationIdentityStorageFileAccess
   ]
   params: {
     name: containerAppJobName
@@ -103,7 +104,19 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: ['/bin/bash', '-c', 'apt-get update && apt-get install -y curl gnupg lsb-release && curl -sL https://aka.ms/InstallAzureCLIDeb | bash && az login --identity --client-id $AZURE_CLIENT_ID && az storage file download --share-name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT_NAME --path bundle.exe --dest /tmp/bundle.exe --auth-mode login --enable-file-backup-request-intent && az storage file download --share-name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT_NAME --path appsettings.json --dest /tmp/appsettings.json --auth-mode login --enable-file-backup-request-intent && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe']
+    command: [
+      '/bin/bash'
+      '-c'
+      '''
+        apt-get update && apt-get install -y curl gnupg lsb-release &&
+        curl -sL https://aka.ms/InstallAzureCLIDeb | bash &&
+        az login --identity --client-id $AZURE_CLIENT_ID &&
+        az storage file download --share-name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT_NAME --path bundle.exe --dest /tmp/bundle.exe --auth-mode login --enable-file-backup-request-intent &&
+        az storage file download --share-name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT_NAME --path appsettings.json --dest /tmp/appsettings.json --auth-mode login --enable-file-backup-request-intent &&
+        chmod +x /tmp/bundle.exe &&
+        cd /tmp && ./bundle.exe
+      '''
+    ]
     image: 'ubuntu:latest'
     principalId: userAssignedIdentity.id
   }
