@@ -23,6 +23,19 @@ public static class ApplicationConstants
         ".json",
         ".csv"
     ];
+
+    /// <summary>
+    /// File types that may be served with Content-Disposition: inline, allowing the browser to render them.
+    /// </summary>
+    public static readonly List<string> InlineFileTypes =
+    [
+        ".pdf",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp"
+    ];
     public static readonly List<string> RequiredOrganizationRolesForCorrespondenceRecipient = 
     [
         "bestyrende-reder",

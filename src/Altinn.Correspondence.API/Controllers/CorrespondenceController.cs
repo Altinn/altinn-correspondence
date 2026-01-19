@@ -12,9 +12,9 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Mappers;
@@ -592,7 +592,19 @@ namespace Altinn.Correspondence.API.Controllers
                 AttachmentId = attachmentId
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
-                result => File(result.Stream, "application/octet-stream", result.FileName),
+                result =>
+                {
+                    var contentType = FileDownloadResponseHelper.GetContentTypeFromFileName(result.FileName);
+                    var extension = Path.GetExtension(result.FileName)?.ToLowerInvariant();
+
+                    if (!string.IsNullOrWhiteSpace(extension) && ApplicationConstants.InlineFileTypes.Contains(extension))
+                    {
+                        FileDownloadResponseHelper.SetInlineContentDisposition(Response, result.FileName);
+                        return File(result.Stream, contentType);
+                    }
+
+                    return File(result.Stream, contentType, result.FileName);
+                },
                 Problem
             );
         }
