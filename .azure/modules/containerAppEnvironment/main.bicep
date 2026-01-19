@@ -40,6 +40,9 @@ resource application_insights 'Microsoft.Insights/components@2020-02-02' = {
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
   name: '${namePrefix}-env'
   location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     infrastructureResourceGroup: '${namePrefix}-rg'
     appLogsConfiguration: {
@@ -56,15 +59,25 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing 
   name: storageAccountName
 }
 
+module grantEnvironmentIdentityStorageFileAccess '../storageAccount/addFileDataPrivilegedContributorRole.bicep' = {
+  name: 'storage-file-privileged-contributor-env'
+  dependsOn: [containerAppEnvironment]
+  params: {
+    storageAccountName: storageAccountName
+    principalId: containerAppEnvironment.identity.principalId
+  }
+}
+
 resource containerAppEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
   name: 'migrations'
   parent: containerAppEnvironment
+  dependsOn: [grantEnvironmentIdentityStorageFileAccess]
   properties: {
     azureFile: {
       accessMode: 'ReadOnly'
-      accountKey: storageAccount.listKeys().keys[0].value
       accountName: storageAccountName
       shareName: 'migrations'
+      storageType: 'AzureFiles'
     }
   }
 }

@@ -10,6 +10,8 @@ param keyVaultName string
 param environment string
 @secure()
 param apimIp string
+@secure()
+param storageAccountName string
 
 var containerAppJobName = '${namePrefix}-migration'
 var containerAppEnvName = '${namePrefix}-env'
@@ -40,6 +42,14 @@ module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
     appName: userAssignedIdentity.name
     namePrefix: namePrefix
     principalType: 'ServicePrincipal'
+  }
+}
+
+module grantMigrationIdentityStorageFileAccess '../../modules/storageAccount/addFileDataPrivilegedContributorRole.bicep' = {
+  name: 'storage-file-privileged-contributor-migration'
+  params: {
+    storageAccountName: storageAccountName
+    principalId: userAssignedIdentity.properties.principalId
   }
 }
 var secrets = [

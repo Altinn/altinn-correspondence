@@ -58,6 +58,7 @@ runs:
         APP_VERSION: ${{ steps.get-version.outputs.imageTag }}
         ENVIRONMENT: ${{ inputs.environment }}
         APIM_IP: ${{ inputs.APIM_IP }}
+        STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
       with:
         scope: resourcegroup
         template: ./.azure/applications/migration/main.bicep
