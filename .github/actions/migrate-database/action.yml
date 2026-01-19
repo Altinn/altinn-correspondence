@@ -85,9 +85,11 @@ runs:
         azcliversion: 2.72.0
         inlineScript: |
           az storage file upload --share-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
-            --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --path bundle.exe --auth-mode login
+            --source ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --path bundle.exe \
+            --auth-mode login --enable-file-backup-request-intent
           az storage file upload --share-name migrations --account-name ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }} \
-            --source ./src/Altinn.Correspondence.API/appsettings.json --path appsettings.json --auth-mode login
+            --source ./src/Altinn.Correspondence.API/appsettings.json --path appsettings.json \
+            --auth-mode login --enable-file-backup-request-intent
 
     - name: Start migration job
       uses: azure/CLI@v2

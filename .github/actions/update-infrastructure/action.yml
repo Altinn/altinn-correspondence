@@ -117,6 +117,7 @@ runs:
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         STATISTICS_API_KEY: ${{ inputs.STATISTICS_API_KEY }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
+        AZURE_CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
