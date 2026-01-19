@@ -84,23 +84,8 @@ var containerAppEnvVars = [
   { name: 'AzureResourceManagerOptions__ContainerAppName', value: '${namePrefix}-app' }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
   { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.properties.clientId }
-]
-
-var volumes = [
-  {
-    name: 'migrations'
-    storageName: 'migrations'
-    storageType: 'AzureFile'
-    mountOptions: 'cache=none'
-  }
-]
-
-var volumeMounts = [
-  {
-    volumeName: 'migrations'
-    mountPath: '/migrations'
-    subPath: ''
-  }
+  { name: 'STORAGE_ACCOUNT_NAME', value: storageAccountName }
+  { name: 'FILE_SHARE_NAME', value: 'migrations' }
 ]
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' existing = {
@@ -118,10 +103,8 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: ['/bin/bash', '-c', 'cp ./migrations/bundle.exe /tmp/bundle.exe && cp ./migrations/appsettings.json /tmp/ && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe;']
+    command: ['/bin/bash', '-c', 'apt-get update && apt-get install -y wget unzip && wget -O /tmp/azcopy.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xzf /tmp/azcopy.tar.gz -C /tmp --strip-components=1 && export PATH=$PATH:/tmp && export AZCOPY_AUTO_LOGIN_TYPE=MSI && export AZCOPY_MSI_CLIENT_ID=$AZURE_CLIENT_ID && azcopy copy "https://$STORAGE_ACCOUNT_NAME.file.core.windows.net/$FILE_SHARE_NAME/bundle.exe" "/tmp/bundle.exe" --backup && azcopy copy "https://$STORAGE_ACCOUNT_NAME.file.core.windows.net/$FILE_SHARE_NAME/appsettings.json" "/tmp/appsettings.json" --backup && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe;']
     image: 'ubuntu:latest'
-    volumes: volumes
-    volumeMounts: volumeMounts
     principalId: userAssignedIdentity.id
   }
 }
