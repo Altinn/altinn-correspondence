@@ -34,8 +34,8 @@ param statisticsApiKey string
 param grafanaMonitoringPrincipalId string
 
 @secure()
-@description('Client ID of the deployment service principal for storage account access')
-param deploymentClientId string
+@description('Object ID (Principal ID) of the deployment service principal for storage account access')
+param deploymentPrincipalId string
 
 @secure()
 param maintenanceAdGroupId string
@@ -205,7 +205,7 @@ module grantDeploymentPrincipalStorageFileAccess '../modules/storageAccount/addF
   dependsOn: [storageAccount]
   params: {
     storageAccountName: storageAccountName
-    principalId: deploymentClientId
+    principalId: deploymentPrincipalId
   }
 }
 
