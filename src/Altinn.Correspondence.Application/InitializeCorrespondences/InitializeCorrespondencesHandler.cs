@@ -5,16 +5,15 @@ using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Application.ExpireAttachment;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
 
@@ -22,6 +21,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
 public class InitializeCorrespondencesHandler(
     InitializeCorrespondenceHelper initializeCorrespondenceHelper,
+    AttachmentHelper attachmentHelper,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
@@ -33,7 +33,6 @@ public class InitializeCorrespondencesHandler(
     IHybridCacheWrapper hybridCacheWrapper,
     HangfireScheduleHelper hangfireScheduleHelper,
     IIdempotencyKeyRepository idempotencyKeyRepository,
-    IOptions<GeneralSettings> generalSettings,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private class ValidatedData
@@ -207,14 +206,14 @@ public class InitializeCorrespondencesHandler(
 
         logger.LogDebug("Validating expiration times for attachments");
         var uploadAttachments = uploadAttachmentMetadata.Select(a => a.Attachment).Where(a => a != null).Select(a => a!).ToList();
-        var uploadAttachmentsExpirationError = initializeCorrespondenceHelper.ValidateAttachmentsExpiration(uploadAttachments, request.Correspondence.RequestedPublishTime);
+        var uploadAttachmentsExpirationError = attachmentHelper.ValidateAttachmentsExpiration(uploadAttachments);
         if (uploadAttachmentsExpirationError != null)
         {
             logger.LogWarning("Expiration time validation failed for uploaded attachments: {Error}", uploadAttachmentsExpirationError);
             return uploadAttachmentsExpirationError;
         }
 
-        var existingAttachmentsExpirationError = initializeCorrespondenceHelper.ValidateAttachmentsExpiration(existingAttachments, request.Correspondence.RequestedPublishTime);
+        var existingAttachmentsExpirationError = await initializeCorrespondenceHelper.ValidateAttachmentsExpiration(existingAttachments, cancellationToken);
         if (existingAttachmentsExpirationError != null)
         {
             logger.LogWarning("Expiration time validation failed for existing attachments: {Error}", existingAttachmentsExpirationError);
@@ -408,8 +407,7 @@ public class InitializeCorrespondencesHandler(
                 }
                 catch (DbUpdateException e)
                 {
-                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-                    if (sqlState == "23505") // PostgreSQL unique constraint violation
+                    if (e.IsPostgresUniqueViolation()) // PostgreSQL unique constraint violation
                     {
                         logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
                         return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
@@ -437,6 +435,23 @@ public class InitializeCorrespondencesHandler(
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
                     }, cancellationToken));
                 }
+            }
+
+            foreach (var correspondenceAttachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
+            {
+                if (correspondenceAttachment.ExpirationTime is not DateTimeOffset scheduleAt)
+                {
+                    continue;
+                }
+
+                if (scheduleAt < DateTimeOffset.UtcNow)
+                {
+                    scheduleAt = DateTimeOffset.UtcNow;
+                }
+
+                backgroundJobClient.Schedule<ExpireAttachmentHandler>(
+                    (handler) => handler.Process(correspondenceAttachment.AttachmentId, null, CancellationToken.None),
+                    scheduleAt);
             }
 
             var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);

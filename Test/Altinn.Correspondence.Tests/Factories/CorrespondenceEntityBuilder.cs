@@ -167,6 +167,7 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondenceEntity.Content!.Attachments.Add(new CorrespondenceAttachmentEntity
             {
                 Id = Guid.NewGuid(),
+                ExpirationTime = expirationTime,
                 Attachment = new AttachmentEntity
                 {
                     Id = Guid.NewGuid(),
@@ -175,7 +176,6 @@ namespace Altinn.Correspondence.Tests.Factories
                     SendersReference = "test-attachment-senders-reference",
                     Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                     Created = _correspondenceEntity.Created,
-                    ExpirationTime = expirationTime
                 }
             });
             return this;

@@ -94,6 +94,42 @@ namespace Altinn.Correspondence.Persistence.Repositories
             !a.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn), cancellationToken));
         }
 
+        public async Task<DateTimeOffset?> GetMaxExpirationTimeForAttachment(Guid attachmentId, CancellationToken cancellationToken)
+        {
+            return await _context.Correspondences
+                .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId))
+                .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn))
+                .SelectMany(c => c.Content!.Attachments.Where(ca => ca.AttachmentId == attachmentId))
+                .GroupBy(_ => 1)
+                .Select(g => g.Any(x => x.ExpirationTime == null)
+                    ? null
+                    : g.Max(x => x.ExpirationTime))
+                .SingleOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<Dictionary<Guid, DateTimeOffset?>> GetMaxExpirationTimesForAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken)
+        {
+            var ids = attachmentIds?.Distinct().ToList() ?? [];
+            if (ids.Count == 0)
+            {
+                return new Dictionary<Guid, DateTimeOffset?>();
+            }
+
+            var results = await _context.Correspondences
+                .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ids.Contains(ca.AttachmentId)))
+                .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn))
+                .SelectMany(c => c.Content!.Attachments.Where(ca => ids.Contains(ca.AttachmentId)))
+                .GroupBy(ca => ca.AttachmentId)
+                .Select(g => new
+                {
+                    AttachmentId = g.Key,
+                    MaxExpirationTime = g.Any(x => x.ExpirationTime == null) ? null : g.Max(x => x.ExpirationTime)
+                })
+                .ToListAsync(cancellationToken);
+
+            return results.ToDictionary(x => x.AttachmentId, x => x.MaxExpirationTime);
+        }
+
         public async Task<List<AttachmentEntity?>> GetAttachmentsByCorrespondence(Guid correspondenceId, CancellationToken cancellationToken)
         {
             return await _context.Correspondences

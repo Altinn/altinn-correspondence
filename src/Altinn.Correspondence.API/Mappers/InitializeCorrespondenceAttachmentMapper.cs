@@ -24,7 +24,7 @@ internal static class InitializeCorrespondenceAttachmentMapper
                 Checksum = initializeAttachmentExt.Checksum,
                 IsEncrypted = initializeAttachmentExt.IsEncrypted,
                 DataLocationType = (AttachmentDataLocationType)initializeAttachmentExt.DataLocationType,
-                ExpirationTime = initializeAttachmentExt.ExpirationTime,
+                ExpirationInDays = initializeAttachmentExt.ExpirationInDays,
             }
         };
     }

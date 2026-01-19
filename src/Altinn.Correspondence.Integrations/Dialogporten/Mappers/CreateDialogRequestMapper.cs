@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -460,9 +460,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 };
 
-                if (correspondenceAttachment.Attachment.ExpirationTime.HasValue)
+                if (correspondenceAttachment.ExpirationTime.HasValue)
                 {
-                    attachment.ExpiresAt = correspondenceAttachment.Attachment.ExpirationTime.Value;
+                    attachment.ExpiresAt = correspondenceAttachment.ExpirationTime.Value;
                 }
 
                 return attachment;

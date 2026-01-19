@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260115110322_ReplaceAttachmentExpirationTimeWithExpirationInDays")]
+    partial class ReplaceAttachmentExpirationTimeWithExpirationInDays
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -477,38 +480,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.ToTable("CorrespondenceStatuses", "correspondence");
                 });
 
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceStatusFetchedEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CorrespondenceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PartyUuid")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("StatusChanged")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("StatusText")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("SyncedFromAltinn2")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CorrespondenceId");
-
-                    b.ToTable("CorrespondenceFetches", "correspondence");
-                });
-
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.ExternalReferenceEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -766,17 +737,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 {
                     b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
                         .WithMany("Statuses")
-                        .HasForeignKey("CorrespondenceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceStatusFetchedEntity", b =>
-                {
-                    b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
-                        .WithMany()
                         .HasForeignKey("CorrespondenceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

@@ -10,8 +10,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public DateTimeOffset Created { get; set; }
 
-        [Required]
-        public DateTimeOffset ExpirationTime { get; set; }
+        public DateTimeOffset? ExpirationTime { get; set; }
 
         public Guid CorrespondenceContentId { get; set; }
         [ForeignKey("CorrespondenceContentId")]

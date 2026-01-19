@@ -39,11 +39,11 @@ namespace Altinn.Correspondence.API.Models
         [StringLength(4096, MinimumLength = 1)]
         [Required]
         public required string SendersReference { get; set; }
-
+        
         /// <summary>
-        /// The expiration time of the attachment
+        /// Relative expiration time (days) for the attachment.
         /// </summary>
-        [JsonPropertyName("expirationTime")]
-        public DateTimeOffset? ExpirationTime { get; set; }
+        [JsonPropertyName("expirationInDays")]
+        public int? ExpirationInDays { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Common.Helpers;
@@ -52,7 +52,8 @@ public class DownloadCorrespondenceAttachmentHandler(
             _logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
             return AuthorizationErrors.NoAccessToResource;
         }
-        var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadAttachment(attachment);
+        var correspondenceAttachment = correspondence.Content?.Attachments?.FirstOrDefault(a => a.AttachmentId == request.AttachmentId);
+        var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadCorrespondenceAttachment(attachment, correspondenceAttachment?.ExpirationTime);
         if (cannotDownloadAttachmentError is not null)
         {
             _logger.LogError("Attachment with id {AttachmentId} in correspondence {CorrespondenceId} cannot be downloaded due to its status", request.AttachmentId, request.CorrespondenceId);

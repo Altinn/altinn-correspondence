@@ -178,8 +178,7 @@ public class SendNotificationOrderHandler(
         }
         catch (DbUpdateException e)
         {
-            var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-            if (sqlState == "23505")
+            if (e.IsPostgresUniqueViolation())
             {
                 logger.LogWarning("Reminder notification already persisted for shipment {ShipmentId} on correspondence {CorrespondenceId}. Skipping.", reminderResponse.ShipmentId, mainNotificationOrder.CorrespondenceId);
                 return null;

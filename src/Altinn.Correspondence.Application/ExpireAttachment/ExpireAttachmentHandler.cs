@@ -6,8 +6,10 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.ExpireAttachment;
 
@@ -15,6 +17,7 @@ public class ExpireAttachmentHandler(
     ILogger<ExpireAttachmentHandler> logger,
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     IStorageRepository storageRepository,
     IAltinnRegisterService altinnRegisterService,
     IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
@@ -22,7 +25,8 @@ public class ExpireAttachmentHandler(
     public async Task<OneOf<Task, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Expiring attachment {AttachmentId}", attachmentId);
-        var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
+
+        var attachment = await attachmentRepository.GetAttachmentById(attachmentId, includeStatus: true, cancellationToken);
         if (attachment is null)
         {
             logger.LogError("Attachment {AttachmentId} not found when expiring attachment", attachmentId);
@@ -35,16 +39,18 @@ public class ExpireAttachmentHandler(
             return Task.CompletedTask;
         }
 
-        if (attachment.ExpirationTime is null)
+        var now = DateTimeOffset.UtcNow;
+        var maxExpirationTime = await attachmentRepository.GetMaxExpirationTimeForAttachment(attachmentId, cancellationToken);
+        if (maxExpirationTime is null)
         {
-            logger.LogError("Attachment {AttachmentId} is missing expiration time when expiring attachment", attachmentId);
-            throw new InvalidOperationException($"Attachment {attachmentId} has no expiration time");
+            logger.LogWarning("Attachment {AttachmentId} has correspondenceAttachment with no max expiration time; skipping expiration", attachmentId);
+            return Task.CompletedTask;
         }
 
-        if (attachment.ExpirationTime > DateTimeOffset.UtcNow)
+        if (maxExpirationTime > now)
         {
-            logger.LogError("The attachment {AttachmentId} was not set to expire at the scheduled expiration job time", attachmentId);
-            throw new InvalidOperationException($"Attachment {attachmentId} is not set to expire at this time");
+            logger.LogInformation("Attachment {AttachmentId} has a correspondenceAttachment set to expire at {ExpirationTime}; skipping this expiration job", attachmentId, maxExpirationTime);
+            return Task.CompletedTask;
         }
 
         var party = await altinnRegisterService.LookUpPartyById(attachment.Sender, cancellationToken);
@@ -54,8 +60,27 @@ public class ExpireAttachmentHandler(
             throw new InvalidOperationException($"Could not find party UUID for sender {attachment.Sender}");
         }
 
-        return await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
+            var expireIdempotencyId = attachmentId.CreateVersion5("ExpireAttachment");
+            try
+            {
+                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                {
+                    Id = expireIdempotencyId,
+                    CorrespondenceId = null,
+                    AttachmentId = attachmentId,
+                    PartyUrn = attachment.Sender,
+                    StatusAction = null,
+                    IdempotencyType = IdempotencyType.ExpireAttachment
+                }, cancellationToken);
+            }
+            catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+            {
+                logger.LogInformation("Expire already processed for attachment {AttachmentId}; skipping", attachmentId);
+                return Task.CompletedTask;
+            }
+
             await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
             {
                 AttachmentId = attachment.Id,

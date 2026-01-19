@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Attachment.Base;
 using System.Net.Http.Json;
@@ -85,7 +85,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         {
             var attachment = new AttachmentBuilder()
                 .CreateAttachment()
-                .WithExpirationTime(DateTimeOffset.UtcNow.AddHours(12))
+                .WithExpirationInDays(0)
                 .Build();
             
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         {
             var attachment = new AttachmentBuilder()
                 .CreateAttachment()
-                .WithExpirationTime(DateTimeOffset.UtcNow.AddDays(2))
+                .WithExpirationInDays(2)
                 .Build();
             
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);

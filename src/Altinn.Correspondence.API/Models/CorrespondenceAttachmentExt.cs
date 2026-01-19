@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.API.Models.Enums;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -43,5 +43,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("dataType")]
         public string DataType { get; set; }
+
+        /// <summary>
+        /// The expiration time for this attachment on this correspondence.
+        /// </summary>
+        [JsonPropertyName("expirationTime")]
+        public DateTimeOffset? ExpirationTime { get; set; }
     }
 }

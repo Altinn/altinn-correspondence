@@ -52,9 +52,9 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public AttachmentBuilder WithExpirationTime(DateTimeOffset expirationTime)
+        public AttachmentBuilder WithExpirationInDays(int expirationInDays)
         {
-            _attachment.ExpirationTime = expirationTime;
+            _attachment.ExpirationInDays = expirationInDays;
             return this;
         }
     }

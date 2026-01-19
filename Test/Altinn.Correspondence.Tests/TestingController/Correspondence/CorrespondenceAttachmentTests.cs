@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -201,7 +201,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var fileStream = file.OpenReadStream();
 
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
-            attachmentMetaData.ExpirationTime = DateTimeOffset.UtcNow.AddHours(12);
+            attachmentMetaData.ExpirationInDays = 0;
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
@@ -209,7 +209,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
             var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
-            formData.Add(new StringContent(attachmentMetaData.ExpirationTime!.Value.ToString("o")), "correspondence.content.attachments[0].expirationTime");
+            formData.Add(new StringContent(attachmentMetaData.ExpirationInDays!.Value.ToString()), "correspondence.content.attachments[0].expirationInDays");
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
 
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
@@ -224,7 +224,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var fileStream = file.OpenReadStream();
 
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
-            attachmentMetaData.ExpirationTime = DateTimeOffset.UtcNow.AddDays(2);
+            attachmentMetaData.ExpirationInDays = 2;
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
@@ -232,7 +232,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
             var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
-            formData.Add(new StringContent(attachmentMetaData.ExpirationTime!.Value.ToString("o")), "correspondence.content.attachments[0].expirationTime");
+            formData.Add(new StringContent(attachmentMetaData.ExpirationInDays!.Value.ToString()), "correspondence.content.attachments[0].expirationInDays");
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
 
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
