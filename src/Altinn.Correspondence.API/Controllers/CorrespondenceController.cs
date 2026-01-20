@@ -149,7 +149,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// One of the scopes: <br/>
         /// - altinn:correspondence.write <br />
-        /// Requires uploads of specified attachments if any before it can be Published
+        /// Requires uploads of specified attachments if any before it can be Published. <br />
+        /// Supports file sizes up to 2 GB each <br />
         /// </remarks>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
         /// <response code="400"><ul>

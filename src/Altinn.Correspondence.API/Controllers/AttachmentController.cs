@@ -70,6 +70,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <remarks>
     /// One of the scopes: <br/>
     /// - altinn:correspondence.write <br/>
+    /// Supports file sizes up to 5 GB <br />
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
     /// <response code="400"><ul>
