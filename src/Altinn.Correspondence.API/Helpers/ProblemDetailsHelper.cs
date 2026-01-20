@@ -83,6 +83,7 @@ public static class ProblemDetailsHelper
             problemDetails.Type = mapping.Type;
             problemDetails.Title = mapping.Title;
         }
+        problemDetails.Status = (int)HttpStatusCode.BadRequest;
 
         var traceId = Activity.Current?.Id;
         if (!string.IsNullOrEmpty(traceId))
@@ -90,6 +91,9 @@ public static class ProblemDetailsHelper
             problemDetails.Extensions["traceId"] = traceId;
         }
 
-        return new ObjectResult(problemDetails);
+        return new ObjectResult(problemDetails)
+        {
+            StatusCode = (int)HttpStatusCode.BadRequest
+        };
     }
 }
