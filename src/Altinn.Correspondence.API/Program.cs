@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.API.Filters;
+using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
 using Altinn.Correspondence.Common.Caching;
@@ -16,6 +17,7 @@ using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Hangfire;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using System.Reflection;
@@ -98,6 +100,12 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddControllers().AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
+    // Convert validation errors to AltinnValidationProblemDetails
+    services.Configure<ApiBehaviorOptions>(options =>
+    {
+        options.InvalidModelStateResponseFactory = context => ProblemDetailsHelper.ToValidationProblemResult(context);
     });
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);

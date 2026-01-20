@@ -9,6 +9,8 @@ namespace Altinn.Correspondence.API.Helpers;
 public static class ProblemDetailsHelper
 {
     private static readonly ProblemDescriptorFactory _factory = ProblemDescriptorFactory.New("CORR");
+    private static readonly ValidationErrorDescriptorFactory _validationFactory
+        = ValidationErrorDescriptorFactory.New("CORR");
 
     private static readonly Dictionary<HttpStatusCode, (string Type, string Title)> StatusCodeMappings = new()
     {
@@ -46,5 +48,42 @@ public static class ProblemDetailsHelper
         {
             StatusCode = (int)error.StatusCode
         };
+    }
+
+    public static ObjectResult ToValidationProblemResult(ActionContext context)
+    {
+        var validationErrors = new List<AltinnValidationError>();
+        
+        // for each key-value pair build a list of validation errors
+        foreach (var kvp in context.ModelState)
+        {
+            if (kvp.Value?.Errors == null || kvp.Value.Errors.Count == 0)
+                continue;
+            
+            foreach (var error in kvp.Value.Errors)
+            {
+                var descriptor = _validationFactory.Create(0, error.ErrorMessage);
+                var validationError = descriptor.ToValidationError(kvp.Key);
+                validationErrors.Add(validationError);
+            }
+        }
+
+        // Create AltinnValidationProblemDetails with the array of validation errors
+        var problemDetails = new AltinnValidationProblemDetails(validationErrors.ToArray());
+        // Keep the old errors to remain backwards compatible
+        problemDetails.Extensions["errors"] = validationErrors;
+        if (StatusCodeMappings.TryGetValue(HttpStatusCode.BadRequest, out var mapping))
+        {
+            problemDetails.Type = mapping.Type;
+            problemDetails.Title = mapping.Title;
+        }
+
+        var traceId = Activity.Current?.Id;
+        if (!string.IsNullOrEmpty(traceId))
+        {
+            problemDetails.Extensions["traceId"] = traceId;
+        }
+
+        return new ObjectResult(problemDetails);
     }
 }
