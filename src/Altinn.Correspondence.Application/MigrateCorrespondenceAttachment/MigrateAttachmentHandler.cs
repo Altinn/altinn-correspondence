@@ -22,7 +22,7 @@ public class MigrateAttachmentHandler(
     {
         if (request.ContentLength == 0)
         {
-            return AttachmentErrors.InvalidFileSize;
+            return AttachmentErrors.InvalidFileSize("2GB");
         }
 
         AttachmentEntity? attachment = null;

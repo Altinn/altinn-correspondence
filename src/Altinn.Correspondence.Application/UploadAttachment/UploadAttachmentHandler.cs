@@ -38,11 +38,11 @@ public class UploadAttachmentHandler(
             logger.LogWarning("Access denied for attachment {AttachmentId} - user does not have sender access", request.AttachmentId);
             return AuthorizationErrors.NoAccessToResource;
         }
-        if (request.ContentLength is not null && (request.ContentLength > ApplicationConstants.MaxFileUploadSize || request.ContentLength == 0))
+        if (request.ContentLength is not null && (request.ContentLength > ApplicationConstants.MaxFileStreamUploadSize || request.ContentLength == 0))
         {
             logger.LogWarning("Invalid file size {ContentLength} for attachment {AttachmentId} - must be between 1 and {MaxSize} bytes",
-                request.ContentLength, request.AttachmentId, ApplicationConstants.MaxFileUploadSize);
-            return AttachmentErrors.InvalidFileSize;
+                request.ContentLength, request.AttachmentId, ApplicationConstants.MaxFileStreamUploadSize);
+            return AttachmentErrors.InvalidFileSize("5GB");
         }
         if (attachment.StatusHasBeen(AttachmentStatus.UploadProcessing))
         {
