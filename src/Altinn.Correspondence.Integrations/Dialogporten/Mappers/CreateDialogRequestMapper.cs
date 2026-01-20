@@ -237,7 +237,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             string[] tokensEN = [];
             if (notification.NotificationAddress != null)
             {
-                tokensNO = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "E-post" : "SMS"];
+                tokensNO = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "e-post" : "SMS"];
                 tokensEN = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
             }
 
