@@ -232,10 +232,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             // Choose the appropriate text type based on whether this is a reminder notification
             var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
-            string[] tokens = [];
+            
+            string[] tokensNO = [];
+            string[] tokensEN = [];
             if (notification.NotificationAddress != null)
             {
-                tokens = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
+                tokensNO = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "E-post" : "SMS"];
+                tokensEN = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
             }
 
             activity.Description =
@@ -243,17 +246,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 new ()
                 {
                     LanguageCode = "nb",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NB, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NB, tokensNO)
                 },
                 new ()
                 {
                     LanguageCode = "nn",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NN, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NN, tokensNO)
                 },
                 new ()
                 {
                     LanguageCode = "en",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokens)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokensEN)
                 },
             ];
 
