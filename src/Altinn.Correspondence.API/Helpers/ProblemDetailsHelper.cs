@@ -63,7 +63,7 @@ public static class ProblemDetailsHelper
             foreach (var error in kvp.Value.Errors)
             {
                 var descriptor = _validationFactory.Create(0, error.ErrorMessage);
-                var validationError = descriptor.ToValidationError(kvp.Key);
+                var validationError = descriptor.ToValidationError(kvp.Key.Replace(".", "/"));
                 validationErrors.Add(validationError);
             }
         }
