@@ -70,8 +70,14 @@ public static class ProblemDetailsHelper
 
         // Create AltinnValidationProblemDetails with the array of validation errors
         var problemDetails = new AltinnValidationProblemDetails(validationErrors.ToArray());
-        // Keep the old errors to remain backwards compatible
-        problemDetails.Extensions["errors"] = validationErrors;
+        
+        // Keep the old errors dictionary to remain backwards compatible
+        problemDetails.Extensions["errors"] = context.ModelState
+            .Where(kvp => kvp.Value != null)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
+        
         if (StatusCodeMappings.TryGetValue(HttpStatusCode.BadRequest, out var mapping))
         {
             problemDetails.Type = mapping.Type;
