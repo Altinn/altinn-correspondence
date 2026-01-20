@@ -408,7 +408,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
                 var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
                 if (file == null) return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
-                if (file?.Length > ApplicationConstants.MaxFileUploadSize || file?.Length == 0) return AttachmentErrors.InvalidFileSize;
+                if (file?.Length > ApplicationConstants.MaxFormDataFileUploadSize || file?.Length == 0) return AttachmentErrors.InvalidFileSize("2GB");
             }
             return null;
         }
