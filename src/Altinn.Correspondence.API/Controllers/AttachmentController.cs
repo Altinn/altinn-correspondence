@@ -13,6 +13,7 @@ using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Altinn.Authorization.ProblemDetails;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -239,10 +240,9 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
     [HttpGet]
-    [Produces("application/octet-stream")]
-    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/octet-stream")]
+    [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
+    [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status404NotFound, "application/json")]
     [Route("{attachmentId}/download")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult> DownloadAttachmentData(
