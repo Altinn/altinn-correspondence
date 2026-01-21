@@ -80,7 +80,7 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
-            if (notificationDetailsV2.Status.Equals("Order_Completed"))
+            if (!notificationDetailsV2.Status.Equals("Order_Registered") && !notificationDetailsV2.Status.Equals("Order_Processing"))
             {
                 
             var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
