@@ -80,12 +80,15 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
+            if (notificationDetailsV2.Status.Equals("Order_Completed"))
+            {
+                
             var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
             if (hasFailedStatus)
             {
                 logger.LogError("Notification {NotificationId} has failed status", notificationId);
                 SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
-                return NotificationErrors.NotificationFailed(notificationId);
+            }
             }
 
             var sentRecipients = notificationDetailsV2.Recipients
