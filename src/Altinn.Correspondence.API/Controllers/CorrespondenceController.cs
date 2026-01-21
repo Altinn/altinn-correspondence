@@ -21,6 +21,7 @@ using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Altinn.Authorization.ProblemDetails;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -574,10 +575,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>2001: The requested attachment was not found</li>
         /// </ul></response>
         [HttpGet]
-        [Produces("application/octet-stream")]
-        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/octet-stream")]
+        [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
+        [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status404NotFound, "application/json")]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
         [Authorize(Policy = AuthorizationConstants.DownloadAttachmentPolicy, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
