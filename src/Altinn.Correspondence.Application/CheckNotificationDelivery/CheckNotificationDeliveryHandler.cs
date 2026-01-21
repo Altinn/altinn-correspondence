@@ -88,6 +88,10 @@ public class CheckNotificationDeliveryHandler(
             {
                 logger.LogError("Notification {NotificationId} has failed status", notificationId);
                 SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+            } else
+            {
+                logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);
+                throw new Exception("Notification not yet sent. Throwing to retry.");
             }
             }
 
