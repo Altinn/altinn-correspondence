@@ -91,7 +91,7 @@ public class CheckNotificationDeliveryHandler(
             } else
             {
                 logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);
-                throw new Exception("Notification not yet sent. Throwing to retry.");
+                // throw new Exception("Notification not yet sent. Throwing to retry.");
             }
             }
 
