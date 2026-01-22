@@ -139,7 +139,7 @@ public class DialogportenTests
         {
             Id = correspondenceId,
             Created = DateTimeOffset.UtcNow,
-            Recipient = correspondence.Recipients[0],
+            Recipient = $"{UrnConstants.PersonIdAttribute}:{CustomWebApplicationFactory.ReservedSsn}",
             RequestedPublishTime = DateTimeOffset.UtcNow,
             ResourceId = correspondence.Correspondence.ResourceId,
             Sender = correspondence.Correspondence.Sender,
