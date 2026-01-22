@@ -25,4 +25,9 @@ public enum IdempotencyType
     /// Indicates that this is an idempotency key for expiring an attachment
     /// </summary>
     ExpireAttachment = 3,
+
+    /// <summary>
+    /// Indicates that this is an idempotency key for publishing a correspondence
+    /// </summary>
+    PublishCorrespondence = 4,
 } 
