@@ -119,15 +119,16 @@ public class CheckNotificationDeliveryHandler(
 
                             foreach (var recipient in sentRecipients)
                             {
-                                await dialogportenService.CreateInformationActivity(
-                                    correspondence.Id,
-                                    DialogportenActorType.ServiceOwner,
-                                    textType,
-                                    recipient.LastUpdate,
-                                    recipient.Destination,
-                                    recipient.Type.ToString());
+                                
+                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => 
+                            dialogportenService.CreateInformationActivity(
+                                correspondence.Id,
+                                DialogportenActorType.ServiceOwner, 
+                                textType,
+                                recipient.LastUpdate,
+                                recipient.Destination,
+                                recipient.Type.ToString()));
                             }
-
                             logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
                             return true;
                         }, cancellationToken);
