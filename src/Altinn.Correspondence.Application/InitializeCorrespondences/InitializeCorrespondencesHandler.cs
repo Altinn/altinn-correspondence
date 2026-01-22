@@ -566,7 +566,7 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            if (request.Correspondence.Content!.Attachments.Count == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
                 if (!string.IsNullOrEmpty(notificationJobId))
                 {
@@ -585,7 +585,7 @@ public class InitializeCorrespondencesHandler(
     public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
     {
         var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
-        if (attachmentsCount == 0 || await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
+        if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
             await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
         };
