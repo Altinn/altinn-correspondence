@@ -162,6 +162,7 @@ public class CheckNotificationDeliveryHandlerTests
 
         var notificationDetailsV2 = new NotificationStatusResponseV2
         {
+            Status = "Order_Completed",
             ShipmentId = shipmentId,
             Recipients = new List<RecipientStatus>
             {
@@ -234,6 +235,7 @@ public class CheckNotificationDeliveryHandlerTests
         };
         var notificationDetailsV2 = new NotificationStatusResponseV2
         {
+            Status = "Order_Processing",
             ShipmentId = shipmentId,
             Recipients = new List<RecipientStatus>
         {
@@ -279,7 +281,7 @@ public class CheckNotificationDeliveryHandlerTests
     [InlineData(NotificationStatusV2.SMS_Failed)]
     [InlineData(NotificationStatusV2.SMS_Failed_TTL)]
     [InlineData(NotificationStatusV2.SMS_Failed_RecipientNotIdentified)]
-    public async Task Process_WhenNotificationFails_ReturnsNotificationFailedAndCreatesFailedEvent(NotificationStatusV2 recipientStatus)
+    public async Task Process_WhenNotificationFails_CreateFailedEvent(NotificationStatusV2 recipientStatus)
     {
         // Arrange
         var notificationId = Guid.NewGuid();
@@ -308,6 +310,7 @@ public class CheckNotificationDeliveryHandlerTests
         };
         var notificationDetailsV2 = new NotificationStatusResponseV2
         {
+            Status = "Order_Completed",
             ShipmentId = shipmentId,
             Recipients = new List<RecipientStatus>
         {
@@ -333,8 +336,7 @@ public class CheckNotificationDeliveryHandlerTests
         var result = await _handler.Process(notificationId, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsT1);
-        Assert.Equal(Altinn.Correspondence.Application.NotificationErrors.NotificationFailed(notificationId), result.AsT1);
+        Assert.True(result.IsT0);
 
         _notificationRepositoryMock.Verify(x => x.UpdateNotificationSent(
             It.IsAny<Guid>(),
