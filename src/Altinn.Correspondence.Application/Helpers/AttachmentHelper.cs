@@ -27,10 +27,16 @@ namespace Altinn.Correspondence.Application.Helpers
         ILogger<AttachmentHelper> logger)
     {
 
-        private static readonly Regex InvalidFilenameRegex = new Regex(
-        @"[<>:""/\\|?*\u0000-\u001F]|^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)",
+        private static readonly Regex InvalidCharactersRegex = new Regex(
+        @"[<>:""/\\|?*\u0000-\u001F]",
+        RegexOptions.Compiled
+        );
+
+        private static readonly Regex WindowsReservedNamesRegex = new Regex(
+        @"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled
         );
+        
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
@@ -171,9 +177,13 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return AttachmentErrors.FilenameInvalid;
             }
-            if (InvalidFilenameRegex.IsMatch(filename))
+            if (InvalidCharactersRegex.IsMatch(filename))
             {
                 return AttachmentErrors.FilenameInvalid;
+            }
+            if (WindowsReservedNamesRegex.IsMatch(filename))
+            {
+                return AttachmentErrors.FilenameCannotBeAReservedWindowsFilename;
             }
             foreach (var c in Path.GetInvalidFileNameChars())
             {
