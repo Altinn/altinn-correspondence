@@ -33,7 +33,6 @@ public class CheckNotificationDeliveryHandler(
     )]
     public async Task<OneOf<bool, Error>> Process(Guid notificationId, CancellationToken cancellationToken)
     {
-        var operationTimestamp = DateTimeOffset.UtcNow;
         logger.LogInformation("Checking delivery status for notification {NotificationId}", notificationId);
         
         var notification = await correspondenceNotificationRepository.GetNotificationById(notificationId, cancellationToken);
@@ -124,7 +123,7 @@ public class CheckNotificationDeliveryHandler(
                                 correspondence.Id,
                                 DialogportenActorType.ServiceOwner,
                                 textType,
-                                operationTimestamp,
+                                recipient.LastUpdate,
                                 recipient.Destination,
                                 recipient.Type.ToString());
                         }
