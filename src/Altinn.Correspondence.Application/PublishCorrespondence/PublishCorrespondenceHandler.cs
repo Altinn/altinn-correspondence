@@ -44,7 +44,7 @@ public class PublishCorrespondenceHandler(
             return Task.CompletedTask;
         }
 
-        if (!await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+        if (correspondence.Content!.Attachments.Count > 0 && !await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
         {
             logger.LogInformation("Skipping this publish job for correspondence {CorrespondenceId} - not all attachments are published yet - the final attachment publish will enqueue this job again", correspondenceId);
             return Task.CompletedTask;
