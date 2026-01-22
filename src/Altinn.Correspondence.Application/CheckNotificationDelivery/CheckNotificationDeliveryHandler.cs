@@ -80,20 +80,19 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
-            if (!notificationDetailsV2.Status.Equals("Order_Registered") && !notificationDetailsV2.Status.Equals("Order_Processing"))
+            if (notificationDetailsV2.Status.Equals("Order_Completed")  || notificationDetailsV2.Status.Equals("Order_SendConditionNotMet"))
             {
                 
-            var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
-            if (hasFailedStatus)
-            {
-                logger.LogError("Notification {NotificationId} has failed status", notificationId);
-                SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
-            } else
-            {
-                logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);
-                // throw new Exception("Notification not yet sent. Throwing to retry.");
-            }
-            }
+                var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
+                if (hasFailedStatus)
+                {
+                    logger.LogError("Notification {NotificationId} has failed status", notificationId);
+                    SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                } else
+                {
+                    logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);   
+                }
+            
 
             var sentRecipients = notificationDetailsV2.Recipients
                 .Where(r => r.IsSent())
@@ -150,6 +149,7 @@ public class CheckNotificationDeliveryHandler(
                 logger.LogInformation("Correspondence has been read. Hence no notification was sent");
                 return true;
             }
+        }
             throw new InvalidOperationException("Notification not yet sent. Throwing to retry.");
         }
         catch (Exception ex)
