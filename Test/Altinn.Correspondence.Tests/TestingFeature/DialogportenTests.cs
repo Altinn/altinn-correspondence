@@ -3,6 +3,7 @@ using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
@@ -133,34 +134,44 @@ public class DialogportenTests
         // Act
         using var scope = testFactory.Services.CreateScope();
         var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
-        var initializedCorrespondence = await correspondenceRepository.CreateCorrespondence(new Core.Models.Entities.CorrespondenceEntity()
+        var correspondenceId = Guid.NewGuid();
+        var initializedCorrespondence = await correspondenceRepository.CreateCorrespondence(new CorrespondenceEntity()
         {
+            Id = correspondenceId,
             Created = DateTimeOffset.UtcNow,
             Recipient = correspondence.Recipients[0],
             RequestedPublishTime = DateTimeOffset.UtcNow,
             ResourceId = correspondence.Correspondence.ResourceId,
             Sender = correspondence.Correspondence.Sender,
             SendersReference = correspondence.Correspondence.SendersReference,
-            Statuses = new List<Core.Models.Entities.CorrespondenceStatusEntity>()
+            Content = new CorrespondenceContentEntity
             {
-                new Core.Models.Entities.CorrespondenceStatusEntity()
+                Id = Guid.NewGuid(),
+                CorrespondenceId = correspondenceId,
+                Language = "nb",
+                MessageTitle = "title",
+                MessageSummary = "summary",
+                MessageBody = "body",
+                Attachments = new List<CorrespondenceAttachmentEntity>()
+            },
+            Statuses = new List<CorrespondenceStatusEntity>()
+            {
+                new CorrespondenceStatusEntity()
                 {
                     Status = CorrespondenceStatus.Initialized,
                     StatusChanged = DateTimeOffset.UtcNow
                 }
             },
-            StatusFetched = new List<Core.Models.Entities.CorrespondenceStatusFetchedEntity>(),
-            ExternalReferences = new List<Core.Models.Entities.ExternalReferenceEntity>()
+            StatusFetched = new List<CorrespondenceStatusFetchedEntity>(),
+            ExternalReferences = new List<ExternalReferenceEntity>()
             {
-                new Core.Models.Entities.ExternalReferenceEntity()
+                new ExternalReferenceEntity()
                 {
                     ReferenceType = ReferenceType.DialogportenDialogId,
                     ReferenceValue = "dialogId"
                 }
             }
         }, CancellationToken.None);
-        var correspondenceId = initializedCorrespondence.Id;
-        Assert.NotNull(correspondenceId);
         var handler = scope.ServiceProvider.GetRequiredService<PublishCorrespondenceHandler>();
         await handler.Process(correspondenceId, null, CancellationToken.None);
 
@@ -188,29 +199,40 @@ public class DialogportenTests
         // Act
         using var scope = testFactory.Services.CreateScope();
         var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
-        var initializedCorrespondence = await correspondenceRepository.CreateCorrespondence(new Core.Models.Entities.CorrespondenceEntity()
+        var correspondenceId = Guid.NewGuid();
+        var initializedCorrespondence = await correspondenceRepository.CreateCorrespondence(new CorrespondenceEntity()
         {
+            Id = correspondenceId,
             Created = DateTimeOffset.UtcNow,
             Recipient = correspondence.Recipients[0],
             RequestedPublishTime = DateTimeOffset.UtcNow.AddSeconds(-5),
             ResourceId = correspondence.Correspondence.ResourceId,
             Sender = correspondence.Correspondence.Sender,
             SendersReference = correspondence.Correspondence.SendersReference,
-            Statuses = new List<Core.Models.Entities.CorrespondenceStatusEntity>()
+            Content = new CorrespondenceContentEntity
             {
-                new Core.Models.Entities.CorrespondenceStatusEntity()
+                Id = Guid.NewGuid(),
+                CorrespondenceId = correspondenceId,
+                Language = "nb",
+                MessageTitle = "title",
+                MessageSummary = "summary",
+                MessageBody = "body",
+                Attachments = new List<CorrespondenceAttachmentEntity>()
+            },
+            Statuses = new List<CorrespondenceStatusEntity>()
+            {
+                new CorrespondenceStatusEntity()
                 {
                     Status = CorrespondenceStatus.ReadyForPublish,
                     StatusChanged = DateTimeOffset.UtcNow
                 }
             },
-            StatusFetched = new List<Core.Models.Entities.CorrespondenceStatusFetchedEntity>(),
+            StatusFetched = new List<CorrespondenceStatusFetchedEntity>(),
         }, CancellationToken.None);
-        var correspondenceId = initializedCorrespondence.Id;
         var handler = scope.ServiceProvider.GetRequiredService<PublishCorrespondenceHandler>();
         var result = await handler.Process(correspondenceId, null, CancellationToken.None);
 
-        var processedCorrespondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, CancellationToken.None);
+        var processedCorrespondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, CancellationToken.None);
 
         // Assert
         Assert.NotNull(processedCorrespondence);
