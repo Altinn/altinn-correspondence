@@ -196,13 +196,11 @@ public class CheckNotificationDeliveryHandlerTests
             "test@example.com",
             It.IsAny<CancellationToken>()), Times.Once);
 
-        _dialogportenServiceMock.Verify(x => x.CreateInformationActivity(
-            correspondenceId,
-            DialogportenActorType.ServiceOwner,
-            DialogportenTextType.NotificationSent,
-            It.IsAny<DateTimeOffset>(),
-            "test@example.com",
-            NotificationType.Email.ToString()), Times.Once);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IDialogportenService) &&
+                job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
+            It.Is<IState>(state => state is EnqueuedState)), Times.Once);
     }
 
     [Fact]
