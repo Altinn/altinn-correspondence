@@ -263,13 +263,11 @@ public class CheckNotificationDeliveryHandlerTests
             It.IsAny<DateTimeOffset>(),
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        _dialogportenServiceMock.Verify(x => x.CreateInformationActivity(
-            It.IsAny<Guid>(),
-            It.IsAny<DialogportenActorType>(),
-            It.IsAny<DialogportenTextType>(),
-            It.IsAny<DateTimeOffset>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IDialogportenService) &&
+                job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
+            It.IsAny<IState>()), Times.Never);
     }
 
     [Theory]
@@ -341,13 +339,11 @@ public class CheckNotificationDeliveryHandlerTests
             It.IsAny<DateTimeOffset>(),
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        _dialogportenServiceMock.Verify(x => x.CreateInformationActivity(
-            It.IsAny<Guid>(),
-            It.IsAny<DialogportenActorType>(),
-            It.IsAny<DialogportenTextType>(),
-            It.IsAny<DateTimeOffset>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IDialogportenService) &&
+                job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
+            It.IsAny<IState>()), Times.Never);
         _backgroundJobClientMock.Verify(x => x.Create(
             It.Is<Job>(job =>
                 job.Type == typeof(IEventBus) &&
