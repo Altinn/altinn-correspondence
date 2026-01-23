@@ -3,20 +3,17 @@ using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
-using Altinn.Correspondence.Helpers;
 using Hangfire;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
-using Slack.Webhooks;
 using System.Security.Claims;
-using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Application.SendNotificationOrder;
+using Altinn.Correspondence.Application.SendSlackNotification;
+using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -26,53 +23,10 @@ public class PublishCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IContactReservationRegistryService contactReservationRegistryService,
-    IHostEnvironment hostEnvironment,
-    ISlackClient slackClient,
-    SlackSettings slackSettings,
     IBackgroundJobClient backgroundJobClient,
-    IDistributedLockHelper distributedLockHelper) : IHandler<Guid, Task>
+    IIdempotencyKeyRepository idempotencyKeyRepository) : IHandler<Guid, Task>
 {
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Starting publish process for correspondence {CorrespondenceId}", correspondenceId);
-        var lockKey = $"publish-correspondence-{correspondenceId}";
-
-        OneOf<Task, Error>? innerResult = null;
-        var (wasSkipped, lockAcquired) = await distributedLockHelper.ExecuteWithConditionalLockAsync(
-            lockKey, 
-            async (cancellationToken) => await ShouldSkipCheck(correspondenceId, cancellationToken),
-            async (cancellationToken) => innerResult = await ProcessWithLock(correspondenceId, user, cancellationToken),
-            DistributedLockHelper.DefaultRetryCount,
-            DistributedLockHelper.DefaultRetryDelayMs,
-            DistributedLockHelper.DefaultLockExpirySeconds,
-            cancellationToken);
-
-        if (wasSkipped)
-        {
-            logger.LogWarning("Skipping publish process for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
-            return Task.CompletedTask;
-        }
-        if (!lockAcquired)
-        {
-            logger.LogWarning("Failed to acquire lock for correspondence {CorrespondenceId} - another process may be handling this correspondence", correspondenceId);
-            return Task.CompletedTask;
-        }
-        return innerResult ?? Task.CompletedTask;
-    }
-
-    public async Task<bool> ShouldSkipCheck(Guid correspondenceId, CancellationToken cancellationToken)
-    {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        var status = correspondence?.GetHighestStatus()?.Status;
-        var shouldSkip = status == CorrespondenceStatus.Published || status == CorrespondenceStatus.Failed;
-        if (shouldSkip)
-        {
-            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - current status: {Status}", correspondenceId, status);
-        }
-        return shouldSkip;
-    }
-
-    public async Task<OneOf<Task, Error>> ProcessWithLock(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var operationTimestamp = DateTimeOffset.UtcNow;        
@@ -83,6 +37,18 @@ public class PublishCorrespondenceHandler(
         var recipientPartyUuid = recipientParty?.PartyUuid;
         bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
+
+        if (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
+        {
+            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
+            return Task.CompletedTask;
+        }
+
+        if (!await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+        {
+            logger.LogInformation("Skipping this publish job for correspondence {CorrespondenceId} - not all attachments are published yet - the final attachment publish will enqueue this job again", correspondenceId);
+            return Task.CompletedTask;
+        }
 
         var errorMessage = "";
         if (correspondence == null)
@@ -110,9 +76,9 @@ public class PublishCorrespondenceHandler(
             errorMessage = $"Recipient of {correspondenceId} has been set to reserved in kontakt- og reserverasjonsregisteret ('KRR')";
         }
         else if (
-            !string.IsNullOrEmpty(recipientParty!.OrgNumber) && 
-            !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken) && 
-            correspondence.IsConfidential) 
+            correspondence.IsConfidential &&
+            !string.IsNullOrEmpty(recipientParty!.OrgNumber) &&
+            !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken))
         {
             // Only check for confidential pending #1444. Remove IsConfidential condition after Register has been updated.
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
@@ -122,6 +88,25 @@ public class PublishCorrespondenceHandler(
 
         return await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
         {
+            var publishIdempotencyId = correspondenceId.CreateVersion5("PublishCorrespondence");
+            try
+            {
+                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                {
+                    Id = publishIdempotencyId,
+                    CorrespondenceId = correspondenceId,
+                    AttachmentId = null,
+                    PartyUrn = null,
+                    StatusAction = null,
+                    IdempotencyType = IdempotencyType.PublishCorrespondence
+                }, cancellationToken);
+            }
+            catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+            {
+                logger.LogInformation("Publish already completed for correspondence {CorrespondenceId}; skipping", correspondenceId);
+                return Task.CompletedTask;
+            }
+
             if (errorMessage.Length > 0)
             {
                 logger.LogError("Publish failed for correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
@@ -133,11 +118,8 @@ public class PublishCorrespondenceHandler(
                     StatusText = errorMessage,
                     PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
-                var slackSent = await SlackHelper.SendSlackNotificationWithMessage("Correspondence failed", errorMessage, slackClient, slackSettings.NotificationChannel, hostEnvironment.EnvironmentName);
-                if (!slackSent)
-                {
-                    logger.LogError("Failed to send Slack notification for failed correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
-                }
+                backgroundJobClient.Enqueue<SendSlackNotificationHandler>(
+                    handler => handler.Process("Correspondence failed", errorMessage));
                 eventType = AltinnEventType.CorrespondencePublishFailed;
                 if (hasDialogportenDialog)
                 {
