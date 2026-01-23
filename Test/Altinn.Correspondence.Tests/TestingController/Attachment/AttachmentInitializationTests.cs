@@ -127,7 +127,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             var responseContent = await initializeAttachmentResponse.Content.ReadAsStringAsync();
             Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
-            Assert.Contains("Filename contains invalid characters", responseContent);
+            Assert.Contains(AttachmentErrors.FilenameInvalid.Message, responseContent);
         }
         
         [Theory]
@@ -147,7 +147,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             var responseContent = await initializeAttachmentResponse.Content.ReadAsStringAsync();
             Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
-            Assert.Contains(AttachmentErrors.FilenameInvalid.Message, responseContent);
+            Assert.Contains(AttachmentErrors.FilenameCannotBeAReservedWindowsFilename.Message, responseContent);
         }
 
         [Theory]
