@@ -248,8 +248,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             return await _context.CorrespondenceContents
                 .Where(content => content.CorrespondenceId == correspondenceId)
-                .Select(content => content.Attachments
-                    .All(correspondenceAttachment => correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
+                .Select(content =>
+                    content.Attachments.Count == 0 ||
+                    content.Attachments.All(correspondenceAttachment =>
+                        correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
                 .SingleOrDefaultAsync(cancellationToken);
         }
 

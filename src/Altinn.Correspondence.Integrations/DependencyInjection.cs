@@ -15,7 +15,6 @@ using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Integrations.Dialogporten;
-using Altinn.Correspondence.Integrations.Redlock;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -79,7 +78,6 @@ public static class DependencyInjection
 
         services.AddSingleton<SlackSettings>();
         services.AddSingleton<SlackNotificationService>();
-        services.AddSingleton<IDistributedLockHelper, DistributedLockHelper>();
     }
 
     public static void RegisterAltinnHttpClient<TClient, TImplementation>(this IServiceCollection services, MaskinportenSettings maskinportenSettings, AltinnOptions altinnOptions)

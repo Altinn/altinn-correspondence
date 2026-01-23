@@ -5,14 +5,12 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Models.Register;
-using Altinn.Correspondence.Integrations.Redlock;
+using Altinn.Correspondence.Application.SendSlackNotification;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Slack.Webhooks;
 using Altinn.Correspondence.Tests.Extensions;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
@@ -24,11 +22,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
         private readonly Mock<ICorrespondenceStatusRepository> _correspondenceStatusRepositoryMock;
         private readonly Mock<IContactReservationRegistryService> _contactReservationRegistryServiceMock;
-        private readonly Mock<IHostEnvironment> _hostEnvironmentMock;
-        private readonly Mock<ISlackClient> _slackClientMock;
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
-        private readonly Mock<IDistributedLockHelper> _distributedLockHelperMock;
-        private readonly SlackSettings _slackSettings;
+        private readonly Mock<IIdempotencyKeyRepository> _idempotencyKeyRepositoryMock;
         private readonly PublishCorrespondenceHandler _handler;
 
         public PublishCorrespondenceHandlerTests()
@@ -38,14 +33,17 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
             _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
             _contactReservationRegistryServiceMock = new Mock<IContactReservationRegistryService>();
-            _hostEnvironmentMock = new Mock<IHostEnvironment>();
-            _slackClientMock = new Mock<ISlackClient>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
-            _distributedLockHelperMock = new Mock<IDistributedLockHelper>();
-            _slackSettings = new SlackSettings(_hostEnvironmentMock.Object);
+            _idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
             _backgroundJobClientMock
                 .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
                 .Returns(() => Guid.NewGuid().ToString());
+            _idempotencyKeyRepositoryMock
+                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity key, CancellationToken _) => key);
+            _idempotencyKeyRepositoryMock
+                .Setup(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
 
             _handler = new PublishCorrespondenceHandler(
                 _altinnRegisterServiceMock.Object,
@@ -53,11 +51,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _contactReservationRegistryServiceMock.Object,
-                _hostEnvironmentMock.Object,
-                _slackClientMock.Object,
-                _slackSettings,
                 _backgroundJobClientMock.Object,
-                _distributedLockHelperMock.Object);
+                _idempotencyKeyRepositoryMock.Object);
         }
 
         private void SetupCommonMocks(Guid correspondenceId, Guid partyUuid, CorrespondenceEntity correspondence)
@@ -75,17 +70,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(true);
 
             _altinnRegisterServiceMock.SetupEmptyMainUnitsLookup("310244007");
-
-            _distributedLockHelperMock
-                .Setup(x => x.ExecuteWithConditionalLockAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<Func<CancellationToken, Task<bool>>>(),
-                    It.IsAny<Func<CancellationToken, Task>>(),
-                    It.IsAny<int>(),
-                    It.IsAny<int>(),
-                    It.IsAny<int>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync((false, true));
         }
 
         private CorrespondenceEntity CreateTestCorrespondence(
@@ -141,7 +125,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _altinnRegisterServiceMock.SetupPartyRoleLookup(partyUuid.ToString(), "ANNET");
 
             // Act
-            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
 
             // Assert
             _correspondenceStatusRepositoryMock.Verify(
@@ -153,9 +137,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            _slackClientMock.Verify(
-                x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
-                Times.Once);
+            _backgroundJobClientMock.Verify(
+                x => x.Create(
+                    It.Is<Job>(job => job.Type == typeof(SendSlackNotificationHandler) && job.Method.Name == nameof(SendSlackNotificationHandler.Process)),
+                    It.IsAny<IState>()),
+                Times.AtLeastOnce);
+
+            _idempotencyKeyRepositoryMock.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
@@ -172,7 +160,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _altinnRegisterServiceMock.SetupPartyRoleLookup(partyUuid.ToString(), "daglig-leder");
 
             // Act
-            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
 
             // Assert
             _correspondenceStatusRepositoryMock.Verify(
@@ -187,9 +175,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.UpdatePublished(correspondenceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            _slackClientMock.Verify(
-                x => x.PostAsync(It.Is<SlackMessage>(m => m.Text.Contains("Correspondence failed"))),
+            _backgroundJobClientMock.Verify(
+                x => x.Create(
+                    It.Is<Job>(job => job.Type == typeof(SendSlackNotificationHandler) && job.Method.Name == nameof(SendSlackNotificationHandler.Process)),
+                    It.IsAny<IState>()),
                 Times.Never);
+
+            _idempotencyKeyRepositoryMock.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
@@ -210,7 +202,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _altinnRegisterServiceMock.SetupPartyRoleLookup(mainUnitUuid.ToString(), "ANNET");
 
             // Act
-            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
 
             // Assert
             _correspondenceStatusRepositoryMock.Verify(
@@ -240,7 +232,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _altinnRegisterServiceMock.SetupPartyRoleLookup(mainUnitUuid.ToString(), "daglig-leder");
 
             // Act
-            await _handler.ProcessWithLock(correspondenceId, null, CancellationToken.None);
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
 
             // Assert
             _correspondenceStatusRepositoryMock.Verify(
