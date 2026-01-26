@@ -233,12 +233,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
             
-            string[] tokensNO = [];
-            string[] tokensEN = [];
+            string[] tokens = [];
             if (notification.NotificationAddress != null)
             {
-                tokensNO = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "e-post" : "SMS"];
-                tokensEN = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
+                tokens = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
             }
 
             activity.Description =
@@ -246,17 +244,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 new ()
                 {
                     LanguageCode = "nb",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NB, tokensNO)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NB, tokens)
                 },
                 new ()
                 {
                     LanguageCode = "nn",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NN, tokensNO)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NN, tokens)
                 },
                 new ()
                 {
                     LanguageCode = "en",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokensEN)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokens)
                 },
             ];
 
