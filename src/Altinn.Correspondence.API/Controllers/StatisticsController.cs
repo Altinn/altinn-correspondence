@@ -49,7 +49,10 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         try
         {
             // Use default request if none provided
-            request ??= new GenerateDailySummaryReportRequest();
+            request ??= new GenerateDailySummaryReportRequest()
+            {
+                Altinn2Included = false
+            };
             
             var result = await handler.Process(request, cancellationToken);
             
@@ -96,13 +99,16 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         [FromServices] GenerateDailySummaryReportHandler handler,
         CancellationToken cancellationToken)
     {
-        // Exists for legacy reasons - redirects to DownloadDailySummary
+        // Exists for legacy reasons - does same as DownloadDailySummary
         _logger.LogInformation("Request to generate and download daily summary report received");
 
         try
         {
             // Use default request if none provided
-            request ??= new GenerateDailySummaryReportRequest();
+            request ??= new GenerateDailySummaryReportRequest()
+            {
+                Altinn2Included = false
+            };
 
             var result = await handler.DownloadReportFile(request, cancellationToken);
 
@@ -164,7 +170,10 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         try
         {
             // Use default request if none provided
-            request ??= new GenerateDailySummaryReportRequest();
+            request ??= new GenerateDailySummaryReportRequest()
+            {
+                Altinn2Included = false
+            };
 
             var result = await handler.DownloadReportFile(request, cancellationToken);
 
