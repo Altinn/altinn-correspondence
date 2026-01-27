@@ -102,15 +102,6 @@ public static class AltinnTokenXacmlMapper
     private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
     {
         var subjectCategory = DecisionHelper.CreateSubjectCategory(user.Claims);
-        var isSystemUserSubject = subjectCategory.Attribute.Any(attribute => attribute.AttributeId == AltinnXacmlUrns.SystemUserUuid);
-        if (!isSystemUserSubject)
-        {
-            var pidClaim = user.Claims.FirstOrDefault(claim => IsValidPid(claim.Type));
-            if (pidClaim is not null)
-            {
-                subjectCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, pidClaim.Value, DefaultType, pidClaim.Issuer));
-            }
-        }
         return subjectCategory;
     }
 

@@ -1,6 +1,9 @@
 ﻿using Altinn.Authorization.ABAC.Xacml;
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
+using Altinn.Common.PEP.Helpers;
+using Altinn.Correspondence.Common.Constants;
 using Microsoft.IdentityModel.Tokens;
+using Polly;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Integrations.Idporten
@@ -97,6 +100,21 @@ namespace Altinn.Correspondence.Integrations.Idporten
                 }
             }
             return null;
+        }
+
+        internal static XacmlJsonRequestRoot CreateIdPortenDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? instanceId)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static XacmlJsonAttribute GetSubjectCategory(ClaimsPrincipal user, string resourceId, string party, string? instanceId)
+        {
+
+            var pidClaim = user.Claims.FirstOrDefault(claim => IsValidPid(claim.Type));
+            if (pidClaim is not null)
+            {
+                subjectCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, pidClaim.Value, DefaultType, pidClaim.Issuer));
+            }
         }
     }
 }
