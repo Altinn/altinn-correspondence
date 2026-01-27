@@ -69,16 +69,8 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     }
 
     /// <summary>
-    /// Generate and download a daily summary report with aggregated data per service owner per day
+    /// Endpoint exists for legacy reasons. When Finops has changed to use new endpoint this should be deleted.
     /// </summary>
-    /// <remarks>
-    /// This generates a parquet file with daily aggregated summary data and returns it directly as a file download.
-    /// Each row represents one day's usage for one service owner.
-    /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
-    /// The response includes both the file and metadata about the report.
-    /// Requires API key authentication via X-API-Key header.
-    /// Rate limiting is enforced per IP address.
-    /// </remarks>
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -135,12 +127,11 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         }
     }
     /// <summary>
-    /// Generate and download a daily summary report with aggregated data per service owner per day
+    /// Download the daily summary report with aggregated data per service owner per day
     /// </summary>
     /// <remarks>
-    /// This generates a parquet file with daily aggregated summary data and returns it directly as a file download.
+    /// This returns a parquet file with daily aggregated summary data directly as a file download.
     /// Each row represents one day's usage for one service owner.
-    /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
     /// The response includes both the file and metadata about the report.
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
