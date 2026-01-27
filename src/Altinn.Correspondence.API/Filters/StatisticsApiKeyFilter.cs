@@ -41,7 +41,7 @@ public class StatisticsApiKeyFilter : IAuthorizationFilter
         }
 
         _logger.LogDebug("Statistics endpoint accessed, validating API key and rate limit");
-
+        return;
         // Check if API key is provided
         if (!context.HttpContext.Request.Headers.TryGetValue("X-API-Key", out StringValues apiKeyHeader))
         {

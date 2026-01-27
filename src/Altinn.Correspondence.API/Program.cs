@@ -81,7 +81,7 @@ static void BuildAndRun(string[] args)
     }
 
     app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<IpSecurityRestrictionUpdater>("Update IP restrictions to apimIp and current EventGrid IPs", handler => handler.UpdateIpRestrictions(), Cron.Daily());
-    app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<GenerateDailySummaryReportHandler>("Generate daily summary report", handler => handler.Process(new GenerateDailySummaryReportRequest() { Altinn2Included = false }, CancellationToken.None), Cron.Daily());
+    app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<GenerateDailySummaryReportHandler>("Generate daily summary report", handler => handler.Process(new GenerateDailySummaryReportRequest() { Altinn2Included = false }, CancellationToken.None), Cron.Daily(10));
 
     app.Run();
 }
