@@ -189,6 +189,37 @@ public class GenerateDailySummaryReportHandler(
         return 0;
     }
 
+    private DateTimeOffset GetDateTimeFromReportName(string reportName)
+    {
+        if (string.IsNullOrWhiteSpace(reportName))
+        {
+            throw new ArgumentException("Report name cannot be null or empty", nameof(reportName));
+        }
+
+        // Example: "20240127_143055_daily_summary_report_v2_production.parquet"
+        var parts = reportName.Split('_');
+
+        if (parts.Length < 2)
+        {
+            throw new FormatException($"Report name '{reportName}' does not contain expected datetime format");
+        }
+
+        // Combine date and time parts: "20240127" + "143055"
+        var dateTimePart = $"{parts[0]}_{parts[1]}";
+
+        if (DateTimeOffset.TryParseExact(
+            dateTimePart,
+            "yyyyMMdd_HHmmss",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal,
+            out var result))
+        {
+            return result;
+        }
+
+        throw new FormatException($"Unable to parse datetime from report name '{reportName}'. Expected format: yyyyMMdd_HHmmss");
+    }
+
     private async Task<(string blobUrl, string fileHash, long fileSize)> GenerateAndUploadParquetFile(List<DailySummaryData> summaryData, int correspondenceCount, bool altinn2Included, CancellationToken cancellationToken)
     {
         // Generate filename with timestamp as prefix and Altinn version indicator
@@ -278,7 +309,7 @@ public class GenerateDailySummaryReportHandler(
                 FileSizeBytes = reportFile.FileSize,
                 ServiceOwnerCount = reportFile.ServiceOwnerCount,
                 TotalCorrespondenceCount = reportFile.CorrespondenceCount,
-                GeneratedAt = DateTimeOffset.UtcNow,
+                GeneratedAt = GetDateTimeFromReportName(reportFile.FileName),
                 Environment = hostEnvironment.EnvironmentName,
                 Altinn2Included = false // Always set to false, legacy
             };
