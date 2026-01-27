@@ -319,11 +319,21 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 
                 // Upload the file
                 var response = await blobClient.UploadAsync(stream, overwrite: true, cancellationToken);
-                await blobClient.SetMetadataAsync(new Dictionary<string, string>
-                {
-                    { CORRESPONDENCE_COUNT_TAG, correspondenceCount.ToString() },
-                    { SERVICE_OWNER_COUNT_TAG, serviceOwnerCount.ToString() }
-                });
+                await blobClient.UploadAsync(
+                    stream,
+                    new BlobUploadOptions
+                    {
+                        HttpHeaders = new BlobHttpHeaders
+                        {
+                            ContentHash = Convert.FromBase64String(hash)
+                        },
+                        Metadata = new Dictionary<string, string>
+                        {
+                            { CORRESPONDENCE_COUNT_TAG, correspondenceCount.ToString() },
+                            { SERVICE_OWNER_COUNT_TAG, serviceOwnerCount.ToString() }
+                        }
+                    },
+                cancellationToken);
 
                 stopwatch.Stop();
                 _logger.LogInformation("Successfully uploaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
