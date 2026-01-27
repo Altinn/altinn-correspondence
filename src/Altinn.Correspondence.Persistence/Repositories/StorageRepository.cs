@@ -319,8 +319,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 
                 // Upload the file
                 var response = await blobClient.UploadAsync(stream, overwrite: true, cancellationToken);
-                await blobClient.SetTagsAsync(new Dictionary<string, string>
+                await blobClient.SetMetadataAsync(new Dictionary<string, string>
                 {
+                    { "Content-MD5", hash },
                     { CORRESPONDENCE_COUNT_TAG, correspondenceCount.ToString() },
                     { SERVICE_OWNER_COUNT_TAG, serviceOwnerCount.ToString() }
                 });
@@ -357,10 +358,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 }, cancellationToken);
                 var blobProperties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
                 var hash = BitConverter.ToString(blobProperties.Value.ContentHash).Replace("-", "").ToLowerInvariant();
-                var tags = await blobClient.GetTagsAsync(cancellationToken: cancellationToken);
-                tags.Value.Tags.TryGetValue(SERVICE_OWNER_COUNT_TAG, out var serviceOwnerCountTag);
+                blobProperties.Value.Metadata.TryGetValue(SERVICE_OWNER_COUNT_TAG, out var serviceOwnerCountTag);
                 var serviceOwnerCount = serviceOwnerCountTag != null ? int.Parse(serviceOwnerCountTag) : 0;
-                tags.Value.Tags.TryGetValue(CORRESPONDENCE_COUNT_TAG, out var correspondenceCountTag);
+                blobProperties.Value.Metadata.TryGetValue(CORRESPONDENCE_COUNT_TAG, out var correspondenceCountTag);
                 var correspondenceCount = correspondenceCountTag != null ? int.Parse(correspondenceCountTag) : 0;
                 return (stream, blobClient.Name, blobProperties.Value.ContentLength, hash, serviceOwnerCount, correspondenceCount);
             }
