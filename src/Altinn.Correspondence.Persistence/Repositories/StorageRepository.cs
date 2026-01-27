@@ -319,6 +319,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 
                 // Upload the file
                 var response = await blobClient.UploadAsync(stream, overwrite: true, cancellationToken);
+                await blobClient.SetMetadataAsync(new Dictionary<string, string>
+                {
+                    { "Content-MD5", hash }
+                });
                 await blobClient.SetTagsAsync(new Dictionary<string, string>
                 {
                     { CORRESPONDENCE_COUNT_TAG, correspondenceCount.ToString() },
