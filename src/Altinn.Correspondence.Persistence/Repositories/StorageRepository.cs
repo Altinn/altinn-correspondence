@@ -318,7 +318,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 stream.Position = 0; // Reset stream position after hash calculation
                 
                 // Upload the file
-                var response = await blobClient.UploadAsync(stream, overwrite: true, cancellationToken);
                 await blobClient.UploadAsync(
                     stream,
                     new BlobUploadOptions
