@@ -35,6 +35,7 @@ public static class DependencyInjection
 
         services.AddHangfireServer(options =>
         {
+            options.WorkerCount = 50;
             options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
             options.Queues = [ HangfireQueues.Default ];
         });
