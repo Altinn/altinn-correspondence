@@ -88,11 +88,11 @@ public class AltinnAuthorizationServiceTests
 
         using var doc = JsonDocument.Parse(captureHandler.LastRequestJson);
         var accessSubjectAttributes = doc.RootElement
-            .GetProperty("Request")
-            .GetProperty("AccessSubject")[0]
-            .GetProperty("Attribute")
+            .GetProperty("request")
+            .GetProperty("accessSubject")[0]
+            .GetProperty("attribute")
             .EnumerateArray()
-            .Select(a => a.GetProperty("AttributeId").GetString())
+            .Select(a => a.GetProperty("attributeId").GetString())
             .ToList();
 
         Assert.Single(accessSubjectAttributes);
