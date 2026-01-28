@@ -56,18 +56,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing 
   name: storageAccountName
 }
 
-resource containerAppEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
-  name: 'migrations'
-  parent: containerAppEnvironment
-  properties: {
-    azureFile: {
-      accessMode: 'ReadOnly'
-      accountKey: storageAccount.listKeys().keys[0].value
-      accountName: storageAccountName
-      shareName: 'migrations'
-    }
-  }
-}
 
 var applicationInsightsSecretName = 'application-insights-connection-string'
 module applicationInsightsConnectionStringSecret '../keyvault/upsertSecret.bicep' = {
