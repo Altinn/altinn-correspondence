@@ -77,7 +77,7 @@ public static class AttachmentErrors
     public static Error DataLocationNotFound = new Error(2009, "Could not get data location url", HttpStatusCode.BadRequest);
     public static Error FilenameMissing = new Error(2010, "Filename is missing", HttpStatusCode.BadRequest);
     public static Error FilenameTooLong = new Error(2011, "Filename is too long", HttpStatusCode.BadRequest);
-    public static Error FilenameInvalid = new Error(2012, "Filename contains invalid characters", HttpStatusCode.BadRequest);
+    public static Error FilenameInvalid = new Error(2012, "Filename contains invalid characters. The ruleset is based on Windows file naming convention which is defined here: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#file-and-directory-names", HttpStatusCode.BadRequest);
     public static Error FiletypeNotAllowed = new Error(2013, "Filetype not allowed", HttpStatusCode.BadRequest);
     public static Error ServiceOwnerNotFound = new Error(2014, "Service owner not setup in this environment. You need a service owner agreement to use Correspondence. Please contact us at Slack.", HttpStatusCode.UnavailableForLegalReasons);
     public static Error AttachmentAlreadyMigrated = new Error(2015, "Attachment has already been migrated", HttpStatusCode.Conflict);
@@ -87,6 +87,7 @@ public static class AttachmentErrors
     public static Error FileHasBeenExpired = new Error(2018, "File has expired", HttpStatusCode.BadRequest);
     public static Error CannotDownloadPurgedAttachment = new Error(2019, "The attachment has been purged and cannot be downloaded", HttpStatusCode.BadRequest);
     public static Error CannotDownloadExpiredAttachment = new Error(2020, "The attachment has expired and cannot be downloaded", HttpStatusCode.BadRequest);
+    public static Error FilenameCannotBeAReservedWindowsFilename = new Error(2021, "The filename uses a Windows reserved name. Files cannot be named CON, PRN, AUX, NUL, COM1-COM9, or LPT1-LPT9 (e.g., 'CON.txt' is not allowed, but 'CONSOLE.txt' is).", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {

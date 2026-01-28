@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using Hangfire;
+using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -25,6 +26,17 @@ namespace Altinn.Correspondence.Application.Helpers
         MalwareScanResultHandler malwareScanResultHandler,
         ILogger<AttachmentHelper> logger)
     {
+
+        private static readonly Regex InvalidCharactersRegex = new Regex(
+        @"[<>:""/\\|?*\u0000-\u001F]",
+        RegexOptions.Compiled
+        );
+
+        private static readonly Regex WindowsReservedNamesRegex = new Regex(
+        @"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+        );
+        
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
@@ -159,6 +171,19 @@ namespace Altinn.Correspondence.Application.Helpers
             if (fileType == null || !ApplicationConstants.AllowedFileTypes.Contains(fileType))
             {
                 return AttachmentErrors.FiletypeNotAllowed;
+            }
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
+            if (nameWithoutExtension.EndsWith(" ") || nameWithoutExtension.EndsWith("."))
+            {
+                return AttachmentErrors.FilenameInvalid;
+            }
+            if (InvalidCharactersRegex.IsMatch(filename))
+            {
+                return AttachmentErrors.FilenameInvalid;
+            }
+            if (WindowsReservedNamesRegex.IsMatch(filename))
+            {
+                return AttachmentErrors.FilenameCannotBeAReservedWindowsFilename;
             }
             foreach (var c in Path.GetInvalidFileNameChars())
             {
