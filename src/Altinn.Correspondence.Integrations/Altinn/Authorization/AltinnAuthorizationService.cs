@@ -255,7 +255,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
         else if (personIdClaim is not null && personIdClaim.Issuer == _idPortenSettings.Issuer)
         {
-            return IdportenXacmlMapper.CreateIdPortenDecisionRequest(user, resourceId, party, instanceId);
+            return IdportenXacmlMapper.CreateIdPortenDecisionRequest(user, actionTypes, resourceId, party, instanceId);
         }
         else
         {

@@ -1,9 +1,10 @@
-﻿using Altinn.Authorization.ABAC.Xacml;
+using Altinn.Authorization.ABAC.Xacml;
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Microsoft.IdentityModel.Tokens;
-using Polly;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Integrations.Idporten
@@ -12,6 +13,7 @@ namespace Altinn.Correspondence.Integrations.Idporten
     {
         internal const string PersonAttributeId = "urn:altinn:person:identifier-no";
         internal const string OrganizationAttributeId = "urn:altinn:organization:identifier-no";
+        private const string DefaultType = "string";
 
         public static bool ValidateIdportenAuthorizationResponse(XacmlJsonResponse response, ClaimsPrincipal user)
         {
@@ -102,19 +104,43 @@ namespace Altinn.Correspondence.Integrations.Idporten
             return null;
         }
 
-        internal static XacmlJsonRequestRoot CreateIdPortenDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? instanceId)
+        public static XacmlJsonRequestRoot CreateIdPortenDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string party, string? instanceId)
         {
-            throw new NotImplementedException();
-        }
-
-        private static XacmlJsonAttribute GetSubjectCategory(ClaimsPrincipal user, string resourceId, string party, string? instanceId)
-        {
-
             var pidClaim = user.Claims.FirstOrDefault(claim => IsValidPid(claim.Type));
-            if (pidClaim is not null)
+            if (pidClaim is null)
             {
-                subjectCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, pidClaim.Value, DefaultType, pidClaim.Issuer));
+                throw new SecurityTokenException("Idporten token does not contain the required pid claim");
             }
+
+            XacmlJsonRequest request = new XacmlJsonRequest();
+            request.AccessSubject = new List<XacmlJsonCategory>();
+            request.Action = new List<XacmlJsonCategory>();
+            request.Resource = new List<XacmlJsonCategory>();
+
+            request.AccessSubject.Add(CreateSubjectCategory(pidClaim));
+            request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
+            request.Resource.Add(XacmlRequestFactory.CreateResourceCategory(resourceId, party, instanceId, pidClaim.Issuer));
+
+            return new XacmlJsonRequestRoot { Request = request };
         }
+
+        private static XacmlJsonCategory CreateSubjectCategory(Claim pidClaim)
+        {
+            XacmlJsonCategory subjectCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
+            subjectCategory.Attribute.Add(
+                DecisionHelper.CreateXacmlJsonAttribute(
+                    UrnConstants.PersonIdAttribute,
+                    pidClaim.Value.WithoutPrefix(),
+                    DefaultType,
+                    pidClaim.Issuer));
+
+            return subjectCategory;
+        }
+
+        private static bool IsValidPid(string value)
+        {
+            return value.Equals("pid", StringComparison.Ordinal);
+        }
+
     }
 }
