@@ -475,8 +475,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (!includeAltinn2)
             {
                 query = query
-                    .Where(c => c.Altinn2CorrespondenceId == null)
-                    .Where(c => c.Created > new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero)); 
+                    .Where(c => c.Altinn2CorrespondenceId == null); 
             }
 
             // Get all correspondence data needed for detailed statistics including ServiceOwnerId and AltinnVersion info
