@@ -75,7 +75,7 @@ jobs:
 
       - name: Restore test file for first run
         run: |
-          cp /tmp/test-scripts/verify-db-migration.js Test/Altinn.Correspondence.Tests/ || true
+          cp /tmp/test-scripts/verify_db_migration.js Test/Altinn.Correspondence.Tests/ || true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -195,7 +195,7 @@ jobs:
 
       - name: Restore test file for second run
         run: |
-          cp /tmp/test-scripts/verify-db-migration.js Test/Altinn.Correspondence.Tests/ || true
+          cp /tmp/test-scripts/verify_db_migration.js Test/Altinn.Correspondence.Tests/ || true
 
       - name: Restart old version API (with new database)
         run: |
