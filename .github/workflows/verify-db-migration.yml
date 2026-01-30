@@ -66,14 +66,14 @@ jobs:
       - name: Save test file from new commit
         run: |
           mkdir -p /tmp/test-scripts
-          cp -r Test/Altinn.Correspondence.Tests/verify-db-migration.js /tmp/test-scripts/ || true
+          cp Test/Altinn.Correspondence.Tests/verify_db_migration.js /tmp/test-scripts/ || true
 
       - name: Checkout repository at old commit
         uses: actions/checkout@v6
         with:
           ref: ${{ needs.determine-commits.outputs.old_commit }}
 
-      - name: Restore test files for first run
+      - name: Restore test file for first run
         run: |
           cp /tmp/test-scripts/verify-db-migration.js Test/Altinn.Correspondence.Tests/ || true
 
@@ -149,7 +149,7 @@ jobs:
           mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
         with:
-          filename: Test/Altinn.Correspondence.Tests/verify-db-migration.js
+          filename: Test/Altinn.Correspondence.Tests/verify_db_migration.js
         continue-on-error: false
 
       - name: Temporarily persist created IDs
@@ -193,7 +193,7 @@ jobs:
         with:
           ref: ${{ needs.determine-commits.outputs.old_commit }}
 
-      - name: Restore test files for second run
+      - name: Restore test file for second run
         run: |
           cp /tmp/test-scripts/verify-db-migration.js Test/Altinn.Correspondence.Tests/ || true
 
@@ -230,7 +230,7 @@ jobs:
           mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
         with:
-          filename: Test/Altinn.Correspondence.Tests/verify-db-migration.js
+          filename: Test/Altinn.Correspondence.Tests/verify_db_migration.js
         continue-on-error: false
 
       # ============================================
