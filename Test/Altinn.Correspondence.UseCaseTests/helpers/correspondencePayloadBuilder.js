@@ -44,3 +44,28 @@ export function buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId
 
     return form;
 }
+
+
+export function buildInitializeCorrespondenceWithNewAttachmentPayloadForDbMigrationVerification(resourceId, attachmentFileBin, attachmentFileName, attachmentMime) {
+    const nowRef = `dbverification-${Date.now()}`;
+    const attachmentRef = `db-verification-attachment-${Date.now()}`;
+
+    const form = {
+        'request.Correspondence.ResourceId': resourceId,
+        'request.Correspondence.Sender': `0192:991825827`,
+        'request.Correspondence.SendersReference': nowRef,
+        'request.Correspondence.Content.Language': 'nb',
+        'request.Correspondence.Content.MessageTitle': 'db verification test title',
+        'request.Correspondence.Content.MessageSummary': 'db verification test summary',
+        'request.Correspondence.Content.MessageBody': 'db verification test body',
+        'request.Correspondence.Content.Attachments[0].FileName': attachmentFileName,
+        'request.Correspondence.Content.Attachments[0].DisplayName': attachmentFileName,
+        'request.Correspondence.Content.Attachments[0].IsEncrypted': 'false',
+        'request.Correspondence.Content.Attachments[0].SendersReference': attachmentRef,
+        'request.Correspondence.Content.Attachments[0].DataLocationType': '0',
+        'request.Recipients[0]': `0192:991825827`,
+        attachments: http.file(attachmentFileBin, attachmentFileName, attachmentMime)
+    };
+
+    return form;
+}
