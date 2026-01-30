@@ -96,7 +96,7 @@ public class MigrateCorrespondenceHandler(
         }
         catch (DbUpdateException e)
         {
-            if (e.IsPostgresUniqueViolation())
+            if (e.IsPostgresUniqueViolation() || e.IsPostgresForeignKeyViolation())
             {
                 var correspondence = await correspondenceRepository.GetCorrespondenceByAltinn2Id((int)request.CorrespondenceEntity.Altinn2CorrespondenceId, cancellationToken);
                 return new MigrateCorrespondenceResponse()
