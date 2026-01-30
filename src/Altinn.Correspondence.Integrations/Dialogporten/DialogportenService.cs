@@ -598,7 +598,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         if (actorType != DialogportenActorType.ServiceOwner)
         {
             createDialogActivityRequest.PerformedBy.ActorName = actorName;
-            createDialogActivityRequest.PerformedBy.ActorId = null!;
+            createDialogActivityRequest.PerformedBy.ActorId = null;
         }
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
