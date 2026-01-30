@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -70,6 +71,43 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await _context.CorrespondenceNotifications
                 .Where(n => n.CorrespondenceId == correspondenceId && !n.IsReminder)
                 .OrderByDescending(n => n.RequestedSendTime)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<NotificationDeliveryRepairCandidate>> GetAltinn3NotificationDeliveryRepairCandidates(
+            DateTimeOffset requestedSendTimeOlderThan,
+            Guid? afterNotificationId,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            if (limit <= 0)
+            {
+                return [];
+            }
+
+            var query = _context.CorrespondenceNotifications
+                .AsNoTracking()
+                .Where(cn =>
+                    cn.NotificationSent == null &&
+                    cn.ShipmentId != null &&
+                    cn.Altinn2NotificationId == null &&
+                    cn.RequestedSendTime < requestedSendTimeOlderThan)
+                .Join(
+                    _context.Correspondences.AsNoTracking().Where(c => c.Altinn2CorrespondenceId == null),
+                    cn => cn.CorrespondenceId,
+                    c => c.Id,
+                    (cn, c) => new { NotificationId = cn.Id, CorrespondenceId = c.Id, cn.IsReminder });
+
+            if (afterNotificationId.HasValue)
+            {
+                var notifId = afterNotificationId.Value;
+                query = query.Where(x => x.NotificationId.CompareTo(notifId) > 0);
+            }
+
+            return await query
+                .OrderBy(x => x.NotificationId)
+                .Take(limit)
+                .Select(x => new NotificationDeliveryRepairCandidate(x.NotificationId, x.CorrespondenceId, x.IsReminder))
                 .ToListAsync(cancellationToken);
         }
     }

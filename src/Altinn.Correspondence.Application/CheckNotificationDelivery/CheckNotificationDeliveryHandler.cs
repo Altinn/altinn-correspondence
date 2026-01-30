@@ -12,7 +12,6 @@ public class CheckNotificationDeliveryHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IAltinnNotificationService altinnNotificationService,
-    IDialogportenService dialogportenService,
     IBackgroundJobClient backgroundJobClient,
     ILogger<CheckNotificationDeliveryHandler> logger)
 {
@@ -32,6 +31,11 @@ public class CheckNotificationDeliveryHandler(
         }
     )]
     public async Task<OneOf<bool, Error>> Process(Guid notificationId, CancellationToken cancellationToken)
+    {
+        return await Process(notificationId, cancellationToken, publishFailedEvent: true);
+    }
+
+    public async Task<OneOf<bool, Error>> Process(Guid notificationId, CancellationToken cancellationToken, bool publishFailedEvent)
     {
         logger.LogInformation("Checking delivery status for notification {NotificationId}", notificationId);
         
@@ -71,7 +75,7 @@ public class CheckNotificationDeliveryHandler(
 
             // Check V2 notification delivery status
             logger.LogInformation("Checking V2 notification delivery status for shipment {ShipmentId}", notification.ShipmentId);
-            var notificationDetailsV2 = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
+            var notificationDetailsV2 = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString()!, cancellationToken);
             
             if (notificationDetailsV2 == null)
             {
@@ -86,7 +90,14 @@ public class CheckNotificationDeliveryHandler(
                 if (hasFailedStatus)
                 {
                     logger.LogError("Notification {NotificationId} has failed status", notificationId);
-                    SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                    if (publishFailedEvent)
+                    {
+                        SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                    }
+                    else
+                    {
+                        logger.LogInformation("Skipping CorrespondenceNotificationFailed event publishing for notification {NotificationId}", notificationId);
+                    }
                 } else
                 {
                     logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);   

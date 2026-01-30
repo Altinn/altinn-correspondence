@@ -10,6 +10,7 @@ using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 using Altinn.Correspondence.Application.InitializeServiceOwner;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
+using Altinn.Correspondence.Application.RepairNotificationDelivery;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -196,6 +197,33 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     {
         _logger.LogInformation("Request to cleanup bruksmonster test data received");
         var result = await handler.Process(HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+    /// <summary>
+    /// Enqueue a repair job that schedules delivery checks for Altinn3 notifications
+    /// missing the "notification sent" information activity in Dialogporten.
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("enqueue-missing-notification-sent-checks")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(EnqueueMissingNotificationSentChecksResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> EnqueueMissingNotificationSentChecks(
+        [FromServices] EnqueueMissingNotificationSentChecksHandler handler,
+        [FromBody] EnqueueMissingNotificationSentChecksRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to enqueue missing notification sent checks received");
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
             Problem

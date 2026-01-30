@@ -32,6 +32,7 @@ using Altinn.Correspondence.Application.ExpireAttachment;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 using Altinn.Correspondence.Application.SendSlackNotification;
+using Altinn.Correspondence.Application.RepairNotificationDelivery;
 
 namespace Altinn.Correspondence.Application;
 
@@ -76,6 +77,7 @@ public static class DependencyInjection
         services.AddScoped<RestoreSoftDeletedDialogsHandler>();
         services.AddScoped<CleanupBruksmonsterHandler>();
         services.AddScoped<CleanupConfirmedMigratedCorrespondences.CleanupConfirmedMigratedCorrespondencesHandler>();
+        services.AddScoped<EnqueueMissingNotificationSentChecksHandler>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();

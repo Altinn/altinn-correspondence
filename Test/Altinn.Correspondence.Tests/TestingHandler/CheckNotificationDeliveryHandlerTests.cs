@@ -18,7 +18,6 @@ public class CheckNotificationDeliveryHandlerTests
     private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
     private readonly Mock<ICorrespondenceNotificationRepository> _notificationRepositoryMock;
     private readonly Mock<IAltinnNotificationService> _notificationServiceMock;
-    private readonly Mock<IDialogportenService> _dialogportenServiceMock;
     private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
     private readonly Mock<ILogger<CheckNotificationDeliveryHandler>> _loggerMock;
     private readonly CheckNotificationDeliveryHandler _handler;
@@ -28,7 +27,6 @@ public class CheckNotificationDeliveryHandlerTests
         _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
         _notificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();
         _notificationServiceMock = new Mock<IAltinnNotificationService>();
-        _dialogportenServiceMock = new Mock<IDialogportenService>();
         _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
         _loggerMock = new Mock<ILogger<CheckNotificationDeliveryHandler>>();
 
@@ -36,7 +34,6 @@ public class CheckNotificationDeliveryHandlerTests
             _correspondenceRepositoryMock.Object,
             _notificationRepositoryMock.Object,
             _notificationServiceMock.Object,
-            _dialogportenServiceMock.Object,
             _backgroundJobClientMock.Object,
             _loggerMock.Object);
     }
