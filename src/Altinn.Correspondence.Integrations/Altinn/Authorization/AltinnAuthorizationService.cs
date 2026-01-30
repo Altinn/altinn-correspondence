@@ -253,6 +253,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         {
             return DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, resourceId, party, instanceId);
         }
+        else if (personIdClaim is not null && personIdClaim.Issuer == _idPortenSettings.Issuer)
+        {
+            return IdportenXacmlMapper.CreateIdPortenDecisionRequest(user, actionTypes, resourceId, party, instanceId);
+        }
         else
         {
             return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, party, instanceId);
