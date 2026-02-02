@@ -15,6 +15,8 @@ param containerAppEnvId string
 param eventGridIps array
 @secure()
 param apimIp string
+@secure()
+param userIdentityClientId string
 
 type ContainerAppScale = {
     minReplicas: int
@@ -61,17 +63,17 @@ var containerAppEnvVarsFromConfig = [for config in secretEnvVars: {
 var containerAppEnvVarsComputed = [
   { envVarName: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { envVarName: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
+  { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
 ]
 
 // Combine all environment variables
 var containerAppEnvVars = concat(
   containerAppEnvVarsFromConfig,
   containerAppEnvVarsComputed
-    : []
 )
 
 // Scaling
-param prodLikeEnvironment bool = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
+param prodLikeEnvironment bool = environment == 'production' || environment == 'staging' || environment == 'yt01'
 param containerAppResources object = prodLikeEnvironment ? {
   cpu: 2
   memory: '4.0Gi'
