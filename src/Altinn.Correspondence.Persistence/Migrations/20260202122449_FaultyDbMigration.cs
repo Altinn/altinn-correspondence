@@ -11,22 +11,23 @@ namespace Altinn.Correspondence.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // This migration intentionally breaks backward compatibility
-            migrationBuilder.RenameColumn(
-                name: "Status",
+            // by dropping a column that old code expects to exist
+            migrationBuilder.DropColumn(
+                name: "Published",
                 table: "Correspondences",
-                schema: "correspondence",
-                newName: "StatusRenamed");
+                schema: "correspondence");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Revert the column rename
-            migrationBuilder.RenameColumn(
-                name: "StatusRenamed",
+            // Restore the dropped column
+            migrationBuilder.AddColumn<DateTimeOffset>(
+                name: "Published",
                 table: "Correspondences",
                 schema: "correspondence",
-                newName: "Status");
+                type: "timestamp with time zone",
+                nullable: true);
         }
     }
 }
