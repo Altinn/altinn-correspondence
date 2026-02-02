@@ -28,6 +28,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
+            DialogportenTextType.CorrespondenceForwardedInformation => string.Format("videresendte {0} til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
 
@@ -40,6 +41,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
+            DialogportenTextType.CorrespondenceForwardedInformation => string.Format("videresendte {0} til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
 
@@ -52,6 +54,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.DownloadStarted => string.Format("Started downloading attachment {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Message published.",
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
+            DialogportenTextType.CorrespondenceForwardedInformation => string.Format("forwarded {0} to {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: {2}"), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
 

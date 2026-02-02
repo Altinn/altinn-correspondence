@@ -144,7 +144,8 @@ public static class StringExtensions
     public static string WithUrnPrefix(this string identifier)
     {
         if (identifier.StartsWith(UrnConstants.OrganizationNumberAttribute)
-                || identifier.StartsWith(UrnConstants.PersonIdAttribute))
+                || identifier.StartsWith(UrnConstants.PersonIdAttribute)
+                || identifier.StartsWith(UrnConstants.PartyUuid))
         {
             return identifier;
         }

@@ -1,24 +1,25 @@
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using Altinn.Correspondence.Core.Exceptions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
-using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository, IResourceRegistryService _resourceRegistryService) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IAltinnRegisterService altinnRegisterService, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository, IResourceRegistryService _resourceRegistryService) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -903,5 +904,31 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             return false;
         }
         throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+    }
+
+    public async Task AddForwardingEvent(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
+    {
+        if (forwardingEvent == null)
+        {
+            throw new ArgumentNullException(nameof(forwardingEvent));
+        }
+
+        var forwarderPartyInfo = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedByPartyUuid, cancellationToken);
+        var forwarderUserInfo = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedByUserUuid, cancellationToken);
+        var activityMessage = "{forwarderPartyInfo.Name} videresendte {correspondenceTitle}\r\n{forwardingEvent.ForwardedToEmailAddress} og skrev : {forwardingEvent.ForwardingText}";
+        string[] tokens =  {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? "",
+                forwardingEvent.ForwardedToEmailAddress ?? "ukjent mottaker", // TODO Can we use forwardedToUserInfo here?
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+        await CreateInformationActivity(forwardingEvent.CorrespondenceId,
+                                        DialogportenActorType.Recipient,
+                                        DialogportenTextType.CorrespondenceForwardedInformation,
+                                        UrnConstants.PersonIdAttribute + ":" + forwarderPartyInfo.SSN, // TODO forwarderUserInfo.Email for SI users?
+                                        forwardingEvent.ForwardedOnDate,
+                                        tokens);
+
+
     }
 }
