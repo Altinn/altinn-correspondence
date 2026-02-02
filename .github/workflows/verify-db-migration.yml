@@ -117,12 +117,9 @@ jobs:
             --startup-project ./src/Altinn.Correspondence.API
 
       - name: Start old version API
-        env:
-          ASPNETCORE_ENVIRONMENT: Development
-          ASPNETCORE_URLS: http://localhost:5096
         run: |
           echo "Starting API with old code..."
-          dotnet run --no-build --configuration Release \
+          dotnet watch --non-interactive --configuration Release \
             --project ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj &
           
           # Wait for API to be ready
@@ -204,12 +201,9 @@ jobs:
           cp /tmp/test-scripts/helpers/correspondencePayloadBuilder.js Test/Altinn.Correspondence.UseCaseTests/helpers/ || true
 
       - name: Restart old version API (with new database)
-        env:
-          ASPNETCORE_ENVIRONMENT: Development
-          ASPNETCORE_URLS: http://localhost:5096
         run: |
           echo "Restarting API with old code (but new database)..."
-          dotnet run --no-build --configuration Release \
+          dotnet watch --non-interactive --configuration Release \
             --project ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj &
           
           # Wait for API to be ready
