@@ -119,6 +119,7 @@ jobs:
       - name: Start old version API
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5096
         run: |
           echo "Starting API with old code..."
           dotnet run --no-build --configuration Release \
@@ -205,6 +206,7 @@ jobs:
       - name: Restart old version API (with new database)
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5096
         run: |
           echo "Restarting API with old code (but new database)..."
           dotnet run --no-build --configuration Release \
