@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using Altinn.Correspondence.Core.Services.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Models;
 
@@ -8,27 +7,14 @@ public class SetDialogSystemLabelRequest
     [JsonPropertyName("dialogId")]
     public Guid DialogId { get; set; }
 
-    [JsonPropertyName("performedBy")]
-    public Actor? PerformedBy { get; set; }
+    [JsonPropertyName("enduserId")]
+    public string EnduserId { get; set; } = string.Empty;
 
     [JsonPropertyName("addLabels")]
     public IReadOnlyCollection<SystemLabel> AddLabels { get; set; } = Array.Empty<SystemLabel>();
 
     [JsonPropertyName("removeLabels")]
     public IReadOnlyCollection<SystemLabel> RemoveLabels { get; set; } = Array.Empty<SystemLabel>();
-}
-
-public class Actor
-{
-    [JsonPropertyName("actorType")]
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    public DialogportenActorType ActorType { get; set; }
-
-    [JsonPropertyName("actorName")]
-    public string? ActorName { get; set; }
-
-    [JsonPropertyName("actorId")]
-    public string? ActorId { get; set; }
 }
 
 // Enum for system labels (match API contract)

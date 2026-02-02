@@ -2151,10 +2151,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)
                         && (Guid)job.Args[0] == correspondenceId
                         && (string)job.Args[1] == partyIdentifier
-                        && (DialogportenActorType)job.Args[2] == DialogportenActorType.PartyRepresentative
-                        && job.Args[3] != null
-                        && ((List<DialogPortenSystemLabel>)job.Args[3]).Contains(DialogPortenSystemLabel.Archive)
-                        && job.Args[4] == null),
+                        && job.Args[2] != null
+                        && ((List<DialogPortenSystemLabel>)job.Args[2]).Contains(DialogPortenSystemLabel.Archive)
+                        && job.Args[3] == null),
                     It.IsAny<EnqueuedState>()));
         }
 
@@ -2166,10 +2165,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)
                         && (Guid)job.Args[0] == correspondenceId
                         && (string)job.Args[1] == partyIdentifier
-                        && (DialogportenActorType)job.Args[2] == DialogportenActorType.PartyRepresentative
-                        && job.Args[3] != null
-                        && ((List<DialogPortenSystemLabel>)job.Args[3]).Contains(DialogPortenSystemLabel.Bin)
-                        && job.Args[4] == null),
+                        && job.Args[2] != null
+                        && ((List<DialogPortenSystemLabel>)job.Args[2]).Contains(DialogPortenSystemLabel.Bin)
+                        && job.Args[3] == null),
                     It.IsAny<EnqueuedState>()));
             }
             else if (eventType == CorrespondenceDeleteEventType.RestoredByRecipient)
@@ -2178,10 +2176,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)
                         && (Guid)job.Args[0] == correspondenceId
                         && (string)job.Args[1] == partyIdentifier
-                        && (DialogportenActorType)job.Args[2] == DialogportenActorType.PartyRepresentative
-                        && job.Args[3] == null
-                        && job.Args[4] != null
-                        && ((List<DialogPortenSystemLabel>)job.Args[4]).Contains(DialogPortenSystemLabel.Bin)),
+                        && job.Args[2] == null
+                        && job.Args[3] != null
+                        && ((List<DialogPortenSystemLabel>)job.Args[3]).Contains(DialogPortenSystemLabel.Bin)),
                     It.IsAny<EnqueuedState>()));
             }
         }

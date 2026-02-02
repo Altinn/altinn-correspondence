@@ -14,6 +14,9 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
 {
     private readonly ILogger<StatisticsController> _logger = logger;
 
+
+
+
     /// <summary>
     /// Generate a daily summary report with aggregated data per service owner per day
     /// </summary>
@@ -49,10 +52,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         try
         {
             // Use default request if none provided
-            request ??= new GenerateDailySummaryReportRequest()
-            {
-                Altinn2Included = false
-            };
+            request ??= new GenerateDailySummaryReportRequest();
             
             var result = await handler.Process(request, cancellationToken);
             
@@ -69,8 +69,16 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     }
 
     /// <summary>
-    /// Endpoint exists for legacy reasons. When Finops has changed to use new endpoint this should be deleted.
+    /// Generate and download a daily summary report with aggregated data per service owner per day
     /// </summary>
+    /// <remarks>
+    /// This generates a parquet file with daily aggregated summary data and returns it directly as a file download.
+    /// Each row represents one day's usage for one service owner.
+    /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
+    /// The response includes both the file and metadata about the report.
+    /// Requires API key authentication via X-API-Key header.
+    /// Rate limiting is enforced per IP address.
+    /// </remarks>
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -91,19 +99,15 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         [FromServices] GenerateDailySummaryReportHandler handler,
         CancellationToken cancellationToken)
     {
-        // Exists for legacy reasons - does same as DownloadDailySummary
         _logger.LogInformation("Request to generate and download daily summary report received");
 
         try
         {
             // Use default request if none provided
-            request ??= new GenerateDailySummaryReportRequest()
-            {
-                Altinn2Included = false
-            };
-
-            var result = await handler.DownloadReportFile(request, cancellationToken);
-
+            request ??= new GenerateDailySummaryReportRequest();
+            
+            var result = await handler.ProcessAndDownload(request, cancellationToken);
+            
             return result.Match(
                 response => {
                     // Add metadata to response headers
@@ -114,71 +118,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
                     Response.Headers["X-Generated-At"] = response.GeneratedAt.ToString("O"); // ISO 8601 format
                     Response.Headers["X-Environment"] = response.Environment;
                     Response.Headers["X-Altinn2-Included"] = response.Altinn2Included.ToString();
-
-                    return File(response.FileStream, "application/octet-stream", response.FileName);
-                },
-                Problem
-            );
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate and download daily summary report");
-            return StatusCode(500, "Failed to generate and download daily summary report");
-        }
-    }
-    /// <summary>
-    /// Download the daily summary report with aggregated data per service owner per day
-    /// </summary>
-    /// <remarks>
-    /// This returns a parquet file with daily aggregated summary data directly as a file download.
-    /// Each row represents one day's usage for one service owner.
-    /// The response includes both the file and metadata about the report.
-    /// Requires API key authentication via X-API-Key header.
-    /// Rate limiting is enforced per IP address.
-    /// </remarks>
-    /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
-    /// <param name="handler">The handler service</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <response code="200">Returns the parquet file with metadata</response>
-    /// <response code="401">Unauthorized - Missing or invalid API key</response>
-    /// <response code="403">Forbidden - Invalid API key</response>
-    /// <response code="429">Too Many Requests - Rate limit exceeded</response>
-    /// <response code="500">Internal server error</response>
-    [HttpPost]
-    [Route("download-daily-report")]
-    [Produces("application/octet-stream")]
-    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> DownloadDailySummary(
-        [FromBody] GenerateDailySummaryReportRequest request,
-        [FromServices] GenerateDailySummaryReportHandler handler,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Request to download daily summary report received");
-
-        try
-        {
-            // Use default request if none provided
-            request ??= new GenerateDailySummaryReportRequest()
-            {
-                Altinn2Included = false
-            };
-
-            var result = await handler.DownloadReportFile(request, cancellationToken);
-
-            return result.Match(
-                response => {
-                    // Add metadata to response headers
-                    Response.Headers["X-File-Hash"] = response.FileHash;
-                    Response.Headers["X-File-Size"] = response.FileSizeBytes.ToString();
-                    Response.Headers["X-Service-Owner-Count"] = response.ServiceOwnerCount.ToString();
-                    Response.Headers["X-Total-Correspondence-Count"] = response.TotalCorrespondenceCount.ToString();
-                    Response.Headers["X-Generated-At"] = response.GeneratedAt.ToString("O"); // ISO 8601 format
-                    Response.Headers["X-Environment"] = response.Environment;
-                    Response.Headers["X-Altinn2-Included"] = response.Altinn2Included.ToString();
-
+                    
                     return File(response.FileStream, "application/octet-stream", response.FileName);
                 },
                 Problem

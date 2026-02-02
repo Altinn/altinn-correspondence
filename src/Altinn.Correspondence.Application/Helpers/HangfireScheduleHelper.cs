@@ -5,7 +5,6 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 
@@ -19,7 +18,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public void SchedulePublishAfterDialogCreated(Guid correspondenceId, string dialogJobId, CancellationToken cancellationToken)
         {
-            backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, HangfireQueues.LiveMigration, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+            backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
         }
 
         public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)

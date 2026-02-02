@@ -34,7 +34,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
                 BackgroundJobContext.Origin = "migrate";
                 _ = client.Enqueue<PropagationJobs>(x => x.ParentEnqueueChild());
 
-                var observedOrigin = await OriginProbe.WaitForOriginAsync(TimeSpan.FromSeconds(60));
+                var observedOrigin = await OriginProbe.WaitForOriginAsync(TimeSpan.FromSeconds(30));
                 Assert.Equal("migrate", observedOrigin);
             }
             finally

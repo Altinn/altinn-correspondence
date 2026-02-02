@@ -133,5 +133,4 @@ public static class StatisticsErrors
 {
     public static Error NoCorrespondencesFound = new Error(6001, "No correspondences found for report generation", HttpStatusCode.NotFound);
     public static Error ReportGenerationFailed = new Error(6002, "Failed to generate statistics report", HttpStatusCode.InternalServerError);
-    public static Error Altinn2NotSupported = new Error(6003, "Report including Altinn 2 correspondendes is currently not supported", HttpStatusCode.BadRequest);
 }

@@ -10,5 +10,5 @@ public class GenerateDailySummaryReportRequest
     /// If false, only Altinn3 correspondences will be included.
     /// Default is true (include both Altinn2 and Altinn3).
     /// </summary>
-    public bool Altinn2Included { get; set; } = false;
+    public bool Altinn2Included { get; set; } = true;
 }

@@ -122,8 +122,7 @@ public class TransmissionAttachment
         public string Url { get; set; }
 
         [JsonPropertyName("mediaType")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? MediaType { get; set; }
+        public string MediaType { get; set; }
 
         [JsonPropertyName("consumerType")]
         public string ConsumerType { get; set; }

@@ -25,8 +25,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
         private const int BLOCK_SIZE = 32 * 1024 * 1024; // 32 MB
         private const int CONCURRENT_UPLOAD_THREADS = 3;
         private const int BLOCKS_BEFORE_COMMIT = 1000;
-        private const string CORRESPONDENCE_COUNT_TAG = "CorrespondenceCount";
-        private const string SERVICE_OWNER_COUNT_TAG = "ServiceOwnerCount";
 
         public StorageRepository(IOptions<AttachmentStorageOptions> options, ILogger<StorageRepository> logger)
         {
@@ -292,24 +290,21 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        private async Task<BlobContainerClient> GetReportsBlobContainerClient(CancellationToken cancellationToken)
-        {
-            var connectionString = _options.ConnectionString;
-            var storageAccountName = GetAccountNameFromConnectionString(connectionString);
-            var blobServiceClient = storageAccountName is null ? new BlobServiceClient(connectionString) : GetOrCreateBlobServiceClient(storageAccountName);
-            var blobContainerClient = blobServiceClient.GetBlobContainerClient("reports");
-            await blobContainerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
-            return blobContainerClient;
-        }
-
-        public async Task<(string locationUrl, string hash, long size)> UploadReportFile(string fileName, int serviceOwnerCount, int correspondenceCount, Stream stream, CancellationToken cancellationToken)
+        public async Task<(string locationUrl, string hash, long size)> UploadReportFile(string fileName, Stream stream, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting upload of report file: {fileName}", fileName);
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             
             try
             {
-                var blobContainerClient = await GetReportsBlobContainerClient(cancellationToken);
+                // Use the legacy implementation for reports (Correspondence's storage account)
+                var connectionString = _options.ConnectionString;
+                var blobServiceClient = new BlobServiceClient(connectionString, _blobClientOptions);
+                var blobContainerClient = blobServiceClient.GetBlobContainerClient("reports");
+                
+                // Ensure the reports container exists
+                await blobContainerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+                
                 var blobClient = blobContainerClient.GetBlobClient(fileName);
                 
                 // Calculate MD5 hash
@@ -318,22 +313,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 stream.Position = 0; // Reset stream position after hash calculation
                 
                 // Upload the file
-                await blobClient.UploadAsync(
-                    stream,
-                    new BlobUploadOptions
-                    {
-                        HttpHeaders = new BlobHttpHeaders
-                        {
-                            ContentHash = Convert.FromBase64String(hash)
-                        },
-                        Metadata = new Dictionary<string, string>
-                        {
-                            { CORRESPONDENCE_COUNT_TAG, correspondenceCount.ToString() },
-                            { SERVICE_OWNER_COUNT_TAG, serviceOwnerCount.ToString() }
-                        }
-                    },
-                cancellationToken);
-
+                var response = await blobClient.UploadAsync(stream, overwrite: true, cancellationToken);
+                
                 stopwatch.Stop();
                 _logger.LogInformation("Successfully uploaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
                 
@@ -347,38 +328,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public async Task<(Stream DownloadStream, string FileName, long FileSize, string FileHash, int ServiceOwnerCount, int CorrespondenceCount)> DownloadLatestReportFile(CancellationToken cancellationToken)
-        {
-            try
-            {
-                var blobContainerClient = await GetReportsBlobContainerClient(cancellationToken);
-                var latestBlob = await blobContainerClient.GetBlobsAsync()
-                    .OrderByDescending(b => b.Properties.LastModified)
-                    .FirstOrDefaultAsync(cancellationToken);
-                if (latestBlob == null)
-                {
-                    throw new ArgumentException("No report files found in blob storage");
-                }
-                var blobClient = blobContainerClient.GetBlobClient(latestBlob.Name);
-                var stream = await blobClient.OpenReadAsync(new BlobOpenReadOptions(allowModifications: false)
-                {
-                    BufferSize = 4 * 1024 * 1024 // 4 MiB buffer
-                }, cancellationToken);
-                var blobProperties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
-                var hash = BitConverter.ToString(blobProperties.Value.ContentHash).Replace("-", "").ToLowerInvariant();
-                blobProperties.Value.Metadata.TryGetValue(SERVICE_OWNER_COUNT_TAG, out var serviceOwnerCountTag);
-                var serviceOwnerCount = serviceOwnerCountTag != null ? int.Parse(serviceOwnerCountTag) : 0;
-                blobProperties.Value.Metadata.TryGetValue(CORRESPONDENCE_COUNT_TAG, out var correspondenceCountTag);
-                var correspondenceCount = correspondenceCountTag != null ? int.Parse(correspondenceCountTag) : 0;
-                return (stream, blobClient.Name, blobProperties.Value.ContentLength, hash, serviceOwnerCount, correspondenceCount);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to download latest report file");
-                throw;
-            }
-        }
-
     public async Task<Stream> DownloadReportFile(string fileName, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting download of report file: {fileName}", fileName);
@@ -386,7 +335,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
         
         try
         {
-            var blobContainerClient = await GetReportsBlobContainerClient(cancellationToken);
+            // Use the same connection string as for uploads
+            var connectionString = _options.ConnectionString;
+            var blobServiceClient = new BlobServiceClient(connectionString, _blobClientOptions);
+            var blobContainerClient = blobServiceClient.GetBlobContainerClient("reports");
+            
             var blobClient = blobContainerClient.GetBlobClient(fileName);
             
             // Check if the blob exists

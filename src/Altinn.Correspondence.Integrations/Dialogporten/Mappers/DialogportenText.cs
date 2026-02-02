@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Core.Services.Enums;
+﻿using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
@@ -6,18 +6,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     public static class DialogportenText
     {
-        public static string GetDialogportenText(DialogportenTextType type, DialogportenLanguageCode languageCode, params string[] tokens)
+        public static string GetDialogportenText(DialogportenTextType type, DialogportenLanguageCode languageCode, params string[] tokens) => languageCode switch
         {
-            var normalizedTokens = NormalizeTokens(type, languageCode, tokens);
-
-            return languageCode switch
-            {
-                DialogportenLanguageCode.NB => GetNBText(type, normalizedTokens),
-                DialogportenLanguageCode.NN => GetNNText(type, normalizedTokens),
-                DialogportenLanguageCode.EN => GetENText(type, normalizedTokens),
-                _ => throw new ArgumentException("Invalid language code")
-            };
-        }
+            DialogportenLanguageCode.NB => GetNBText(type, tokens),
+            DialogportenLanguageCode.NN => GetNNText(type, tokens),
+            DialogportenLanguageCode.EN => GetENText(type, tokens),
+            _ => throw new ArgumentException("Invalid language code")
+        };
 
         private static string GetNBText(DialogportenTextType type, params string[] tokens) => type switch
         {
@@ -54,41 +49,5 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
             _ => throw new ArgumentException("Invalid text type")
         };
-
-        private static string[] NormalizeTokens(DialogportenTextType type, DialogportenLanguageCode languageCode, string[] tokens)
-        {
-            if (type is not (DialogportenTextType.NotificationSent or DialogportenTextType.NotificationReminderSent) || tokens.Length < 2)
-            {
-                return tokens;
-            }
-
-            var destination = tokens[0];
-            var channel = NormalizeNotificationChannel(channel: tokens[1], languageCode);
-            return [destination, channel];
-        }
-
-        private static string NormalizeNotificationChannel(string channel, DialogportenLanguageCode languageCode)
-        {
-            var isEmail =
-                string.Equals(channel, "Email", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(channel, "e-post", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(channel, "epost", StringComparison.OrdinalIgnoreCase);
-
-            if (isEmail)
-            {
-                return languageCode == DialogportenLanguageCode.EN ? "Email" : "e-post";
-            }
-
-            var isSms =
-                string.Equals(channel, "Sms", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(channel, "SMS", StringComparison.OrdinalIgnoreCase);
-
-            if (isSms)
-            {
-                return "SMS";
-            }
-
-            return channel;
-        }
     }
 }
