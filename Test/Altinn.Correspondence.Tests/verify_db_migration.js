@@ -50,7 +50,6 @@ export default async function () {
             previousIds.push(...parsedData.ids);
             await TC05_RunTestWithOldData(previousIds[0].correspondenceId);
         }
-        handleSummary();
     } catch (e) {
         check(false, { 'No exceptions in test execution': () => false });
         throw e;
