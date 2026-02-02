@@ -73,7 +73,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ needs.determine-commits.outputs.old_commit }}
-          path: ./Test/Altinn.Correspondence.Tests/old-commit
+          path: checkout/old-commit
 
       - name: Restore test file for first run
         run: |
@@ -175,7 +175,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ needs.determine-commits.outputs.new_commit }}
-          path: ./Test/Altinn.Correspondence.Tests/new-commit
+          path: checkout/new-commit
 
       - name: Build new version
         run: |
@@ -198,7 +198,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ needs.determine-commits.outputs.old_commit }}
-          path: ./Test/Altinn.Correspondence.Tests/old-commit-second-run
+          path: checkout/old-commit-second-run
           
       - name: Restore test file for second run
         run: |
