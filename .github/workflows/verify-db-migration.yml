@@ -85,6 +85,9 @@ jobs:
           dotnet-version: |
             10.0.x
 
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
       # ============================================
       # STEP 1: Start environment with OLD code
       # ============================================
@@ -150,8 +153,8 @@ jobs:
           mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
           mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
-        with:
-          filename: Test/Altinn.Correspondence.Tests/verify_db_migration.js
+        run: |
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js
         continue-on-error: false
 
       - name: Temporarily persist created IDs
@@ -233,8 +236,8 @@ jobs:
           mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
           mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
-        with:
-          filename: Test/Altinn.Correspondence.Tests/verify_db_migration.js
+        run: |
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js
         continue-on-error: false
 
       # ============================================
