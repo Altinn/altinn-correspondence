@@ -246,7 +246,8 @@ jobs:
       - name: Restore test results
         working-directory: old-commit-second
         run: |
-          cp -r /tmp/test-results ./test-results || true
+          mkdir -p ./test-results
+          cp /tmp/test-results/k6_ids.json ./test-results/ || true
       
       - name: Test old code with new database
         working-directory: old-commit-second
