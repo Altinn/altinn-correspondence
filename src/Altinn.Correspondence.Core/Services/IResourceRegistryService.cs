@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Core.Services;
+namespace Altinn.Correspondence.Core.Services;
 
 public interface IResourceRegistryService
 {
@@ -9,6 +9,17 @@ public interface IResourceRegistryService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The name of the service owner of the resource.</returns>
     Task<string?> GetServiceOwnerNameOfResource(string resourceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get the resource title (name) from Resource Registry, localized if possible.
+    /// </summary>
+    /// <param name="resourceId">The id of the resource to get the title for.</param>
+    /// <param name="language">
+    /// Preferred language code (for example: "nb", "nn", "en").
+    /// </param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The resource title, or null if the resource was not found.</returns>
+    Task<string?> GetResourceTitle(string resourceId, string? language = null, CancellationToken cancellationToken = default);
     
     Task<string?> GetResourceType(string resourceId, CancellationToken cancellationToken = default);
 
