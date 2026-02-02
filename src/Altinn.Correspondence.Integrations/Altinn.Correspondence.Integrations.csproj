@@ -32,7 +32,6 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
-    <PackageReference Include="RedLock.net" Version="2.3.2" />
     <PackageReference Include="Slack.Webhooks" Version="1.1.5" />
     <PackageReference Include="UUIDNext" Version="4.2.2" />
   </ItemGroup>

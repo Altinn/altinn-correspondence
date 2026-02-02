@@ -233,12 +233,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
             
-            string[] tokensNO = [];
-            string[] tokensEN = [];
+            string[] tokens = [];
             if (notification.NotificationAddress != null)
             {
-                tokensNO = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "e-post" : "SMS"];
-                tokensEN = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
+                tokens = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
             }
 
             activity.Description =
@@ -246,17 +244,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 new ()
                 {
                     LanguageCode = "nb",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NB, tokensNO)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NB, tokens)
                 },
                 new ()
                 {
                     LanguageCode = "nn",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NN, tokensNO)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.NN, tokens)
                 },
                 new ()
                 {
                     LanguageCode = "en",
-                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokensEN)
+                    Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokens)
                 },
             ];
 
@@ -439,7 +437,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
             {
                 var attachmentFileName = correspondenceAttachment?.Attachment?.FileName;
-                var mediaType = GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
+                var mediaType = DialogportenAttachmentMediaTypeMapper.GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
 
                 var attachment = new Attachment
                 {
@@ -470,40 +468,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
                 return attachment;
             }).ToList() ?? new List<Attachment>();
-        }
-
-        private static string? GetDialogportenAttachmentMediaTypeForFileName(string? fileName)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                return null;
-            }
-
-            var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
-            return ext switch
-            {
-                ".pdf" => "application/pdf",
-                ".xml" => "application/xml",
-                ".html" => "text/html",
-                ".json" => "application/json",
-                ".jpg" => "image/jpeg",
-                ".png" => "image/png",
-                ".csv" => "text/csv",
-                ".txt" => "text/plain",
-                ".zip" => "application/zip",
-                ".doc" => "application/msword",
-                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ".xls" => "application/vnd.ms-excel",
-                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-
-                // Supported by correspondence, but not in Dialogporten's attachment media type list
-                ".ppt" => "PPT",
-                ".pps" => "PPS",
-                ".gif" => "GIF",
-                ".bmp" => "BMP",
-
-                _ => null
-            };
         }
     }
 }

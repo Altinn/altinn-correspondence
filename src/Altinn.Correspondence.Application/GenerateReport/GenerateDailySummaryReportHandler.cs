@@ -42,7 +42,7 @@ public class GenerateDailySummaryReportHandler(
             logger.LogInformation("Aggregated data into {count} daily summary records", summaryData.Count);
 
             // Generate parquet file and upload to blob storage
-            var (blobUrl, fileHash, fileSize) = await GenerateAndUploadParquetFile(summaryData, request.Altinn2Included, cancellationToken);
+            var (blobUrl, fileHash, fileSize) = await GenerateAndUploadParquetFile(summaryData, correspondences.Count, request.Altinn2Included, cancellationToken);
 
             var response = new GenerateDailySummaryReportResponse
             {
@@ -189,7 +189,38 @@ public class GenerateDailySummaryReportHandler(
         return 0;
     }
 
-    private async Task<(string blobUrl, string fileHash, long fileSize)> GenerateAndUploadParquetFile(List<DailySummaryData> summaryData, bool altinn2Included, CancellationToken cancellationToken)
+    private DateTimeOffset GetDateTimeFromReportName(string reportName)
+    {
+        if (string.IsNullOrWhiteSpace(reportName))
+        {
+            throw new ArgumentException("Report name cannot be null or empty", nameof(reportName));
+        }
+
+        // Example: "20240127_143055_daily_summary_report_v2_production.parquet"
+        var parts = reportName.Split('_');
+
+        if (parts.Length < 2)
+        {
+            throw new FormatException($"Report name '{reportName}' does not contain expected datetime format");
+        }
+
+        // Combine date and time parts: "20240127" + "143055"
+        var dateTimePart = $"{parts[0]}_{parts[1]}";
+
+        if (DateTimeOffset.TryParseExact(
+            dateTimePart,
+            "yyyyMMdd_HHmmss",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal,
+            out var result))
+        {
+            return result;
+        }
+
+        throw new FormatException($"Unable to parse datetime from report name '{reportName}'. Expected format: yyyyMMdd_HHmmss");
+    }
+
+    private async Task<(string blobUrl, string fileHash, long fileSize)> GenerateAndUploadParquetFile(List<DailySummaryData> summaryData, int correspondenceCount, bool altinn2Included, CancellationToken cancellationToken)
     {
         // Generate filename with timestamp as prefix and Altinn version indicator
         var altinnVersionIndicator = altinn2Included ? "A2A3" : "A3";
@@ -201,7 +232,9 @@ public class GenerateDailySummaryReportHandler(
         var (parquetStream, fileHash, fileSize) = await GenerateParquetFileStream(summaryData, altinn2Included, cancellationToken);
 
         // Upload to blob storage
-        var (blobUrl, _, _) = await storageRepository.UploadReportFile(fileName, parquetStream, cancellationToken);
+        var serviceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count();
+
+        var (blobUrl, _, _) = await storageRepository.UploadReportFile(fileName, serviceOwnerCount, correspondenceCount, parquetStream, cancellationToken);
 
         logger.LogInformation("Successfully generated and uploaded daily summary parquet file to blob storage: {blobUrl}", blobUrl);
 
@@ -250,6 +283,47 @@ public class GenerateDailySummaryReportHandler(
         logger.LogInformation("Successfully generated daily summary parquet file stream");
 
         return (memoryStream, hash, memoryStream.Length);
+    }
+
+    public async Task<OneOf<GenerateAndDownloadDailySummaryReportResponse, Error>> DownloadReportFile(
+        GenerateDailySummaryReportRequest request,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Starting daily summary report generation and download with Altinn2Included={altinn2Included}", request.Altinn2Included);
+        if (request.Altinn2Included)
+        {
+            logger.LogWarning("Download of daily summary report with Altinn2Included=true is not supported. Returning error.");
+            return StatisticsErrors.Altinn2NotSupported;
+        }
+
+        try
+        {
+            // Get correspondences data
+            var reportFile = await storageRepository.DownloadLatestReportFile(cancellationToken);
+
+            var response = new GenerateAndDownloadDailySummaryReportResponse
+            {
+                FileStream = reportFile.DownloadStream,
+                FileName = reportFile.FileName,
+                FileHash = reportFile.FileHash,
+                FileSizeBytes = reportFile.FileSize,
+                ServiceOwnerCount = reportFile.ServiceOwnerCount,
+                TotalCorrespondenceCount = reportFile.CorrespondenceCount,
+                GeneratedAt = GetDateTimeFromReportName(reportFile.FileName),
+                Environment = hostEnvironment.EnvironmentName,
+                Altinn2Included = false // Always set to false, legacy
+            };
+
+            logger.LogInformation("Successfully generated daily summary report for download with {serviceOwnerCount} service owners and {totalCount} correspondences",
+                response.ServiceOwnerCount, response.TotalCorrespondenceCount);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to generate daily summary report for download");
+            return StatisticsErrors.ReportGenerationFailed;
+        }
     }
 
     public async Task<OneOf<GenerateAndDownloadDailySummaryReportResponse, Error>> ProcessAndDownload(
