@@ -22,6 +22,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IAltinnRegisterService> _mockAltinnRegisterService;
         private readonly Mock<ICorrespondenceNotificationRepository> _mockCorrespondenceNotificationRepository;
         private readonly Mock<IIdempotencyKeyRepository> _mockIdempotencyKeyRepository;
+        private readonly Mock<IResourceRegistryService> _mockResourceRegistryService;
         private readonly Mock<IHostEnvironment> _mockHostEnvironment;
         private readonly Mock<IOptions<GeneralSettings>> _mockGeneralSettings;
         private readonly Mock<ILogger<CreateNotificationOrderHandler>> _mockLogger;
@@ -34,6 +35,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
             _mockCorrespondenceNotificationRepository = new Mock<ICorrespondenceNotificationRepository>();
             _mockIdempotencyKeyRepository = new Mock<IIdempotencyKeyRepository>();
+            _mockResourceRegistryService = new Mock<IResourceRegistryService>();
             _mockHostEnvironment = new Mock<IHostEnvironment>();
             _mockGeneralSettings = new Mock<IOptions<GeneralSettings>>();
             _mockLogger = new Mock<ILogger<CreateNotificationOrderHandler>>();
@@ -44,6 +46,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             });
             _mockHostEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
             _mockAltinnRegisterService.Setup(x => x.LookUpName(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("Name");
+            _mockResourceRegistryService
+                .Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync("Resource Title");
 
             _handler = new CreateNotificationOrderHandler(
                 _mockCorrespondenceRepository.Object,
@@ -51,6 +56,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockNotificationTemplateRepository.Object,
                 _mockCorrespondenceNotificationRepository.Object,
                 _mockIdempotencyKeyRepository.Object,
+                _mockResourceRegistryService.Object,
                 _mockHostEnvironment.Object,
                 _mockGeneralSettings.Object,
                 _mockLogger.Object);
@@ -197,6 +203,30 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.True(deserialized.Reminders!.Count >= 1);
             Assert.NotNull(deserialized.Reminders![0].ConditionEndpoint);
             Assert.Contains($"/correspondence/api/v1/correspondence/{correspondence.Id}/notification/check", deserialized.Reminders![0].ConditionEndpoint!);
+        }
+
+        [Fact]
+        public async Task Process_ShouldReplaceResourceNameKeyword_InNotificationTexts()
+        {
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, _, template) = SetupOrderData(requestedPublishTime);
+
+            template.EmailSubject = "Hello $resourceName$";
+
+            CorrespondenceNotificationEntity? captured = null;
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured = n)
+                .ReturnsAsync(Guid.NewGuid());
+
+            await _handler.Process(request, CancellationToken.None);
+
+            Assert.NotNull(captured);
+            var deserialized = JsonSerializer.Deserialize<NotificationOrderRequestV2>(captured!.OrderRequest!);
+            Assert.NotNull(deserialized);
+            Assert.NotNull(deserialized!.Recipient.RecipientPerson);
+            Assert.NotNull(deserialized!.Recipient.RecipientPerson!.EmailSettings);
+            Assert.Equal("Hello Resource Title", deserialized.Recipient.RecipientPerson.EmailSettings!.Subject);
         }
 
         [Theory]
