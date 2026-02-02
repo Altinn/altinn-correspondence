@@ -148,8 +148,9 @@ jobs:
       # STEP 2: Test old code with old database
       # ============================================
       - name: Create directory to save created IDs
+        working-directory: old-commit
         run: |
-          mkdir -p ./old-commit/Test/Altinn.Correspondence.Tests/test-results
+          mkdir -p ./test-results
 
       - name: Test old code with old database (baseline)
         working-directory: old-commit
@@ -164,7 +165,7 @@ jobs:
 
       - name: Temporarily persist created IDs
         run: |
-          cp -r ./old-commit/Test/Altinn.Correspondence.Tests/test-results* /tmp/test-results || true
+          cp -r ./old-commit/test-results /tmp/test-results || true
 
 
       # ============================================
@@ -243,8 +244,9 @@ jobs:
 
       
       - name: Restore test results
+        working-directory: old-commit-second
         run: |
-          cp -r /tmp/test-results* ./old-commit-second/Test/Altinn.Correspondence.Tests/test-results || true
+          cp -r /tmp/test-results ./test-results || true
       
       - name: Test old code with new database
         working-directory: old-commit-second
