@@ -9,7 +9,6 @@ param prodLikeEnvironment bool
 param logAnalyticsWorkspaceId string = ''
 param auditLogAnalyticsWorkspaceId string = ''
 param environment string
-param databaseSizeInGb int
 var databasePoolSize int = prodLikeEnvironment ? 100 : 25
 
 var databaseName = 'correspondence'
