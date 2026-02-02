@@ -41,16 +41,29 @@ try {
  */
 export default async function () {
     try {
+        console.log("Starting test run");
         const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
+        console.log(`After TC01: correspondenceId=${correspondenceId}, attachmentId=${attachmentId}`);
+        
         await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
+        console.log("After TC02");
+        
         await TC03_GetAttachmentOverviewAsSender(attachmentId);
+        console.log("After TC03");
+        
         await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
+        console.log("After TC04");
+        
+        console.log(`Pushing correspondenceId: ${correspondenceId}`);
         createdIds.push({ correspondenceId: correspondenceId });
+        console.log(`createdIds array now has ${createdIds.length} items`);
+        
         if (parsedData.length > 0) {
             previousIds.push(...parsedData.ids);
             await TC05_RunTestWithOldData(previousIds[0].correspondenceId);
         }
     } catch (e) {
+        console.error(`Exception in test: ${e.message}`);
         check(false, { 'No exceptions in test execution': () => false });
         throw e;
     }
