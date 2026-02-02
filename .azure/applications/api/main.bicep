@@ -6,12 +6,6 @@ param imageTag string
 param environment string
 @minLength(3)
 param location string
-@minLength(3)
-param platform_base_url string
-@secure()
-param override_authorization_url string
-@secure()
-param override_authorization_thumbprint string
 @secure()
 @minLength(3)
 param sourceKeyVaultName string
@@ -22,21 +16,8 @@ param namePrefix string
 @secure()
 param storageAccountName string
 @secure()
-param sblBridgeBaseUrl string
-@minLength(3)
-param maskinporten_environment string
-param correspondenceBaseUrl string
-param contactReservationRegistryBaseUrl string
-param brregBaseUrl string
-param idportenIssuer string
-param dialogportenIssuer string
-param maskinporten_token_exchange_environment string
-@secure()
 @minLength(3)
 param apimIp string
-param migrationWorkerCountPerReplica string
-param workerCountPerReplica string
-param arbeidsflateOriginsCommaSeparated string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
@@ -119,25 +100,10 @@ module containerApp '../../modules/containerApp/main.bicep' = {
     location: location
     environment: environment
     apimIp: apimIp
-    subscription_id: subscription().subscriptionId
     principal_id: appIdentity.outputs.id
-    platform_base_url: platform_base_url
-    override_authorization_url: override_authorization_url
-    override_authorization_thumbprint: override_authorization_thumbprint
-    keyVaultUrl: keyVaultUrl
     userIdentityClientId: appIdentity.outputs.clientId
+    keyVaultUrl: keyVaultUrl
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
-    maskinporten_environment: maskinporten_environment
-    correspondenceBaseUrl: correspondenceBaseUrl
-    contactReservationRegistryBaseUrl: contactReservationRegistryBaseUrl
-    brregBaseUrl: brregBaseUrl
-    idportenIssuer: idportenIssuer
-    dialogportenIssuer: dialogportenIssuer
-    sblBridgeBaseUrl: sblBridgeBaseUrl
-    maskinporten_token_exchange_environment: maskinporten_token_exchange_environment
-    migrationWorkerCountPerReplica: migrationWorkerCountPerReplica
-    workerCountPerReplica: workerCountPerReplica
-    arbeidsflateOriginsCommaSeparated: arbeidsflateOriginsCommaSeparated
   }
 }
 

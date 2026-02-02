@@ -33,59 +33,6 @@ inputs:
   AZURE_TEST_ACCESS_CLIENT_ID:
     description: "Azure Test Access Client ID"
     required: true
-  CORRESPONDENCE_BASE_URL:
-    description: "Correspondence Base URL"
-    required: true
-  CONTACT_RESERVATION_REGISTRY_BASE_URL:
-    description: "Contact Reservation Registry Base URL"
-    required: true
-  BRREG_BASE_URL:
-    description: "Brreg Base URL"
-    required: true
-  DIALOGPORTEN_ISSUER:
-    description: "Dialogporten Issuer"
-    required: true
-  IDPORTEN_CLIENT_ID:
-    description: "IDPorten Client ID"
-    required: true
-  IDPORTEN_CLIENT_SECRET:
-    description: "IDPorten Client Secret"
-    required: true
-  IDPORTEN_ISSUER:
-    description: "IDPorten Issuer"
-    required: true
-  MASKINPORTEN_CLIENT_ID:
-    description: "Maskinporten Client ID"
-    required: true
-  MASKINPORTEN_JWK:
-    description: "Maskinporten JWK"
-    required: true
-  PLATFORM_BASE_URL:
-    description: "Platform Base URL"
-    required: true
-  OVERRIDE_AUTHORIZATION_URL:
-    description: "Override authorization URL for Altinn"
-    required: true
-  OVERRIDE_AUTHORIZATION_THUMBPRINT:
-    description: "Thumbprint used for authorization cluster certificate validation"
-    required: true
-  PLATFORM_SUBSCRIPTION_KEY:
-    description: "Platform Subscription Key"
-    required: true
-  SLACK_URL:
-    description: "Slack URL"
-    required: true
-  SBL_BRIDGE_BASE_URL:
-    description: "SBL Bridge Base URL"
-    required: true
-  MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT:
-    description: "Maskinporten Token Exchange Environment"
-    required: false
-    default: ""
-  MASKINPORTEN_ENVIRONMENT:
-    description: "Maskinporten environment"
-    required: true
-    default: ""
   APIM_IP:
     description: "IP address for APIM"
     required: true
@@ -95,21 +42,9 @@ inputs:
   MAINTENANCE_AD_GROUP_NAME:
     description: "IP address for APIM"
     required: false
-  STATISTICS_API_KEY:
-    description: "API Key for authentication to Statistics endpoints"
-    required: true
   GRAFANA_MONITORING_PRINCIPAL_ID:
     description: "Principal ID for Grafana monitoring service principal"
     required: true
-  WORKER_COUNT_PER_REPLICA:
-    description: "Number of workers to use for Altinn 3 Correspondence operations"
-    required: false
-  MIGRATION_WORKER_COUNT_PER_REPLICA:
-    description: "Number of workers to use for Dialogporten migration"
-    required: false
-  ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED:
-    description: "Comma separated list of Arbeidsflate origins"
-    required: false
 
 runs:
   using: "composite"
@@ -130,16 +65,8 @@ runs:
         AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
         AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
         AZURE_TEST_ACCESS_CLIENT_ID: ${{ inputs.AZURE_TEST_ACCESS_CLIENT_ID }}
-        IDPORTEN_CLIENT_ID: ${{ inputs.IDPORTEN_CLIENT_ID }}
-        IDPORTEN_CLIENT_SECRET: ${{ inputs.IDPORTEN_CLIENT_SECRET }}
-        MASKINPORTEN_CLIENT_ID: ${{ inputs.MASKINPORTEN_CLIENT_ID }}
-        MASKINPORTEN_JWK: ${{ inputs.MASKINPORTEN_JWK }}
-        PLATFORM_SUBSCRIPTION_KEY: ${{ inputs.PLATFORM_SUBSCRIPTION_KEY }}
-        SLACK_URL: ${{ inputs.SLACK_URL }}
-        MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
-        STATISTICS_API_KEY: ${{ inputs.STATISTICS_API_KEY }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
 
     - name: Migrate database
@@ -166,22 +93,8 @@ runs:
         AZURE_NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         AZURE_SUBSCRIPTION_ID: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
         AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
-        CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
-        CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ inputs.CONTACT_RESERVATION_REGISTRY_BASE_URL }}
-        BRREG_BASE_URL: ${{ inputs.BRREG_BASE_URL }}
-        DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
-        IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
-        PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
-        OVERRIDE_AUTHORIZATION_URL: ${{ inputs.OVERRIDE_AUTHORIZATION_URL }}
-        OVERRIDE_AUTHORIZATION_THUMBPRINT: ${{ inputs.OVERRIDE_AUTHORIZATION_THUMBPRINT }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
-        SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
-        MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-        MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ inputs.APIM_IP }}
-        WORKER_COUNT_PER_REPLICA: ${{ inputs.WORKER_COUNT_PER_REPLICA }}
-        MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
-        ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ inputs.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
 
     - name: Remediate standard tags
       uses: ./.github/actions/remediate-standard-tags
