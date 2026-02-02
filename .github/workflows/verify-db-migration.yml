@@ -115,27 +115,13 @@ jobs:
           dotnet ef database update --no-build --configuration Release \
             --project ./src/Altinn.Correspondence.Persistence \
             --startup-project ./src/Altinn.Correspondence.API
-     
-      - name: Create directory to save created IDs
-        run: |
-          mkdir -p ./Test/Altinn.Correspondence.Tests/test-results
 
-
-      # ============================================
-      # STEP 2: Test old code with old database
-      # ============================================
-      - name: Start old version API and run test
-        uses: grafana/k6-action@e4714b734f2b0afaabeb7b4a69142745548ab9ec # v0.3.1
-        env: 
-          base_url: http://localhost:5096
-          mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
-          mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
-          mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
+      - name: Start old version API
         run: |
           echo "Starting API with old code..."
-          dotnet watch --non-interactive --configuration Release \
-            --project ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj &
-          
+          nohup dotnet run --no-build --configuration Release \
+            --project ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj \
+            </dev/null >/dev/null 2>&1 &          
           # Wait for API to be ready
           echo "Waiting for API to be ready..."
           for i in {1..30}; do
@@ -150,8 +136,22 @@ jobs:
             sleep 2
           done
 
-          # Run k6 test
-          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js
+      # ============================================
+      # STEP 2: Test old code with old database
+      # ============================================
+      - name: Create directory to save created IDs
+        run: |
+          mkdir -p ./Test/Altinn.Correspondence.Tests/test-results
+
+      - name: Test old code with old database (baseline)
+        uses: grafana/k6-action@e4714b734f2b0afaabeb7b4a69142745548ab9ec # v0.3.1
+        env: 
+          base_url: http://localhost:5096
+          mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
+          mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
+          mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
+        with:
+          filename: Test/Altinn.Correspondence.Tests/verify_db_migration.js
         continue-on-error: false
 
       - name: Temporarily persist created IDs
@@ -203,8 +203,9 @@ jobs:
       - name: Restart old version API (with new database)
         run: |
           echo "Restarting API with old code (but new database)..."
-          dotnet watch --non-interactive --configuration Release \
-            --project ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj &
+          nohup dotnet run --no-build --configuration Release \
+            --project ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj \
+            </dev/null >/dev/null 2>&1 &
           
           # Wait for API to be ready
           echo "Waiting for API to be ready..."
