@@ -57,6 +57,7 @@ export default async function () {
         console.log(`Pushing correspondenceId: ${correspondenceId}`);
         createdIds.push({ correspondenceId: correspondenceId });
         console.log(`createdIds array now has ${createdIds.length} items`);
+        console.log(`Full createdIds: ${JSON.stringify(createdIds)}`);
         
         if (parsedData.length > 0) {
             previousIds.push(...parsedData.ids);
@@ -282,7 +283,9 @@ async function TC05_RunTestWithOldData(correspondenceId) {
     console.log(`TC05: Test case completed`);
 }
 
-export function handleSummary() {
+export function handleSummary(data) {
+  console.log(`handleSummary called, createdIds has ${createdIds.length} items`);
+  console.log(`handleSummary createdIds content: ${JSON.stringify(createdIds)}`);
   return {
     './test-results/k6_ids.json': JSON.stringify({ ids: createdIds }, null, 2),
   };
