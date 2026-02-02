@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
+using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
@@ -250,6 +251,66 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
     {
         await CreateInformationActivity(correspondenceId, actorType, textType, null, activityTimestamp, tokens);
+    }
+
+    public async Task<bool> HasInformationActivityByTextType(Guid correspondenceId, DialogportenTextType textType, CancellationToken cancellationToken = default)
+    {
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                return true;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
+        }
+
+        var dialog = await GetDialog(dialogId);
+        if (dialog.Activities is null || dialog.Activities.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var activity in dialog.Activities)
+        {
+            if (!string.Equals(activity.Type, "Information", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (activity.Description is null || activity.Description.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var d in activity.Description)
+            {
+                if (string.Equals(d.LanguageCode, "nb", StringComparison.OrdinalIgnoreCase) &&
+                    DialogportenText.IsTemplate(textType, DialogportenLanguageCode.NB, d.Value))
+                {
+                    return true;
+                }
+                if (string.Equals(d.LanguageCode, "nn", StringComparison.OrdinalIgnoreCase) &&
+                    DialogportenText.IsTemplate(textType, DialogportenLanguageCode.NN, d.Value))
+                {
+                    return true;
+                }
+                if (string.Equals(d.LanguageCode, "en", StringComparison.OrdinalIgnoreCase) &&
+                    DialogportenText.IsTemplate(textType, DialogportenLanguageCode.EN, d.Value))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public async Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
