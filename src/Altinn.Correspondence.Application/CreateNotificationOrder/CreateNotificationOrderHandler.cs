@@ -79,6 +79,7 @@ public class CreateNotificationOrderHandler(
         }
         logger.LogInformation("Looking up recipient name for correspondence {CorrespondenceId}", correspondence.Id);
         var recipientName = await altinnRegisterService.LookUpName(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+        var correspondenceTitle = correspondence.Content?.MessageTitle ?? string.Empty;
         
         foreach (var template in templates)
         {
@@ -90,27 +91,33 @@ public class CreateNotificationOrderHandler(
                 EmailSubject = CreateNotificationContentFromToken(template.EmailSubject ?? string.Empty, request.EmailSubject)
                     .Replace("$sendersName$", sendersName)
                     .Replace("$correspondenceRecipientName$", recipientName)
-                    .Replace("$resourceName$", resourceName),
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$correspondenceTitle$", correspondenceTitle),
                 EmailBody = CreateNotificationContentFromToken(template.EmailBody ?? string.Empty, request.EmailBody)
                     .Replace("$sendersName$", sendersName)
                     .Replace("$correspondenceRecipientName$", recipientName)
-                    .Replace("$resourceName$", resourceName),
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$correspondenceTitle$", correspondenceTitle),
                 SmsBody = CreateNotificationContentFromToken(template.SmsBody ?? string.Empty, request.SmsBody)
                     .Replace("$sendersName$", sendersName)
                     .Replace("$correspondenceRecipientName$", recipientName)
-                    .Replace("$resourceName$", resourceName),
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$correspondenceTitle$", correspondenceTitle),
                 ReminderEmailBody = CreateNotificationContentFromToken(template.ReminderEmailBody ?? string.Empty, request.ReminderEmailBody)
                     .Replace("$sendersName$", sendersName)
                     .Replace("$correspondenceRecipientName$", recipientName)
-                    .Replace("$resourceName$", resourceName),
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$correspondenceTitle$", correspondenceTitle),
                 ReminderEmailSubject = CreateNotificationContentFromToken(template.ReminderEmailSubject ?? string.Empty, request.ReminderEmailSubject)
                     .Replace("$sendersName$", sendersName)
                     .Replace("$correspondenceRecipientName$", recipientName)
-                    .Replace("$resourceName$", resourceName),
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$correspondenceTitle$", correspondenceTitle),
                 ReminderSmsBody = CreateNotificationContentFromToken(template.ReminderSmsBody ?? string.Empty, request.ReminderSmsBody)
                     .Replace("$sendersName$", sendersName)
                     .Replace("$correspondenceRecipientName$", recipientName)
-                    .Replace("$resourceName$", resourceName),
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$correspondenceTitle$", correspondenceTitle),
                 Language = template.Language,
                 RecipientType = template.RecipientType
             });

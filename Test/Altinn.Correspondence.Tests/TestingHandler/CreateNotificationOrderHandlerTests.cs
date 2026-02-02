@@ -91,6 +91,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 RequestedPublishTime = requestedPublishTime,
                 Sender = "sender",
                 Statuses = new List<CorrespondenceStatusEntity>(),
+                Content = new CorrespondenceContentEntity
+                {
+                    Language = "nb",
+                    MessageTitle = "Default title",
+                    MessageSummary = "Default summary",
+                    MessageBody = "Default body",
+                    Attachments = new List<CorrespondenceAttachmentEntity>()
+                },
                 Created = DateTimeOffset.UtcNow
             };
 
@@ -227,6 +235,31 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.NotNull(deserialized!.Recipient.RecipientPerson);
             Assert.NotNull(deserialized!.Recipient.RecipientPerson!.EmailSettings);
             Assert.Equal("Hello Resource Title", deserialized.Recipient.RecipientPerson.EmailSettings!.Subject);
+        }
+
+        [Fact]
+        public async Task Process_ShouldReplaceCorrespondenceTitleKeyword_InNotificationTexts()
+        {
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, correspondence, template) = SetupOrderData(requestedPublishTime);
+
+            correspondence.Content!.MessageTitle = "My correspondence title";
+            template.EmailSubject = "Title: $correspondenceTitle$";
+
+            CorrespondenceNotificationEntity? captured = null;
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured = n)
+                .ReturnsAsync(Guid.NewGuid());
+
+            await _handler.Process(request, CancellationToken.None);
+
+            Assert.NotNull(captured);
+            var deserialized = JsonSerializer.Deserialize<NotificationOrderRequestV2>(captured!.OrderRequest!);
+            Assert.NotNull(deserialized);
+            Assert.NotNull(deserialized!.Recipient.RecipientPerson);
+            Assert.NotNull(deserialized!.Recipient.RecipientPerson!.EmailSettings);
+            Assert.Equal("Title: My correspondence title", deserialized.Recipient.RecipientPerson.EmailSettings!.Subject);
         }
 
         [Theory]
