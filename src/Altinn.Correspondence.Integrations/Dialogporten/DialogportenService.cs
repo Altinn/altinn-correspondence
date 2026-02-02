@@ -915,7 +915,6 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         var forwarderPartyInfo = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedByPartyUuid, cancellationToken);
         var forwarderUserInfo = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedByUserUuid, cancellationToken);
-        var activityMessage = "{forwarderPartyInfo.Name} videresendte {correspondenceTitle}\r\n{forwardingEvent.ForwardedToEmailAddress} og skrev : {forwardingEvent.ForwardingText}";
         string[] tokens =  {
                 forwardingEvent.Correspondence?.Content?.MessageTitle ?? "",
                 forwardingEvent.ForwardedToEmailAddress ?? "ukjent mottaker", // TODO Can we use forwardedToUserInfo here?
@@ -925,7 +924,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         await CreateInformationActivity(forwardingEvent.CorrespondenceId,
                                         DialogportenActorType.Recipient,
                                         DialogportenTextType.CorrespondenceForwardedInformation,
-                                        UrnConstants.PersonIdAttribute + ":" + forwarderPartyInfo.SSN, // TODO forwarderUserInfo.Email for SI users?
+                                        UrnConstants.PersonIdAttribute + ":" + forwarderPartyInfo.SSN, // TODO forwarderUserInfo.Email for SI users? DP now supports urn:altinn:person:legacy-selfidentified: and urn:altinn:person:idporten-email:
                                         forwardingEvent.ForwardedOnDate,
                                         tokens);
 
