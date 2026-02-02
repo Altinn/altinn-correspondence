@@ -93,6 +93,7 @@ jobs:
       # STEP 1: Start environment with OLD code
       # ============================================
       - name: Start docker compose with old version
+        working-directory: old-commit
         run: |
           docker compose up -d
           
