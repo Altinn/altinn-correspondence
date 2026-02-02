@@ -9,9 +9,10 @@ param prodLikeEnvironment bool
 param logAnalyticsWorkspaceId string = ''
 param auditLogAnalyticsWorkspaceId string = ''
 param environment string
+param databaseSizeInGb int
+var databasePoolSize int = prodLikeEnvironment ? 100 : 25
 
 var databaseName = 'correspondence'
-var poolSize = prodLikeEnvironment ? 100 : 25
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: '${namePrefix}-dbserver'
@@ -20,9 +21,13 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     version: '16'
     availabilityZone: environment == 'production' ? '2' : null
     storage: {
-      storageSizeGB: prodLikeEnvironment ? 8198 : 32
+      storageSizeGB: environment == 'production' ? 8192
+                   : prodLikeEnvironment ? 4096
+                   : 32
       autoGrow: 'Enabled'
-      tier: prodLikeEnvironment ? 'P50' : 'P4'
+      tier: environment == 'production' ? 'P60'
+          : prodLikeEnvironment ? 'P50'
+          : 'P4'
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {
@@ -35,11 +40,16 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
       standbyAvailabilityZone: '1'
     } : null
   }
-  sku: prodLikeEnvironment
+  sku: environment == 'production'
     ? {
         name: 'Standard_D32ads_v5'
         tier: 'GeneralPurpose'
       }
+    : environment == 'staging' 
+    ? {
+        name: 'Standard_D8ads_v5'
+        tier: 'GeneralPurpose'
+    }
     : {
         name: 'Standard_B1ms'
         tier: 'Burstable'
@@ -334,7 +344,7 @@ module adoConnectionString '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: environmentKeyVaultName
     secretName: 'correspondence-ado-connection-string'
-    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Maximum Pool Size=${poolSize};options=-c role=azure_pg_admin;'
+    secretValue: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${databaseName};Port=5432;Username=${namePrefix}-app-identity;Ssl Mode=Require;Maximum Pool Size=${databasePoolSize};options=-c role=azure_pg_admin;'
   }
 }
 
