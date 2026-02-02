@@ -454,7 +454,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<Guid>("PartyUuid")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("StatusRenamed")
+                    b.Property<int>("Status")
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("StatusChanged")
