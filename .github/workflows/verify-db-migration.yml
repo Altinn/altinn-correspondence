@@ -164,8 +164,11 @@ jobs:
         continue-on-error: false
 
       - name: Temporarily persist created IDs
+        working-directory: old-commit
         run: |
-          cp -r ./old-commit/test-results /tmp/test-results || true
+          echo "Contents of k6_ids.json:"
+          cat ./test-results/k6_ids.json || echo "File not found"
+          cp -r ./test-results /tmp/test-results || true
 
 
       # ============================================
