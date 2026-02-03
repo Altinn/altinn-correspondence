@@ -5,7 +5,7 @@ import { getRecipientAltinnToken, getSenderAltinnToken } from '../Altinn.Corresp
 
 const baseUrl = __ENV.base_url;
 const resourceId = 'ttd-verify-db-migration-corr';
-const RESULTS_FILE_PATH = __ENV.results_file_path || './test-results/k6_ids.txt';
+const RESULTS_FILE_PATH = __ENV.results_file_path || '../../file.txt';
 const ATTACHMENT_PATH = '../Altinn.Correspondence.UseCaseTests/fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';
 const ATTACHMENT_FILENAME = 'db-verification-attachment.txt';
@@ -19,7 +19,6 @@ export const options = {
     iterations: 1
 };
 
-let previousId = null;
 
 // Try to load previous test results from file
 let parsedData = null;
@@ -37,7 +36,6 @@ try {
             
             if (cleanLine.includes('correspondenceId')) {
                 parsedData = cleanLine.split(":")[1];
-                console.log(parsedData);
                 break;
             }
         }
@@ -67,7 +65,7 @@ export default async function () {
 
         if (parsedData != null) {
             
-            await TC05_RunTestWithOldData(previousId);
+            await TC05_RunTestWithOldData(parsedData);
         }
     } catch (e) {
         console.error(`Exception in test: ${e.message}`);
