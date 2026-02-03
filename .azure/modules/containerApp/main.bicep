@@ -23,15 +23,11 @@ type ContainerAppScale = {
     maxReplicas: int
 }
 
-// Key Vault secret environment variables
-var secretEnvVars = [
+// Required Key Vault secret environment variables
+var requiredSecretEnvVars = [
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretName: 'application-insights-connection-string' }
   { name: 'DatabaseOptions__ConnectionString', secretName: 'correspondence-ado-connection-string' }
   { name: 'AttachmentStorageOptions__ConnectionString', secretName: 'storage-connection-string' }
-  { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
-  { name: 'AzureResourceManagerOptions__ApimIP', secretName: 'apim-ip' }
-  { name: 'AltinnOptions__OverrideAuthorizationUrl', secretName: 'override-authorization-url' }
-  { name: 'AltinnOptions__OverrideAuthorizationThumbprint', secretName: 'override-authorization-thumbprint' }
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretName: 'platform-subscription-key' }
   { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretName: 'access-management-subscription-key' }
   { name: 'MaskinportenSettings__ClientId', secretName: 'maskinporten-client-id' }
@@ -43,6 +39,15 @@ var secretEnvVars = [
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
   { name: 'StatisticsApiKey', secretName: 'statistics-api-key' }
 ]
+
+// In production we override authorization url to circumvent APIM to relieve load
+var optionalOverrideAuthSecrets = environment == 'production' ? [
+  { name: 'AltinnOptions__OverrideAuthorizationUrl', secretName: 'override-authorization-url' }
+  { name: 'AltinnOptions__OverrideAuthorizationThumbprint', secretName: 'override-authorization-thumbprint' }
+] : []
+
+// Combine required and optional secrets
+var secretEnvVars = concat(requiredSecretEnvVars, optionalOverrideAuthSecrets)
 
 // Extract secrets configuration from env var configs
 var secrets = [for config in secretEnvVars: {
@@ -63,6 +68,8 @@ var containerAppEnvVarsComputed = [
   { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().id }
+  { name: 'GeneralSettings__RedisConnectionString', value: 'redis-connection-string' }
+  { name: 'AzureResourceManagerOptions__ApimIP', value: 'apim-ip' }
   ]
 
 // Combine all environment variables
