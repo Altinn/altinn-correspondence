@@ -3,7 +3,6 @@ import { check, sleep } from 'k6';
 import { getSenderAltinnToken, getRecipientAltinnToken } from './helpers/altinnTokenService.js';
 import { buildInitializeCorrespondenceWithNewAttachmentPayload } from './helpers/correspondencePayloadBuilder.js';
 import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.js';
-import { crypto } from 'k6/webcrypto';
 
 const baseUrl = __ENV.base_url;
 const recipient = __ENV.recipient;
