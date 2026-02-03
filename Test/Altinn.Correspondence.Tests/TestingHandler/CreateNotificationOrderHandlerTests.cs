@@ -244,7 +244,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var (request, correspondence, template) = SetupOrderData(requestedPublishTime);
 
             correspondence.Content!.MessageTitle = "My correspondence title";
-            template.EmailSubject = "Title: $correspondenceTitle$";
+            template.EmailSubject = "Title: $messageTitle$";
 
             CorrespondenceNotificationEntity? captured = null;
             _mockCorrespondenceNotificationRepository
