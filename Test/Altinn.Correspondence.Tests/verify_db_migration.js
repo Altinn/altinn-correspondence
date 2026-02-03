@@ -67,7 +67,7 @@ export default async function () {
         
         await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
         createdIds.push({ correspondenceId: correspondenceId });
-        console.log(createdIds);
+        console.log("correspondenceId:" + correspondenceId);
 
         if (parsedData.ids.length > 0) {
             previousIds.push(...parsedData.ids);
@@ -101,14 +101,9 @@ async function TC01_InitializeCorrespondenceWithAttachment() {
     let correspondenceId = null;
     let attachmentId = null;
     try {
-        const payload = res.json();
-        console.log(`TC01: Response body: ${res.body}`);
-        console.log(`TC01: Parsed payload type: ${typeof payload}, is null/undefined: ${payload === null || payload === undefined}`);
-        
+        const payload = res.json();        
         if (payload && payload.correspondences && payload.correspondences.length > 0) {
-            console.log(`TC01: correspondences[0]: ${JSON.stringify(payload.correspondences[0])}`);
             correspondenceId = payload.correspondences[0].correspondenceId;
-            console.log(`TC01: correspondenceId type: ${typeof correspondenceId}, value: ${JSON.stringify(correspondenceId)}`);
         } else {
             console.log(`TC01: No correspondences in payload`);
         }
