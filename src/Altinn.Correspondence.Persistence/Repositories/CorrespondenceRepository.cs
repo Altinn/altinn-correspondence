@@ -400,11 +400,29 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, CancellationToken cancellationToken)
+        public async Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken)
         {
             return await _context.Correspondences
                 .AsNoTracking()
                 .Where(c => c.ResourceId == resourceId)
+                .Where(c => c.Created <= minAge)
+                .Select(c => c.Id)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<Guid>> GetCorrespondenceIdsByResourceIdAndTestRunId(
+            string resourceId,
+            Guid testRunId,
+            DateTimeOffset minAge,
+            CancellationToken cancellationToken)
+        {
+            var testRunIdString = testRunId.ToString();
+
+            return await _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.ResourceId == resourceId)
+                .Where(c => c.Created <= minAge)
+                .Where(c => c.PropertyList.ContainsKey("testRunId") && c.PropertyList["testRunId"] == testRunIdString)
                 .Select(c => c.Id)
                 .ToListAsync(cancellationToken);
         }

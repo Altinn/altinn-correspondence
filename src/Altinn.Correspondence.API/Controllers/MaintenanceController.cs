@@ -179,7 +179,8 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     }
 
     /// <summary>
-    /// Cleanup test data (dialogs and correspondences) for a given resourceId used by bruksmonstertests
+    /// Cleanup test data (dialogs and correspondences) for bruksmonstertests.
+    /// Optionally scopes cleanup to a specific test run and/or to data older than a given age.
     /// </summary>
     /// <response code="200">Returns a summary of deleted correspondences</response>
     /// <response code="401">Unauthorized</response>
@@ -193,10 +194,18 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> CleanupBruksmonsterTestData(
         [FromServices] CleanupBruksmonsterHandler handler,
+        [FromQuery] Guid? testRunId,
+        [FromQuery] int? minAgeDays,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Request to cleanup bruksmonster test data received");
-        var result = await handler.Process(HttpContext.User, cancellationToken);
+        var request = new CleanupBruksmonsterRequest
+        {
+            TestRunId = testRunId,
+            MinAgeDays = minAgeDays
+        };
+
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
             Problem

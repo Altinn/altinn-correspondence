@@ -193,12 +193,38 @@ namespace Altinn.Correspondence.Persistence.Repositories
 			return await _context.SaveChangesAsync(cancellationToken);
 		}
 
-        public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, CancellationToken cancellationToken)
+        public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken)
         {
             return await _context.Attachments
+                .AsNoTracking()
                 .Where(a => a.ResourceId == resourceId)
+                .Where(a => a.Created <= minAge)
                 .Select(a => a.Id)
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<Guid>> GetAttachmentIdsOnResourceAndTestRunId(
+            string resourceId,
+            Guid testRunId,
+            DateTimeOffset minAge,
+            CancellationToken cancellationToken)
+        {
+            var testRunIdString = testRunId.ToString();
+
+            return await (
+                from a in _context.Attachments.AsNoTracking()
+                join ca in _context.CorrespondenceAttachments.AsNoTracking() on a.Id equals ca.AttachmentId
+                join cc in _context.CorrespondenceContents.AsNoTracking() on ca.CorrespondenceContentId equals cc.Id
+                join c in _context.Correspondences.AsNoTracking() on cc.CorrespondenceId equals c.Id
+                where a.ResourceId == resourceId
+                where a.Created <= minAge
+                where c.ResourceId == resourceId
+                where c.Created <= minAge
+                where c.PropertyList.ContainsKey("testRunId") && c.PropertyList["testRunId"] == testRunIdString
+                select a.Id
+            )
+            .Distinct()
+            .ToListAsync(cancellationToken);
         }
 
         public async Task<List<AttachmentEntity>> GetAttachmentsByIds(List<Guid> attachmentIds, bool includeStatus = false, CancellationToken cancellationToken = default)

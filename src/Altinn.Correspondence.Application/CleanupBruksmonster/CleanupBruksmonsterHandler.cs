@@ -15,14 +15,31 @@ public class CleanupBruksmonsterHandler(
     ICorrespondenceRepository correspondenceRepository,
 	IIdempotencyKeyRepository idempotencyKeyRepository,
 	IAttachmentRepository attachmentRepository
-) : IHandler<CleanupBruksmonsterResponse>
+) : IHandler<CleanupBruksmonsterRequest, CleanupBruksmonsterResponse>
 {
-    public async Task<OneOf<CleanupBruksmonsterResponse, Error>> Process(ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<CleanupBruksmonsterResponse, Error>> Process(CleanupBruksmonsterRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting cleanup of bruksmonster test data");
         var resourceId = "correspondence-bruksmonstertester-ressurs";
-        var correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, cancellationToken);
-        var attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, cancellationToken);
+        var minAge = DateTimeOffset.UtcNow;
+        if (request.MinAgeDays.HasValue)
+        {
+            minAge = minAge.Subtract(TimeSpan.FromDays(request.MinAgeDays.Value));
+        }
+
+        var correspondenceIds = new List<Guid>();
+        var attachmentIds = new List<Guid>();
+        if (request.TestRunId.HasValue)
+        {
+            correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceIdAndTestRunId(resourceId, request.TestRunId.Value, minAge, cancellationToken);
+            attachmentIds = await attachmentRepository.GetAttachmentIdsOnResourceAndTestRunId(resourceId, request.TestRunId.Value, minAge, cancellationToken);
+        }
+        else 
+        {
+            correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, minAge, cancellationToken);
+            attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, minAge, cancellationToken);
+        }
+
 		return await TransactionWithRetriesPolicy.Execute<CleanupBruksmonsterResponse>(async (ct) =>
         {
             
@@ -71,4 +88,3 @@ public class CleanupBruksmonsterHandler(
         }, logger, cancellationToken);
     }
 }
-
