@@ -161,7 +161,7 @@ jobs:
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
           results_file_path: ./test-results/k6_ids.txt
         run: |
-          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="file=./test-results/k6_ids.txt"
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./test-results/k6_ids.txt"
         continue-on-error: false
 
       - name: Temporarily persist created IDs
