@@ -31,7 +31,6 @@ var secretEnvVars = [
   { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
   { name: 'AzureResourceManagerOptions__SubscriptionId', secretName: 'subscription-id' }
   { name: 'AzureResourceManagerOptions__ApimIP', secretName: 'apim-ip' }
-  { name: 'AZURE_CLIENT_ID', secretName: 'user-identity-client-id' }
   { name: 'AltinnOptions__OverrideAuthorizationUrl', secretName: 'override-authorization-url' }
   { name: 'AltinnOptions__OverrideAuthorizationThumbprint', secretName: 'override-authorization-thumbprint' }
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretName: 'platform-subscription-key' }
@@ -61,10 +60,10 @@ var containerAppEnvVarsFromConfig = [for config in secretEnvVars: {
 
 // Additional computed environment variables (that need expressions)
 var containerAppEnvVarsComputed = [
-  { envVarName: 'ASPNETCORE_ENVIRONMENT', value: environment }
-  { envVarName: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
+  { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
+  { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
-]
+  ]
 
 // Combine all environment variables
 var containerAppEnvVars = concat(
