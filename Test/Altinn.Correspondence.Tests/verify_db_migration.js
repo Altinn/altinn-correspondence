@@ -267,6 +267,9 @@ async function TC05_RunTestWithOldData(correspondenceId) {
     let published = false;
     for (let i = 0; i < maxIterations; i++) {
         const r = http.get(`${baseUrl}/correspondence/api/v1/correspondence/${correspondenceId}`, { headers });
+        if (r.status >= 500) {
+            throw new Error(`TC05: Server error ${r.status}. Stopping tests. Body: ${r.body}`);
+        }
         if (r.status === 200) {
             const overview = r.json();
             const statusIsPublished = isAttachmentDownloaded(overview && overview.status);
