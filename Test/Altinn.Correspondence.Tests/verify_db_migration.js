@@ -37,6 +37,7 @@ try {
             
             if (cleanLine.includes('correspondenceId')) {
                 parsedData = cleanLine.split(":")[1];
+                console.log(parsedData);
                 break;
             }
         }
