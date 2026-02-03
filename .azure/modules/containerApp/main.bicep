@@ -29,7 +29,6 @@ var secretEnvVars = [
   { name: 'DatabaseOptions__ConnectionString', secretName: 'correspondence-ado-connection-string' }
   { name: 'AttachmentStorageOptions__ConnectionString', secretName: 'storage-connection-string' }
   { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
-  { name: 'AzureResourceManagerOptions__SubscriptionId', secretName: 'subscription-id' }
   { name: 'AzureResourceManagerOptions__ApimIP', secretName: 'apim-ip' }
   { name: 'AltinnOptions__OverrideAuthorizationUrl', secretName: 'override-authorization-url' }
   { name: 'AltinnOptions__OverrideAuthorizationThumbprint', secretName: 'override-authorization-thumbprint' }
@@ -63,6 +62,7 @@ var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
+  { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().id }
   ]
 
 // Combine all environment variables
