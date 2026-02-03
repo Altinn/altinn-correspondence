@@ -68,7 +68,7 @@ var containerAppEnvVarsComputed = [
   { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
-  { name: 'AzureResourceManagerOptions__ApimIP', value: 'apim-ip' }
+  { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
   ]
 
 // Combine all environment variables
