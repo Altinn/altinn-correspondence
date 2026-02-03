@@ -33,7 +33,6 @@ var requiredSecretEnvVars = [
   { name: 'MaskinportenSettings__ClientId', secretName: 'maskinporten-client-id' }
   { name: 'MaskinportenSettings__EncodedJwk', secretName: 'maskinporten-jwk' }
   { name: 'GeneralSettings__SlackUrl', secretName: 'slack-url' }
-  { name: 'GeneralSettings__AltinnSblBridgeBaseUrl', secretName: 'sbl-bridge-base-url' }
   { name: 'IdportenSettings__ClientId', secretName: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretName: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
