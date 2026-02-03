@@ -24,10 +24,7 @@ type ContainerAppScale = {
 }
 
 // Required Key Vault secret environment variables
-var requiredSecretEnvVars = [
-  { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretName: 'application-insights-connection-string' }
-  { name: 'DatabaseOptions__ConnectionString', secretName: 'correspondence-ado-connection-string' }
-  { name: 'AttachmentStorageOptions__ConnectionString', secretName: 'storage-connection-string' }
+var predefinedKeyvaultSecretEnvVars = [
   { name: 'AltinnOptions__PlatformSubscriptionKey', secretName: 'platform-subscription-key' }
   { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretName: 'access-management-subscription-key' }
   { name: 'MaskinportenSettings__ClientId', secretName: 'maskinporten-client-id' }
@@ -35,9 +32,15 @@ var requiredSecretEnvVars = [
   { name: 'GeneralSettings__SlackUrl', secretName: 'slack-url' }
   { name: 'IdportenSettings__ClientId', secretName: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretName: 'idporten-client-secret' }
-  { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
-  { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
   { name: 'StatisticsApiKey', secretName: 'statistics-api-key' }
+]
+
+var setByPipelineSecretEnvVars = [
+  { name: 'DatabaseOptions__ConnectionString', secretName: 'correspondence-ado-connection-string' }
+  { name: 'AttachmentStorageOptions__ConnectionString', secretName: 'storage-connection-string' }
+  { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
+  { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretName: 'application-insights-connection-string' }
+  { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
 ]
 
 // In production we override authorization url to circumvent APIM to relieve load
@@ -47,7 +50,8 @@ var optionalOverrideAuthSecrets = environment == 'production' ? [
 ] : []
 
 // Combine required and optional secrets
-var secretEnvVars = concat(requiredSecretEnvVars, optionalOverrideAuthSecrets)
+var alwaysSetEnvVars = concat(predefinedKeyvaultSecretEnvVars, setByPipelineSecretEnvVars)
+var secretEnvVars = concat(alwaysSetEnvVars, optionalOverrideAuthSecrets)
 
 // Extract secrets configuration from env var configs
 var secrets = [for config in secretEnvVars: {
