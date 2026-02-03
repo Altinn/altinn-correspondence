@@ -36,6 +36,7 @@ var requiredSecretEnvVars = [
   { name: 'IdportenSettings__ClientId', secretName: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretName: 'idporten-client-secret' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
+  { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
   { name: 'StatisticsApiKey', secretName: 'statistics-api-key' }
 ]
 
@@ -67,7 +68,6 @@ var containerAppEnvVarsComputed = [
   { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
-  { name: 'GeneralSettings__RedisConnectionString', value: 'redis-connection-string' }
   { name: 'AzureResourceManagerOptions__ApimIP', value: 'apim-ip' }
   ]
 
