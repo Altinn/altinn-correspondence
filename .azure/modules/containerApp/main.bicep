@@ -66,7 +66,7 @@ var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
-  { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().id }
+  { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'GeneralSettings__RedisConnectionString', value: 'redis-connection-string' }
   { name: 'AzureResourceManagerOptions__ApimIP', value: 'apim-ip' }
   ]
