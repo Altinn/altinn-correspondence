@@ -238,7 +238,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ShouldReplaceCorrespondenceTitleKeyword_InNotificationTexts()
+        public async Task Process_ShouldReplaceMessageTitleKeyword_InNotificationTexts()
         {
             var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
             var (request, correspondence, template) = SetupOrderData(requestedPublishTime);
