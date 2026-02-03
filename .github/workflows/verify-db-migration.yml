@@ -159,15 +159,14 @@ jobs:
           mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
           mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
+          results_file_path: ./test-results/k6_ids.txt
         run: |
-          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="file=./test-results/k6_ids.txt"
         continue-on-error: false
 
       - name: Temporarily persist created IDs
         working-directory: old-commit
         run: |
-          echo "Contents of k6_ids.json:"
-          cat ./test-results/k6_ids.json || echo "File not found"
           cp -r ./test-results /tmp/test-results || true
 
 
@@ -250,7 +249,7 @@ jobs:
         working-directory: old-commit-second
         run: |
           mkdir -p ./test-results
-          cp /tmp/test-results/k6_ids.json ./test-results/ || true
+          cp /tmp/test-results/k6_ids.txt ./test-results/ || true
       
       - name: Test old code with new database
         working-directory: old-commit-second
@@ -259,6 +258,7 @@ jobs:
           mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
           mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
+          results_file_path: ./test-results/k6_ids.txt
         run: |
           k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js
         continue-on-error: false

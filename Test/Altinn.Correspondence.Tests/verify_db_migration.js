@@ -5,6 +5,7 @@ import { getRecipientAltinnToken, getSenderAltinnToken } from '../Altinn.Corresp
 
 const baseUrl = __ENV.base_url;
 const resourceId = 'ttd-verify-db-migration-corr';
+const RESULTS_FILE_PATH = __ENV.results_file_path || './test-results/k6_ids.txt';
 const ATTACHMENT_PATH = '../Altinn.Correspondence.UseCaseTests/fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';
 const ATTACHMENT_FILENAME = 'db-verification-attachment.txt';
@@ -21,12 +22,23 @@ export const options = {
 const createdIds = [];
 let previousIds = [];
 
-// Try to load previous test results if they exist
+// Try to load previous test results from file
 let parsedData = { ids: [] };
 try {
-    const rawData = open("./test-results/k6_ids.json");
+    const rawData = open(RESULTS_FILE_PATH);
     if (rawData && rawData.length > 0) {
-        parsedData = JSON.parse(rawData);
+        // Find the line containing the correspondenceId JSON
+        const lines = rawData.split('\n');
+        for (const line of lines) {
+            const trimmed = line.trim();
+            // Remove ANSI color codes and log prefixes (e.g., INFO[0030])
+            const cleanLine = trimmed.replace(/\x1b\[[0-9;]*m/g, '').replace(/^(INFO|WARN|ERROR)\[\d+\]\s*/, '');
+            if (cleanLine.includes('correspondenceId')) {
+                const idsArray = JSON.parse(cleanLine);
+                parsedData = { ids: idsArray };
+                break;
+            }
+        }
     }
 } catch (e) {
     console.log("No previous test results found (first run)");
@@ -43,23 +55,16 @@ export default async function () {
     try {
         console.log("Starting test run");
         const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
-        console.log(`After TC01: correspondenceId=${correspondenceId}, attachmentId=${attachmentId}`);
         
         await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
-        console.log("After TC02");
         
         await TC03_GetAttachmentOverviewAsSender(attachmentId);
-        console.log("After TC03");
         
         await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
-        console.log("After TC04");
-        
-        console.log(`Pushing correspondenceId: ${correspondenceId}`);
         createdIds.push({ correspondenceId: correspondenceId });
-        console.log(`createdIds array now has ${createdIds.length} items`);
-        console.log(`Full createdIds: ${JSON.stringify(createdIds)}`);
-        
-        if (parsedData.length > 0) {
+        console.log(createdIds);
+
+        if (parsedData.ids.length > 0) {
             previousIds.push(...parsedData.ids);
             await TC05_RunTestWithOldData(previousIds[0].correspondenceId);
         }
@@ -249,9 +254,9 @@ async function TC05_RunTestWithOldData(correspondenceId) {
         Authorization: `Bearer ${recipientToken}`
     };
     
-    const isPublishedValue = (val) => {
-        if (val === 2) return true;
-        if (typeof val === 'string' && val.toLowerCase() === 'published') return true;
+    const isAttachmentDownloaded = (val) => {
+        if (val === 12) return true;
+        if (typeof val === 'string' && val.toLowerCase() === 'attachmentsdownloaded') return true;
         return false;
     };
     
@@ -261,7 +266,7 @@ async function TC05_RunTestWithOldData(correspondenceId) {
         const r = http.get(`${baseUrl}/correspondence/api/v1/correspondence/${correspondenceId}`, { headers });
         if (r.status === 200) {
             const overview = r.json();
-            const statusIsPublished = isPublishedValue(overview && overview.status);
+            const statusIsPublished = isAttachmentDownloaded(overview && overview.status);
             if (statusIsPublished) {
                 published = true;
                 break;
@@ -281,12 +286,4 @@ async function TC05_RunTestWithOldData(correspondenceId) {
     
     check(published, { 'Correspondence reached Published status within 200s': v => v === true });
     console.log(`TC05: Test case completed`);
-}
-
-export function handleSummary(data) {
-  console.log(`handleSummary called, createdIds has ${createdIds.length} items`);
-  console.log(`handleSummary createdIds content: ${JSON.stringify(createdIds)}`);
-  return {
-    './test-results/k6_ids.json': JSON.stringify({ ids: createdIds }, null, 2),
-  };
 }
