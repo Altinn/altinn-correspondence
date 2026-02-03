@@ -19,11 +19,14 @@ export const options = {
     iterations: 1
 };
 
+let previousId = null;
 
 // Try to load previous test results from file
+console.log(`Attempting to read from: ${RESULTS_FILE_PATH}`);
 let parsedData = null;
 try {
     const rawData = open(RESULTS_FILE_PATH);
+    console.log(`File read result - length: ${rawData ? rawData.length : 0}`);
     if (rawData && rawData.length > 0) {
         // Find the line containing the correspondenceId JSON
         const lines = rawData.split('\n');
@@ -36,12 +39,16 @@ try {
             
             if (cleanLine.includes('correspondenceId')) {
                 parsedData = cleanLine.split(":")[1];
+                previousId = parsedData;
+                console.log(`Found previousId: ${previousId}`);
                 break;
             }
         }
+    } else {
+        console.log("File exists but is empty or null");
     }
 } catch (e) {
-    console.log("No previous test results found (first run)");
+    console.log(`No previous test results found (first run). Error: ${e}`);
 }
 
 /**
