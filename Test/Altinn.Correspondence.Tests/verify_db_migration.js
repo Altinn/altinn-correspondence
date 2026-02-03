@@ -31,10 +31,15 @@ try {
         const lines = rawData.split('\n');
         for (const line of lines) {
             const trimmed = line.trim();
-            // Remove ANSI color codes and log prefixes (e.g., INFO[0030])
-            const cleanLine = trimmed.replace(/\x1b\[[0-9;]*m/g, '').replace(/^(INFO|WARN|ERROR)\[\d+\]\s*/, '');
+            // Remove ANSI color codes and log prefixes
+            let cleanLine = trimmed.replace(/\x1b\[[0-9;]*m/g, ''); // Remove ANSI codes
+            cleanLine = cleanLine.replace(/^(INFO|WARN|ERROR)\[\d+\]\s*/, ''); // Remove INFO[0030] style
+            cleanLine = cleanLine.replace(/^time="[^"]*"\s+level=\w+\s+msg="(.*)"\s*$/, '$1'); // Remove time="..." level=... msg="..."
+            
             if (cleanLine.includes('correspondenceId')) {
-                const idsArray = JSON.parse(cleanLine);
+                // Handle escaped quotes in the JSON string
+                const unescapedLine = cleanLine.replace(/\\"/g, '"');
+                const idsArray = JSON.parse(unescapedLine);
                 parsedData = { ids: idsArray };
                 break;
             }
@@ -97,8 +102,15 @@ async function TC01_InitializeCorrespondenceWithAttachment() {
     let attachmentId = null;
     try {
         const payload = res.json();
+        console.log(`TC01: Response body: ${res.body}`);
+        console.log(`TC01: Parsed payload type: ${typeof payload}, is null/undefined: ${payload === null || payload === undefined}`);
+        
         if (payload && payload.correspondences && payload.correspondences.length > 0) {
+            console.log(`TC01: correspondences[0]: ${JSON.stringify(payload.correspondences[0])}`);
             correspondenceId = payload.correspondences[0].correspondenceId;
+            console.log(`TC01: correspondenceId type: ${typeof correspondenceId}, value: ${JSON.stringify(correspondenceId)}`);
+        } else {
+            console.log(`TC01: No correspondences in payload`);
         }
         if (payload && payload.attachmentIds && payload.attachmentIds.length > 0) {
             attachmentId = payload.attachmentIds[0];
