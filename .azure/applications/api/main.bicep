@@ -16,7 +16,6 @@ param namePrefix string
 @secure()
 param storageAccountName string
 @secure()
-@minLength(3)
 param apimIp string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
