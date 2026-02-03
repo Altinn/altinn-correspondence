@@ -249,8 +249,8 @@ jobs:
         working-directory: old-commit-second
         run: |
           mkdir -p ./test-results
-          cp /tmp/test-results/k6_ids.txt ./test-results/ || true
-          cat ./test-results/k6_ids.txt || echo "No test results found"
+          cp /tmp/test-results/k6_ids.txt ./test-results/k6_ids_input.txt || true
+          cat ./test-results/k6_ids_input.txt || echo "No test results found"
       
       - name: Test old code with new database
         working-directory: old-commit-second
@@ -259,9 +259,9 @@ jobs:
           mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
           mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
-          results_file_path: ./test-results/k6_ids.txt
+          results_file_path: ./test-results/k6_ids_input.txt
         run: |
-          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./test-results/k6_ids_second.txt"
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./test-results/k6_ids_output.txt"
         continue-on-error: false
 
       # ============================================
