@@ -250,7 +250,6 @@ jobs:
         run: |
           mkdir -p ./test-results
           cp /tmp/test-results/k6_ids.txt ./test-results/ || true
-          cat ./test-results/k6_ids.txt || echo file not found
       
       - name: Test old code with new database
         working-directory: old-commit-second

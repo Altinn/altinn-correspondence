@@ -19,11 +19,10 @@ export const options = {
     iterations: 1
 };
 
-const createdIds = [];
-let previousIds = [];
+let previousId = null;
 
 // Try to load previous test results from file
-let parsedData = { ids: [] };
+let parsedData = null;
 try {
     const rawData = open(RESULTS_FILE_PATH);
     if (rawData && rawData.length > 0) {
@@ -37,10 +36,7 @@ try {
             cleanLine = cleanLine.replace(/^time="[^"]*"\s+level=\w+\s+msg="(.*)"\s*$/, '$1'); // Remove time="..." level=... msg="..."
             
             if (cleanLine.includes('correspondenceId')) {
-                // Handle escaped quotes in the JSON string
-                const unescapedLine = cleanLine.replace(/\\"/g, '"');
-                const idsArray = JSON.parse(unescapedLine);
-                parsedData = { ids: idsArray };
+                parsedData = cleanLine.split(":")[1];
                 break;
             }
         }
@@ -66,12 +62,11 @@ export default async function () {
         await TC03_GetAttachmentOverviewAsSender(attachmentId);
         
         await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
-        createdIds.push({ correspondenceId: correspondenceId });
         console.log("correspondenceId:" + correspondenceId);
 
-        if (parsedData.ids.length > 0) {
-            previousIds.push(...parsedData.ids);
-            await TC05_RunTestWithOldData(previousIds[0].correspondenceId);
+        if (parsedData != null) {
+            
+            await TC05_RunTestWithOldData(previousId);
         }
     } catch (e) {
         console.error(`Exception in test: ${e.message}`);
