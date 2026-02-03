@@ -3,10 +3,12 @@ import { check, sleep } from 'k6';
 import { getSenderAltinnToken, getRecipientAltinnToken } from './helpers/altinnTokenService.js';
 import { buildInitializeCorrespondenceWithNewAttachmentPayload } from './helpers/correspondencePayloadBuilder.js';
 import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.js';
+import { crypto } from 'k6/webcrypto';
 
 const baseUrl = __ENV.base_url;
 const recipient = __ENV.recipient;
 const resourceId = 'correspondence-bruksmonstertester-ressurs';
+const testRunId = crypto.randomUUID();
 const ATTACHMENT_PATH = './fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';
 const ATTACHMENT_FILENAME = 'usecase-attachment.txt';
@@ -36,7 +38,7 @@ export default async function () {
         await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
         await TC05_PurgeCorrespondenceAsRecipient(correspondenceId);
         sleep(10); //give time for the purge to complete (Report purge activity to dialogporten might throw an error if it's not completed yet before cleanup)
-        await cleanupBruksmonsterTestData();
+        await cleanupBruksmonsterTestData(testRunId);
     } catch (e) {
         check(false, { 'No exceptions in test execution': () => false });
         throw e;
@@ -47,7 +49,7 @@ async function TC01_InitializeCorrespondenceWithAttachment() {
     const token = await getSenderAltinnToken();
     check(token, { 'Sender altinn token obtained for initialize correspondence': t => typeof t === 'string' && t.length > 0 });
 
-    const formBody = buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId, recipient, ATTACHMENT_FILE_BIN, ATTACHMENT_FILENAME, ATTACHMENT_MIME);
+    const formBody = buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId, recipient, ATTACHMENT_FILE_BIN, ATTACHMENT_FILENAME, ATTACHMENT_MIME, testRunId);
 
     const headers = {
         Authorization: `Bearer ${token}`

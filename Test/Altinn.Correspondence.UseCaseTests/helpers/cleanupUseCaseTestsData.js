@@ -4,7 +4,7 @@ import http from 'k6/http';
 
 const baseUrl = __ENV.base_url;
 
-export async function cleanupBruksmonsterTestData() {
+export async function cleanupBruksmonsterTestData(testRunId) {
 	const token = await getMaintenanceMaskinportenToken();
 	check(token, { 'Maintenance Maskinporten token obtained for cleanup': t => typeof t === 'string' && t.length > 0 });
 
@@ -12,7 +12,8 @@ export async function cleanupBruksmonsterTestData() {
 		Authorization: `Bearer ${token}`
 	};
 
-	const res = http.post(`${baseUrl}/correspondence/api/v1/maintenance/cleanup-bruksmonster`, null, { headers });
+	const query = testRunId ? `?testRunId=${encodeURIComponent(testRunId)}` : '';
+	const res = http.post(`${baseUrl}/correspondence/api/v1/maintenance/cleanup-bruksmonster${query}`, null, { headers });
 	check(res, { 'Cleanup bruksmonster test data status 200': r => r.status === 200 });
 
 	if (res.status === 200) {
