@@ -261,7 +261,7 @@ jobs:
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
           results_file_path: ./test-results/k6_ids_input.txt
         run: |
-          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./test-results/k6_ids_output.txt"
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js
         continue-on-error: false
 
       # ============================================
