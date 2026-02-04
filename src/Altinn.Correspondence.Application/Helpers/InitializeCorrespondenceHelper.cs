@@ -38,21 +38,6 @@ namespace Altinn.Correspondence.Application.Helpers
                     return CorrespondenceErrors.DueDatePriorRequestedPublishTime;
                 }
             }
-            if (correspondence.AllowSystemDeleteAfter is not null)
-            {
-                if (correspondence.AllowSystemDeleteAfter < DateTimeOffset.UtcNow)
-                {
-                    return CorrespondenceErrors.AllowSystemDeletePriorToday;
-                }
-                if (correspondence.AllowSystemDeleteAfter < RequestedPublishTime)
-                {
-                    return CorrespondenceErrors.AllowSystemDeletePriorRequestedPublishTime;
-                }
-                if (correspondence.DueDateTime is not null && correspondence.AllowSystemDeleteAfter < correspondence.DueDateTime)
-                {
-                    return CorrespondenceErrors.AllowSystemDeletePriorDueDate;
-                }
-            }
             return null;
         }
 
@@ -361,7 +346,6 @@ namespace Altinn.Correspondence.Application.Helpers
                     MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.Name),
                 },
                 RequestedPublishTime = request.Correspondence.RequestedPublishTime,
-                AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
                 DueDateTime = request.Correspondence.DueDateTime,
                 PropertyList = request.Correspondence.PropertyList.ToDictionary(x => x.Key, x => x.Value),
                 ReplyOptions = request.Correspondence.ReplyOptions.Select(requestReplyOption => new CorrespondenceReplyOptionEntity()

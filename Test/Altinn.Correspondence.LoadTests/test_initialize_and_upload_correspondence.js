@@ -41,7 +41,6 @@ formData.append('Correspondence.content.attachments[0].SendersReference', "1234"
 formData.append('Correspondence.content.attachments[0].FileName', "testfile.txt");
 formData.append('Correspondence.content.attachments[0].IsEncrypted', "true");
 formData.append('Correspondence.visibleFrom', "2024-05-29T13:31:28.290518+00:00");
-formData.append('Correspondence.allowSystemDeleteAfter', "2025-05-29T13:31:28.290518+00:00");
 formData.append('Correspondence.dueDateTime', "2025-05-29T13:31:28.290518+00:00");
 formData.append('Correspondence.content.externalReferences[0].referenceValue', "test");
 formData.append('Correspondence.content.externalReferences[0].referenceType', "AltinnBrokerFileTransfer");
