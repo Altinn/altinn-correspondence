@@ -30,7 +30,10 @@ resource aadPropagationWait 'Microsoft.Resources/deploymentScripts@2023-08-01' =
   location: location
   kind: 'AzurePowerShell'
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${backupIdentity.id}': {}
+    }
   }
   properties: {
     azPowerShellVersion: '13.0'
