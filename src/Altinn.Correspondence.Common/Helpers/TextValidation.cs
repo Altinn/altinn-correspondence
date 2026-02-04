@@ -100,4 +100,5 @@ public class TextValidation
             // Clean up extra whitespace
             return Regex.Replace(withoutHtml, @"\s+", " ").Trim();
         } 
+        // hello world
 }
