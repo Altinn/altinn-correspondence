@@ -12,16 +12,11 @@ param databaseName string = 'correspondence'
 param containerAppEnvName string = '${namePrefix}-env'
 param backupJobName string = '${namePrefix}-backup'
 
-param pgDumpExcludeTables array = [
-  'cron.job'
-  'cron.job_run_details'
-  '__yuniql_schema_version'
-  '__yuniql_schema_version_sequence_id_seq'
-]
+param pgDumpExcludeArgs string = '--exclude-table=cron.job --exclude-table=cron.job_run_details --exclude-table=__yuniql_schema_version --exclude-table=__yuniql_schema_version_sequence_id_seq'
 
 var backupIdentityName = '${namePrefix}-backup-identity'
 var backupStorageName = 'correspondence-backups'
-var pgDumpExcludeArgs = join([for tableName in pgDumpExcludeTables: '--exclude-table=${tableName}'], ' ')
+var pgDumpExcludeArgsValue = pgDumpExcludeArgs
 
 resource backupIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: backupIdentityName
@@ -95,7 +90,7 @@ var volumeMounts = [
   }
 ]
 
-var commandScript = 'set -euo pipefail; apt-get update; apt-get install -y wget ca-certificates gnupg lsb-release; wget -qO - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -; release=$(lsb_release -cs); echo "deb http://apt.postgresql.org/pub/repos/apt/ $release-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list; apt-get update; apt-get install -y postgresql-client-16; az login --identity --username $AZURE_CLIENT_ID > /dev/null; TOKEN=$(az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv); export PGPASSWORD="$TOKEN"; date=$(date +"%Y-%m-%d_%H-%M"); filename="correspondence_${date}.backup"; pg_dump -h $PGHOST -U $PGUSER -d $PGDATABASE ${pgDumpExcludeArgs} -Fc -f /backups/$filename --no-owner --no-privileges --no-tablespaces --quote-all-identifiers'
+var commandScript = 'set -euo pipefail; apt-get update; apt-get install -y wget ca-certificates gnupg lsb-release; wget -qO - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -; release=$(lsb_release -cs); echo "deb http://apt.postgresql.org/pub/repos/apt/ $release-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list; apt-get update; apt-get install -y postgresql-client-16; az login --identity --username $AZURE_CLIENT_ID > /dev/null; TOKEN=$(az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv); export PGPASSWORD="$TOKEN"; filename="correspondence_$(date +"%Y-%m-%d_%H-%M").backup"; pg_dump -h $PGHOST -U $PGUSER -d $PGDATABASE ${pgDumpExcludeArgsValue} -Fc -f /backups/$filename --no-owner --no-privileges --no-tablespaces --quote-all-identifiers'
 
 module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: backupJobName
