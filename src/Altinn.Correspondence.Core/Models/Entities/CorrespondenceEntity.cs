@@ -98,7 +98,5 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// This field is temporary and will be removed when the migration is complete.
         /// </summary>
         public int ServiceOwnerMigrationStatus { get; set; } = 0;
-
-        public string? TestProperty { get; set; }
     }
 }
