@@ -18,8 +18,8 @@ on:
         type: string
   pull_request:
     branches: [main]
-    # paths:
-      # - 'Persistence/**'
+    paths:
+      - 'Persistence/**'
     
 
 jobs:
@@ -169,7 +169,7 @@ jobs:
         working-directory: old-commit
         run: |
           mkdir -p /tmp/test-results
-          cp ./test-results /tmp/test-results || true
+          cp ./test-results/k6_ids.txt /tmp/test-results/k6_ids.txt || true
 
       # ============================================
       # STEP 3: Apply new migrations
