@@ -4,7 +4,7 @@ import http from 'k6/http';
 
 const baseUrl = __ENV.base_url;
 
-export async function cleanupBruksmonsterTestData(testRunId) {
+export async function cleanupBruksmonsterTestData() {
 	const token = await getMaintenanceMaskinportenToken();
 	check(token, { 'Maintenance Maskinporten token obtained for cleanup': t => typeof t === 'string' && t.length > 0 });
 

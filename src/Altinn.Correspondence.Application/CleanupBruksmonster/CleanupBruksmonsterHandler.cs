@@ -39,6 +39,7 @@ public class CleanupBruksmonsterHandler(
 			var deleteCorrespondencesJobId = backgroundJobClient.ContinueJobWith<CleanupBruksmonsterHandler>(deleteDialogsJobId, h => h.PurgeCorrespondences(correspondenceIds, attachmentIds, resourceId, CancellationToken.None));
             await Task.CompletedTask;
 
+            logger.LogInformation("Deleting {correspondenceIds.Count} correspondences and {attachmentIds.Count} attachments on resource {resourceId}", correspondenceIds.Count, attachmentIds.Count, resourceId);
             var resp = new CleanupBruksmonsterResponse
             {
                 ResourceId = resourceId,
@@ -55,7 +56,7 @@ public class CleanupBruksmonsterHandler(
     {
         foreach (var correspondenceId in correspondenceIds)
         {
-            logger.LogInformation("Purging correspondence dialog {correspondenceId} by cleanup bruksmonster", correspondenceId);
+            logger.LogInformation("Purging correspondence dialog {correspondenceId}", correspondenceId);
             await dialogportenService.PurgeCorrespondenceDialog(correspondenceId);
         }
     }
@@ -74,7 +75,7 @@ public class CleanupBruksmonsterHandler(
 			}
 
 			int deletedAttachments = await attachmentRepository.HardDeleteOrphanedAttachments(attachmentIds, cancellationToken);
-			logger.LogInformation("Deleted {deletedAttachments} orphaned attachments of {totalAttachments} on resource {resourceId} by cleanup bruksmonster", deletedAttachments, attachmentIds.Count, resourceId);
+			logger.LogInformation("Deleted {deletedAttachments} rows/entities for {totalAttachments} attachments on resource {resourceId}", deletedAttachments, attachmentIds.Count, resourceId);
 
             return Task.CompletedTask;
         }, logger, cancellationToken);
