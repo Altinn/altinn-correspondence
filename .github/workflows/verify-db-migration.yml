@@ -251,7 +251,6 @@ jobs:
         run: |
           mkdir -p ./Test/Altinn.Correspondence.Tests/test-results
           cp /tmp/test-results/k6_ids.txt ./Test/Altinn.Correspondence.Tests/test-results/k6_ids_input.txt || true
-          cat ./Test/Altinn.Correspondence.Tests/test-results/k6_ids_input.txt || echo "No test results found"
       
       - name: Test old code with new database
         working-directory: old-commit-second
