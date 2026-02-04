@@ -23,27 +23,29 @@ let previousId = null;
 
 // Try to load previous test results from file
 let parsedData = null;
-try {
-    const rawData = open(RESULTS_FILE_PATH);
-    if (rawData && rawData.length > 0) {
-        // Find the line containing the correspondenceId JSON
-        const lines = rawData.split('\n');
-        for (const line of lines) {
-            const trimmed = line.trim();
-            // Remove ANSI color codes and log prefixes
-            let cleanLine = trimmed.replace(/\x1b\[[0-9;]*m/g, ''); // Remove ANSI codes
-            cleanLine = cleanLine.replace(/^(INFO|WARN|ERROR)\[\d+\]\s*/, ''); // Remove INFO[0030] style
-            cleanLine = cleanLine.replace(/^time="[^"]*"\s+level=\w+\s+msg="(.*)"\s*$/, '$1'); // Remove time="..." level=... msg="..."
-            
-            if (cleanLine.includes('correspondenceId')) {
-                parsedData = cleanLine.split(":")[1];
-                previousId = parsedData;
-                break;
+if (RESULTS_FILE_PATH != '') {
+    try {
+        const rawData = open(RESULTS_FILE_PATH);
+        if (rawData && rawData.length > 0) {
+            // Find the line containing the correspondenceId JSON
+            const lines = rawData.split('\n');
+            for (const line of lines) {
+                const trimmed = line.trim();
+                // Remove ANSI color codes and log prefixes
+                let cleanLine = trimmed.replace(/\x1b\[[0-9;]*m/g, ''); // Remove ANSI codes
+                cleanLine = cleanLine.replace(/^(INFO|WARN|ERROR)\[\d+\]\s*/, ''); // Remove INFO[0030] style
+                cleanLine = cleanLine.replace(/^time="[^"]*"\s+level=\w+\s+msg="(.*)"\s*$/, '$1'); // Remove time="..." level=... msg="..."
+                
+                if (cleanLine.includes('correspondenceId')) {
+                    parsedData = cleanLine.split(":")[1];
+                    previousId = parsedData;
+                    break;
+                }
             }
         }
+    } catch (e) {
+        console.log(`No previous test results found (first run). Error: ${e}`);
     }
-} catch (e) {
-    console.log(`No previous test results found (first run). Error: ${e}`);
 }
 
 /**
