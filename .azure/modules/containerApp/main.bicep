@@ -1,46 +1,88 @@
+// Infrastructure parameters
 param location string
 @secure()
 param namePrefix string
 param image string
 param environment string
-param platform_base_url string
-@secure()
-param override_authorization_url string
-@secure()
-param override_authorization_thumbprint string
-param maskinporten_environment string
-param correspondenceBaseUrl string
-param contactReservationRegistryBaseUrl string
-param brregBaseUrl string
-param idportenIssuer string
-param dialogportenIssuer string
-param maskinporten_token_exchange_environment string
-param eventGridIps array
-param workerCountPerReplica string
-param migrationWorkerCountPerReplica string
-param arbeidsflateOriginsCommaSeparated string
-
-@secure()
-param sblBridgeBaseUrl string
-
-@secure()
-param subscription_id string
 @secure()
 param principal_id string
 @secure()
 param keyVaultUrl string
 @secure()
-param userIdentityClientId string
-@secure()
 param containerAppEnvId string
+
+// Application configuration parameters
+param eventGridIps array
 @secure()
 param apimIp string
+@secure()
+param userIdentityClientId string
 
 type ContainerAppScale = {
     minReplicas: int
     maxReplicas: int
 }
-param prodLikeEnvironment bool = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
+
+// Required Key Vault secret environment variables
+var predefinedKeyvaultSecretEnvVars = [
+  { name: 'AltinnOptions__PlatformSubscriptionKey', secretName: 'platform-subscription-key' }
+  { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretName: 'access-management-subscription-key' }
+  { name: 'MaskinportenSettings__ClientId', secretName: 'maskinporten-client-id' }
+  { name: 'MaskinportenSettings__EncodedJwk', secretName: 'maskinporten-jwk' }
+  { name: 'GeneralSettings__SlackUrl', secretName: 'slack-url' }
+  { name: 'IdportenSettings__ClientId', secretName: 'idporten-client-id' }
+  { name: 'IdportenSettings__ClientSecret', secretName: 'idporten-client-secret' }
+  { name: 'StatisticsApiKey', secretName: 'statistics-api-key' }
+]
+
+var setByPipelineSecretEnvVars = [
+  { name: 'DatabaseOptions__ConnectionString', secretName: 'correspondence-ado-connection-string' }
+  { name: 'AttachmentStorageOptions__ConnectionString', secretName: 'storage-connection-string' }
+  { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
+  { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretName: 'application-insights-connection-string' }
+  { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
+]
+
+// In production we override authorization url to circumvent APIM to relieve load
+var optionalOverrideAuthSecrets = environment == 'production' ? [
+  { name: 'AltinnOptions__OverrideAuthorizationUrl', secretName: 'override-authorization-url' }
+  { name: 'AltinnOptions__OverrideAuthorizationThumbprint', secretName: 'override-authorization-thumbprint' }
+] : []
+
+// Combine required and optional secrets
+var alwaysSetEnvVars = concat(predefinedKeyvaultSecretEnvVars, setByPipelineSecretEnvVars)
+var secretEnvVars = concat(alwaysSetEnvVars, optionalOverrideAuthSecrets)
+
+// Extract secrets configuration from env var configs
+var secrets = [for config in secretEnvVars: {
+  identity: principal_id
+  keyVaultUrl: '${keyVaultUrl}/secrets/${config.secretName}'
+  name: config.secretName
+}]
+
+// Build environment variables array from configs
+var containerAppEnvVarsFromConfig = [for config in secretEnvVars: {
+  name: config.name
+  secretRef: config.secretName
+}]
+
+// Additional computed environment variables (that need expressions)
+var containerAppEnvVarsComputed = [
+  { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
+  { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
+  { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
+  { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
+  { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
+  ]
+
+// Combine all environment variables
+var containerAppEnvVars = concat(
+  containerAppEnvVarsFromConfig,
+  containerAppEnvVarsComputed
+)
+
+// Scaling
+param prodLikeEnvironment bool = environment == 'production' || environment == 'staging' || environment == 'yt01'
 param containerAppResources object = prodLikeEnvironment ? {
   cpu: 2
   memory: '4.0Gi'
@@ -57,6 +99,7 @@ param containerAppScale ContainerAppScale = prodLikeEnvironment ? {
   maxReplicas: 1
 }
 
+// Probes
 var probes = [
   {
     type: 'Liveness'
@@ -80,66 +123,6 @@ var probes = [
   }
 ]
 
-var containerAppEnvVarsDefault = [
-  { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
-  { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
-  { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'application-insights-connection-string' }
-  { name: 'DatabaseOptions__ConnectionString', secretRef: 'correspondence-ado-connection-string' }
-  { name: 'AttachmentStorageOptions__ConnectionString', secretRef: 'storage-connection-string' }
-  { name: 'GeneralSettings__RedisConnectionString', secretRef: 'redis-connection-string' }
-  { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription_id }
-  { name: 'AzureResourceManagerOptions__Location', value: 'norwayeast' }
-  { name: 'AzureResourceManagerOptions__Environment', value: environment }
-  { name: 'AzureResourceManagerOptions__ApplicationResourceGroupName', value: '${namePrefix}-rg' }
-  { name: 'AzureResourceManagerOptions__MalwareScanEventGridTopicName', value: '${namePrefix}-malware-scan-event-topic' }
-  { name: 'AzureResourceManagerOptions__ContainerAppName', value: '${namePrefix}-app' }
-  { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
-  { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
-  {
-    name: 'AltinnOptions__OpenIdWellKnown'
-    value: '${platform_base_url}/authentication/api/v1/openid/.well-known/openid-configuration'
-  }
-  { name: 'AltinnOptions__PlatformGatewayUrl', value: platform_base_url }
-  { name: 'AltinnOptions__OverrideAuthorizationUrl', value: override_authorization_url }
-  { name: 'AltinnOptions__OverrideAuthorizationThumbprint', value: override_authorization_thumbprint }
-  { name: 'AltinnOptions__PlatformSubscriptionKey', secretRef: 'platform-subscription-key' }
-  { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretRef: 'access-management-subscription-key' }
-  { name: 'AltinnOptions__ArbeidsflateOriginsCommaSeparated', value: arbeidsflateOriginsCommaSeparated }
-  { name: 'MaskinportenSettings__Environment', value: maskinporten_environment }
-  { name: 'MaskinportenSettings__ClientId', secretRef: 'maskinporten-client-id' }
-  {
-    name: 'MaskinportenSettings__Scope'
-    value: 'altinn:events.publish altinn:events.publish.admin altinn:register/partylookup.admin altinn:authorization/authorize.admin altinn:serviceowner/notifications.create altinn:serviceowner/notifications.read digdir:dialogporten.correspondence digdir:dialogporten.serviceprovider digdir:dialogporten.serviceprovider.admin altinn:accessmanagement/authorizedparties.admin altinn:accessmanagement/authorizedparties.resourceowner krr:global/kontaktinformasjon.read altinn:correspondence.sblbridge'
-  }
-  {
-    name: 'MaskinportenSettings__ExhangeToAltinnToken'
-    value: 'true'
-  }
-
-  { name: 'MaskinportenSettings__EncodedJwk', secretRef: 'maskinporten-jwk' }
-  { name: 'GeneralSettings__CorrespondenceBaseUrl', value: correspondenceBaseUrl }
-  { name: 'GeneralSettings__ContactReservationRegistryBaseUrl', value: contactReservationRegistryBaseUrl}
-  { name: 'GeneralSettings__BrregBaseUrl', value: brregBaseUrl }
-  { name: 'GeneralSettings__SlackUrl', secretRef: 'slack-url' }
-  { name: 'GeneralSettings__AltinnSblBridgeBaseUrl', value: sblBridgeBaseUrl }
-  { name: 'DialogportenSettings__Issuer', value: dialogportenIssuer }
-  { name: 'IdportenSettings__Issuer', value: idportenIssuer }
-  { name: 'IdportenSettings__ClientId', secretRef: 'idporten-client-id' }
-  { name: 'IdportenSettings__ClientSecret', secretRef: 'idporten-client-secret' }
-  { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretRef: 'application-insights-connection-string' }
-  { name: 'StatisticsApiKey', secretRef: 'statistics-api-key' }
-  { name: 'GeneralSettings__WorkerCountPerReplica', value: int(workerCountPerReplica) }
-  { name: 'GeneralSettings__MigrationWorkerCountPerReplica', value: int(migrationWorkerCountPerReplica) }
-]
-
-var containerAppEnvVars = concat(
-  containerAppEnvVarsDefault,
-  maskinporten_token_exchange_environment != '' && maskinporten_token_exchange_environment != null
-    ? [
-        { name: 'MaskinportenSettings__TokenExchangeEnvironment', value: maskinporten_token_exchange_environment }
-      ]
-    : []
-)
 
 var EventGridIpRestrictions = map(eventGridIps, (ipRange, index) => {
   name: 'AzureEventGrid'
@@ -175,68 +158,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         transport: 'Auto'
         ipSecurityRestrictions: ipSecurityRestrictions
       }
-      secrets: [
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/platform-subscription-key'
-          name: 'platform-subscription-key'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/maskinporten-client-id'
-          name: 'maskinporten-client-id'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/maskinporten-jwk'
-          name: 'maskinporten-jwk'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/access-management-subscription-key'
-          name: 'access-management-subscription-key'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/slack-url'
-          name: 'slack-url'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/application-insights-connection-string'
-          name: 'application-insights-connection-string'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/correspondence-ado-connection-string'
-          name: 'correspondence-ado-connection-string'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/storage-connection-string'
-          name: 'storage-connection-string'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/idporten-client-id'
-          name: 'idporten-client-id'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/idporten-client-secret'
-          name: 'idporten-client-secret'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/redis-connection-string'
-          name: 'redis-connection-string'
-        }
-        {
-          identity: principal_id
-          keyVaultUrl: '${keyVaultUrl}/secrets/statistics-api-key'
-          name: 'statistics-api-key'
-        }
-      ]
+      secrets: secrets
     }
 
     environmentId: containerAppEnvId
