@@ -23,7 +23,7 @@ let previousId = null;
 
 // Try to load previous test results from file
 let parsedData = null;
-if (RESULTS_FILE_PATH != '') {
+if (RESULTS_FILE_PATH) {
     try {
         const rawData = open(RESULTS_FILE_PATH);
         if (rawData && rawData.length > 0) {
