@@ -200,6 +200,17 @@ module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderR
   }
 }
 
+module backupJob '../applications/backup/main.bicep' = {
+  scope: resourceGroup
+  name: 'correspondence-backup-job'
+  params: {
+    namePrefix: namePrefix
+    location: location
+    tenantId: tenantId
+    storageAccountName: storageAccountName
+  }
+}
+
 module correspondenceTagsPolicy '../modules/policy/correspondenceTagsPolicy.bicep' = {
   name: 'correspondence-standard-tags-definition'
   params: {
