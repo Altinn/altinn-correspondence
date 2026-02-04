@@ -5,7 +5,7 @@ import { getRecipientAltinnToken, getSenderAltinnToken } from '../Altinn.Corresp
 
 const baseUrl = __ENV.base_url;
 const resourceId = 'ttd-verify-db-migration-corr';
-const RESULTS_FILE_PATH = __ENV.results_file_path || '../../file.txt';
+const RESULTS_FILE_PATH = __ENV.results_file_path ;
 const ATTACHMENT_PATH = '../Altinn.Correspondence.UseCaseTests/fixtures/attachment.txt';
 const ATTACHMENT_MIME = 'text/plain';
 const ATTACHMENT_FILENAME = 'db-verification-attachment.txt';
@@ -159,7 +159,7 @@ async function TC02_GetCorrespondencePublishedAsRecipient(correspondenceId) {
         }
     }
 
-    check(published, { 'Correspondence reached Published status within 200s': v => v === true });
+    check(published, { 'Correspondence reached Published status within 600s': v => v === true });
     console.log(`TC02: Test case completed`);
 }
 
@@ -290,6 +290,6 @@ async function TC05_RunTestWithOldData(correspondenceId) {
         sleep(30);
     }
     
-    check(published, { 'Correspondence reached Published status within 200s': v => v === true });
+    check(published, { 'Correspondence reached Published status within 600s': v => v === true });
     console.log(`TC05: Test case completed`);
 }
