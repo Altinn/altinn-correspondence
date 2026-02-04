@@ -100,5 +100,4 @@ public class TextValidation
             // Clean up extra whitespace
             return Regex.Replace(withoutHtml, @"\s+", " ").Trim();
         } 
-        //test workflow shouldnt run
 }
