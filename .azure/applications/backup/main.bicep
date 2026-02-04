@@ -12,25 +12,50 @@ param databaseName string = 'correspondence'
 param containerAppEnvName string = '${namePrefix}-env'
 param backupJobName string = '${namePrefix}-backup'
 
-@secure()
-param backupIdentityResourceId string
-@secure()
-param backupIdentityClientId string
-@secure()
-param backupIdentityPrincipalId string
-param backupIdentityName string
+param aadPropagationWaitSeconds int = 120
 
 param pgDumpExcludeArgs string = '--exclude-table=cron.job --exclude-table=cron.job_run_details --exclude-table=__yuniql_schema_version --exclude-table=__yuniql_schema_version_sequence_id_seq'
 
+var backupIdentityName = '${namePrefix}-backup-identity'
 var backupStorageName = 'correspondence-backups'
 var pgDumpExcludeArgsValue = pgDumpExcludeArgs
 
+resource backupIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: backupIdentityName
+  location: location
+}
+
+resource aadPropagationWait 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+  name: '${backupJobName}-aad-wait'
+  location: location
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    azPowerShellVersion: '13.0'
+    scriptContent: '''
+      param([int] $seconds)
+      Start-Sleep -Seconds $seconds
+    '''
+    arguments: '-seconds ${aadPropagationWaitSeconds}'
+    forceUpdateTag: '1'
+    retentionInterval: 'PT2H'
+  }
+  dependsOn: [
+    backupIdentity
+  ]
+}
+
 module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
   name: 'databaseAccess'
+  dependsOn: [
+    aadPropagationWait
+  ]
   params: {
     tenantId: tenantId
-    principalId: backupIdentityPrincipalId
-    appName: backupIdentityName
+    principalId: backupIdentity.properties.principalId
+    appName: backupIdentity.name
     namePrefix: namePrefix
     principalType: 'ServicePrincipal'
   }
@@ -68,10 +93,10 @@ resource backupEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@20
 }
 
 var containerAppEnvVars = [
-  { name: 'AZURE_CLIENT_ID', value: backupIdentityClientId }
+  { name: 'AZURE_CLIENT_ID', value: backupIdentity.properties.clientId }
   { name: 'PGHOST', value: '${postgresServerName}.postgres.database.azure.com' }
   { name: 'PGDATABASE', value: databaseName }
-  { name: 'PGUSER', value: backupIdentityName }
+  { name: 'PGUSER', value: backupIdentity.name }
   { name: 'PGSSLMODE', value: 'require' }
 ]
 
@@ -111,7 +136,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     image: 'mcr.microsoft.com/azure-cli:latest'
     volumes: volumes
     volumeMounts: volumeMounts
-    principalId: backupIdentityResourceId
+    principalId: backupIdentity.id
     replicaTimeout: 21600
   }
 }

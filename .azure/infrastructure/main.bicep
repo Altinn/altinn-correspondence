@@ -33,13 +33,6 @@ param statisticsApiKey string
 @secure()
 param grafanaMonitoringPrincipalId string
 
-@secure()
-param backupIdentityResourceId string
-@secure()
-param backupIdentityClientId string
-@secure()
-param backupIdentityPrincipalId string
-param backupIdentityName string
 
 @secure()
 param maintenanceAdGroupId string
@@ -216,10 +209,6 @@ module backupJob '../applications/backup/main.bicep' = {
     location: location
     tenantId: tenantId
     storageAccountName: storageAccountName
-    backupIdentityResourceId: backupIdentityResourceId
-    backupIdentityClientId: backupIdentityClientId
-    backupIdentityPrincipalId: backupIdentityPrincipalId
-    backupIdentityName: backupIdentityName
   }
 }
 
