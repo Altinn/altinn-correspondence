@@ -25,7 +25,6 @@ export const options = {
  * TC03: Retrieve attachment overview as sender
  * TC04: Download the correspondence attachment as recipient
  * TC05: Purge correspondence as recipient
- * cleanup: deletes data created by this bruksmonster test
  */
 export default async function () {
     try {
