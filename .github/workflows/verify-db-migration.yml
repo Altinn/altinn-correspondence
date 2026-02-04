@@ -19,7 +19,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'Persistence/**'
+      - 'src/Altinn.Correspondence.Persistence/**'
     
 
 jobs:
