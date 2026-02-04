@@ -32,7 +32,7 @@ public class CleanupPerishingDialogsHandlerTests
         repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { c1, c2 })
             .ReturnsAsync(new List<CorrespondenceEntity>());
-        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReference(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<ReferenceType>(),
                 It.IsAny<CancellationToken>()))
@@ -84,7 +84,7 @@ public class CleanupPerishingDialogsHandlerTests
                     .ToList();
                 return query;
             });
-        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReference(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<ReferenceType>(),
                 It.IsAny<CancellationToken>()))

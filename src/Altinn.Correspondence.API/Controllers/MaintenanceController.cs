@@ -49,7 +49,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     }
 
     /// <summary>
-    /// Enqueue cleanup to remove expiresAt from dialogs in Dialogporten for correspondences where AllowSystemDeleteAfter has been set
+    /// Enqueue cleanup to remove expiresAt from dialogs in Dialogporten
     /// </summary>
     /// <response code="200">Returns the enqueued job id</response>
     /// <response code="401">Unauthorized</response>
