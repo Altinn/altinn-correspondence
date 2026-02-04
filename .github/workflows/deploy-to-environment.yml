@@ -67,7 +67,6 @@ jobs:
       with:
         environment: ${{ inputs.environment }}
         imageTag: ${{ needs.get-version.outputs.imageTag }}
-        ACCESS_MANAGEMENT_SUBSCRIPTION_KEY: ${{ secrets.ACCESS_MANAGEMENT_SUBSCRIPTION_KEY }}
         AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}

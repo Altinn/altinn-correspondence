@@ -9,9 +9,6 @@ inputs:
   imageTag:
     description: "Docker image tag to deploy"
     required: true
-  ACCESS_MANAGEMENT_SUBSCRIPTION_KEY:
-    description: "Access Management Subscription Key"
-    required: true
   AZURE_CLIENT_ID:
     description: "Azure Client ID"
     required: true
@@ -57,7 +54,6 @@ runs:
       with:
         region: "norwayeast"
         environment: ${{ inputs.environment }}
-        ACCESS_MANAGEMENT_SUBSCRIPTION_KEY: ${{ inputs.ACCESS_MANAGEMENT_SUBSCRIPTION_KEY }}
         AZURE_CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
         AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         AZURE_NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
