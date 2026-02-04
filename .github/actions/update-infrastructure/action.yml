@@ -61,7 +61,6 @@ runs:
       id: deploy
       env:
         ENVIRONMENT: ${{ inputs.environment }}
-        CORRESPONDENCE_PG_ADMIN_PASSWORD: ${{ steps.pwd-generator.outputs.postgresqlPassword }}
         AZURE_NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         SOURCE_KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
