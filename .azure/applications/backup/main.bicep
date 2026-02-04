@@ -136,7 +136,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     environmentVariables: containerAppEnvVars
     secrets: []
     command: ['/bin/bash', '-c', commandScript]
-    image: 'mcr.microsoft.com/azure-cli:latest'
+    image: 'mcr.microsoft.com/azure-cli:ubuntu'
     volumes: volumes
     volumeMounts: volumeMounts
     principalId: backupIdentity.id
