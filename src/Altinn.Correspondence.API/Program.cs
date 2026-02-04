@@ -31,6 +31,7 @@ static ILogger<Program> CreateBootstrapLogger()
     return LoggerFactory.Create(builder =>
      {
          builder
+             .SetMinimumLevel(LogLevel.Debug)
              .AddFilter("Altinn.Correspondence.API.Program", LogLevel.Debug)
              .AddConsole();
      }).CreateLogger<Program>();
@@ -46,7 +47,7 @@ static void BuildAndRun(string[] args)
         .AddJsonFile("appsettings.json", true, true)
         .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
         .AddJsonFile("appsettings.local.json", true, true);
-
+    StartupAppSettingsLogging.LogConfigurationKeys(builder.Configuration, bootstrapLogger, false);
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment, bootstrapLogger);
 
     var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>();
@@ -190,4 +191,6 @@ static string GetConnectionString(IConfiguration config)
     }
     return connectionString;
 }
+
+
 public partial class Program { }
