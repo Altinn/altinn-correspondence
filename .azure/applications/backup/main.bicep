@@ -12,23 +12,25 @@ param databaseName string = 'correspondence'
 param containerAppEnvName string = '${namePrefix}-env'
 param backupJobName string = '${namePrefix}-backup'
 
+@secure()
+param backupIdentityResourceId string
+@secure()
+param backupIdentityClientId string
+@secure()
+param backupIdentityPrincipalId string
+param backupIdentityName string
+
 param pgDumpExcludeArgs string = '--exclude-table=cron.job --exclude-table=cron.job_run_details --exclude-table=__yuniql_schema_version --exclude-table=__yuniql_schema_version_sequence_id_seq'
 
-var backupIdentityName = '${namePrefix}-backup-identity'
 var backupStorageName = 'correspondence-backups'
 var pgDumpExcludeArgsValue = pgDumpExcludeArgs
-
-resource backupIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: backupIdentityName
-  location: location
-}
 
 module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
   name: 'databaseAccess'
   params: {
     tenantId: tenantId
-    principalId: backupIdentity.properties.principalId
-    appName: backupIdentity.name
+    principalId: backupIdentityPrincipalId
+    appName: backupIdentityName
     namePrefix: namePrefix
     principalType: 'ServicePrincipal'
   }
@@ -66,10 +68,10 @@ resource backupEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@20
 }
 
 var containerAppEnvVars = [
-  { name: 'AZURE_CLIENT_ID', value: backupIdentity.properties.clientId }
+  { name: 'AZURE_CLIENT_ID', value: backupIdentityClientId }
   { name: 'PGHOST', value: '${postgresServerName}.postgres.database.azure.com' }
   { name: 'PGDATABASE', value: databaseName }
-  { name: 'PGUSER', value: backupIdentity.name }
+  { name: 'PGUSER', value: backupIdentityName }
   { name: 'PGSSLMODE', value: 'require' }
 ]
 
@@ -109,7 +111,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     image: 'mcr.microsoft.com/azure-cli:latest'
     volumes: volumes
     volumeMounts: volumeMounts
-    principalId: backupIdentity.id
+    principalId: backupIdentityResourceId
     replicaTimeout: 21600
   }
 }
