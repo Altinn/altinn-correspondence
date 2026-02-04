@@ -18,6 +18,8 @@ on:
         type: string
   pull_request:
     branches: [main]
+    paths:
+      - 'src/Altinn.Correspondence.Persistence/Migrations/**'
     
 
 jobs:
@@ -150,7 +152,7 @@ jobs:
       - name: Create directory to save created IDs
         working-directory: old-commit
         run: |
-          mkdir -p ./Test/Altinn.Correspondence.Tests/test-results
+          mkdir -p ./test-results
 
       - name: Test old code with old database (baseline)
         working-directory: old-commit
@@ -161,15 +163,13 @@ jobs:
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
           results_file_path: ./test-results/k6_ids.txt
         run: |
-          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./Test/Altinn.Correspondence.Tests/test-results/k6_ids.txt"
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./test-results/k6_ids.txt"
         continue-on-error: false
 
       - name: Temporarily persist created IDs
         working-directory: old-commit
         run: |
-          cp ./Test/Altinn.Correspondence.Tests/test-results/k6_ids.txt /tmp/test-results/k6_ids.txt || true
-          mkdir -p /tmp/test-results
-
+          cp -r ./test-results /tmp/test-results || true
 
       # ============================================
       # STEP 3: Apply new migrations
