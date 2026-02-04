@@ -216,12 +216,6 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
-        public CorrespondenceEntityBuilder WithAllowSystemDeleteAfter(DateTimeOffset? allowSystemDeleteAfter)
-        {
-            _correspondenceEntity.AllowSystemDeleteAfter = allowSystemDeleteAfter;
-            return this;
-        }
-
         public CorrespondenceEntityBuilder WithMessageSummary(string messageSummary)
         {
             if (_correspondenceEntity.Content != null)
