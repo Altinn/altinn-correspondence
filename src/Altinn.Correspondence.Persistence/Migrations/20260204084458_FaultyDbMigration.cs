@@ -13,7 +13,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
             migrationBuilder.DropColumn(
                 name: "Published",
                 schema: "correspondence",
-                table: "Correspondence");
+                table: "Correspondences");
             
         }
 
@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "Published",
                 schema: "correspondence",
-                table: "Correspondence",
+                table: "Correspondences",
                 type: "timestamp with time zone",
                 nullable: true);
         }
