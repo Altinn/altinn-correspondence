@@ -1,14 +1,13 @@
 import http from 'k6/http';
 import { toUrn } from './commonUtils.js';
 
-export function buildInitializeCorrespondencePayload(resourceId, ssnOrOrgno, testRunId) {
+export function buildInitializeCorrespondencePayload(resourceId, ssnOrOrgno) {
     const recipient = toUrn(ssnOrOrgno);
     const nowRef = `usecase-${Date.now()}`;
     return {
         Correspondence: {
             resourceId,
             sendersReference: nowRef,
-            propertyList: testRunId ? { testRunId: testRunId } : {},
             content: {
                 language: 'nb',
                 messageTitle: 'Use case test title',
@@ -22,7 +21,7 @@ export function buildInitializeCorrespondencePayload(resourceId, ssnOrOrgno, tes
     };
 }
 
-export function buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId, ssnOrOrgno, attachmentFileBin, attachmentFileName, attachmentMime, testRunId) {
+export function buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId, ssnOrOrgno, attachmentFileBin, attachmentFileName, attachmentMime) {
     const recipient = toUrn(ssnOrOrgno);
     const nowRef = `usecase-${Date.now()}`;
     const attachmentRef = `usecase-attachment-${Date.now()}`;
@@ -30,7 +29,6 @@ export function buildInitializeCorrespondenceWithNewAttachmentPayload(resourceId
     const form = {
         'request.Correspondence.ResourceId': resourceId,
         'request.Correspondence.SendersReference': nowRef,
-        ...(testRunId ? { 'request.Correspondence.PropertyList[testRunId]': testRunId } : {}),
         'request.Correspondence.Content.Language': 'nb',
         'request.Correspondence.Content.MessageTitle': 'Use case test title',
         'request.Correspondence.Content.MessageSummary': 'Use case test summary',

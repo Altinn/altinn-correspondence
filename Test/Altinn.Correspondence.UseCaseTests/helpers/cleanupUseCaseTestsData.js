@@ -12,13 +12,12 @@ export async function cleanupBruksmonsterTestData(testRunId) {
 		Authorization: `Bearer ${token}`
 	};
 
-	const query = testRunId ? `?testRunId=${encodeURIComponent(testRunId)}` : '';
-	const res = http.post(`${baseUrl}/correspondence/api/v1/maintenance/cleanup-bruksmonster${query}`, null, { headers });
+	const res = http.post(`${baseUrl}/correspondence/api/v1/maintenance/cleanup-bruksmonster`, null, { headers });
 	check(res, { 'Cleanup bruksmonster test data status 200': r => r.status === 200 });
 
 	if (res.status === 200) {
         const body = res.json();
-        console.log(`Cleanup summary: testRunId=${testRunId}, resourceId=${body.resourceId}, correspondencesFound=${body.correspondencesFound}, attachmentsFound=${body.attachmentsFound}, deleteDialogsJobId=${body.deleteDialogsJobId}, deleteCorrespondencesJobId=${body.deleteCorrespondencesJobId}`);
+        console.log(`Cleanup summary: resourceId=${body.resourceId}, correspondencesFound=${body.correspondencesFound}, attachmentsFound=${body.attachmentsFound}, deleteDialogsJobId=${body.deleteDialogsJobId}, deleteCorrespondencesJobId=${body.deleteCorrespondencesJobId}`);
 	} else {
 		console.error(`Cleanup failed. Status: ${res.status}. Body: ${res.body}`);
 	}

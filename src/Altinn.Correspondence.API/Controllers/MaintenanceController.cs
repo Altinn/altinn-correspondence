@@ -194,14 +194,12 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> CleanupBruksmonsterTestData(
         [FromServices] CleanupBruksmonsterHandler handler,
-        [FromQuery] Guid? testRunId,
         [FromQuery] int? minAgeDays,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Request to cleanup bruksmonster test data received");
         var request = new CleanupBruksmonsterRequest
         {
-            TestRunId = testRunId,
             MinAgeDays = minAgeDays
         };
 

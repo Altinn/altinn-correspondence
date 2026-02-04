@@ -93,12 +93,6 @@ namespace Altinn.Correspondence.Core.Repositories
 
         Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken);
 
-        Task<List<Guid>> GetCorrespondenceIdsByResourceIdAndTestRunId(
-            string resourceId,
-            Guid testRunId,
-            DateTimeOffset minAge,
-            CancellationToken cancellationToken);
-
         Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);

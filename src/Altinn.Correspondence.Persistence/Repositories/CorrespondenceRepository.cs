@@ -410,23 +410,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Guid>> GetCorrespondenceIdsByResourceIdAndTestRunId(
-            string resourceId,
-            Guid testRunId,
-            DateTimeOffset minAge,
-            CancellationToken cancellationToken)
-        {
-            return await _context.Database
-                .SqlQuery<Guid>($@"
-                    SELECT c.""Id""
-                    FROM correspondence.""Correspondences"" c
-                    WHERE c.""ResourceId"" = {resourceId}
-                    AND c.""Created"" <= {minAge}
-                    AND c.""PropertyList"" -> 'testRunId' = {testRunId.ToString()}
-                    ")
-                .ToListAsync(cancellationToken);
-        }
-
         public async Task<int> HardDeleteCorrespondencesByIds(IEnumerable<Guid> correspondenceIds, CancellationToken cancellationToken)
         {
             var ids = correspondenceIds?.Distinct().ToList() ?? new List<Guid>();

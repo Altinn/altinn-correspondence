@@ -203,28 +203,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Guid>> GetAttachmentIdsOnResourceAndTestRunId(
-            string resourceId,
-            Guid testRunId,
-            DateTimeOffset minAge,
-            CancellationToken cancellationToken)
-        {
-            return await _context.Database
-                .SqlQuery<Guid>($@"
-                    SELECT DISTINCT a.""Id""
-                    FROM correspondence.""Attachments"" a
-                    JOIN correspondence.""CorrespondenceAttachments"" ca ON ca.""AttachmentId"" = a.""Id""
-                    JOIN correspondence.""CorrespondenceContents"" cc ON cc.""Id"" = ca.""CorrespondenceContentId""
-                    JOIN correspondence.""Correspondences"" c ON c.""Id"" = cc.""CorrespondenceId""
-                    WHERE a.""ResourceId"" = {resourceId}
-                    AND a.""Created"" <= {minAge}
-                    AND c.""ResourceId"" = {resourceId}
-                    AND c.""Created"" <= {minAge}
-                    AND c.""PropertyList"" -> 'testRunId' = {testRunId.ToString()}
-                    ")
-                .ToListAsync(cancellationToken);
-        }
-
         public async Task<List<AttachmentEntity>> GetAttachmentsByIds(List<Guid> attachmentIds, bool includeStatus = false, CancellationToken cancellationToken = default)
         {
             var attachments = _context.Attachments.AsQueryable();

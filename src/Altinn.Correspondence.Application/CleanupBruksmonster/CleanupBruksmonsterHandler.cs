@@ -29,20 +29,12 @@ public class CleanupBruksmonsterHandler(
 
         var correspondenceIds = new List<Guid>();
         var attachmentIds = new List<Guid>();
-        if (request.TestRunId.HasValue)
-        {
-            correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceIdAndTestRunId(resourceId, request.TestRunId.Value, minAge, cancellationToken);
-            attachmentIds = await attachmentRepository.GetAttachmentIdsOnResourceAndTestRunId(resourceId, request.TestRunId.Value, minAge, cancellationToken);
-        }
-        else 
-        {
-            correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, minAge, cancellationToken);
-            attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, minAge, cancellationToken);
-        }
+
+        correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, minAge, cancellationToken);
+        attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, minAge, cancellationToken);
 
 		return await TransactionWithRetriesPolicy.Execute<CleanupBruksmonsterResponse>(async (ct) =>
         {
-            
             var deleteDialogsJobId = backgroundJobClient.Enqueue<CleanupBruksmonsterHandler>(h => h.PurgeCorrespondenceDialogs(correspondenceIds));
 			var deleteCorrespondencesJobId = backgroundJobClient.ContinueJobWith<CleanupBruksmonsterHandler>(deleteDialogsJobId, h => h.PurgeCorrespondences(correspondenceIds, attachmentIds, resourceId, CancellationToken.None));
             await Task.CompletedTask;
