@@ -259,7 +259,7 @@ jobs:
           mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
           mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
-          results_file_path: ./Test/Altinn.Correspondence.Tests/test-results/k6_ids_input.txt
+          results_file_path: ./test-results/k6_ids_input.txt
         run: |
           k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js
         continue-on-error: false
