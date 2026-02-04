@@ -14,6 +14,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 name: "Published",
                 table: "Correspondences",
                 schema: "correspondence");
+            migrationBuilder.DropColumn(
+                name: "IsMigrating",
+                table: "Correspondences",
+                schema: "correspondence");
         }
 
         /// <inheritdoc />
@@ -25,6 +29,13 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 schema: "correspondence",
                 type: "timestamp with time zone",
                 nullable: true);
+            migrationBuilder.AddColumn<bool>(
+                name: "IsMigrating",
+                table: "Correspondences",
+                schema: "correspondence",
+                type: "boolean",
+                nullable: false,
+                defaultValue: false);
         }
     }
 }
