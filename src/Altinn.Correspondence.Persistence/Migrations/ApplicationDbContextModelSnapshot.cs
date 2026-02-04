@@ -294,6 +294,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<int>("ServiceOwnerMigrationStatus")
                         .HasColumnType("integer");
 
+                    b.Property<string>("TestProperty")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Altinn2CorrespondenceId")
@@ -776,7 +779,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceStatusFetchedEntity", b =>
                 {
                     b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
-                        .WithMany()
+                        .WithMany("StatusFetched")
                         .HasForeignKey("CorrespondenceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -844,6 +847,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Navigation("Notifications");
 
                     b.Navigation("ReplyOptions");
+
+                    b.Navigation("StatusFetched");
 
                     b.Navigation("Statuses");
                 });
