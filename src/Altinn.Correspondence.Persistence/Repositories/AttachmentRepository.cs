@@ -209,22 +209,20 @@ namespace Altinn.Correspondence.Persistence.Repositories
             DateTimeOffset minAge,
             CancellationToken cancellationToken)
         {
-            var testRunIdString = testRunId.ToString();
-
-            return await (
-                from a in _context.Attachments.AsNoTracking()
-                join ca in _context.CorrespondenceAttachments.AsNoTracking() on a.Id equals ca.AttachmentId
-                join cc in _context.CorrespondenceContents.AsNoTracking() on ca.CorrespondenceContentId equals cc.Id
-                join c in _context.Correspondences.AsNoTracking() on cc.CorrespondenceId equals c.Id
-                where a.ResourceId == resourceId
-                where a.Created <= minAge
-                where c.ResourceId == resourceId
-                where c.Created <= minAge
-                where c.PropertyList.ContainsKey("testRunId") && c.PropertyList["testRunId"] == testRunIdString
-                select a.Id
-            )
-            .Distinct()
-            .ToListAsync(cancellationToken);
+            return await _context.Database
+                .SqlQuery<Guid>($@"
+                    SELECT DISTINCT a.""Id""
+                    FROM correspondence.""Attachments"" a
+                    JOIN correspondence.""CorrespondenceAttachments"" ca ON ca.""AttachmentId"" = a.""Id""
+                    JOIN correspondence.""CorrespondenceContents"" cc ON cc.""Id"" = ca.""CorrespondenceContentId""
+                    JOIN correspondence.""Correspondences"" c ON c.""Id"" = cc.""CorrespondenceId""
+                    WHERE a.""ResourceId"" = {resourceId}
+                    AND a.""Created"" <= {minAge}
+                    AND c.""ResourceId"" = {resourceId}
+                    AND c.""Created"" <= {minAge}
+                    AND c.""PropertyList"" -> 'testRunId' = {testRunId.ToString()}
+                    ")
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<List<AttachmentEntity>> GetAttachmentsByIds(List<Guid> attachmentIds, bool includeStatus = false, CancellationToken cancellationToken = default)

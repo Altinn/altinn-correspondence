@@ -416,14 +416,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
             DateTimeOffset minAge,
             CancellationToken cancellationToken)
         {
-            var testRunIdString = testRunId.ToString();
-
-            return await _context.Correspondences
-                .AsNoTracking()
-                .Where(c => c.ResourceId == resourceId)
-                .Where(c => c.Created <= minAge)
-                .Where(c => c.PropertyList.ContainsKey("testRunId") && c.PropertyList["testRunId"] == testRunIdString)
-                .Select(c => c.Id)
+            return await _context.Database
+                .SqlQuery<Guid>($@"
+                    SELECT c.""Id""
+                    FROM correspondence.""Correspondences"" c
+                    WHERE c.""ResourceId"" = {resourceId}
+                    AND c.""Created"" <= {minAge}
+                    AND c.""PropertyList"" -> 'testRunId' = {testRunId.ToString()}
+                    ")
                 .ToListAsync(cancellationToken);
         }
 
