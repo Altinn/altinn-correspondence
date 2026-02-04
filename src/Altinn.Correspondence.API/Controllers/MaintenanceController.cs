@@ -180,7 +180,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
 
     /// <summary>
     /// Cleanup test data (dialogs and correspondences) for bruksmonstertests.
-    /// Optionally scopes cleanup to a specific test run and/or to data older than a given age.
+    /// Optionally scopes cleanup to data older than a given age.
     /// </summary>
     /// <response code="200">Returns a summary of deleted correspondences</response>
     /// <response code="401">Unauthorized</response>
