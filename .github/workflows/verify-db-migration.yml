@@ -18,8 +18,8 @@ on:
         type: string
   pull_request:
     branches: [main]
-    paths:
-      - 'Persistence/**'
+    # paths:
+      # - 'Persistence/**'
     
 
 jobs:
@@ -40,7 +40,7 @@ jobs:
           elif [ "${{ github.event_name }}" == "workflow_call" ]; then
             # Called from another workflow - use current commit and previous
             NEW_COMMIT="${{ github.sha }}"
-            OLD_COMMIT=$(git rev-parse HEAD~1)
+            OLD_COMMIT=${{ github.event.repository.default_branch }}
             echo "old_commit=$OLD_COMMIT" >> $GITHUB_OUTPUT
             echo "new_commit=$NEW_COMMIT" >> $GITHUB_OUTPUT
           else
@@ -152,7 +152,8 @@ jobs:
       - name: Create directory to save created IDs
         working-directory: old-commit
         run: |
-          mkdir -p ./test-results
+          mkdir -p ./Test/Altinn.Correspondence.Tests/test-results
+          touch ./Test/Altinn.Correspondence.Tests/test-results/k6_ids.txt
 
       - name: Test old code with old database (baseline)
         working-directory: old-commit
@@ -163,13 +164,14 @@ jobs:
           mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
           results_file_path: ./test-results/k6_ids.txt
         run: |
-          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./test-results/k6_ids.txt"
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./Test/Altinn.Correspondence.Tests/test-results/k6_ids.txt"
         continue-on-error: false
 
       - name: Temporarily persist created IDs
         working-directory: old-commit
         run: |
-          cp -r ./test-results /tmp/test-results || true
+          mkdir -p /tmp/test-results
+          cp ./Test/Altinn.Correspondence.Tests/test-results/k6_ids.txt /tmp/test-results/k6_ids.txt || true
 
       # ============================================
       # STEP 3: Apply new migrations
