@@ -73,7 +73,7 @@ public class CleanupPerishingDialogsHandler(
                 }
                 
                 var windowIds = correspondencesWindow.Select(c => c.Id).ToList();
-                var candidates = await correspondenceRepository.GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+                var candidates = await correspondenceRepository.GetCorrespondencesByIdsWithExternalReference(
                     windowIds,
                     ReferenceType.DialogportenDialogId,
                     cancellationToken);

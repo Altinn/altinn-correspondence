@@ -161,7 +161,6 @@ public class GetCorrespondenceOverviewHandler(
                 ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
                 RequestedPublishTime = correspondence.RequestedPublishTime,
                 IgnoreReservation = correspondence.IgnoreReservation ?? false,
-                AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
                 Published = correspondence.Published,
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 IsConfidential = correspondence.IsConfidential

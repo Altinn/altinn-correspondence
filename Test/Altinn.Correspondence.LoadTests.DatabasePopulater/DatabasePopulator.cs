@@ -116,7 +116,7 @@ public class DatabasePopulator
             },
             "\"correspondence\".\"Correspondences\"",
             @"Id, ResourceId, Recipient, Sender, SendersReference, MessageSender,
-              RequestedPublishTime, AllowSystemDeleteAfter, DueDateTime, PropertyList,
+              RequestedPublishTime, DueDateTime, PropertyList,
               IgnoreReservation, Created, Altinn2CorrespondenceId, Published, IsConfirmationNeeded"
         );
     }

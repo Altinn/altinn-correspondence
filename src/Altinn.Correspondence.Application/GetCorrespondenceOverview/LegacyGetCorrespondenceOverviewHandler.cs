@@ -136,7 +136,6 @@ public class LegacyGetCorrespondenceOverviewHandler(
                 ExternalReferences = correspondence.ExternalReferences ?? new List<ExternalReferenceEntity>(),
                 RequestedPublishTime = correspondence.RequestedPublishTime,
                 IgnoreReservation = correspondence.IgnoreReservation ?? false,
-                AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
                 Published = correspondence.Published,
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 MinimumAuthenticationLevel = (int)minimumAuthLevel,

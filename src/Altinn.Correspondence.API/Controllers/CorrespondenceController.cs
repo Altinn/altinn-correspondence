@@ -54,9 +54,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1007: Existing attachment not found</li>
         /// <li>1008: DueDateTime cannot be prior to today</li>
         /// <li>1009: DueDateTime cannot be prior to RequestedPublishTime</li>
-        /// <li>1010: AllowSystemDelete cannot be prior to today</li>
-        /// <li>1011: AllowSystemDelete cannot be prior to RequestedPublishTime</li>
-        /// <li>1012: AllowSystemDelete cannot be prior to DueDateTime</li>
         /// <li>1013: Sender cannot delete correspondence that has been published</li>
         /// <li>1016: DueDateTime is required when confirmation is needed</li>
         /// <li>1017: The sender of the correspondence must be equal the sender of existing attachments</li>
@@ -163,9 +160,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1007: Existing attachment not found</li>
         /// <li>1008: DueDateTime cannot be prior to today</li>
         /// <li>1009: DueDateTime cannot be prior to RequestedPublishTime</li>
-        /// <li>1010: AllowSystemDelete cannot be prior to today</li>
-        /// <li>1011: AllowSystemDelete cannot be prior to RequestedPublishTime</li>
-        /// <li>1012: AllowSystemDelete cannot be prior to DueDateTime</li>
         /// <li>1013: Sender cannot delete correspondence that has been published</li>
         /// <li>1016: DueDateTime is required when confirmation is needed</li>
         /// <li>1017: The sender of the correspondence must be equal the sender of existing attachments</li>

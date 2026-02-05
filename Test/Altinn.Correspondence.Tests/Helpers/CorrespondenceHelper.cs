@@ -24,7 +24,6 @@ internal static class CorrespondenceHelper
             { new StringContent(correspondence.SendersReference), "correspondence.sendersReference" },
             { new StringContent(correspondence.RequestedPublishTime.ToString()), "correspondence.RequestedPublishTime" },
             { new StringContent(correspondence.DueDateTime.ToString()), "correspondence.dueDateTime" },
-            { new StringContent(correspondence.AllowSystemDeleteAfter.ToString()), "correspondence.AllowSystemDeleteAfter" },
             { new StringContent(correspondence.Content.MessageTitle), "correspondence.content.MessageTitle" },
             { new StringContent(correspondence.Content.MessageSummary), "correspondence.content.MessageSummary" },
             { new StringContent(correspondence.Content.MessageBody), "correspondence.content.MessageBody" },

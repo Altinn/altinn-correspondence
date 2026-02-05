@@ -380,7 +380,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReference(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
             CancellationToken cancellationToken)
@@ -394,7 +394,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(c => correspondenceIds.Contains(c.Id))
-                .Where(c => c.AllowSystemDeleteAfter != null)
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
                 .Include(c => c.ExternalReferences)
                 .ToListAsync(cancellationToken);

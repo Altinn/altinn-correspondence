@@ -32,7 +32,6 @@ const data_without_attachment = {
             attachments: [],
         },
         visibleFrom: "2024-09-28T12:44:28.290518+00:00",
-        allowSystemDeleteAfter: "2025-08-29T13:31:28.290518+00:00",
         dueDateTime: "2025-05-29T13:31:28.290518+00:00",
         externalReferences: [],
         propertyList: {},

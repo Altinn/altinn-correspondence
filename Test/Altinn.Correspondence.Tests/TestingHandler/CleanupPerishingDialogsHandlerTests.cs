@@ -21,20 +21,18 @@ public class CleanupPerishingDialogsHandlerTests
             .WithCreated(now.UtcDateTime.AddMinutes(-2))
             .WithRequestedPublishTime(now.AddMinutes(-2))
             .WithExternalReference(ReferenceType.DialogportenDialogId, "d1")
-            .WithAllowSystemDeleteAfter(now.AddDays(30))
             .Build();
         var c2 = new CorrespondenceEntityBuilder()
             .WithCreated(now.UtcDateTime.AddMinutes(-1))
             .WithRequestedPublishTime(now.AddMinutes(-1))
             .WithExternalReference(ReferenceType.DialogportenDialogId, "d2")
-            .WithAllowSystemDeleteAfter(now.AddDays(30))
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
         repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { c1, c2 })
             .ReturnsAsync(new List<CorrespondenceEntity>());
-        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReference(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<ReferenceType>(),
                 It.IsAny<CancellationToken>()))
@@ -70,7 +68,6 @@ public class CleanupPerishingDialogsHandlerTests
                 .WithCreated(baseTime.AddSeconds(i).UtcDateTime)
                 .WithRequestedPublishTime(baseTime.AddSeconds(i))
                 .WithExternalReference(ReferenceType.DialogportenDialogId, $"d{i}")
-                .WithAllowSystemDeleteAfter(baseTime.AddDays(30))
                 .Build());
         }
 
@@ -87,7 +84,7 @@ public class CleanupPerishingDialogsHandlerTests
                     .ToList();
                 return query;
             });
-        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReference(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<ReferenceType>(),
                 It.IsAny<CancellationToken>()))

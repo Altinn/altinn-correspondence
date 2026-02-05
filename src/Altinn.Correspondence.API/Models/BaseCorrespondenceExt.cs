@@ -56,12 +56,6 @@ namespace Altinn.Correspondence.API.Models
         public DateTimeOffset? RequestedPublishTime { get; set; }
 
         /// <summary>
-        /// When Altinn can remove the correspondence from its database.
-        /// </summary>
-        [JsonPropertyName("allowSystemDeleteAfter")]
-        public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
-
-        /// <summary>
         /// When the recipient must reply to the correspondence
         /// </summary>
         [JsonPropertyName("dueDateTime")]
