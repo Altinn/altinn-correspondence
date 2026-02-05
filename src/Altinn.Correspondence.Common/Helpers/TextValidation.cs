@@ -18,11 +18,13 @@ public class TextValidation
 
     public static bool ValidatePlainText(string text)
     {
+        // Ignore backticks in the comparison so backticks are always accepted.
+        var normalizedInput = text.Replace("`", "");
         var converter = new ReverseMarkdown.Converter();
-        var markdown = converter.Convert(text);
+        var markdown = converter.Convert(normalizedInput);
         var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
         var plaintext = Markdown.ToPlainText(markdown, pipeline);
-        return plaintext.Trim() == text.Trim();
+        return plaintext.Trim() == normalizedInput.Trim();
     }
 
     public static bool ValidateMarkdown(string markdown)
