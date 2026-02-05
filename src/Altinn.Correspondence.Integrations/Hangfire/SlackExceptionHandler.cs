@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.Integrations.Hangfire
             // Log the start of the job execution
             var jobId = filterContext.BackgroundJob.Id;
             var jobName = filterContext.BackgroundJob.Job.Type.Name;
-            _logger.LogInformation("Starting job {JobId} of type {JobName}", jobId, jobName);
+            _logger.LogDebug("Starting job {JobId} of type {JobName}", jobId, jobName);
         }
 
         public async void OnPerformed(PerformedContext filterContext)
@@ -32,7 +32,7 @@ namespace Altinn.Correspondence.Integrations.Hangfire
             var exception = filterContext.Exception;
             var jobId = filterContext.BackgroundJob.Id;
             var jobName = filterContext.BackgroundJob.Job.Type.Name;
-            _logger.LogInformation("Completed job {JobId} of type {JobName}", jobId, jobName);
+            _logger.LogDebug("Completed job {JobId} of type {JobName}", jobId, jobName);
             
             // Get retry count from the job context
             var retryCount = filterContext.GetJobParameter<int>("RetryCount");
@@ -42,12 +42,12 @@ namespace Altinn.Correspondence.Integrations.Hangfire
             if(exception != null) {
                 if (string.Equals(origin, "migrate", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("Skipping Slack exception notification for migration related job {JobId}", jobId);
+                    _logger.LogDebug("Skipping Slack exception notification for migration related job {JobId}", jobId);
                     return;
                 }
                 if (IsCheckNotificationDeliveryJob(filterContext.BackgroundJob.Job) && !IsLastRetryAttempt(filterContext.BackgroundJob.Job, retryCount))
                 {
-                    _logger.LogInformation("Skipping Slack exception notification for CheckNotificationDelivery job attempt (jobId {JobId}, retryCount {RetryCount})", jobId, retryCount);
+                    _logger.LogDebug("Skipping Slack exception notification for CheckNotificationDelivery job attempt (jobId {JobId}, retryCount {RetryCount})", jobId, retryCount);
                     return;
                 }
                 await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);
@@ -71,12 +71,12 @@ namespace Altinn.Correspondence.Integrations.Hangfire
                 // Properly await the notification
                 if (string.Equals(origin, "migrate", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("Skipping Slack exception notification for migrate related job {JobId}", jobId);
+                    _logger.LogDebug("Skipping Slack exception notification for migrate related job {JobId}", jobId);
                     return;
                 }
                 if (IsCheckNotificationDeliveryJob(context.BackgroundJob.Job) && !IsLastRetryAttempt(context.BackgroundJob.Job, retryCount))
                 {
-                    _logger.LogInformation("Skipping Slack exception notification for CheckNotificationDelivery job attempt (jobId {JobId}, retryCount {RetryCount})", jobId, retryCount);
+                    _logger.LogDebug("Skipping Slack exception notification for CheckNotificationDelivery job attempt (jobId {JobId}, retryCount {RetryCount})", jobId, retryCount);
                     return;
                 }
                 await _slackExceptionNotification.TryHandleAsync(jobId, jobName, exception, retryCount, CancellationToken.None);

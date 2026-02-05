@@ -35,7 +35,7 @@ namespace Altinn.Correspondence.Integrations.Azure
         {
             if (_sasTokens.TryGetValue(storageAccountName, out (DateTime Created, string Token) sasToken) && sasToken.Created.AddHours(8) > DateTime.UtcNow)
             {
-                _logger.LogInformation($"Got sas token from cache.");
+                _logger.LogDebug($"Got sas token from cache.");
                 return sasToken.Token;
             }
 
@@ -63,7 +63,7 @@ namespace Altinn.Correspondence.Integrations.Azure
         }
         private async Task<string> CreateSasToken(StorageProviderEntity storageProviderEntity, string storageAccountName)
         {
-            _logger.LogInformation($"Creating new SAS token for {storageProviderEntity.ServiceOwnerId}: {storageProviderEntity.StorageResourceName}");
+            _logger.LogDebug($"Creating new SAS token for {storageProviderEntity.ServiceOwnerId}: {storageProviderEntity.StorageResourceName}");
             var resourceGroupName = GetResourceGroupName(storageProviderEntity.ServiceOwnerId);
             var subscription = GetSubscription();
             var resourceGroupCollection = subscription.GetResourceGroups();
@@ -87,7 +87,7 @@ namespace Altinn.Correspondence.Integrations.Azure
             };
             sasBuilder.SetPermissions(BlobSasPermissions.Read | BlobSasPermissions.Create | BlobSasPermissions.List | BlobSasPermissions.Write | BlobSasPermissions.Delete);
             string sasToken = sasBuilder.ToSasQueryParameters(credential).ToString();
-            _logger.LogInformation("SAS Token created");
+            _logger.LogDebug("SAS Token created");
             return sasToken;
         }
 

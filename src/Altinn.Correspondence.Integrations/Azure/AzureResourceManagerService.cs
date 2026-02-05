@@ -53,7 +53,7 @@ public class AzureResourceManagerService : IResourceManager
 
     public void DeployStorageAccountsForServiceOwner(ServiceOwnerEntity serviceOwnerEntity, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Creating storage providers for {serviceOwnerEntity.Name}");
+        _logger.LogDebug("Creating storage providers for {serviceOwnerEntity.Name}");
         var virusScanStorageProviderJob = _backgroundJobClient.Enqueue<IResourceManager>(service => service.DeployStorageAccount(serviceOwnerEntity, true, cancellationToken));
         _backgroundJobClient.ContinueJobWith<IResourceManager>(virusScanStorageProviderJob, service => service.DeployStorageAccount(serviceOwnerEntity, false, cancellationToken));
     }
@@ -62,16 +62,16 @@ public class AzureResourceManagerService : IResourceManager
     {
         if (_hostEnvironment.IsDevelopment())
         {
-            _logger.LogInformation("Development environment detected. Skipping deployment.");
+            _logger.LogDebug("Development environment detected. Skipping deployment.");
             return;
         }
-        _logger.LogInformation($"Starting deployment for {serviceOwnerEntity.Name}");
-        _logger.LogInformation($"Using app identity for deploying Azure resources"); // TODO remove
+        _logger.LogDebug($"Starting deployment for {serviceOwnerEntity.Name}");
+        _logger.LogDebug($"Using app identity for deploying Azure resources"); // TODO remove
         var resourceGroupName = GetResourceGroupName(serviceOwnerEntity);
 
         var storageAccountName = GenerateStorageAccountName();
-        _logger.LogInformation($"Resource group: {resourceGroupName}");
-        _logger.LogInformation($"Storage account: {storageAccountName}");
+        _logger.LogDebug($"Resource group: {resourceGroupName}");
+        _logger.LogDebug($"Storage account: {storageAccountName}");
 
         // Create or get the resource group
         var subscription = GetSubscription();
@@ -98,7 +98,7 @@ public class AzureResourceManagerService : IResourceManager
         }
 
         await _serviceOwnerRepository.InitializeStorageProvider(serviceOwnerEntity.Id, storageAccountName, virusScan ? StorageProviderType.Altinn3Azure : StorageProviderType.Altinn3AzureWithoutVirusScan);
-        _logger.LogInformation($"Storage account {storageAccountName} created");
+        _logger.LogDebug($"Storage account {storageAccountName} created");
     }
 
     private async Task EnableMicrosoftDefender(string resourceGroupName, string storageAccountName, CancellationToken cancellationToken)
@@ -141,7 +141,7 @@ public class AzureResourceManagerService : IResourceManager
             _logger.LogWarning("Failed to enable Defender Malware Scan. Error: {error}", errorMessage);
             throw new HttpRequestException($"Failed to enable Defender Malware Scan. Error: {errorMessage}");
         }
-        _logger.LogInformation($"Microsoft Defender Malware scan enabled for storage account {storageAccountName}: {await response.Content.ReadAsStringAsync()}");
+        _logger.LogDebug($"Microsoft Defender Malware scan enabled for storage account {storageAccountName}: {await response.Content.ReadAsStringAsync()}");
     }
 
     private string GenerateStorageAccountName()
@@ -169,7 +169,7 @@ public class AzureResourceManagerService : IResourceManager
                 ipRestrictions.Add(new ContainerAppIPSecurityRestrictionRule(name: $"IP whitelist {ip.Value}", action: ContainerAppIPRuleAction.Allow, ipAddressRange: ip.Key));
             }
 
-            _logger.LogInformation("Updating IP restrictions for container app");
+            _logger.LogDebug("Updating IP restrictions for container app");
             var response = await containerApp.Value.UpdateAsync(waitUntil: WaitUntil.Started, data: containerApp.Value.Data, cancellationToken: cancellationToken);
 
             if (response.GetRawResponse().Status != 200)
