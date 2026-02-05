@@ -49,6 +49,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           dockerImageBaseName: ghcr.io/altinn/altinn-correspondence
           imageTag: ${{ needs.get-version.outputs.imageTag }}
+      - name: "Publish backup image"
+        uses: ./.github/actions/publish-image
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          dockerImageBaseName: ghcr.io/altinn/altinn-correspondence-backup
+          imageTag: ${{ needs.get-version.outputs.imageTag }}
+          dockerfile: .azure/applications/backup/Dockerfile
+          context: .azure/applications/backup
   deploy:
     name: Deploy
     runs-on: ubuntu-latest

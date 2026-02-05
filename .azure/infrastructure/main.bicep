@@ -13,6 +13,10 @@ param namePrefix string
 param storageAccountName string
 @secure()
 param grafanaMonitoringPrincipalId string
+
+param backupImageTag string = 'latest'
+
+
 @secure()
 param maintenanceAdGroupId string
 @secure()
@@ -133,6 +137,18 @@ module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderR
   name: 'grafana-monitoring-reader'
   params: {
     grafanaPrincipalId: grafanaMonitoringPrincipalId
+  }
+}
+
+module backupJob '../applications/backup/main.bicep' = {
+  scope: resourceGroup
+  name: 'correspondence-backup-job'
+  params: {
+    namePrefix: namePrefix
+    location: location
+    tenantId: tenantId
+    storageAccountName: storageAccountName
+    backupImageTag: backupImageTag
   }
 }
 
