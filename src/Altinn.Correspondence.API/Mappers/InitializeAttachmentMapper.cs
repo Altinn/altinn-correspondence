@@ -21,7 +21,7 @@ internal static class InitializeAttachmentMapper
             Checksum = initializeAttachmentExt.Checksum,
             IsEncrypted = initializeAttachmentExt.IsEncrypted,
             Created = DateTimeOffset.UtcNow,
-            ExpirationTime = initializeAttachmentExt.ExpirationTime
+            ExpirationInDays = initializeAttachmentExt.ExpirationInDays
         };
         return new InitializeAttachmentRequest()
         {

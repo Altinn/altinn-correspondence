@@ -1,5 +1,6 @@
 ﻿using Altinn.Authorization.ABAC.Xacml;
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
+using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
@@ -97,6 +98,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 {
                     list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, claim.Value.WithoutPrefix(), DefaultType, claim.Issuer));
                 }
+                else if (IsSystemUserClaim(claim.Type))
+                {
+                    list = new List<XacmlJsonAttribute>();
+                    list.Add(CreateXacmlJsonAttribute(AltinnXacmlUrns.SystemUserUuid, claim.Value.WithoutPrefix(), DefaultType, claim.Issuer));
+                    break;
+                }
             }
             xacmlJsonCategory.Attribute = list;
             return xacmlJsonCategory;
@@ -120,6 +127,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static bool IsJtiClaim(string value)
         {
             return value.Equals("jti");
+        }
+
+        private static bool IsSystemUserClaim(string value)
+        {
+            return value.Equals("y");
         }
 
         public static bool ValidateDialogportenResult(XacmlJsonResponse response, ClaimsPrincipal user)

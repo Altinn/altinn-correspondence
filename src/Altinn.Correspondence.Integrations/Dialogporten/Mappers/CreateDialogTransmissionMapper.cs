@@ -97,6 +97,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var baseTimestamp = DateTimeOffset.UtcNow;
             return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
             {
+                var attachmentFileName = correspondenceAttachment?.Attachment?.FileName;
+                var mediaType = DialogportenAttachmentMediaTypeMapper.GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
+
                 var transmissionAttachment = new TransmissionAttachment
                 {
                     Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
@@ -113,15 +116,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         new TransmissionUrl
                         {
                             ConsumerType = "Gui",
-                            MediaType = "application/vnd.dialogporten.frontchannelembed-url;type=text/markdown",
+                            MediaType = mediaType,
                             Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, correspondenceAttachment.AttachmentId)
                         }
                     }
                 };
 
-                if (correspondenceAttachment.Attachment.ExpirationTime.HasValue)
+                if (correspondenceAttachment.ExpirationTime.HasValue)
                 {
-                    transmissionAttachment.ExpiresAt = correspondenceAttachment.Attachment.ExpirationTime.Value;
+                    transmissionAttachment.ExpiresAt = correspondenceAttachment.ExpirationTime.Value;
                 }
 
                 return transmissionAttachment;

@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
+using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
@@ -250,6 +251,66 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
     {
         await CreateInformationActivity(correspondenceId, actorType, textType, null, activityTimestamp, tokens);
+    }
+
+    public async Task<bool> HasInformationActivityByTextType(Guid correspondenceId, DialogportenTextType textType, CancellationToken cancellationToken = default)
+    {
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                return true;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
+        }
+
+        var dialog = await GetDialog(dialogId);
+        if (dialog.Activities is null || dialog.Activities.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var activity in dialog.Activities)
+        {
+            if (!string.Equals(activity.Type, "Information", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (activity.Description is null || activity.Description.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var d in activity.Description)
+            {
+                if (string.Equals(d.LanguageCode, "nb", StringComparison.OrdinalIgnoreCase) &&
+                    DialogportenText.IsTemplate(textType, DialogportenLanguageCode.NB, d.Value))
+                {
+                    return true;
+                }
+                if (string.Equals(d.LanguageCode, "nn", StringComparison.OrdinalIgnoreCase) &&
+                    DialogportenText.IsTemplate(textType, DialogportenLanguageCode.NN, d.Value))
+                {
+                    return true;
+                }
+                if (string.Equals(d.LanguageCode, "en", StringComparison.OrdinalIgnoreCase) &&
+                    DialogportenText.IsTemplate(textType, DialogportenLanguageCode.EN, d.Value))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public async Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
@@ -749,18 +810,19 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     /// Used for setting the "Archived" system label when a correspondence is archived in Altinn 2, or adding/removing "Bin" labels when a correspondence is soft deleted/restored in Altinn 2.
     /// </summary>
     /// <param name="correspondenceId">ID of the correspondence</param>
-    /// <param name="enduserId">ID of the user who performed the aciton</param>
+    /// <param name="performedByActorId">Actor id of the user who performed the action</param>
+    /// <param name="performedByActorType">Type of actor who performed the action</param>
     /// <param name="systemLabelsToAdd">list of labels to add</param>
     /// <param name="systemLabelsToRemove">list of labels to remove</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string enduserId, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
+    public async Task UpdateSystemLabelsOnDialog(Guid correspondenceId, string performedByActorId, DialogportenActorType performedByActorType, List<DialogPortenSystemLabel>? systemLabelsToAdd, List<DialogPortenSystemLabel>? systemLabelsToRemove)
     {
-        if (string.IsNullOrWhiteSpace(enduserId))
+        if (string.IsNullOrWhiteSpace(performedByActorId))
         {
-            logger.LogError("Missing enduserId for correspondence {correspondenceId} when updating system labels", correspondenceId);
-            throw new ArgumentException("enduserId cannot be null or whitespace", nameof(enduserId));
+            logger.LogError("Missing performedByActorId for correspondence {correspondenceId} when updating system labels", correspondenceId);
+            throw new ArgumentException("performedByActorId cannot be null or whitespace", nameof(performedByActorId));
         }
 
         if ((systemLabelsToAdd == null || systemLabelsToAdd.Count == 0) && (systemLabelsToRemove == null || systemLabelsToRemove.Count == 0))
@@ -806,16 +868,19 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var request = SetDialogSystemLabelsMapper
             .CreateSetDialogSystemLabelRequest(
                 dialogGuid,
-                enduserId,
+                performedByActorId,
+                performedByActorType,
                 systemLabelsToAdd,
                 systemLabelsToRemove);
-        logger.LogDebug("Updating system labels on dialog {dialogId} for correspondence {correspondenceId}. Adding: {systemLabelsToAdd}, Removing: {systemLabelsToRemove}",
+        logger.LogDebug("Updating system labels on dialog {dialogId} for correspondence {correspondenceId} for {performedByActorId}, type {performedByActorType}. Adding: {systemLabelsToAdd}, Removing: {systemLabelsToRemove}",
             dialogId,
             correspondenceId,
+            performedByActorId,
+            performedByActorType,
             systemLabelsToAdd != null ? string.Join(", ", systemLabelsToAdd) : "None",
             systemLabelsToRemove != null ? string.Join(", ", systemLabelsToRemove) : "None"
         );
-        var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels?enduserId={Uri.EscapeDataString(enduserId)}";
+        var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels";
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

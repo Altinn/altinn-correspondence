@@ -15,6 +15,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ILogger<ExpireAttachmentHandler>> _loggerMock = new();
         private readonly Mock<IAttachmentRepository> _attachmentRepositoryMock = new();
         private readonly Mock<IAttachmentStatusRepository> _attachmentStatusRepositoryMock = new();
+        private readonly Mock<IIdempotencyKeyRepository> _idempotencyKeyRepositoryMock = new();
         private readonly Mock<IStorageRepository> _storageRepositoryMock = new();
         private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock = new();
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock = new();
@@ -26,6 +27,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _loggerMock.Object,
                 _attachmentRepositoryMock.Object,
                 _attachmentStatusRepositoryMock.Object,
+                _idempotencyKeyRepositoryMock.Object,
                 _storageRepositoryMock.Object,
                 _altinnRegisterServiceMock.Object,
                 _backgroundJobClientMock.Object);
@@ -78,14 +80,20 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 AttachmentSize = 1,
                 StorageProvider = new StorageProviderEntity { StorageResourceName = "storage-resource-name-1", ServiceOwnerId = "service-owner-id-1", Active = true },
                 Statuses = new List<AttachmentStatusEntity>(),
-                ExpirationTime = DateTimeOffset.UtcNow.AddDays(-1)
+                ExpirationInDays = 1
             };
             _attachmentRepositoryMock
                 .Setup(r => r.GetAttachmentById(attachmentId, true, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(attachment);
+            _attachmentRepositoryMock
+                .Setup(r => r.GetMaxExpirationTimeForAttachment(attachmentId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(DateTimeOffset.UtcNow.AddDays(-1));
             _altinnRegisterServiceMock
                 .Setup(s => s.LookUpPartyById(attachment.Sender, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new Party { PartyUuid = partyUuid });
+            _idempotencyKeyRepositoryMock
+                .Setup(r => r.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity key, CancellationToken _) => key);
 
             // Act
             var result = await _handler.Process(attachmentId, null, CancellationToken.None);

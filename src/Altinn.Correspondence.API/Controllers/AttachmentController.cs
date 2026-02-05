@@ -13,6 +13,7 @@ using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Altinn.Authorization.ProblemDetails;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -70,11 +71,12 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <remarks>
     /// One of the scopes: <br/>
     /// - altinn:correspondence.write <br/>
+    /// Supports file sizes up to 5 GB <br />
     /// </remarks>
     /// <response code="200">Returns attachment metadata</response>
     /// <response code="400"><ul>
     /// <li>2003: Cannot upload attachment to a correspondence that has been created</li>
-    /// <li>2004: File must have content and has a max file size of 2GB</li>
+    /// <li>2004: File must have content and has a max file size of 5GB</li>
     /// <li>2005: File has already been or is being uploaded</li>
     /// <li>2008: Checksum mismatch</li>
     /// <li>2009: Could not get data location url</li>
@@ -104,7 +106,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
         var maxSizeFeature = HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
         if (maxSizeFeature != null && !maxSizeFeature.IsReadOnly)
         {
-            maxSizeFeature.MaxRequestBodySize = ApplicationConstants.MaxFileUploadSize;
+            maxSizeFeature.MaxRequestBodySize = ApplicationConstants.MaxFileStreamUploadSize;
         }
 
         var uploadAttachmentResult = await uploadAttachmentHandler.Process(new UploadAttachmentRequest()
@@ -238,10 +240,9 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
     [HttpGet]
-    [Produces("application/octet-stream")]
-    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/octet-stream")]
+    [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
+    [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status404NotFound, "application/json")]
     [Route("{attachmentId}/download")]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult> DownloadAttachmentData(

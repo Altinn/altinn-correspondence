@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -21,7 +22,7 @@ public class MigrateAttachmentHandler(
     {
         if (request.ContentLength == 0)
         {
-            return AttachmentErrors.InvalidFileSize;
+            return AttachmentErrors.InvalidFileSize("2GB");
         }
 
         AttachmentEntity? attachment = null;
@@ -77,8 +78,7 @@ public class MigrateAttachmentHandler(
             }
             catch (DbUpdateException e)
             {
-                var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-                if (sqlState != "23505")
+                if (!e.IsPostgresUniqueViolation())
                 {
                     throw;
                 }

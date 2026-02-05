@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Common.Caching;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
@@ -45,6 +45,17 @@ public class ResourceRegistryService : IResourceRegistryService
             return null;
         }
         return GetNameOfResourceResponse(altinnResourceResponse);
+    }
+
+    public async Task<string?> GetResourceTitle(string resourceId, string? language = null, CancellationToken cancellationToken = default)
+    {
+        var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
+        if (altinnResourceResponse is null)
+        {
+            return null;
+        }
+
+        return GetTitleOfResourceResponse(altinnResourceResponse, language);
     }
 
     public async Task<string?> GetServiceOwnerOrgCode(string resourceId, CancellationToken cancellationToken)
@@ -113,6 +124,19 @@ public class ResourceRegistryService : IResourceRegistryService
             }
         }
         return name ?? string.Empty;
+    }
+
+    private static string GetTitleOfResourceResponse(GetResourceResponse resourceResponse, string? language)
+    {
+        if (resourceResponse.Title is null || resourceResponse.Title.Count == 0)
+        {
+            return string.Empty;
+        }
+        if (language == null)
+        {
+            return resourceResponse.Title.Values.FirstOrDefault() ?? string.Empty;
+        }
+        return resourceResponse.Title.TryGetValue(language, out var preferredTitle) ? preferredTitle : string.Empty;
     }
 
     public async Task<string?> GetServiceOwnerOrganizationNumber(string resourceId, CancellationToken cancellationToken = default)

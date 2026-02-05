@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Notifications;
 
 namespace Altinn.Correspondence.Core.Repositories
 {
@@ -11,5 +12,10 @@ namespace Altinn.Correspondence.Core.Repositories
         Task UpdateOrderResponseData(Guid notificationId, Guid notificationOrderId, Guid shipmentId, CancellationToken cancellationToken);
         Task WipeOrder(Guid notificationId, CancellationToken cancellationToken);
         Task<List<CorrespondenceNotificationEntity>> GetPrimaryNotificationsByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken);
+        Task<List<NotificationDeliveryRepairCandidate>> GetAltinn3NotificationDeliveryRepairCandidates(
+            DateTimeOffset requestedSendTimeOlderThan,
+            Guid? afterNotificationId,
+            int limit,
+            CancellationToken cancellationToken);
     }
 }

@@ -2,7 +2,8 @@ namespace Altinn.Correspondence.Application.Settings;
 
 public static class ApplicationConstants
 {
-    public const long MaxFileUploadSize = 2L * 1000 * 1000 * 1000;
+    public const long MaxFormDataFileUploadSize = 2L * 1000 * 1000 * 1000;
+    public const long MaxFileStreamUploadSize = 5L * 1000 * 1000 * 1000;
     public static readonly List<string> AllowedFileTypes =
     [
         ".doc",
@@ -22,6 +23,19 @@ public static class ApplicationConstants
         ".png",
         ".json",
         ".csv"
+    ];
+
+    /// <summary>
+    /// File types that may be served with Content-Disposition: inline, allowing the browser to render them.
+    /// </summary>
+    public static readonly List<string> InlineFileTypes =
+    [
+        ".pdf",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp"
     ];
     public static readonly List<string> RequiredOrganizationRolesForCorrespondenceRecipient = 
     [

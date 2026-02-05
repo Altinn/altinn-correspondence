@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using Hangfire;
+using System.Text.RegularExpressions;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -25,6 +26,17 @@ namespace Altinn.Correspondence.Application.Helpers
         MalwareScanResultHandler malwareScanResultHandler,
         ILogger<AttachmentHelper> logger)
     {
+
+        private static readonly Regex InvalidCharactersRegex = new Regex(
+        @"[<>:""/\\|?*\u0000-\u001F]",
+        RegexOptions.Compiled
+        );
+
+        private static readonly Regex WindowsReservedNamesRegex = new Regex(
+        @"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled
+        );
+        
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
@@ -160,6 +172,19 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return AttachmentErrors.FiletypeNotAllowed;
             }
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
+            if (nameWithoutExtension.EndsWith(" ") || nameWithoutExtension.EndsWith("."))
+            {
+                return AttachmentErrors.FilenameInvalid;
+            }
+            if (InvalidCharactersRegex.IsMatch(filename))
+            {
+                return AttachmentErrors.FilenameInvalid;
+            }
+            if (WindowsReservedNamesRegex.IsMatch(filename))
+            {
+                return AttachmentErrors.FilenameCannotBeAReservedWindowsFilename;
+            }
             foreach (var c in Path.GetInvalidFileNameChars())
             {
                 if (filename.Contains(c))
@@ -173,11 +198,16 @@ namespace Altinn.Correspondence.Application.Helpers
         public Error? ValidateAttachmentExpiration(AttachmentEntity attachment)
         {
             var minimumDays = hostEnvironment.IsProduction() ? 14 : 1;
-            if (attachment.ExpirationTime != null && attachment.ExpirationTime < DateTimeOffset.UtcNow.AddDays(minimumDays))
+            if (attachment.ExpirationInDays.HasValue && attachment.ExpirationInDays.Value < minimumDays)
             {
                 return AttachmentErrors.AttachmentExpirationPriorMinimumDaysFromNow(minimumDays);
             }
             return null;
+        }
+
+        public Error? ValidateAttachmentsExpiration(List<AttachmentEntity> attachments)
+        {
+            return attachments.Select(ValidateAttachmentExpiration).FirstOrDefault(error => error is not null);
         }
 
         public Error? ValidateDownloadAttachment(AttachmentEntity attachment)
@@ -186,7 +216,22 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return AttachmentErrors.CannotDownloadPurgedAttachment;
             }
-            if (attachment.StatusHasBeen(AttachmentStatus.Expired) || (attachment.ExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow))
+            if (attachment.StatusHasBeen(AttachmentStatus.Expired))
+            {
+                return AttachmentErrors.CannotDownloadExpiredAttachment;
+            }
+            return null;
+        }
+
+        public Error? ValidateDownloadCorrespondenceAttachment(AttachmentEntity attachment, DateTimeOffset? correspondenceAttachmentExpirationTime)
+        {
+            var baseError = ValidateDownloadAttachment(attachment);
+            if (baseError is not null)
+            {
+                return baseError;
+            }
+
+            if (correspondenceAttachmentExpirationTime is DateTimeOffset expirationTime && expirationTime <= DateTimeOffset.UtcNow)
             {
                 return AttachmentErrors.CannotDownloadExpiredAttachment;
             }

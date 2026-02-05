@@ -11,6 +11,7 @@ param replicaTimeout int = 5400
 resource job 'Microsoft.App/jobs@2023-11-02-preview' = {
   name: name
   location: location
+  tags: resourceGroup().tags
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {

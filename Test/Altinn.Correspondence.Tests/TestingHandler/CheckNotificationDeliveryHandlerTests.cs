@@ -18,7 +18,6 @@ public class CheckNotificationDeliveryHandlerTests
     private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
     private readonly Mock<ICorrespondenceNotificationRepository> _notificationRepositoryMock;
     private readonly Mock<IAltinnNotificationService> _notificationServiceMock;
-    private readonly Mock<IDialogportenService> _dialogportenServiceMock;
     private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
     private readonly Mock<ILogger<CheckNotificationDeliveryHandler>> _loggerMock;
     private readonly CheckNotificationDeliveryHandler _handler;
@@ -28,7 +27,6 @@ public class CheckNotificationDeliveryHandlerTests
         _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
         _notificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();
         _notificationServiceMock = new Mock<IAltinnNotificationService>();
-        _dialogportenServiceMock = new Mock<IDialogportenService>();
         _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
         _loggerMock = new Mock<ILogger<CheckNotificationDeliveryHandler>>();
 
@@ -36,7 +34,6 @@ public class CheckNotificationDeliveryHandlerTests
             _correspondenceRepositoryMock.Object,
             _notificationRepositoryMock.Object,
             _notificationServiceMock.Object,
-            _dialogportenServiceMock.Object,
             _backgroundJobClientMock.Object,
             _loggerMock.Object);
     }
@@ -162,6 +159,7 @@ public class CheckNotificationDeliveryHandlerTests
 
         var notificationDetailsV2 = new NotificationStatusResponseV2
         {
+            Status = "Order_Completed",
             ShipmentId = shipmentId,
             Recipients = new List<RecipientStatus>
             {
@@ -195,13 +193,11 @@ public class CheckNotificationDeliveryHandlerTests
             "test@example.com",
             It.IsAny<CancellationToken>()), Times.Once);
 
-        _dialogportenServiceMock.Verify(x => x.CreateInformationActivity(
-            correspondenceId,
-            DialogportenActorType.ServiceOwner,
-            DialogportenTextType.NotificationSent,
-            It.IsAny<DateTimeOffset>(),
-            "test@example.com",
-            NotificationType.Email.ToString()), Times.Once);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IDialogportenService) &&
+                job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
+            It.Is<IState>(state => state is EnqueuedState)), Times.Once);
     }
 
     [Fact]
@@ -234,6 +230,7 @@ public class CheckNotificationDeliveryHandlerTests
         };
         var notificationDetailsV2 = new NotificationStatusResponseV2
         {
+            Status = "Order_Processing",
             ShipmentId = shipmentId,
             Recipients = new List<RecipientStatus>
         {
@@ -263,13 +260,11 @@ public class CheckNotificationDeliveryHandlerTests
             It.IsAny<DateTimeOffset>(),
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        _dialogportenServiceMock.Verify(x => x.CreateInformationActivity(
-            It.IsAny<Guid>(),
-            It.IsAny<DialogportenActorType>(),
-            It.IsAny<DialogportenTextType>(),
-            It.IsAny<DateTimeOffset>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IDialogportenService) &&
+                job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
+            It.IsAny<IState>()), Times.Never);
     }
 
     [Theory]
@@ -279,7 +274,7 @@ public class CheckNotificationDeliveryHandlerTests
     [InlineData(NotificationStatusV2.SMS_Failed)]
     [InlineData(NotificationStatusV2.SMS_Failed_TTL)]
     [InlineData(NotificationStatusV2.SMS_Failed_RecipientNotIdentified)]
-    public async Task Process_WhenNotificationFails_ReturnsNotificationFailedAndCreatesFailedEvent(NotificationStatusV2 recipientStatus)
+    public async Task Process_WhenNotificationFails_CreateFailedEvent(NotificationStatusV2 recipientStatus)
     {
         // Arrange
         var notificationId = Guid.NewGuid();
@@ -308,6 +303,7 @@ public class CheckNotificationDeliveryHandlerTests
         };
         var notificationDetailsV2 = new NotificationStatusResponseV2
         {
+            Status = "Order_Completed",
             ShipmentId = shipmentId,
             Recipients = new List<RecipientStatus>
         {
@@ -333,21 +329,18 @@ public class CheckNotificationDeliveryHandlerTests
         var result = await _handler.Process(notificationId, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsT1);
-        Assert.Equal(Altinn.Correspondence.Application.NotificationErrors.NotificationFailed(notificationId), result.AsT1);
+        Assert.True(result.IsT0);
 
         _notificationRepositoryMock.Verify(x => x.UpdateNotificationSent(
             It.IsAny<Guid>(),
             It.IsAny<DateTimeOffset>(),
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        _dialogportenServiceMock.Verify(x => x.CreateInformationActivity(
-            It.IsAny<Guid>(),
-            It.IsAny<DialogportenActorType>(),
-            It.IsAny<DialogportenTextType>(),
-            It.IsAny<DateTimeOffset>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Never);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IDialogportenService) &&
+                job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
+            It.IsAny<IState>()), Times.Never);
         _backgroundJobClientMock.Verify(x => x.Create(
             It.Is<Job>(job =>
                 job.Type == typeof(IEventBus) &&

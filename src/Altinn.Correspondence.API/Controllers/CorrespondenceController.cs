@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.API.ValidationAttributes;
 using Altinn.Correspondence.Application;
@@ -12,15 +12,16 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
+using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Altinn.Authorization.ProblemDetails;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -77,11 +78,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>1048: DialogId must be a valid non-empty GUID</li>
-        /// <li>1049: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence (1 day in non-production environments)</li>
         /// <li>1050: The service owner of a transmission can not differ from the service owner of the dialog</li>
         /// <li>1052: Only one DialogportenTransmissionType external reference is allowed</li>
         /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
         /// <li>1054: Dialogporten dialog with the given id was not found</li>
+        /// <li>1055: Existing attachment is expiring within 6 hour(s) and cannot be attached to a new correspondence</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -149,7 +150,8 @@ namespace Altinn.Correspondence.API.Controllers
         /// <remarks>
         /// One of the scopes: <br/>
         /// - altinn:correspondence.write <br />
-        /// Requires uploads of specified attachments if any before it can be Published
+        /// Requires uploads of specified attachments if any before it can be Published. <br />
+        /// Supports file sizes up to 2 GB each <br />
         /// </remarks>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
         /// <response code="400"><ul>
@@ -185,11 +187,11 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1046: The recipient of the correspondence must be equal to the party of the dialog of the transmission</li>
         /// <li>1047: Idempotency key is not supported for requests with multiple recipients</li>
         /// <li>1048: DialogId must be a valid non-empty GUID</li>
-        /// <li>1049: The expiration time of attachments on the correspondence must be at least 14 days after the requested publish time of the correspondence (1 day in non-production environments)</li>
         /// <li>1050: The service owner of a transmission can not differ from the service owner of the dialog</li>
         /// <li>1052: Only one DialogportenTransmissionType external reference is allowed</li>
         /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
         /// <li>1054: Dialogporten dialog with the given id was not found</li>
+        /// <li>1055: Existing attachment is expiring within 6 hour(s) and cannot be attached to a new correspondence</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
@@ -198,6 +200,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>2011: Filename is too long</li>
         /// <li>2012: Filename contains invalid characters</li>
         /// <li>2013: Filetype not allowed</li>
+        /// <li>2017: Attachment expirationTime must be at least 14 days from now (1 day in non-production environments)</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -572,10 +575,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>2001: The requested attachment was not found</li>
         /// </ul></response>
         [HttpGet]
-        [Produces("application/octet-stream")]
-        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/octet-stream")]
+        [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
+        [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status404NotFound, "application/json")]
         [Route("{correspondenceId}/attachment/{attachmentId}/download")]
         [Authorize(Policy = AuthorizationConstants.DownloadAttachmentPolicy, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
@@ -591,7 +593,19 @@ namespace Altinn.Correspondence.API.Controllers
                 AttachmentId = attachmentId
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
-                result => File(result.Stream, "application/octet-stream", result.FileName),
+                result =>
+                {
+                    var contentType = FileDownloadResponseHelper.GetContentTypeFromFileName(result.FileName);
+                    var extension = Path.GetExtension(result.FileName)?.ToLowerInvariant();
+
+                    if (!string.IsNullOrWhiteSpace(extension) && ApplicationConstants.InlineFileTypes.Contains(extension))
+                    {
+                        FileDownloadResponseHelper.SetInlineContentDisposition(Response, result.FileName);
+                        return File(result.Stream, contentType);
+                    }
+
+                    return File(result.Stream, contentType, result.FileName);
+                },
                 Problem
             );
         }

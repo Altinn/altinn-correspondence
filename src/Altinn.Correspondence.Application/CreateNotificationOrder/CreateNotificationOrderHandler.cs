@@ -22,6 +22,7 @@ public class CreateNotificationOrderHandler(
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IIdempotencyKeyRepository idempotencyKeyRepository,
+    IResourceRegistryService resourceRegistryService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
     ILogger<CreateNotificationOrderHandler> logger)
@@ -78,18 +79,45 @@ public class CreateNotificationOrderHandler(
         }
         logger.LogInformation("Looking up recipient name for correspondence {CorrespondenceId}", correspondence.Id);
         var recipientName = await altinnRegisterService.LookUpName(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+        var messageTitle = correspondence.Content?.MessageTitle ?? string.Empty;
         
         foreach (var template in templates)
         {
             logger.LogInformation("Processing template {TemplateId} with language {Language}", template.Id, template.Language);
+            var resourceName = await resourceRegistryService.GetResourceTitle(correspondence.ResourceId, template.Language ?? language, cancellationToken) ?? correspondence.ResourceId;
+
             content.Add(new NotificationContent()
             {
-                EmailSubject = CreateNotificationContentFromToken(template.EmailSubject ?? string.Empty, request.EmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                EmailBody = CreateNotificationContentFromToken(template.EmailBody ?? string.Empty, request.EmailBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                SmsBody = CreateNotificationContentFromToken(template.SmsBody ?? string.Empty, request.SmsBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                ReminderEmailBody = CreateNotificationContentFromToken(template.ReminderEmailBody ?? string.Empty, request.ReminderEmailBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                ReminderEmailSubject = CreateNotificationContentFromToken(template.ReminderEmailSubject ?? string.Empty, request.ReminderEmailSubject).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
-                ReminderSmsBody = CreateNotificationContentFromToken(template.ReminderSmsBody ?? string.Empty, request.ReminderSmsBody).Replace("$sendersName$", sendersName).Replace("$correspondenceRecipientName$", recipientName),
+                EmailSubject = CreateNotificationContentFromToken(template.EmailSubject ?? string.Empty, request.EmailSubject)
+                    .Replace("$sendersName$", sendersName)
+                    .Replace("$correspondenceRecipientName$", recipientName)
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$messageTitle$", messageTitle),
+                EmailBody = CreateNotificationContentFromToken(template.EmailBody ?? string.Empty, request.EmailBody)
+                    .Replace("$sendersName$", sendersName)
+                    .Replace("$correspondenceRecipientName$", recipientName)
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$messageTitle$", messageTitle),
+                SmsBody = CreateNotificationContentFromToken(template.SmsBody ?? string.Empty, request.SmsBody)
+                    .Replace("$sendersName$", sendersName)
+                    .Replace("$correspondenceRecipientName$", recipientName)
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$messageTitle$", messageTitle),
+                ReminderEmailBody = CreateNotificationContentFromToken(template.ReminderEmailBody ?? string.Empty, request.ReminderEmailBody)
+                    .Replace("$sendersName$", sendersName)
+                    .Replace("$correspondenceRecipientName$", recipientName)
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$messageTitle$", messageTitle),
+                ReminderEmailSubject = CreateNotificationContentFromToken(template.ReminderEmailSubject ?? string.Empty, request.ReminderEmailSubject)
+                    .Replace("$sendersName$", sendersName)
+                    .Replace("$correspondenceRecipientName$", recipientName)
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$messageTitle$", messageTitle),
+                ReminderSmsBody = CreateNotificationContentFromToken(template.ReminderSmsBody ?? string.Empty, request.ReminderSmsBody)
+                    .Replace("$sendersName$", sendersName)
+                    .Replace("$correspondenceRecipientName$", recipientName)
+                    .Replace("$resourceName$", resourceName)
+                    .Replace("$messageTitle$", messageTitle),
                 Language = template.Language,
                 RecipientType = template.RecipientType
             });
@@ -309,8 +337,7 @@ public class CreateNotificationOrderHandler(
                 }
                 catch (DbUpdateException e)
                 {
-                    var sqlState = e.InnerException?.Data["SqlState"]?.ToString();
-                    if (sqlState == "23505")
+                    if (e.IsPostgresUniqueViolation())
                     {
                         logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on correspondence {CorrespondenceId}. Skipping.", notificationOrderRequest.IdempotencyId, correspondence.Id);
                         return Task.CompletedTask;

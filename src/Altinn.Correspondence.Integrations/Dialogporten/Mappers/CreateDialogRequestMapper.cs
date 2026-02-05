@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -232,6 +232,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             // Choose the appropriate text type based on whether this is a reminder notification
             var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
+            
             string[] tokens = [];
             if (notification.NotificationAddress != null)
             {
@@ -436,7 +437,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
             {
                 var attachmentFileName = correspondenceAttachment?.Attachment?.FileName;
-                var mediaType = GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
+                var mediaType = DialogportenAttachmentMediaTypeMapper.GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
 
                 var attachment = new Attachment
                 {
@@ -460,47 +461,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 };
 
-                if (correspondenceAttachment.Attachment.ExpirationTime.HasValue)
+                if (correspondenceAttachment.ExpirationTime.HasValue)
                 {
-                    attachment.ExpiresAt = correspondenceAttachment.Attachment.ExpirationTime.Value;
+                    attachment.ExpiresAt = correspondenceAttachment.ExpirationTime.Value;
                 }
 
                 return attachment;
             }).ToList() ?? new List<Attachment>();
-        }
-
-        private static string? GetDialogportenAttachmentMediaTypeForFileName(string? fileName)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                return null;
-            }
-
-            var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
-            return ext switch
-            {
-                ".pdf" => "application/pdf",
-                ".xml" => "application/xml",
-                ".html" => "text/html",
-                ".json" => "application/json",
-                ".jpg" => "image/jpeg",
-                ".png" => "image/png",
-                ".csv" => "text/csv",
-                ".txt" => "text/plain",
-                ".zip" => "application/zip",
-                ".doc" => "application/msword",
-                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ".xls" => "application/vnd.ms-excel",
-                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-
-                // Supported by correspondence, but not in Dialogporten's attachment media type list
-                ".ppt" => "PPT",
-                ".pps" => "PPS",
-                ".gif" => "GIF",
-                ".bmp" => "BMP",
-
-                _ => null
-            };
         }
     }
 }

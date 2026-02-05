@@ -40,6 +40,7 @@ resource application_insights 'Microsoft.Insights/components@2020-02-02' = {
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
   name: '${namePrefix}-env'
   location: location
+  tags: resourceGroup().tags
   properties: {
     infrastructureResourceGroup: '${namePrefix}-rg'
     appLogsConfiguration: {

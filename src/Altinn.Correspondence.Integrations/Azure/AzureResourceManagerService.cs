@@ -218,7 +218,10 @@ public class AzureResourceManagerService : IResourceManager
             return new Dictionary<string, string>();
         }
         Dictionary<string, string> addresses = retrievedAddresses.ToDictionary(ip => ip, ip => $"{serviceTagId} IP");
-        addresses.Add(_resourceManagerOptions.ApimIP, "Apim IP");
+        if (!string.IsNullOrWhiteSpace(_resourceManagerOptions.ApimIP)) 
+        { 
+            addresses.Add(_resourceManagerOptions.ApimIP, "Apim IP");
+        }
         return addresses;
     }
 }

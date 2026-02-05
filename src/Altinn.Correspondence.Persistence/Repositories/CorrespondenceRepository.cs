@@ -248,8 +248,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             return await _context.CorrespondenceContents
                 .Where(content => content.CorrespondenceId == correspondenceId)
-                .Select(content => content.Attachments
-                    .All(correspondenceAttachment => correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
+                .Select(content =>
+                    content.Attachments.Count == 0 ||
+                    content.Attachments.All(correspondenceAttachment =>
+                        correspondenceAttachment.Attachment!.Statuses.Any(status => status.Status == AttachmentStatus.Published)))
                 .SingleOrDefaultAsync(cancellationToken);
         }
 
@@ -398,11 +400,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, CancellationToken cancellationToken)
+        public async Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken)
         {
             return await _context.Correspondences
                 .AsNoTracking()
                 .Where(c => c.ResourceId == resourceId)
+                .Where(c => c.Created <= minAge)
                 .Select(c => c.Id)
                 .ToListAsync(cancellationToken);
         }
@@ -472,7 +475,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
             // Filter by Altinn version if needed
             if (!includeAltinn2)
             {
-                query = query.Where(c => c.Altinn2CorrespondenceId == null);
+                query = query
+                    .Where(c => c.Altinn2CorrespondenceId == null)
+                    .Where(c => c.Created > new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero)); 
             }
 
             // Get all correspondence data needed for detailed statistics including ServiceOwnerId and AltinnVersion info

@@ -10,6 +10,7 @@ using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 using Altinn.Correspondence.Application.InitializeServiceOwner;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
+using Altinn.Correspondence.Application.RepairNotificationDelivery;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -178,7 +179,8 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     }
 
     /// <summary>
-    /// Cleanup test data (dialogs and correspondences) for a given resourceId used by bruksmonstertests
+    /// Cleanup test data (dialogs and correspondences) for bruksmonstertests.
+    /// Optionally scopes cleanup to data older than a given age.
     /// </summary>
     /// <response code="200">Returns a summary of deleted correspondences</response>
     /// <response code="401">Unauthorized</response>
@@ -192,10 +194,43 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> CleanupBruksmonsterTestData(
         [FromServices] CleanupBruksmonsterHandler handler,
+        [FromQuery] int? minAgeDays,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Request to cleanup bruksmonster test data received");
-        var result = await handler.Process(HttpContext.User, cancellationToken);
+        var request = new CleanupBruksmonsterRequest
+        {
+            MinAgeDays = minAgeDays
+        };
+
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+    /// <summary>
+    /// Enqueue a repair job that schedules delivery checks for Altinn3 notifications
+    /// missing the "notification sent" information activity in Dialogporten.
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("enqueue-missing-notification-sent-checks")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(EnqueueMissingNotificationSentChecksResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> EnqueueMissingNotificationSentChecks(
+        [FromServices] EnqueueMissingNotificationSentChecksHandler handler,
+        [FromBody] EnqueueMissingNotificationSentChecksRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to enqueue missing notification sent checks received");
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
             Problem

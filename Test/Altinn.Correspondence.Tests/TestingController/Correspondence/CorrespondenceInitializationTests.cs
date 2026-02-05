@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
@@ -728,6 +728,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
                 resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("BrokerService");
                 resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-broker-test-resource");
                 services.AddScoped(_ => resourceRegistryService.Object);
             });
             var payload = new CorrespondenceBuilder()
@@ -916,8 +917,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             for (int i = 0; i < 101; i++)
             {
                 var attachment = AttachmentHelper.GetAttachmentMetaData($"file{i}.txt");
-                attachment.DataLocationType = API.Models.Enums.InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
-                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
+                attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
+                attachment.ExpirationInDays = 1;
                 attachments.Add(attachment);
             }
 
@@ -970,7 +971,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             {
                 var attachment = AttachmentHelper.GetAttachmentMetaData($"file{i}.txt");
                 attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
-                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
+                attachment.ExpirationInDays = 1;
                 attachments.Add(attachment);
             }
 
@@ -1076,7 +1077,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             {
                 var attachment = AttachmentHelper.GetAttachmentMetaData($"file-combined-{i}.txt");
                 attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
-                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddDays(1);
+                attachment.ExpirationInDays = 1;
                 newAttachments.Add(attachment);
             }
 
@@ -1106,7 +1107,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             {
                 var attachment = AttachmentHelper.GetAttachmentMetaData(fileName);
                 attachment.DataLocationType = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
-                attachment.ExpirationTime = DateTimeOffset.UtcNow.AddYears(1);
+                attachment.ExpirationInDays = 365;
                 attachments.Add(attachment);
             }
 

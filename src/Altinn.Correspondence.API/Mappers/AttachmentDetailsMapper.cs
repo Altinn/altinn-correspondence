@@ -23,7 +23,7 @@ internal static class AttachmentDetailsMapper
             StatusHistory = AttachmentStatusMapper.MapToExternal(AttachmentDetails.Statuses),
             CorrespondenceIds = AttachmentDetails.CorrespondenceIds,
             Checksum = AttachmentDetails.Checksum,
-            ExpirationTime = AttachmentDetails.ExpirationTime
+            ExpirationInDays = AttachmentDetails.ExpirationInDays
         };
         return attachment;
     }

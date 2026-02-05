@@ -53,14 +53,13 @@ public static class CorrespondenceErrors
     public static Error RecipientMismatch = new Error(1046, "The recipient of the correspondence must be equal to the party of the dialog of the transmission", HttpStatusCode.BadRequest);
     public static Error IdempotencyKeyNotAllowedWithMultipleRecipients = new Error(1047, "Idempotency key is not supported for requests with multiple recipients", HttpStatusCode.BadRequest);
     public static Error InvalidCorrespondenceDialogId = new Error(1048, "DialogId must be a valid non-empty GUID", HttpStatusCode.BadRequest);
-
-    public static Error AttachmentExpirationTooSoonAfterRequestedPublishTime(int minimumDays) =>
-        new Error(1049, $"The expiration time of attachments on the correspondence must be at least {minimumDays} days after the requested publish time of the correspondence", HttpStatusCode.BadRequest);
     public static Error InvalidServiceOwner = new Error(1050, "The service owner of a transmission can not differ from the service owner of the dialog", HttpStatusCode.BadRequest);
     public static Error TransmissionNotAllowedWithGuiActions = new Error(1051, "Correspondences with GUI actions (ReplyOptions or IsConfirmationNeeded) cannot be sent as transmissions", HttpStatusCode.BadRequest);
     public static Error MultipleDialogportenTransmissionTypeExternalReferences = new Error(1052, "Only one DialogportenTransmissionType external reference is allowed", HttpStatusCode.BadRequest);
     public static Error DialogportenTransmissionTypeRequiresDialogId = new Error(1053, "DialogportenTransmissionType external reference requires a DialogportenDialogId external reference", HttpStatusCode.BadRequest);
     public static Error DialogportenDialogIdNotFound = new Error(1054, "Dialogporten dialog with the given id was not found", HttpStatusCode.NotFound);
+    public static Error ExistingAttachmentExpiringSoon(int hours) =>
+        new Error(1055, $"Existing attachment is expiring within {hours} hour(s) and cannot be attached to a new correspondence", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
@@ -69,7 +68,8 @@ public static class AttachmentErrors
     public static Error AttachmentNotFound = new Error(2001, "The requested attachment was not found", HttpStatusCode.NotFound);
     public static Error UploadFailed = new Error(2002, "Error occurred during upload", HttpStatusCode.BadGateway);
     public static Error CantUploadToExistingCorrespondence = new Error(2003, "Cannot upload attachment to a correspondence that has been created", HttpStatusCode.BadRequest);
-    public static Error InvalidFileSize = new Error(2004, "File must have content and has a max file size of 2GB", HttpStatusCode.BadRequest);
+    public static Error InvalidFileSize(string maxFileSize) =>
+        new Error(2004, $"File must have content and has a max file size of {maxFileSize}", HttpStatusCode.BadRequest);
     public static Error FileAlreadyUploaded = new Error(2005, "File has already been or is being uploaded", HttpStatusCode.BadRequest);
     public static Error FileHasBeenPurged = new Error(2006, "File has already been purged", HttpStatusCode.BadRequest);
     public static Error PurgeAttachmentWithExistingCorrespondence = new Error(2007, "Attachment cannot be purged as it is linked to at least one existing correspondence", HttpStatusCode.BadRequest);
@@ -77,7 +77,7 @@ public static class AttachmentErrors
     public static Error DataLocationNotFound = new Error(2009, "Could not get data location url", HttpStatusCode.BadRequest);
     public static Error FilenameMissing = new Error(2010, "Filename is missing", HttpStatusCode.BadRequest);
     public static Error FilenameTooLong = new Error(2011, "Filename is too long", HttpStatusCode.BadRequest);
-    public static Error FilenameInvalid = new Error(2012, "Filename contains invalid characters", HttpStatusCode.BadRequest);
+    public static Error FilenameInvalid = new Error(2012, "Filename contains invalid characters. The ruleset is based on Windows file naming convention which is defined here: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#file-and-directory-names", HttpStatusCode.BadRequest);
     public static Error FiletypeNotAllowed = new Error(2013, "Filetype not allowed", HttpStatusCode.BadRequest);
     public static Error ServiceOwnerNotFound = new Error(2014, "Service owner not setup in this environment. You need a service owner agreement to use Correspondence. Please contact us at Slack.", HttpStatusCode.UnavailableForLegalReasons);
     public static Error AttachmentAlreadyMigrated = new Error(2015, "Attachment has already been migrated", HttpStatusCode.Conflict);
@@ -87,6 +87,7 @@ public static class AttachmentErrors
     public static Error FileHasBeenExpired = new Error(2018, "File has expired", HttpStatusCode.BadRequest);
     public static Error CannotDownloadPurgedAttachment = new Error(2019, "The attachment has been purged and cannot be downloaded", HttpStatusCode.BadRequest);
     public static Error CannotDownloadExpiredAttachment = new Error(2020, "The attachment has expired and cannot be downloaded", HttpStatusCode.BadRequest);
+    public static Error FilenameCannotBeAReservedWindowsFilename = new Error(2021, "The filename uses a Windows reserved name. Files cannot be named CON, PRN, AUX, NUL, COM1-COM9, or LPT1-LPT9 (e.g., 'CON.txt' is not allowed, but 'CONSOLE.txt' is).", HttpStatusCode.BadRequest);
 }
 public static class NotificationErrors
 {
@@ -132,4 +133,5 @@ public static class StatisticsErrors
 {
     public static Error NoCorrespondencesFound = new Error(6001, "No correspondences found for report generation", HttpStatusCode.NotFound);
     public static Error ReportGenerationFailed = new Error(6002, "Failed to generate statistics report", HttpStatusCode.InternalServerError);
+    public static Error Altinn2NotSupported = new Error(6003, "Report including Altinn 2 correspondendes is currently not supported", HttpStatusCode.BadRequest);
 }
