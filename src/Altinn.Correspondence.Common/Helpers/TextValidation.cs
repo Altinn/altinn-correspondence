@@ -29,6 +29,9 @@ public class TextValidation
 
     public static bool ValidateMarkdown(string markdown)
     {
+        // Ignore backticks in the comparison so backticks are always accepted. 
+        // This is to make the validation consistent with how we allow ambiguous use of * and _ in markdown. 
+        // E.g lenient markdown validation.
         var normalizedMarkdown = markdown.Replace("`", "");
         var config = new ReverseMarkdown.Config
         {
@@ -44,8 +47,7 @@ public class TextValidation
         var text = WebUtility.HtmlDecode(WebUtility.HtmlDecode(normalizedMarkdown));
         result = WebUtility.HtmlDecode(WebUtility.HtmlDecode(result));
 
-        //As reversemarkdown makes all code blocks to ` we need to replace ``` with ` and `` with ` to compare the strings
-        return ReplaceWhitespaceAndEscapeCharacters(text.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result.Replace("```", "`").Replace("``", "`"));
+        return ReplaceWhitespaceAndEscapeCharacters(text) == ReplaceWhitespaceAndEscapeCharacters(result);
     }
 
     public static string ReplaceWhitespaceAndEscapeCharacters(string text)
