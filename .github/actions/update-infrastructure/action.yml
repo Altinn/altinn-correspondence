@@ -96,14 +96,18 @@ runs:
         set -euo pipefail
         RG="${{ inputs.AZURE_NAME_PREFIX }}-rg"
         ENV_NAME="${{ inputs.AZURE_NAME_PREFIX }}-env"
-        if az containerapp env show -g "$RG" -n "$ENV_NAME" > /dev/null 2>&1; then
+        if az resource show -g "$RG" -n "$ENV_NAME" --resource-type "Microsoft.App/managedEnvironments" > /dev/null 2>&1; then
           for i in {1..20}; do
-            STATE=$(az containerapp env show -g "$RG" -n "$ENV_NAME" --query "provisioningState" -o tsv)
+            STATE=$(az resource show -g "$RG" -n "$ENV_NAME" --resource-type "Microsoft.App/managedEnvironments" --query "properties.provisioningState" -o tsv || true)
             if [ "$STATE" = "Succeeded" ]; then
               echo "Container Apps environment is ready: $ENV_NAME"
               exit 0
             fi
-            echo "Container Apps environment not ready (state=$STATE). Retry $i/20..."
+            if [ -z "$STATE" ]; then
+              echo "Container Apps environment state unavailable. Retry $i/20..."
+            else
+              echo "Container Apps environment not ready (state=$STATE). Retry $i/20..."
+            fi
             sleep 30
           done
           echo "Container Apps environment is not ready after retries: $ENV_NAME"
