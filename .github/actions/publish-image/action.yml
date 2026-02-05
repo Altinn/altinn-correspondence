@@ -6,6 +6,14 @@ inputs:
   dockerImageBaseName:
     description: "Base image name for docker images"
     required: true
+  dockerfile:
+    description: "Path to Dockerfile"
+    required: false
+    default: "Dockerfile"
+  context:
+    description: "Docker build context"
+    required: false
+    default: "."
   imageTag:
     description: "Version image tag"
     required: true
@@ -31,5 +39,5 @@ runs:
       run: |
         # Construct the image tag using the Git hash
         IMAGE="${{ inputs.dockerImageBaseName }}:${{ inputs.imageTag }}"
-        docker build . --tag $IMAGE
+        docker build "${{ inputs.context }}" --file "${{ inputs.dockerfile }}" --tag $IMAGE
         docker push $IMAGE

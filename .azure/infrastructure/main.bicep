@@ -33,6 +33,8 @@ param statisticsApiKey string
 @secure()
 param grafanaMonitoringPrincipalId string
 
+param backupImageTag string = 'latest'
+
 
 @secure()
 param maintenanceAdGroupId string
@@ -209,6 +211,7 @@ module backupJob '../applications/backup/main.bicep' = {
     location: location
     tenantId: tenantId
     storageAccountName: storageAccountName
+    backupImageTag: backupImageTag
   }
 }
 
