@@ -14,6 +14,7 @@ param backupJobName string = '${namePrefix}-backup'
 
 param backupImageTag string = 'latest'
 param aadPropagationWaitSeconds int = 120
+param envProvisioningWaitSeconds int = 180
 
 param pgDumpExcludeArgs string = '--exclude-table=cron.job --exclude-table=cron.job_run_details --exclude-table=__yuniql_schema_version --exclude-table=__yuniql_schema_version_sequence_id_seq'
 
@@ -97,6 +98,31 @@ resource backupEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@20
   }
 }
 
+resource envProvisioningWait 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+  name: '${backupJobName}-env-wait'
+  location: location
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${backupIdentity.id}': {}
+    }
+  }
+  properties: {
+    azPowerShellVersion: '13.0'
+    scriptContent: '''
+      param([int] $seconds)
+      Start-Sleep -Seconds $seconds
+    '''
+    arguments: '-seconds ${envProvisioningWaitSeconds}'
+    forceUpdateTag: '1'
+    retentionInterval: 'PT2H'
+  }
+  dependsOn: [
+    backupEnvironmentStorage
+  ]
+}
+
 var containerAppEnvVars = [
   { name: 'AZURE_CLIENT_ID', value: backupIdentity.properties.clientId }
   { name: 'PGHOST', value: '${postgresServerName}.postgres.database.azure.com' }
@@ -127,6 +153,7 @@ var commandScript = 'set -euo pipefail; az login --identity --client-id $AZURE_C
 module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: backupJobName
   dependsOn: [
+    envProvisioningWait
     backupEnvironmentStorage
     databaseAccess
     backupFileShare
