@@ -29,6 +29,7 @@ public class TextValidation
 
     public static bool ValidateMarkdown(string markdown)
     {
+        var normalizedMarkdown = markdown.Replace("`", "");
         var config = new ReverseMarkdown.Config
         {
             CleanupUnnecessarySpaces = false,
@@ -36,11 +37,11 @@ public class TextValidation
         };
         var converter = new ReverseMarkdown.Converter(config);
         // change all codeblocks to <code> to keep html content in codeblocks
-        var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);
+        var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(normalizedMarkdown);
         string result = converter.Convert(markdownWithCodeBlocks);
 
         // needs to decode the text twice as some encoded characters contains encoded characters, such as emdash &#8212;
-        var text = WebUtility.HtmlDecode(WebUtility.HtmlDecode(markdown));
+        var text = WebUtility.HtmlDecode(WebUtility.HtmlDecode(normalizedMarkdown));
         result = WebUtility.HtmlDecode(WebUtility.HtmlDecode(result));
 
         //As reversemarkdown makes all code blocks to ` we need to replace ``` with ` and `` with ` to compare the strings
