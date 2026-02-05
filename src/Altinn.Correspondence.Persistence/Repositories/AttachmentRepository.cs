@@ -193,10 +193,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
 			return await _context.SaveChangesAsync(cancellationToken);
 		}
 
-        public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, CancellationToken cancellationToken)
+        public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken)
         {
             return await _context.Attachments
+                .AsNoTracking()
                 .Where(a => a.ResourceId == resourceId)
+                .Where(a => a.Created <= minAge)
                 .Select(a => a.Id)
                 .ToListAsync(cancellationToken);
         }

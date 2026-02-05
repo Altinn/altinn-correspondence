@@ -57,10 +57,10 @@ public class CleanupBruksmonsterHandlerTests
         var attachmentIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
 
         corrRepoMock
-            .Setup(m => m.GetCorrespondenceIdsByResourceId(AllowedResourceId, It.IsAny<CancellationToken>()))
+            .Setup(m => m.GetCorrespondenceIdsByResourceId(AllowedResourceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondenceIds);
         attRepoMock
-            .Setup(m => m.GetAttachmentIdsOnResource(AllowedResourceId, It.IsAny<CancellationToken>()))
+            .Setup(m => m.GetAttachmentIdsOnResource(AllowedResourceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(attachmentIds);
 
         var createdJobs = new List<(Job job, IState state)>();
@@ -70,7 +70,7 @@ public class CleanupBruksmonsterHandlerTests
             .Returns(() => $"job-id-{createdJobs.Count}");
 
         // Act
-        var result = await handler.Process(user: null, CancellationToken.None);
+        var result = await handler.Process(new CleanupBruksmonsterRequest(), user: null, CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT0);
@@ -79,8 +79,8 @@ public class CleanupBruksmonsterHandlerTests
         Assert.Equal(correspondenceIds.Count, response.CorrespondencesFound);
         Assert.Equal(attachmentIds.Count, response.AttachmentsFound);
 
-        corrRepoMock.Verify(m => m.GetCorrespondenceIdsByResourceId(AllowedResourceId, It.IsAny<CancellationToken>()), Times.Once);
-        attRepoMock.Verify(m => m.GetAttachmentIdsOnResource(AllowedResourceId, It.IsAny<CancellationToken>()), Times.Once);
+        corrRepoMock.Verify(m => m.GetCorrespondenceIdsByResourceId(AllowedResourceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Once);
+        attRepoMock.Verify(m => m.GetAttachmentIdsOnResource(AllowedResourceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Once);
 
         Assert.Equal(2, createdJobs.Count);
         Assert.Equal("PurgeCorrespondenceDialogs", createdJobs[0].job.Method.Name);
