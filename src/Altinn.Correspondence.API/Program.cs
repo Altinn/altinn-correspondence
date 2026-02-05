@@ -2,6 +2,7 @@ using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
 using Altinn.Correspondence.Common.Caching;
@@ -83,6 +84,10 @@ static void BuildAndRun(string[] args)
 
     app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<IpSecurityRestrictionUpdater>("Update IP restrictions to apimIp and current EventGrid IPs", handler => handler.UpdateIpRestrictions(), Cron.Daily());
     app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<GenerateDailySummaryReportHandler>("Generate daily summary report", handler => handler.Process(new GenerateDailySummaryReportRequest() { Altinn2Included = false }, CancellationToken.None), Cron.Daily());
+    app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<CleanupBruksmonsterHandler>(
+        "Cleanup bruksmonster test data older than 1 day",
+        handler => handler.Process(new CleanupBruksmonsterRequest() { MinAgeDays = 1 }, null, CancellationToken.None),
+        Cron.Daily());
 
     app.Run();
 }
