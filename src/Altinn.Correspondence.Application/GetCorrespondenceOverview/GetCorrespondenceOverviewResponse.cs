@@ -39,8 +39,6 @@ public class GetCorrespondenceOverviewResponse
 
     public bool IgnoreReservation { get; set; }
 
-    public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
-
     public DateTimeOffset? DueDateTime { get; set; }
 
     public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();

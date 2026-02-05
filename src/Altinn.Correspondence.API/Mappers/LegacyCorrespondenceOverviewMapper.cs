@@ -30,7 +30,6 @@ internal static class LegacyCorrespondenceOverviewMapper
             ExternalReferences = ExternalReferenceMapper.MapListToExternal(correspondenceOverview.ExternalReferences),
             ResourceId = correspondenceOverview.ResourceId.ToString(),
             RequestedPublishTime = correspondenceOverview.RequestedPublishTime,
-            AllowSystemDeleteAfter = correspondenceOverview.AllowSystemDeleteAfter,
             DueDateTime = correspondenceOverview.DueDateTime,
             PropertyList = correspondenceOverview.PropertyList,
             IgnoreReservation = correspondenceOverview.IgnoreReservation,

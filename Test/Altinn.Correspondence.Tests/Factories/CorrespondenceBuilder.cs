@@ -180,11 +180,6 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.RequestedPublishTime = requestedPublishTime;
             return this;
         }
-        public CorrespondenceBuilder WithAllowSystemDeleteAfter(DateTimeOffset dueDateTime)
-        {
-            _correspondence.Correspondence.AllowSystemDeleteAfter = dueDateTime;
-            return this;
-        }
         public CorrespondenceBuilder WithConfirmationNeeded(bool confirmationNeeded)
         {
             _correspondence.Correspondence.IsConfirmationNeeded = confirmationNeeded;
