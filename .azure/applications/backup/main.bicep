@@ -5,6 +5,7 @@ param tenantId string
 
 @secure()
 param storageAccountName string
+param backupStorageAccountName string = ''
 param backupFileShareName string = 'correspondence-backups'
 param backupBlobContainerName string = 'correspondence-backups'
 
@@ -23,6 +24,11 @@ var backupIdentityName = '${namePrefix}-backup-identity'
 var backupStorageName = 'correspondence-backups'
 var pgDumpExcludeArgsValue = pgDumpExcludeArgs
 var backupImage = 'ghcr.io/altinn/altinn-correspondence-backup:${backupImageTag}'
+var backupStorageAccountBase = '${toLower(replace(namePrefix, '-', ''))}backups'
+var backupStorageAccountDerived = length(backupStorageAccountBase) > 24
+  ? substring(backupStorageAccountBase, 0, 24)
+  : backupStorageAccountBase
+var effectiveBackupStorageAccountName = empty(backupStorageAccountName) ? backupStorageAccountDerived : backupStorageAccountName
 
 resource backupIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: backupIdentityName
@@ -72,8 +78,17 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' 
   name: containerAppEnvName
 }
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-  name: storageAccountName
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: effectiveBackupStorageAccountName
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    accessTier: 'Cool'
+    minimumTlsVersion: 'TLS1_2'
+  }
 }
 
 resource storageAccountFileServices 'Microsoft.Storage/storageAccounts/fileServices@2023-05-01' = {
@@ -151,7 +166,7 @@ var containerAppEnvVars = [
   { name: 'PGDATABASE', value: databaseName }
   { name: 'PGUSER', value: backupIdentity.name }
   { name: 'PGSSLMODE', value: 'require' }
-  { name: 'BACKUP_STORAGE_ACCOUNT', value: storageAccountName }
+  { name: 'BACKUP_STORAGE_ACCOUNT', value: effectiveBackupStorageAccountName }
   { name: 'BACKUP_BLOB_CONTAINER', value: backupBlobContainerName }
 ]
 
