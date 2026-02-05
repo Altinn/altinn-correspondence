@@ -20,6 +20,7 @@ resource redis 'Microsoft.Cache/redis@2024-11-01' = {
   }
   location: location
   name: '${namePrefix}-redis'
+  tags: resourceGroup().tags
   properties: {
     sku: {
       capacity: prodLikeEnvironment ? 2 : environment == 'staging' ? 1 : 0
