@@ -84,11 +84,9 @@ module storageAccountConnectionStringSecret '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: keyVaultName
     secretName: storageAccountConnectionStringSecretName
-    secretValue: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+    secretValue: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=core.windows.net'
   }
 }
-
-
 
 output containerAppEnvironmentId string = containerAppEnvironment.id
 output logAnalyticsWorkspaceId string = log_analytics_workspace.id
