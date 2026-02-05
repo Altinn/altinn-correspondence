@@ -144,6 +144,7 @@ var ipSecurityRestrictions = concat(apimIpRestrictions, EventGridIpRestrictions)
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'
   location: location
+  tags: resourceGroup().tags
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
