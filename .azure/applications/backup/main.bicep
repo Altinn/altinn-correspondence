@@ -98,7 +98,7 @@ resource backupBlobContainer 'Microsoft.Storage/storageAccounts/blobServices/con
 
 var storageBlobDataContributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
 resource backupBlobDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, backupIdentity.properties.principalId, storageBlobDataContributorRoleId)
+  name: guid(storageAccount.id, backupIdentity.id, storageBlobDataContributorRoleId)
   scope: storageAccount
   properties: {
     roleDefinitionId: storageBlobDataContributorRoleId
