@@ -6,6 +6,7 @@ param tenantId string
 @secure()
 param storageAccountName string
 param backupFileShareName string = 'correspondence-backups'
+param backupBlobContainerName string = 'correspondence-backups'
 
 param postgresServerName string = '${namePrefix}-dbserver'
 param databaseName string = 'correspondence'
@@ -85,6 +86,27 @@ resource backupFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@
   parent: storageAccountFileServices
 }
 
+resource storageAccountBlobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-04-01' = {
+  name: 'default'
+  parent: storageAccount
+}
+
+resource backupBlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-04-01' = {
+  name: backupBlobContainerName
+  parent: storageAccountBlobServices
+}
+
+var storageBlobDataContributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+resource backupBlobDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, backupIdentity.properties.principalId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: storageBlobDataContributorRoleId
+    principalId: backupIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource backupEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
   name: backupStorageName
   parent: containerAppEnv
@@ -129,6 +151,8 @@ var containerAppEnvVars = [
   { name: 'PGDATABASE', value: databaseName }
   { name: 'PGUSER', value: backupIdentity.name }
   { name: 'PGSSLMODE', value: 'require' }
+  { name: 'BACKUP_STORAGE_ACCOUNT', value: storageAccountName }
+  { name: 'BACKUP_BLOB_CONTAINER', value: backupBlobContainerName }
 ]
 
 var volumes = [
@@ -148,7 +172,7 @@ var volumeMounts = [
   }
 ]
 
-var commandScript = 'set -euo pipefail; az login --identity --client-id $AZURE_CLIENT_ID --allow-no-subscriptions > /dev/null; TOKEN=$(az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv); export PGPASSWORD="$TOKEN"; filename="correspondence_$(date +"%Y-%m-%d_%H-%M").backup"; pg_dump -h $PGHOST -U $PGUSER -d $PGDATABASE ${pgDumpExcludeArgsValue} -Fc -f /backups/$filename --no-owner --no-privileges --no-tablespaces --quote-all-identifiers'
+var commandScript = 'set -euo pipefail; az login --identity --client-id $AZURE_CLIENT_ID --allow-no-subscriptions > /dev/null; TOKEN=$(az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv); export PGPASSWORD="$TOKEN"; filename="correspondence_$(date +"%Y-%m-%d_%H-%M").backup"; pg_dump -h $PGHOST -U $PGUSER -d $PGDATABASE ${pgDumpExcludeArgsValue} -Fc -f /backups/$filename --no-owner --no-privileges --no-tablespaces --quote-all-identifiers; az storage blob upload --auth-mode login --account-name $BACKUP_STORAGE_ACCOUNT --container-name $BACKUP_BLOB_CONTAINER --name $filename --file /backups/$filename --overwrite true; rm /backups/$filename'
 
 module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: backupJobName
@@ -157,6 +181,8 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     backupEnvironmentStorage
     databaseAccess
     backupFileShare
+    backupBlobContainer
+    backupBlobDataContributorRoleAssignment
   ]
   params: {
     name: backupJobName
