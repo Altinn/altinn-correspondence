@@ -122,7 +122,7 @@ var volumeMounts = [
   }
 ]
 
-var commandScript = 'set -euo pipefail; az login --identity --client-id $AZURE_CLIENT_ID > /dev/null; TOKEN=$(az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv); export PGPASSWORD="$TOKEN"; filename="correspondence_$(date +"%Y-%m-%d_%H-%M").backup"; pg_dump -h $PGHOST -U $PGUSER -d $PGDATABASE ${pgDumpExcludeArgsValue} -Fc -f /backups/$filename --no-owner --no-privileges --no-tablespaces --quote-all-identifiers'
+var commandScript = 'set -euo pipefail; az login --identity --client-id $AZURE_CLIENT_ID --allow-no-subscriptions > /dev/null; TOKEN=$(az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv); export PGPASSWORD="$TOKEN"; filename="correspondence_$(date +"%Y-%m-%d_%H-%M").backup"; pg_dump -h $PGHOST -U $PGUSER -d $PGDATABASE ${pgDumpExcludeArgsValue} -Fc -f /backups/$filename --no-owner --no-privileges --no-tablespaces --quote-all-identifiers'
 
 module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: backupJobName
