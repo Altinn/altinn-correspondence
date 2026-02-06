@@ -106,7 +106,10 @@ public class AzureResourceManagerService : IResourceManager
         var storageAccountData = new StorageAccountCreateOrUpdateContent(new StorageSku(StorageSkuName.StandardLrs), StorageKind.StorageV2, new AzureLocation(_resourceManagerOptions.Location));
         storageAccountData.MinimumTlsVersion = "TLS1_2";
         storageAccountData.AllowSharedKeyAccess = false;
-        storageAccountData.Tags.Add("customer_id", serviceOwnerEntity.Id);
+        foreach (var tag in GetServiceOwnerResourceGroupTags(serviceOwnerEntity))
+        {
+            storageAccountData.Tags[tag.Key] = tag.Value;
+        }
         var storageAccountCollection = resourceGroup.Value.GetStorageAccounts();
         var storageAccount = await storageAccountCollection.CreateOrUpdateAsync(WaitUntil.Completed, storageAccountName, storageAccountData, cancellationToken);
         if (virusScan)
