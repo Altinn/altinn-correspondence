@@ -26,53 +26,12 @@ inputs:
   AZURE_NAME_PREFIX:
     description: "Prefix for all resources"
     required: true
-  PLATFORM_BASE_URL:
-    description: "Base url for Altinn platform"
-    required: true
-  OVERRIDE_AUTHORIZATION_URL:
-    description: "Override authorization URL for Altinn"
-    required: true
-  OVERRIDE_AUTHORIZATION_THUMBPRINT:
-    description: "Thumbprint used for authorization cluster certificate validation"
-    required: true
   STORAGE_ACCOUNT_NAME:
     description: "Name of the storage account used for attachments"
     required: true
-  CORRESPONDENCE_BASE_URL:
-    description: "Base url for callbacks to Correspondence"
-  CONTACT_RESERVATION_REGISTRY_BASE_URL:
-    description: "Contact Reservation Registry Base URL"
-  BRREG_BASE_URL:
-    description: "Brreg Base URL"
-  DIALOGPORTEN_ISSUER:
-    description: "Issuer for Dialogporten integration used to support ID"
-    required: true
-  IDPORTEN_ISSUER:
-    description: "Issuer for Maskinporten integration used for IDPorten auth"
-    required: true
-  SBL_BRIDGE_BASE_URL:
-    description: "Base url for SBL Bridge"
-    required: true
-  MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT:
-    description: "Environment for Maskinporten token exchange"
-    required: false
-    default: ""
-  MASKINPORTEN_ENVIRONMENT:
-    description: "Maskinporten environment"
-    required: true
-    default: ""
   APIM_IP:
     description: "IP address for APIM"
     required: true
-  WORKER_COUNT_PER_REPLICA:
-    description: "Number of workers to use for Altinn 3 Correspondence operations"
-    required: false
-  MIGRATION_WORKER_COUNT_PER_REPLICA:
-    description: "Number of workers to use for Dialogporten migration"
-    required: false
-  ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED:
-    description: "Comma separated list of Arbeidsflate origins"
-    required: false
 
 runs:
   using: "composite"
@@ -98,22 +57,8 @@ runs:
         NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         CLIENT_ID: ${{ inputs.AZURE_CLIENT_ID }}
         TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
-        PLATFORM_BASE_URL: ${{ inputs.PLATFORM_BASE_URL }}
-        OVERRIDE_AUTHORIZATION_URL: ${{ inputs.OVERRIDE_AUTHORIZATION_URL }}
-        OVERRIDE_AUTHORIZATION_THUMBPRINT: ${{ inputs.OVERRIDE_AUTHORIZATION_THUMBPRINT }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.STORAGE_ACCOUNT_NAME }}
-        CORRESPONDENCE_BASE_URL: ${{ inputs.CORRESPONDENCE_BASE_URL }}
-        CONTACT_RESERVATION_REGISTRY_BASE_URL: ${{ inputs.CONTACT_RESERVATION_REGISTRY_BASE_URL }}
-        BRREG_BASE_URL: ${{ inputs.BRREG_BASE_URL }}
-        DIALOGPORTEN_ISSUER: ${{ inputs.DIALOGPORTEN_ISSUER }}
-        IDPORTEN_ISSUER: ${{ inputs.IDPORTEN_ISSUER }}
-        SBL_BRIDGE_BASE_URL: ${{ inputs.SBL_BRIDGE_BASE_URL }}
-        MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT: ${{ inputs.MASKINPORTEN_TOKEN_EXCHANGE_ENVIRONMENT }}
-        MASKINPORTEN_ENVIRONMENT: ${{ inputs.MASKINPORTEN_ENVIRONMENT }}
         APIM_IP: ${{ inputs.APIM_IP }}
-        WORKER_COUNT_PER_REPLICA: ${{ inputs.WORKER_COUNT_PER_REPLICA }}
-        MIGRATION_WORKER_COUNT_PER_REPLICA: ${{ inputs.MIGRATION_WORKER_COUNT_PER_REPLICA }}
-        ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED: ${{ inputs.ARBEIDSFLATE_ORIGINS_COMMA_SEPARATED }}
       with:
         scope: subscription
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}

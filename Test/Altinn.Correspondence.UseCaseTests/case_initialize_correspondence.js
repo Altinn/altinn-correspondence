@@ -2,7 +2,6 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { getSenderAltinnToken, getRecipientAltinnToken } from './helpers/altinnTokenService.js';
 import { buildInitializeCorrespondenceWithNewAttachmentPayload } from './helpers/correspondencePayloadBuilder.js';
-import { cleanupBruksmonsterTestData } from './helpers/cleanupUseCaseTestsData.js';
 
 const baseUrl = __ENV.base_url;
 const recipient = __ENV.recipient;
@@ -26,7 +25,6 @@ export const options = {
  * TC03: Retrieve attachment overview as sender
  * TC04: Download the correspondence attachment as recipient
  * TC05: Purge correspondence as recipient
- * cleanup: deletes data created by bruksmonster tests
  */
 export default async function () {
     try {
@@ -35,8 +33,6 @@ export default async function () {
         await TC03_GetAttachmentOverviewAsSender(attachmentId);
         await TC04_DownloadCorrespondenceAttachmentAsRecipient(correspondenceId, attachmentId);
         await TC05_PurgeCorrespondenceAsRecipient(correspondenceId);
-        sleep(10); //give time for the purge to complete (Report purge activity to dialogporten might throw an error if it's not completed yet before cleanup)
-        await cleanupBruksmonsterTestData();
     } catch (e) {
         check(false, { 'No exceptions in test execution': () => false });
         throw e;

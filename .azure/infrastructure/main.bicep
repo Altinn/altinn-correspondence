@@ -8,37 +8,21 @@ param tenantId string
 @secure()
 param test_client_id string
 param environment string
-@secure()
 param namePrefix string
 @secure()
-param maskinportenJwk string
-@secure()
-param maskinportenClientId string
-@secure()
-param platformSubscriptionKey string
-@secure()
-param accessManagementSubscriptionKey string
-@secure()
-param slackUrl string
-@secure()
-param idportenClientId string
-@secure()
-param idportenClientSecret string
-
-@secure()
 param storageAccountName string
-param maskinporten_token_exchange_environment string
-@secure()
-param statisticsApiKey string
 @secure()
 param grafanaMonitoringPrincipalId string
+@secure()
+@description('Object ID (Principal ID) of the deployment service principal for storage account access')
+param deploymentPrincipalId string
 
 @secure()
 param maintenanceAdGroupId string
 @secure()
 param maintenanceAdGroupName string
 
-var prodLikeEnvironment = environment == 'production' || environment == 'staging' || maskinporten_token_exchange_environment == 'yt01'
+var prodLikeEnvironment = environment == 'production' || environment == 'staging' || environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
 var standardTags = {
   finops_environment: environment
@@ -79,63 +63,11 @@ module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerR
   }
 }
 
-var secrets = [
-  {
-    name: 'maskinporten-client-id'
-    value: maskinportenClientId
-  }
-  {
-    name: 'maskinporten-jwk'
-    value: maskinportenJwk
-  }
-  {
-    name: 'platform-subscription-key'
-    value: platformSubscriptionKey
-  }
-  {
-    name: 'access-management-subscription-key'
-    value: accessManagementSubscriptionKey
-  }
-  {
-    name: 'slack-url'
-    value: slackUrl
-  }
-  {
-    name: 'idporten-client-id'
-    value: idportenClientId
-  }
-  {
-    name: 'idporten-client-secret'
-    value: idportenClientSecret
-  }
-  {
-    name: 'statistics-api-key'
-    value: statisticsApiKey
-  }
-]
-
-module keyvaultSecrets '../modules/keyvault/upsertSecrets.bicep' = {
-  scope: resourceGroup
-  name: 'secrets'
-  params: {
-    secrets: secrets
-    sourceKeyvaultName: environmentKeyVault.outputs.name
-  }
-}
-
 // #####################################################
 // Create resources with dependencies to other resources
 // #####################################################
 
-module storageAccount '../modules/storageAccount/create.bicep' = {
-  scope: resourceGroup
-  name: storageAccountName
-  params: {
-    storageAccountName: storageAccountName
-    location: location
-    fileshare: 'migrations'
-  }
-}
+
 
 module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   scope: resourceGroup
@@ -190,6 +122,26 @@ module reddis '../modules/redis/main.bicep' = {
     keyVaultName: sourceKeyVaultName
     prodLikeEnvironment: prodLikeEnvironment
     environment: environment
+  }
+}
+
+module storageAccount '../modules/storageAccount/create.bicep' = {
+  scope: resourceGroup
+  name: storageAccountName
+  params: {
+    storageAccountName: storageAccountName
+    location: location
+    fileshare: 'migrations'
+  }
+}
+
+module grantDeploymentPrincipalStorageFileAccess '../modules/storageAccount/addFileDataPrivilegedContributorRole.bicep' = {
+  scope: resourceGroup
+  name: 'storage-file-privileged-contributor-deployment'
+  dependsOn: [storageAccount]
+  params: {
+    storageAccountName: storageAccountName
+    principalId: deploymentPrincipalId
   }
 }
 
