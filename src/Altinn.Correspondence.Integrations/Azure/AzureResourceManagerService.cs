@@ -83,6 +83,7 @@ public class AzureResourceManagerService : IResourceManager
         // Create or get the storage account
         var storageAccountData = new StorageAccountCreateOrUpdateContent(new StorageSku(StorageSkuName.StandardLrs), StorageKind.StorageV2, new AzureLocation(_resourceManagerOptions.Location));
         storageAccountData.MinimumTlsVersion = "TLS1_2";
+        storageAccountData.AllowSharedKeyAccess = false;
         storageAccountData.Tags.Add("customer_id", serviceOwnerEntity.Id);
         var storageAccountCollection = resourceGroup.Value.GetStorageAccounts();
         var storageAccount = await storageAccountCollection.CreateOrUpdateAsync(WaitUntil.Completed, storageAccountName, storageAccountData, cancellationToken);
@@ -217,7 +218,10 @@ public class AzureResourceManagerService : IResourceManager
             return new Dictionary<string, string>();
         }
         Dictionary<string, string> addresses = retrievedAddresses.ToDictionary(ip => ip, ip => $"{serviceTagId} IP");
-        addresses.Add(_resourceManagerOptions.ApimIP, "Apim IP");
+        if (!string.IsNullOrWhiteSpace(_resourceManagerOptions.ApimIP)) 
+        { 
+            addresses.Add(_resourceManagerOptions.ApimIP, "Apim IP");
+        }
         return addresses;
     }
 }
