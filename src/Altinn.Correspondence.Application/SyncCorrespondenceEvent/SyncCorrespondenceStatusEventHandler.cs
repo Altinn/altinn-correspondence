@@ -147,14 +147,29 @@ public class SyncCorrespondenceStatusEventHandler(
                 case CorrespondenceStatus.Confirmed:
                     {
                         var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(request.CorrespondenceId, CancellationToken.None));
-                        backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged), JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2
+                        if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
+                        {
+                            logger.LogWarning("Skipping updating dialog for Confirm for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                        }
+                        else
+                        {
+                            backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId), JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2
+                        }                        
                         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
                         break;
                     }
 
                 case CorrespondenceStatus.Read:
                     {
-                        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged));
+                        
+                        if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
+                        {
+                            logger.LogWarning("Skipping updating dialog for Read for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                        }
+                        else
+                        {
+                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId));
+                        }
                         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
                         break;
                     }
@@ -303,7 +318,7 @@ public class SyncCorrespondenceStatusEventHandler(
         var enduserIdByPartyUuid = new Dictionary<Guid, string>();
         
         var partyUuidsToLookup = (statusEventsToExecute ?? Enumerable.Empty<CorrespondenceStatusEntity>())
-            .Where(e => e.Status == CorrespondenceStatus.Archived) // Only Archived status events require Dialogporten enduserId
+            .Where(e => e.Status == CorrespondenceStatus.Read || e.Status == CorrespondenceStatus.Confirmed || e.Status == CorrespondenceStatus.Archived) // Only Read, Confirm, Archived status events require Dialogporten enduserId/urn
             .Select(e => e.PartyUuid)
             .Distinct();
 
