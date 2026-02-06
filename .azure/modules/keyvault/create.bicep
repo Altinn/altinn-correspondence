@@ -6,6 +6,7 @@ param tenant_id string
 resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
   name: vaultName
   location: location
+  tags: resourceGroup().tags
   properties: {
     enabledForTemplateDeployment: true
     enabledForDiskEncryption: true
