@@ -9,6 +9,7 @@ param prodLikeEnvironment bool
 resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${namePrefix}-redis-identity'
   location: location
+  tags: resourceGroup().tags
 }
 
 resource redis 'Microsoft.Cache/redis@2024-11-01' = {

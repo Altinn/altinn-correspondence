@@ -9,6 +9,7 @@ param containerAppIngress string
 resource eventgrid_topic 'Microsoft.EventGrid/topics@2022-06-15' = {
   name: '${namePrefix}-malware-scan-event-topic'
   location: location
+  tags: resourceGroup().tags
 }
 
 resource eventgrid_event_subscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = {
