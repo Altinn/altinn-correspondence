@@ -32,8 +32,6 @@ static ILogger<Program> CreateBootstrapLogger()
     return LoggerFactory.Create(builder =>
      {
          builder
-             .SetMinimumLevel(LogLevel.Debug)
-             .AddFilter("Altinn.Correspondence.API.Program", LogLevel.Debug)
              .AddConsole();
      }).CreateLogger<Program>();
 }
