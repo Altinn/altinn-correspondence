@@ -48,9 +48,6 @@ resource aadPropagationWait 'Microsoft.Resources/deploymentScripts@2023-08-01' =
     forceUpdateTag: '1'
     retentionInterval: 'PT2H'
   }
-  dependsOn: [
-    backupIdentity
-  ]
 }
 
 module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
