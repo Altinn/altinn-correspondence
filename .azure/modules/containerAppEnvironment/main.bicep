@@ -50,18 +50,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing 
   name: storageAccountName
 }
 
-resource containerAppEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
-  name: 'migrations'
-  parent: containerAppEnvironment
-  properties: {
-    azureFile: {
-      accessMode: 'ReadOnly'
-      accountKey: storageAccount.listKeys().keys[0].value
-      accountName: storageAccountName
-      shareName: 'migrations'
-    }
-  }
-}
 
 var applicationInsightsSecretName = 'application-insights-connection-string'
 module applicationInsightsConnectionStringSecret '../keyvault/upsertSecret.bicep' = {
@@ -89,11 +77,9 @@ module storageAccountConnectionStringSecret '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: keyVaultName
     secretName: storageAccountConnectionStringSecretName
-    secretValue: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+    secretValue: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=core.windows.net'
   }
 }
-
-
 
 output containerAppEnvironmentId string = containerAppEnvironment.id
 output logAnalyticsWorkspaceId string = log_analytics_workspace.id
