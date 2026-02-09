@@ -24,6 +24,9 @@ using System.Text.Json;
 namespace Altinn.Correspondence.Integrations.Azure;
 public class AzureResourceManagerService : IResourceManager
 {
+    private const string FinopsProduct = "melding";
+    private const string RepositoryUrl = "https://github.com/Altinn/altinn-correspondence";
+
     private readonly AzureResourceManagerOptions _resourceManagerOptions;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ArmClient _armClient;
@@ -34,6 +37,22 @@ public class AzureResourceManagerService : IResourceManager
     private string GetResourceGroupName(ServiceOwnerEntity serviceOwner) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwner.Name}-rg";
 
     private SubscriptionResource GetSubscription() => _armClient.GetSubscriptionResource(new ResourceIdentifier($"/subscriptions/{_resourceManagerOptions.SubscriptionId}"));
+
+    private Dictionary<string, string> GetServiceOwnerResourceGroupTags(ServiceOwnerEntity serviceOwnerEntity)
+    {
+        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["customer_id"] = serviceOwnerEntity.Id,
+            ["env"] = _resourceManagerOptions.Environment,
+            ["finops_environment"] = _resourceManagerOptions.Environment,
+            ["finops_product"] = FinopsProduct,
+            ["finops_serviceownercode"] = serviceOwnerEntity.Name,
+            ["finops_serviceownerorgnr"] = serviceOwnerEntity.Id,
+            ["org"] = serviceOwnerEntity.Name,
+            ["product"] = FinopsProduct,
+            ["repository"] = RepositoryUrl
+        };
+    }
 
     public AzureResourceManagerService(
         IOptions<AzureResourceManagerOptions> resourceManagerOptions,
@@ -53,7 +72,7 @@ public class AzureResourceManagerService : IResourceManager
 
     public void DeployStorageAccountsForServiceOwner(ServiceOwnerEntity serviceOwnerEntity, CancellationToken cancellationToken)
     {
-        _logger.LogDebug($"Creating storage providers for {serviceOwnerEntity.Name}");
+        _logger.LogDebug("Creating storage providers for {ServiceOwnerName}", serviceOwnerEntity.Name);
         var virusScanStorageProviderJob = _backgroundJobClient.Enqueue<IResourceManager>(service => service.DeployStorageAccount(serviceOwnerEntity, true, cancellationToken));
         _backgroundJobClient.ContinueJobWith<IResourceManager>(virusScanStorageProviderJob, service => service.DeployStorageAccount(serviceOwnerEntity, false, cancellationToken));
     }
@@ -77,14 +96,20 @@ public class AzureResourceManagerService : IResourceManager
         var subscription = GetSubscription();
         var resourceGroupCollection = subscription.GetResourceGroups();
         var resourceGroupData = new ResourceGroupData(_resourceManagerOptions.Location);
-        resourceGroupData.Tags.Add("customer_id", serviceOwnerEntity.Id);
+        foreach (var tag in GetServiceOwnerResourceGroupTags(serviceOwnerEntity))
+        {
+            resourceGroupData.Tags[tag.Key] = tag.Value;
+        }
         var resourceGroup = await resourceGroupCollection.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, resourceGroupData, cancellationToken);
 
         // Create or get the storage account
         var storageAccountData = new StorageAccountCreateOrUpdateContent(new StorageSku(StorageSkuName.StandardLrs), StorageKind.StorageV2, new AzureLocation(_resourceManagerOptions.Location));
         storageAccountData.MinimumTlsVersion = "TLS1_2";
         storageAccountData.AllowSharedKeyAccess = false;
-        storageAccountData.Tags.Add("customer_id", serviceOwnerEntity.Id);
+        foreach (var tag in GetServiceOwnerResourceGroupTags(serviceOwnerEntity))
+        {
+            storageAccountData.Tags[tag.Key] = tag.Value;
+        }
         var storageAccountCollection = resourceGroup.Value.GetStorageAccounts();
         var storageAccount = await storageAccountCollection.CreateOrUpdateAsync(WaitUntil.Completed, storageAccountName, storageAccountData, cancellationToken);
         if (virusScan)
