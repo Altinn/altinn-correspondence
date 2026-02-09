@@ -21,13 +21,11 @@ public class CleanupPerishingDialogsHandlerTests
             .WithCreated(now.UtcDateTime.AddMinutes(-2))
             .WithRequestedPublishTime(now.AddMinutes(-2))
             .WithExternalReference(ReferenceType.DialogportenDialogId, "d1")
-            .WithAllowSystemDeleteAfter(now.AddDays(30))
             .Build();
         var c2 = new CorrespondenceEntityBuilder()
             .WithCreated(now.UtcDateTime.AddMinutes(-1))
             .WithRequestedPublishTime(now.AddMinutes(-1))
             .WithExternalReference(ReferenceType.DialogportenDialogId, "d2")
-            .WithAllowSystemDeleteAfter(now.AddDays(30))
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
@@ -70,7 +68,6 @@ public class CleanupPerishingDialogsHandlerTests
                 .WithCreated(baseTime.AddSeconds(i).UtcDateTime)
                 .WithRequestedPublishTime(baseTime.AddSeconds(i))
                 .WithExternalReference(ReferenceType.DialogportenDialogId, $"d{i}")
-                .WithAllowSystemDeleteAfter(baseTime.AddDays(30))
                 .Build());
         }
 

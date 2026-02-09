@@ -46,13 +46,6 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-p
   tags: resourceGroup().tags
   properties: {
     infrastructureResourceGroup: '${namePrefix}-rg'
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: log_analytics_workspace.properties.customerId
-        sharedKey: log_analytics_workspace.listKeys().primarySharedKey
-      }
-    }
   }
 }
 
