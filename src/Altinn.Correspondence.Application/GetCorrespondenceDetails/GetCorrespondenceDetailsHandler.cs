@@ -175,7 +175,6 @@ public class GetCorrespondenceDetailsHandler(
                 ResourceId = correspondence.ResourceId,
                 RequestedPublishTime = correspondence.RequestedPublishTime,
                 IgnoreReservation = correspondence.IgnoreReservation ?? false,
-                AllowSystemDeleteAfter = correspondence.AllowSystemDeleteAfter,
                 DueDateTime = correspondence.DueDateTime,
                 PropertyList = correspondence.PropertyList,
                 Published = correspondence.Published,

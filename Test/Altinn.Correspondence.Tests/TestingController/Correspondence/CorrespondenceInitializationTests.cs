@@ -428,58 +428,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorToday_Returns_BadRequest()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(-7))
-                .Build();
-
-            // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-        }
-
-        [Fact]
-        public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorRequestedPublishTime_Returns_BadRequest()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(7))
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(14))
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(21)) // ensure DueDate is after RequestedPublishTime
-                .Build();
-
-            // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-        }
-
-        [Fact]
-        public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorDueDate_Returns_BadRequest()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(14))
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(7))
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(21))
-                .Build();
-
-            // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-        }
-
-        [Fact]
         public async Task InitializeCorrespondence_WithConfirmationNeeded_Without_DueDate_Returns_BadRequest()
         {
             // Arrange
