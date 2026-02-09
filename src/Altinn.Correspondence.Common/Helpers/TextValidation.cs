@@ -57,7 +57,7 @@ public class TextValidation
     {
         var codeTagsContent = new List<List<string>>();
         var validCodeTagDelimiters = new List<string> { "```", "``", "`" };
-        var newText = text;
+        var newText = WebUtility.HtmlEncode(text);
         var i = 0;
         foreach (var delimiter in validCodeTagDelimiters)
         {
@@ -87,7 +87,6 @@ public class TextValidation
                 counter++;
             }
         }
-        newText = WebUtility.HtmlEncode(newText);
         return newText;
     }
 
