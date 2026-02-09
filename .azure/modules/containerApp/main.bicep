@@ -43,15 +43,8 @@ var setByPipelineSecretEnvVars = [
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
 ]
 
-// In production we override authorization url to circumvent APIM to relieve load
-var optionalOverrideAuthSecrets = environment == 'production' ? [
-  { name: 'AltinnOptions__OverrideAuthorizationUrl', secretName: 'override-authorization-url' }
-  { name: 'AltinnOptions__OverrideAuthorizationThumbprint', secretName: 'override-authorization-thumbprint' }
-] : []
-
 // Combine required and optional secrets
-var alwaysSetEnvVars = concat(predefinedKeyvaultSecretEnvVars, setByPipelineSecretEnvVars)
-var secretEnvVars = concat(alwaysSetEnvVars, optionalOverrideAuthSecrets)
+var secretEnvVars = concat(predefinedKeyvaultSecretEnvVars, setByPipelineSecretEnvVars)
 
 // Extract secrets configuration from env var configs
 var secrets = [for config in secretEnvVars: {
