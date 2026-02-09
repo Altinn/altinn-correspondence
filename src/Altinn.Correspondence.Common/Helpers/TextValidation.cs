@@ -1,6 +1,7 @@
+using Markdig;
+using Markdig.Parsers;
 using System.Net;
 using System.Text.RegularExpressions;
-using Markdig;
 
 namespace Altinn.Correspondence.Common.Helpers;
 
@@ -22,7 +23,10 @@ public class TextValidation
         var normalizedInput = text.Replace("`", "");
         var converter = new ReverseMarkdown.Converter();
         var markdown = converter.Convert(normalizedInput);
-        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        var pipelineBuilder = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions();
+        pipelineBuilder.BlockParsers.TryRemove<ListBlockParser>();
+        var pipeline = pipelineBuilder.Build();
         var plaintext = Markdown.ToPlainText(markdown, pipeline);
         return plaintext.Trim() == normalizedInput.Trim();
     }
