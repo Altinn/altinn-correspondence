@@ -11,7 +11,7 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
 
     public async Task<Guid> AddCorrespondenceStatus(CorrespondenceStatusEntity status, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Adding {Status} status for correspondence {CorrespondenceId}", status.StatusText, status.CorrespondenceId);
+        logger.LogDebug("Adding {Status} status for correspondence {CorrespondenceId}", status.StatusText, status.CorrespondenceId);
         await _context.CorrespondenceStatuses.AddAsync(status, cancellationToken);
         await _context.SaveChangesAsync();
         return status.Id;
@@ -26,7 +26,7 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
 
     public async Task<Guid> AddCorrespondenceStatusFetched(CorrespondenceStatusFetchedEntity status, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Adding fetched {Status} status for correspondence {CorrespondenceId}", status.StatusText, status.CorrespondenceId);
+        logger.LogDebug("Adding fetched {Status} status for correspondence {CorrespondenceId}", status.StatusText, status.CorrespondenceId);
         await _context.CorrespondenceFetches.AddAsync(status, cancellationToken);
         await _context.SaveChangesAsync();
         return status.Id;
