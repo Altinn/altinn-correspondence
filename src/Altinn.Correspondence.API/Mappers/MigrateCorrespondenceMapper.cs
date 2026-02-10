@@ -27,7 +27,6 @@ internal static class MigrateCorrespondenceMapper
             ServiceOwnerId = await serviceOwnerHelper.GetSafeServiceOwnerIdAsync(migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender, cancellationToken),
             MessageSender = migrateCorrespondenceExt.CorrespondenceData.Correspondence.MessageSender,
             RequestedPublishTime = (DateTimeOffset)migrateCorrespondenceExt.CorrespondenceData.Correspondence.RequestedPublishTime,
-            AllowSystemDeleteAfter = migrateCorrespondenceExt.CorrespondenceData.Correspondence.AllowSystemDeleteAfter,
             DueDateTime = migrateCorrespondenceExt.CorrespondenceData.Correspondence.DueDateTime,
             PropertyList = migrateCorrespondenceExt.CorrespondenceData.Correspondence.PropertyList,
             ReplyOptions = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(migrateCorrespondenceExt.CorrespondenceData.Correspondence.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),

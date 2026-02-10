@@ -394,7 +394,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(c => correspondenceIds.Contains(c.Id))
-                .Where(c => c.AllowSystemDeleteAfter != null)
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
                 .Include(c => c.ExternalReferences)
                 .ToListAsync(cancellationToken);

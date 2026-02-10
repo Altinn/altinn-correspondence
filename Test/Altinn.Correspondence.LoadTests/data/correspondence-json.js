@@ -3,8 +3,6 @@ export function getCorrespondenceJson(resource_id, sender, recipient) {
     const visibleFrom = new Date(now);
     const dueDateTime = new Date(now.getTime());
     dueDateTime.setMonth(dueDateTime.getMonth() + 1);
-    const deleteAfter = new Date(now.getTime());
-    deleteAfter.setMonth(deleteAfter.getMonth() + 5);
     const data_without_attachment = {
         Correspondence: {
             resourceId: resource_id,
@@ -18,7 +16,6 @@ export function getCorrespondenceJson(resource_id, sender, recipient) {
                 attachments: [],
             },
             visibleFrom: visibleFrom.toISOString(),
-            allowSystemDeleteAfter: deleteAfter.toISOString(),
             dueDateTime: dueDateTime.toISOString(),
             externalReferences: [],
             propertyList: {},

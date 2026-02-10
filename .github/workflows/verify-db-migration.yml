@@ -1,0 +1,295 @@
+name: Verify Database Migration Compatibility
+
+on:
+  workflow_call:
+    outputs:
+      migration-compatible:
+        description: "Whether old code is compatible with new database"
+        value: ${{ jobs.test-migration-compatibility.outputs.compatible }}
+  workflow_dispatch:
+    inputs:
+      old_commit:
+        description: 'Old commit SHA to test'
+        required: true
+        type: string
+      new_commit:
+        description: 'New commit SHA to test'
+        required: true
+        type: string
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/Altinn.Correspondence.Persistence/**'
+    
+
+jobs:
+  determine-commits:
+    name: Determine commits to test
+    runs-on: ubuntu-latest
+    outputs:
+      old_commit: ${{ steps.set-commits.outputs.old_commit }}
+      new_commit: ${{ steps.set-commits.outputs.new_commit }}
+    steps:
+      - name: Determine commits to test
+        id: set-commits
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manual trigger with specified commits
+            echo "old_commit=${{ inputs.old_commit }}" >> $GITHUB_OUTPUT
+            echo "new_commit=${{ inputs.new_commit }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            # Called from another workflow - use current commit and previous
+            NEW_COMMIT="${{ github.sha }}"
+            OLD_COMMIT=${{ github.event.repository.default_branch }}
+            echo "old_commit=$OLD_COMMIT" >> $GITHUB_OUTPUT
+            echo "new_commit=$NEW_COMMIT" >> $GITHUB_OUTPUT
+          else
+            NEW_COMMIT="${{ github.event.pull_request.head.sha || github.sha }}"
+            OLD_COMMIT="${{ github.event.repository.default_branch }}"
+            echo "old_commit=$OLD_COMMIT" >> $GITHUB_OUTPUT
+            echo "new_commit=$NEW_COMMIT" >> $GITHUB_OUTPUT
+          fi
+
+  test-migration-compatibility:
+    environment: use-case-test
+    name: Test old code with new database
+    runs-on: ubuntu-latest
+    needs: determine-commits
+    outputs:
+      compatible: ${{ steps.test-result.outputs.compatible }}
+    
+    steps:
+      - name: Checkout new commit to save test files
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.determine-commits.outputs.new_commit }}
+          path: new-commit
+
+      - name: Save test file from new commit
+        run: |
+          mkdir -p /tmp/test-scripts/helpers
+          cp new-commit/Test/Altinn.Correspondence.Tests/verify_db_migration.js /tmp/test-scripts/ || true
+          cp new-commit/Test/Altinn.Correspondence.UseCaseTests/helpers/correspondencePayloadBuilder.js /tmp/test-scripts/helpers/ || true
+
+      - name: Checkout repository at old commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.determine-commits.outputs.old_commit }}
+          path: old-commit
+
+      - name: Restore test file for first run
+        run: |
+          cp /tmp/test-scripts/verify_db_migration.js old-commit/Test/Altinn.Correspondence.Tests/ || true
+          cp /tmp/test-scripts/helpers/correspondencePayloadBuilder.js old-commit/Test/Altinn.Correspondence.UseCaseTests/helpers/ || true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      # ============================================
+      # STEP 1: Start environment with OLD code
+      # ============================================
+      - name: Start docker compose with old version
+        working-directory: old-commit
+        run: |
+          docker compose up -d
+          
+      - name: Build old version
+        working-directory: old-commit
+        run: |
+          echo "Building old version..."
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+          
+      - name: Wait for docker compose services to be ready
+        run: |
+          echo "Waiting for services to be healthy..."
+          timeout 5m bash -c 'while ! docker ps | grep "(healthy)"; do sleep 1; done'
+          echo "Services are ready"
+
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 10.0.*
+        shell: bash
+
+
+      - name: Run migrations for old version
+        working-directory: old-commit
+        run: |
+          echo "Running migrations from old commit..."
+          dotnet ef database update --no-build --configuration Release \
+            --project ./src/Altinn.Correspondence.Persistence \
+            --startup-project ./src/Altinn.Correspondence.API
+
+      - name: Start old version API
+        working-directory: old-commit
+        run: |
+          echo "Starting API with old code..."
+          nohup dotnet run --no-build --configuration Release \
+            --project ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj \
+            </dev/null >/dev/null 2>&1 &          
+          # Wait for API to be ready
+          echo "Waiting for API to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:5096/health > /dev/null 2>&1; then
+              echo "API is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "API failed to start"
+              exit 1
+            fi
+            sleep 2
+          done
+
+      # ============================================
+      # STEP 2: Test old code with old database
+      # ============================================
+      - name: Create directory to save created IDs
+        working-directory: old-commit
+        run: |
+          mkdir -p ./test-results
+         
+      - name: Test old code with old database (baseline)
+        working-directory: old-commit
+        env: 
+          base_url: http://localhost:5096
+          mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
+          mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
+          mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
+        run: |
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js --console-output="./test-results/k6_ids.txt"
+        continue-on-error: false
+
+      - name: Temporarily persist created IDs
+        working-directory: old-commit
+        run: |
+          mkdir -p /tmp/test-results
+          cp ./test-results/k6_ids.txt /tmp/test-results/k6_ids.txt || true
+
+      # ============================================
+      # STEP 3: Apply new migrations
+      # ============================================
+      - name: Stop old API
+        run: |
+          echo "Stopping old API..."
+          pkill -f "dotnet.*Altinn.Correspondence.API" || true
+          sleep 2
+
+      - name: Checkout repository at new commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.determine-commits.outputs.new_commit }}
+          path: new-commit-for-migrations
+
+      - name: Build new version
+        working-directory: new-commit-for-migrations
+        run: |
+          echo "Building new version to get latest migrations..."
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+
+      - name: Apply new migrations
+        working-directory: new-commit-for-migrations
+        run: |
+          echo "Applying migrations from new commit..."
+          dotnet ef database update --no-build --configuration Release \
+            --project ./src/Altinn.Correspondence.Persistence \
+            --startup-project ./src/Altinn.Correspondence.API
+          echo "Migrations applied successfully"
+
+      # ============================================
+      # STEP 4: Test old code with new database
+      # ============================================
+      - name: Checkout repository at old commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.determine-commits.outputs.old_commit }}
+          path: old-commit-second
+          
+      - name: Restore test file for second run
+        run: |
+          cp /tmp/test-scripts/verify_db_migration.js old-commit-second/Test/Altinn.Correspondence.Tests/ || true
+          cp /tmp/test-scripts/helpers/correspondencePayloadBuilder.js old-commit-second/Test/Altinn.Correspondence.UseCaseTests/helpers/ || true
+
+      - name: Build old version (second time)
+        working-directory: old-commit-second
+        run: |
+          echo "Building old version for second run..."
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+
+      - name: Restart old version API (with new database)
+        working-directory: old-commit-second
+        run: |
+          echo "Restarting API with old code (but new database)..."
+          nohup dotnet run --no-build --configuration Release \
+            --project ./src/Altinn.Correspondence.API/Altinn.Correspondence.API.csproj \
+            </dev/null >/dev/null 2>&1 &
+          
+          # Wait for API to be ready
+          echo "Waiting for API to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:5096/health > /dev/null 2>&1; then
+              echo "API is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "API failed to start after migration"
+              exit 1
+            fi
+            sleep 2
+          done
+
+      
+      - name: Restore test results
+        working-directory: old-commit-second
+        run: |
+          mkdir -p ./Test/Altinn.Correspondence.Tests/test-results
+          cp /tmp/test-results/k6_ids.txt ./Test/Altinn.Correspondence.Tests/test-results/k6_ids_input.txt || true
+      
+      - name: Test old code with new database
+        working-directory: old-commit-second
+        env: 
+          base_url: http://localhost:5096
+          mp_client_id: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_CLIENT_ID }}
+          mp_kid: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_KID }}
+          mp_client_pem: ${{ secrets.BRUKSMONSTER_MASKINPORTEN_PEM }}
+          results_file_path: ./test-results/k6_ids_input.txt
+        run: |
+          k6 run Test/Altinn.Correspondence.Tests/verify_db_migration.js
+        continue-on-error: false
+
+      # ============================================
+      # Results and cleanup
+      # ============================================
+      - name: Set test result
+        id: test-result
+        if: success()
+        run: |
+          echo "compatible=true" >> $GITHUB_OUTPUT
+          echo "Migration compatibility verified successfully!"
+          echo "Old code is compatible with new database schema."
+
+  report-results:
+    name: Report test results
+    runs-on: ubuntu-latest
+    needs: test-migration-compatibility
+    if: always()
+    steps:
+      - name: Report success
+        if: needs.test-migration-compatibility.outputs.compatible == 'true'
+        run: |
+          echo "Database migration compatibility verified"
+          echo "Old code successfully works with new database schema"
+          echo "Safe to proceed with deployment"
+
+      - name: Report failure
+        if: needs.test-migration-compatibility.outputs.compatible != 'true'
+        run: |
+          echo "Database migration compatibility test failed"
+          exit 1
