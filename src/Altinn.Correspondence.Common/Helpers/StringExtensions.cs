@@ -175,7 +175,7 @@ public static class StringExtensions
         {
             return $"{UrnConstants.Party}:{identifier.WithoutPrefix()}";
         }
-        else if (IsEmailAddress(identifier))
+        else if (identifier.IsEmailAddress())
         {
             return $"{UrnConstants.PersonIdPortenEmailAttribute}:{identifier.WithoutPrefix()}";
         }
@@ -187,7 +187,7 @@ public static class StringExtensions
     /// </summary>
     /// <param name="identifier">The string to validate.</param>
     /// <returns>True if the string appears to be a valid email address, false otherwise.</returns>
-    private static bool IsEmailAddress(string identifier)
+    public static bool IsEmailAddress(this string identifier)
     {
         if (string.IsNullOrWhiteSpace(identifier))
         {
