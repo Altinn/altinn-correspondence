@@ -36,5 +36,16 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             // Assert
             Assert.True(result);
         }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForTextParsedAsMarkdownList()
+        {
+            // Arrange
+            string input = "123. This is valid plaintext even if it contains Markdown list";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
     }
 }
