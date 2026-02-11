@@ -282,7 +282,6 @@ public class DatabasePopulator
             " ",
             "",
             DateTimeOffset.Now.AddHours(1).ToString("yyyy-MM-dd HH:mm:ss.fff zzz"),
-            DateTimeOffset.Now.AddMonths(12).ToString("yyyy-MM-dd HH:mm:ss.fff zzz"),
             DateTimeOffset.Now.AddMonths(6).ToString("yyyy-MM-dd HH:mm:ss.fff zzz"),
             " ",
             "false",
