@@ -296,7 +296,6 @@ public class AltinnRegisterService : IAltinnRegisterService
             cancellationToken);
 
         var responseContent = await response.Content.ReadAsStringAsync();
-        _logger.LogInformation("Response from query endpoint: {response}", responseContent);
 
         if (!response.IsSuccessStatusCode)
         {
