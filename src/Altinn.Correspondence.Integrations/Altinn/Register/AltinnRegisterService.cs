@@ -1,15 +1,15 @@
-﻿using System.Globalization;
+
 using System.Net.Http.Json;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Platform.Register.Models;
 using Altinn.Correspondence.Core.Models.Register;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Party = Altinn.Correspondence.Core.Models.Entities.Party;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterService : IAltinnRegisterService
@@ -146,48 +146,15 @@ public class AltinnRegisterService : IAltinnRegisterService
         {
             _logger.LogWarning(ex, "Error retrieving organization from cache when looking up organization in Altinn Register Service.");
         }
-        
-        if (identificationId.IsPartyId())
-        {
-            if (int.TryParse(identificationId.WithoutPrefix(), out int partyId))
-            {
-                return await LookUpPartyByPartyId(partyId, cancellationToken);
-            }
-            else
-            {
-                _logger.LogError("identificationId is not a valid party id.");
-                return null;
-            }
-        }
 
-        identificationId = identificationId.WithoutPrefix();
-
-        if (!identificationId.IsOrganizationNumber() && !identificationId.IsSocialSecurityNumber())
+        // Use the new Query endpoint which supports all URN types including email
+        var parties = await QueryParties(new List<string> { identificationId }, cancellationToken);
+        if (parties == null || parties.Count == 0)
         {
-            _logger.LogError("IdentificationId {identificationId} is not a valid organization number or social security number.", identificationId);
             return null;
         }
 
-        var partyLookup = new PartyLookup()
-        {
-            OrgNo = identificationId.IsOrganizationNumber() ? identificationId : null,
-            Ssn = identificationId.IsSocialSecurityNumber() ? identificationId : null
-        };
-        var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null; 
-            }            
-            throw new Exception($"Error when looking up organization in Altinn Register.Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
-        }
-
-        var party = await response.Content.ReadFromJsonAsync<Party>();
-        if (party is null)
-        {
-            throw new Exception("Unexpected json response when looking up organization in Altinn Register");
-        }
+        var party = parties[0];
 
         try
         {
@@ -234,42 +201,23 @@ public class AltinnRegisterService : IAltinnRegisterService
             _logger.LogWarning(ex, "Error retrieving party names from cache when looking up party names in Altinn Register Service.");
         }
 
-        var organizations = identificationIds.Where(x => x.IsOrganizationNumber()).Select(x => new PartyLookup() { OrgNo = x }).ToList();
-        var socialSecurityNumbers = identificationIds.Where(x => x.IsSocialSecurityNumber()).Select(x => new PartyLookup() { Ssn = x }).ToList();
-        var partyLookup = new PartyNamesLookup()
+        // Use the new Query endpoint which supports all URN types
+        var parties = await QueryParties(identificationIds, cancellationToken);
+        if (parties == null)
         {
-            Parties = organizations.Concat(socialSecurityNumbers).ToList()
-        };
-        var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/nameslookup", partyLookup, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError("Error when looking up party names in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
             return null;
         }
-        var parties = await response.Content.ReadFromJsonAsync<PartyNamesLookupResult>();
-        if (parties is null)
-        {
-            _logger.LogError("Unexpected json response when looking up party names in Altinn Register");
-            return null;
-        }
-
-        List<Party> partyNames = parties.PartyNames.Select(x => new Party
-        {
-            OrgNumber = x.OrgNo,
-            SSN = x.Ssn,
-            Name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(x.Name.ToLower())
-        }).ToList();
 
         try
         {
-            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, partyNames, _cache, _cacheOptions, cancellationToken);
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, parties, _cache, _cacheOptions, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error storing response content to cache when looking up party names in Altinn Register Service.");
         }
 
-        return partyNames;
+        return parties;
     }
 
     public async Task<List<MainUnitItem>> LookUpMainUnits(string urn, CancellationToken cancellationToken = default)
@@ -287,5 +235,90 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
 
         return result.Data ?? new List<MainUnitItem>();
+    }
+
+    /// <summary>
+    /// Queries parties based on the provided identifiers using the V2 API.
+    /// Supports organization numbers, SSNs, party IDs, party UUIDs, and email URNs.
+    /// </summary>
+    /// <param name="identificationIds">The party identifiers to look up.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A list of parties matching the provided identifiers.</returns>
+    private async Task<List<Party>?> QueryParties(List<string> identificationIds, CancellationToken cancellationToken = default)
+    {
+        // Convert identifiers to URN format
+        var partyUrns = new List<string>();
+        foreach (var id in identificationIds)
+        {
+            string urnId = id;
+            
+            if (id.StartsWith("urn:"))
+            {
+                urnId = id;
+            }
+            else
+            {
+                var withoutPrefix = id.WithoutPrefix();
+                
+                if (withoutPrefix.IsOrganizationNumber())
+                {
+                    urnId = $"{UrnConstants.OrganizationNumberAttribute}:{withoutPrefix}";
+                }
+                else if (withoutPrefix.IsSocialSecurityNumberWithNoPrefix())
+                {
+                    urnId = $"{UrnConstants.PersonIdAttribute}:{withoutPrefix}";
+                }
+                else if (withoutPrefix.IsEmailAddress())
+                {
+                    urnId = $"{UrnConstants.PersonIdPortenEmailAttribute}:{withoutPrefix}";
+                }
+                else if (Guid.TryParse(withoutPrefix, out var uuid))
+                {
+                    urnId = $"{UrnConstants.PartyUuid}:{uuid}";
+                }
+                else if (int.TryParse(withoutPrefix, out var partyId))
+                {
+                    urnId = $"{UrnConstants.Party}:{partyId}";
+                }
+            }
+            
+            partyUrns.Add(urnId);
+        }
+
+        var request = new ListObject<string>
+        {
+            Data = partyUrns
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(
+            "register/api/v1/correspondence/parties/query", 
+            request, 
+            cancellationToken);
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("Response from query endpoint: {response}", responseContent);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
+                response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                return new List<Party>();
+            }
+            
+            throw new Exception($"Error when querying parties in Altinn Register. Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        var partiesV2Response = await response.Content.ReadFromJsonAsync<ListObject<PartyV2>>(cancellationToken: cancellationToken);
+        if (partiesV2Response is null)
+        {
+            _logger.LogError("Unexpected json response when querying parties in Altinn Register");
+            return null;
+        }
+
+        // Map V2 parties to V1 party model
+        var parties = PartyMapper.MapListToV1(partiesV2Response.Data);
+        
+        return parties;
     }
 }

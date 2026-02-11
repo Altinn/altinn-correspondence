@@ -34,7 +34,26 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 
     public Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken)
     {
-        if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
+        var cleanId = identificationId.WithoutPrefix();
+        
+        // Check for email URN
+        if (identificationId.IsIdPortenEmailUrn())
+        {
+            var email = cleanId;
+            return Task.FromResult<Party?>(new Party
+            {
+                PartyId = _digdirPartyId,
+                OrgNumber = "",
+                SSN = "",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = $"User with email {email}",
+                PartyUuid = _digdirPartyUuid,
+            });
+        }
+        
+        if (IdentificationIDRegex.IsMatch(cleanId))
         {
             return Task.FromResult<Party?>(new Party
             {
