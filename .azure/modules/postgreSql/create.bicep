@@ -16,13 +16,14 @@ var poolSize = prodLikeEnvironment ? 100 : 25
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: '${namePrefix}-dbserver'
   location: location
+  tags: resourceGroup().tags
   properties: {
     version: '16'
     availabilityZone: environment == 'production' ? '2' : null
     storage: {
       storageSizeGB: environment == 'production' ? 8192 : prodLikeEnvironment ? 4096 : 32
       autoGrow: 'Enabled'
-      tier: prodLikeEnvironment ? 'P50' : 'P4'
+      tier: environment == 'production' ? 'P60' : prodLikeEnvironment ? 'P50' : 'P4'
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {

@@ -12,7 +12,7 @@ public class SlackNotificationService(IConfiguration configuration,
 {
     public async Task SendSlackMessage(string message)
     {
-        logger.LogInformation($"Posting to Slack: {message}");
+        logger.LogDebug($"Posting to Slack: {message}");
         var slackMessage = new SlackMessage
         {
             Text = $"Slack alert from {hostEnvironment.EnvironmentName}: {message}",

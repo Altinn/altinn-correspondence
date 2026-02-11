@@ -14,6 +14,10 @@ param storageAccountName string
 @secure()
 param grafanaMonitoringPrincipalId string
 @secure()
+@description('Object ID (Principal ID) of the deployment service principal for storage account access')
+param deploymentPrincipalId string
+
+@secure()
 param maintenanceAdGroupId string
 @secure()
 param maintenanceAdGroupName string
@@ -63,15 +67,7 @@ module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerR
 // Create resources with dependencies to other resources
 // #####################################################
 
-module storageAccount '../modules/storageAccount/create.bicep' = {
-  scope: resourceGroup
-  name: storageAccountName
-  params: {
-    storageAccountName: storageAccountName
-    location: location
-    fileshare: 'migrations'
-  }
-}
+
 
 module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   scope: resourceGroup
@@ -126,6 +122,26 @@ module reddis '../modules/redis/main.bicep' = {
     keyVaultName: sourceKeyVaultName
     prodLikeEnvironment: prodLikeEnvironment
     environment: environment
+  }
+}
+
+module storageAccount '../modules/storageAccount/create.bicep' = {
+  scope: resourceGroup
+  name: storageAccountName
+  params: {
+    storageAccountName: storageAccountName
+    location: location
+    fileshare: 'migrations'
+  }
+}
+
+module grantDeploymentPrincipalStorageFileAccess '../modules/storageAccount/addFileDataPrivilegedContributorRole.bicep' = {
+  scope: resourceGroup
+  name: 'storage-file-privileged-contributor-deployment'
+  dependsOn: [storageAccount]
+  params: {
+    storageAccountName: storageAccountName
+    principalId: deploymentPrincipalId
   }
 }
 

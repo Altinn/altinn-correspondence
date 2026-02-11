@@ -54,7 +54,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         }
 
         AuthorizedPartiesRequest request = new(partyToRequestFor, userId);
-        _logger.LogInformation("PartyId {partyId} has partyType {partyType} with userId {userId}", partyToRequestFor.PartyId, request.Type, userId);
+        _logger.LogDebug("PartyId {partyId} has partyType {partyType} with userId {userId}", partyToRequestFor.PartyId, request.Type, userId);
         JsonSerializerOptions serializerOptions = new()
         {
             PropertyNameCaseInsensitive = true,
@@ -93,7 +93,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
                 parties.AddRange(GetPartiesFromSubunits(p.subunits));
             }
         }
-        _logger.LogInformation("Retrieved {Count} authorized parties from Access Management Service.", parties.Count);
+        _logger.LogDebug("Retrieved {Count} authorized parties from Access Management Service.", parties.Count);
 
         try {
             await CacheHelpers.StoreObjectInCacheAsync(cacheKey, parties, _cache, _cacheOptions, cancellationToken);

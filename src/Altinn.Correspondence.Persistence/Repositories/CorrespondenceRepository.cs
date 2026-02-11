@@ -394,17 +394,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(c => correspondenceIds.Contains(c.Id))
-                .Where(c => c.AllowSystemDeleteAfter != null)
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
                 .Include(c => c.ExternalReferences)
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, CancellationToken cancellationToken)
+        public async Task<List<Guid>> GetCorrespondenceIdsByResourceId(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken)
         {
             return await _context.Correspondences
                 .AsNoTracking()
                 .Where(c => c.ResourceId == resourceId)
+                .Where(c => c.Created <= minAge)
                 .Select(c => c.Id)
                 .ToListAsync(cancellationToken);
         }

@@ -14,9 +14,6 @@ public static class CorrespondenceErrors
     public static Error ExistingAttachmentNotFound = new Error(1007, "Existing attachment not found", HttpStatusCode.BadRequest);
     public static Error DueDatePriorToday = new Error(1008, "DueDateTime cannot be prior to today", HttpStatusCode.BadRequest);
     public static Error DueDatePriorRequestedPublishTime = new Error(1009, "DueDateTime cannot be prior to RequestedPublishTime", HttpStatusCode.BadRequest);
-    public static Error AllowSystemDeletePriorToday = new Error(1010, "AllowSystemDelete cannot be prior to today", HttpStatusCode.BadRequest);
-    public static Error AllowSystemDeletePriorRequestedPublishTime = new Error(1011, "AllowSystemDelete cannot be prior to RequestedPublishTime", HttpStatusCode.BadRequest);
-    public static Error AllowSystemDeletePriorDueDate = new Error(1012, "AllowSystemDelete cannot be prior to DueDateTime", HttpStatusCode.BadRequest);
     public static Error CantPurgePublishedCorrespondence = new Error(1013, "Sender cannot delete correspondence that has been published", HttpStatusCode.BadRequest);
     public static Error CorrespondenceAlreadyPurged = new Error(1014, "Correspondence has already been purged", HttpStatusCode.BadRequest);
     public static Error CouldNotRetrieveStatus = new Error(1015, "Could not retrieve highest status for correspondence", HttpStatusCode.BadRequest);

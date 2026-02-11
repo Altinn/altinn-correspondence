@@ -44,7 +44,6 @@ export function getCorrespondenceForm(resource_id, sender, recipient, boundary) 
     addFormField('Correspondence.content.attachments[0].FileName', 'testfile.txt');
     addFormField('Correspondence.content.attachments[0].IsEncrypted', 'true');
     addFormField('Correspondence.visibleFrom', visibleFrom.toISOString());
-    addFormField('Correspondence.allowSystemDeleteAfter', deleteAfter.toISOString());
     addFormField('Correspondence.dueDateTime', dueDateTime.toISOString());
     addFormField('Correspondence.content.externalReferences[0].referenceValue', 'test');
     addFormField('Correspondence.content.externalReferences[0].referenceType', 'AltinnBrokerFileTransfer');

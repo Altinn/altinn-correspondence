@@ -41,11 +41,11 @@ public static class DependencyInjection
         dataSourceBuilder.ConnectionStringBuilder.ConnectionString = databaseOptions.ConnectionString;
         if (!string.IsNullOrWhiteSpace(dataSourceBuilder.ConnectionStringBuilder.Password))
         {
-            bootstrapLogger.LogInformation("Using database connection with password (local development/migration)");
+            bootstrapLogger.LogDebug("Using database connection with password (local development/migration)");
             return dataSourceBuilder.Build();
         }
 
-        bootstrapLogger.LogInformation("Using database connection with token (remote)");
+        bootstrapLogger.LogDebug("Using database connection with token (remote)");
         var psqlServerTokenProvider = new DefaultAzureCredential();
         var tokenRequestContext = new TokenRequestContext(scopes: ["https://ossrdbms-aad.database.windows.net/.default"]) { };
         dataSourceBuilder.UsePeriodicPasswordProvider(async (_, cancellationToken) =>

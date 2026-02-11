@@ -8,6 +8,7 @@ param storageAccountName string
 resource log_analytics_workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${namePrefix}-log'
   location: location
+  tags: resourceGroup().tags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -19,6 +20,7 @@ resource log_analytics_workspace 'Microsoft.OperationalInsights/workspaces@2023-
 resource audit_log_analytics_workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${namePrefix}-audit-logs'
   location: location
+  tags: resourceGroup().tags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -30,6 +32,7 @@ resource audit_log_analytics_workspace 'Microsoft.OperationalInsights/workspaces
 resource application_insights 'Microsoft.Insights/components@2020-02-02' = {
   name: '${namePrefix}-ai'
   location: location
+  tags: resourceGroup().tags
   kind: 'web'
   properties: {
     Application_Type: 'web'
@@ -40,32 +43,9 @@ resource application_insights 'Microsoft.Insights/components@2020-02-02' = {
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
   name: '${namePrefix}-env'
   location: location
+  tags: resourceGroup().tags
   properties: {
     infrastructureResourceGroup: '${namePrefix}-rg'
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: log_analytics_workspace.properties.customerId
-        sharedKey: log_analytics_workspace.listKeys().primarySharedKey
-      }
-    }
-  }
-}
-
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-  name: storageAccountName
-}
-
-resource containerAppEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
-  name: 'migrations'
-  parent: containerAppEnvironment
-  properties: {
-    azureFile: {
-      accessMode: 'ReadOnly'
-      accountKey: storageAccount.listKeys().keys[0].value
-      accountName: storageAccountName
-      shareName: 'migrations'
-    }
   }
 }
 
@@ -95,11 +75,9 @@ module storageAccountConnectionStringSecret '../keyvault/upsertSecret.bicep' = {
   params: {
     destKeyVaultName: keyVaultName
     secretName: storageAccountConnectionStringSecretName
-    secretValue: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+    secretValue: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=core.windows.net'
   }
 }
-
-
 
 output containerAppEnvironmentId string = containerAppEnvironment.id
 output logAnalyticsWorkspaceId string = log_analytics_workspace.id
