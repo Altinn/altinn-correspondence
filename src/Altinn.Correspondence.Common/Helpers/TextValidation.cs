@@ -1,6 +1,6 @@
+using Markdig;
 using System.Net;
 using System.Text.RegularExpressions;
-using Markdig;
 
 namespace Altinn.Correspondence.Common.Helpers;
 
@@ -31,9 +31,9 @@ public class TextValidation
     {
         var config = new ReverseMarkdown.Config
         {
-            CleanupUnnecessarySpaces = false,
-            PassThroughTags = new String[] { "br" },
+            CleanupUnnecessarySpaces = false
         };
+        config.PassThroughTags.Add("br");
         var converter = new ReverseMarkdown.Converter(config);
         // change all codeblocks to <code> to keep html content in codeblocks
         var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);
@@ -57,7 +57,7 @@ public class TextValidation
     {
         var codeTagsContent = new List<List<string>>();
         var validCodeTagDelimiters = new List<string> { "```", "``", "`" };
-        var newText = text;
+        var newText = WebUtility.HtmlEncode(text);
         var i = 0;
         foreach (var delimiter in validCodeTagDelimiters)
         {
