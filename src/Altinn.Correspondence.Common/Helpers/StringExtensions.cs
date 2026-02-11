@@ -150,16 +150,18 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Adds a prefix to the identifier if it is a organization number (9 digits), social security number (11 digits), or email address.
+    /// Adds a prefix to the identifier if it is a organization number (9 digits), social security number (11 digits), email address, party ID, or party UUID.
     /// </summary>
-    /// <param name="identifier">The organization number, social security number, or email address to add the prefix to.</param>
+    /// <param name="identifier">The organization number, social security number, email address, party ID, or party UUID to add the prefix to.</param>
     /// <returns>The identifier with the appropriate prefix, or the original identifier if it already has a prefix.</returns>
-    /// <exception cref="ArgumentException">Thrown if the identifier is not a valid organization number, social security number, or email address.</exception>
+    /// <exception cref="ArgumentException">Thrown if the identifier is not a valid organization number, social security number, email address, party ID, or party UUID.</exception>
     public static string WithUrnPrefix(this string identifier)
     {
         if (identifier.StartsWith(UrnConstants.OrganizationNumberAttribute)
                 || identifier.StartsWith(UrnConstants.PersonIdAttribute)
-                || identifier.StartsWith(UrnConstants.PersonIdPortenEmailAttribute))
+                || identifier.StartsWith(UrnConstants.PersonIdPortenEmailAttribute)
+                || identifier.StartsWith(UrnConstants.Party)
+                || identifier.StartsWith(UrnConstants.PartyUuid))
         {
             return identifier;
         }
@@ -179,7 +181,11 @@ public static class StringExtensions
         {
             return $"{UrnConstants.PersonIdPortenEmailAttribute}:{identifier.WithoutPrefix()}";
         }
-        throw new ArgumentException("Identifier is not a valid organization number, social security number, or email address", nameof(identifier));
+        else if (Guid.TryParse(identifier.WithoutPrefix(), out var uuid))
+        {
+            return $"{UrnConstants.PartyUuid}:{uuid}";
+        }
+        throw new ArgumentException("Identifier is not a valid organization number, social security number, email address, party ID, or party UUID", nameof(identifier));
     }
 
     /// <summary>

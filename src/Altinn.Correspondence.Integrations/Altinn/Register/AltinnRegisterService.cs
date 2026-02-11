@@ -147,7 +147,6 @@ public class AltinnRegisterService : IAltinnRegisterService
             _logger.LogWarning(ex, "Error retrieving organization from cache when looking up organization in Altinn Register Service.");
         }
 
-        // Use the new Query endpoint which supports all URN types including email
         var parties = await QueryParties(new List<string> { identificationId }, cancellationToken);
         if (parties == null || parties.Count == 0)
         {
@@ -201,7 +200,6 @@ public class AltinnRegisterService : IAltinnRegisterService
             _logger.LogWarning(ex, "Error retrieving party names from cache when looking up party names in Altinn Register Service.");
         }
 
-        // Use the new Query endpoint which supports all URN types
         var parties = await QueryParties(identificationIds, cancellationToken);
         if (parties == null)
         {
@@ -246,44 +244,7 @@ public class AltinnRegisterService : IAltinnRegisterService
     /// <returns>A list of parties matching the provided identifiers.</returns>
     private async Task<List<Party>?> QueryParties(List<string> identificationIds, CancellationToken cancellationToken = default)
     {
-        // Convert identifiers to URN format
-        var partyUrns = new List<string>();
-        foreach (var id in identificationIds)
-        {
-            string urnId = id;
-            
-            if (id.StartsWith("urn:"))
-            {
-                urnId = id;
-            }
-            else
-            {
-                var withoutPrefix = id.WithoutPrefix();
-                
-                if (withoutPrefix.IsOrganizationNumber())
-                {
-                    urnId = $"{UrnConstants.OrganizationNumberAttribute}:{withoutPrefix}";
-                }
-                else if (withoutPrefix.IsSocialSecurityNumberWithNoPrefix())
-                {
-                    urnId = $"{UrnConstants.PersonIdAttribute}:{withoutPrefix}";
-                }
-                else if (withoutPrefix.IsEmailAddress())
-                {
-                    urnId = $"{UrnConstants.PersonIdPortenEmailAttribute}:{withoutPrefix}";
-                }
-                else if (Guid.TryParse(withoutPrefix, out var uuid))
-                {
-                    urnId = $"{UrnConstants.PartyUuid}:{uuid}";
-                }
-                else if (int.TryParse(withoutPrefix, out var partyId))
-                {
-                    urnId = $"{UrnConstants.Party}:{partyId}";
-                }
-            }
-            
-            partyUrns.Add(urnId);
-        }
+        var partyUrns = identificationIds.Select(id => id.WithUrnPrefix()).ToList();
 
         var request = new ListObject<string>
         {
