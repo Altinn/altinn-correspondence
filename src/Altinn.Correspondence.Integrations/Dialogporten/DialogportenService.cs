@@ -885,6 +885,15 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == HttpStatusCode.Gone)
+            {
+                logger.LogWarning("Dialog {dialogId} for correspondence {correspondenceId} is already deleted in Dialogporten when attempting to update system labels. Response: {responseStatusCode}: {responseContent}",
+                    dialogId,
+                    correspondenceId,
+                    response.StatusCode,
+                    await response.Content.ReadAsStringAsync());
+                return;
+            }
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting system labels for dialogid {dialogId} for correpondence {correspondenceId}");
         }
     }
