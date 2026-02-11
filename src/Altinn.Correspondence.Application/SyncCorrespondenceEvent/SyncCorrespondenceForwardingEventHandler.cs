@@ -1,6 +1,10 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Hangfire;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -10,6 +14,7 @@ namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 public class SyncCorrespondenceForwardingEventHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceForwardingEventRepository forwardingEventRepository,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<SyncCorrespondenceForwardingEventHandler> logger) : IHandler<SyncCorrespondenceForwardingEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceForwardingEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -63,7 +68,15 @@ public class SyncCorrespondenceForwardingEventHandler(
             }
 
             // Add the new forwarding event to the repository
-            await forwardingEventRepository.AddForwardingEvents(forwardingEventsToExecute, cancellationToken);
+            await TransactionWithRetriesPolicy.Execute(async (canellationToken) =>
+            {
+                await forwardingEventRepository.AddForwardingEvents(forwardingEventsToExecute, cancellationToken);
+                foreach(var forwardingEvent in forwardingEventsToExecute)
+                {
+                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.AddForwardingEvent(forwardingEvent, cancellationToken));
+                }
+                return Task.CompletedTask;
+            }, logger, cancellationToken);
         }
 
         return request.CorrespondenceId;
