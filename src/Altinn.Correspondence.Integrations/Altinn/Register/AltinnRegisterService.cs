@@ -256,8 +256,6 @@ public class AltinnRegisterService : IAltinnRegisterService
             request, 
             cancellationToken);
 
-        var responseContent = await response.Content.ReadAsStringAsync();
-
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
@@ -272,8 +270,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         var partiesV2Response = await response.Content.ReadFromJsonAsync<ListObject<PartyV2>>(cancellationToken: cancellationToken);
         if (partiesV2Response is null)
         {
-            _logger.LogError("Unexpected json response when querying parties in Altinn Register");
-            return null;
+            throw new Exception("Unexpected json response when querying parties in Altinn Register");
         }
 
         // Map V2 parties to V1 party model
