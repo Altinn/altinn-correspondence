@@ -47,5 +47,93 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             // Assert
             Assert.True(result);
         }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForTextContainingAsteriskAndUnderscore()
+        {
+            // Arrange
+            string input = "This *is not* markdown and _should_ be treated as plain text.";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForTextContainingBackticks()
+        {
+            // Arrange
+            string input = "Here is some `inline code` in plain text.";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForTextWithNumberedLikeMarkdownButSentence()
+        {
+            // Arrange
+            string input = "1.234 is a number, not a markdown list.";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForTextWithHashSymbolNotHeading()
+        {
+            // Arrange
+            string input = "Error #404 not found.";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnFalse_ForActualMarkdownHeading()
+        {
+            // Arrange
+            string input = "# This is a markdown heading";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForTextWithExtraWhitespace()
+        {
+            // Arrange
+            string input = "  This is   plain   text with   irregular   spaces.  ";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForEmptyString()
+        {
+            // Arrange
+            string input = string.Empty;
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForWhitespaceOnly()
+        {
+            // Arrange
+            string input = "   \n\t  ";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
     }
 }
