@@ -10,6 +10,8 @@ param keyVaultName string
 param environment string
 @secure()
 param apimIp string
+@secure()
+param storageAccountName string
 
 var containerAppJobName = '${namePrefix}-migration'
 var containerAppEnvName = '${namePrefix}-env'
@@ -18,6 +20,7 @@ var migrationConnectionStringName = 'correspondence-migration-connection-string'
 resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${namePrefix}-migration-identity'
   location: location
+  tags: resourceGroup().tags
 }
 
 module keyvaultAddReaderRolesMigrationIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
@@ -40,6 +43,14 @@ module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
     appName: userAssignedIdentity.name
     namePrefix: namePrefix
     principalType: 'ServicePrincipal'
+  }
+}
+
+module grantMigrationIdentityStorageFileAccess '../../modules/storageAccount/addFileDataPrivilegedContributorRole.bicep' = {
+  name: 'storage-file-privileged-contributor-migration'
+  params: {
+    storageAccountName: storageAccountName
+    principalId: userAssignedIdentity.properties.principalId
   }
 }
 var secrets = [
@@ -74,23 +85,8 @@ var containerAppEnvVars = [
   { name: 'AzureResourceManagerOptions__ContainerAppName', value: '${namePrefix}-app' }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
   { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.properties.clientId }
-]
-
-var volumes = [
-  {
-    name: 'migrations'
-    storageName: 'migrations'
-    storageType: 'AzureFile'
-    mountOptions: 'cache=none'
-  }
-]
-
-var volumeMounts = [
-  {
-    volumeName: 'migrations'
-    mountPath: '/migrations'
-    subPath: ''
-  }
+  { name: 'STORAGE_ACCOUNT_NAME', value: storageAccountName }
+  { name: 'FILE_SHARE_NAME', value: 'migrations' }
 ]
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' existing = {
@@ -101,6 +97,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
   name: containerAppJobName
   dependsOn: [
     keyvaultAddReaderRolesMigrationIdentity
+    grantMigrationIdentityStorageFileAccess
   ]
   params: {
     name: containerAppJobName
@@ -108,10 +105,20 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     containerAppEnvId: containerAppEnv.id
     environmentVariables: containerAppEnvVars
     secrets: secrets
-    command: ['/bin/bash', '-c', 'cp ./migrations/bundle.exe /tmp/bundle.exe && cp ./migrations/appsettings.json /tmp/ && chmod +x /tmp/bundle.exe && cd /tmp && ./bundle.exe;']
+    command: [
+      '/bin/bash'
+      '-c'
+      '''
+        apt-get update && apt-get install -y curl gnupg lsb-release &&
+        curl -sL https://aka.ms/InstallAzureCLIDeb | bash &&
+        az login --identity --client-id $AZURE_CLIENT_ID &&
+        az storage file download --share-name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT_NAME --path bundle.exe --dest /tmp/bundle.exe --auth-mode login --enable-file-backup-request-intent &&
+        az storage file download --share-name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT_NAME --path appsettings.json --dest /tmp/appsettings.json --auth-mode login --enable-file-backup-request-intent &&
+        chmod +x /tmp/bundle.exe &&
+        cd /tmp && ./bundle.exe
+      '''
+    ]
     image: 'ubuntu:latest'
-    volumes: volumes
-    volumeMounts: volumeMounts
     principalId: userAssignedIdentity.id
   }
 }

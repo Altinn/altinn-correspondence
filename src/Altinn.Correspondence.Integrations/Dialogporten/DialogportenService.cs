@@ -31,7 +31,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        logger.LogInformation("CreateCorrespondenceDialog for correspondence {correspondenceId}", correspondence.Id);
+        logger.LogDebug("CreateCorrespondenceDialog for correspondence {correspondenceId}", correspondence.Id);
 
         // Create idempotency key for open dialog activity
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
@@ -64,7 +64,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
 
-        logger.LogInformation("CreateDialogTransmission for correspondence {correspondenceId}", correspondence.Id);
+        logger.LogDebug("CreateDialogTransmission for correspondence {correspondenceId}", correspondence.Id);
 
         // Create idempotency key for open dialog activity
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
@@ -124,7 +124,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         var patchRequest = patchRequestBuilder.Build();
         if (patchRequest.Count == 0)
         {
-            logger.LogInformation("No actions to remove from dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
+            logger.LogDebug("No actions to remove from dialog {dialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
             return false;
         }
         var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}?isSilentUpdate=true", patchRequest, cancellationToken);
@@ -171,7 +171,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
     }
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, DateTimeOffset activityTimestamp, params string[] tokens)
     {
-        logger.LogInformation("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
+        logger.LogDebug("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
             Enum.GetName(typeof(DialogportenActorType), actorType),
             Enum.GetName(typeof(DialogportenTextType), textType),
             correspondenceId
@@ -315,7 +315,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
     {
-        logger.LogInformation("CreateOpenedActivity by {actorType} for correspondence {correspondenceId}",
+        logger.LogDebug("CreateOpenedActivity by {actorType} for correspondence {correspondenceId}",
             Enum.GetName(typeof(DialogportenActorType), actorType),
             correspondenceId
         );
@@ -389,7 +389,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task CreateConfirmedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
     {
-        logger.LogInformation("CreateConfirmedActivity by {actorType} for correspondence {correspondenceId}",
+        logger.LogDebug("CreateConfirmedActivity by {actorType} for correspondence {correspondenceId}",
             Enum.GetName(typeof(DialogportenActorType), actorType),
             correspondenceId
         );
@@ -404,7 +404,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         if (correspondence.Statuses.Count(s => s.Status == CorrespondenceStatus.Confirmed) >= 2)
         {
-            logger.LogInformation("Correspondence with id {correspondenceId} already has a Confirmed status, skipping activity creation on Dialogporten", correspondenceId);
+            logger.LogDebug("Correspondence with id {correspondenceId} already has a Confirmed status, skipping activity creation on Dialogporten", correspondenceId);
             return;
         }
 
@@ -550,7 +550,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task CreateCorrespondencePurgedActivity(Guid correspondenceId, DialogportenActorType actorType, string actorName, DateTimeOffset activityTimestamp, string? partyUrn)
     {
-        logger.LogInformation("CreateCorrespondencePurgedActivity by {actorType}: for correspondence {correspondenceId}",
+        logger.LogDebug("CreateCorrespondencePurgedActivity by {actorType}: for correspondence {correspondenceId}",
             Enum.GetName(typeof(DialogportenActorType), actorType),
             correspondenceId
         );

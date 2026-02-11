@@ -1,6 +1,7 @@
+using Markdig;
+using Markdig.Parsers;
 using System.Net;
 using System.Text.RegularExpressions;
-using Markdig;
 
 namespace Altinn.Correspondence.Common.Helpers;
 
@@ -18,20 +19,25 @@ public class TextValidation
 
     public static bool ValidatePlainText(string text)
     {
+        // Ignore backticks in the comparison so backticks are always accepted.
+        var normalizedInput = text.Replace("`", "");
         var converter = new ReverseMarkdown.Converter();
-        var markdown = converter.Convert(text);
-        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        var markdown = converter.Convert(normalizedInput);
+        var pipelineBuilder = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions();
+        pipelineBuilder.BlockParsers.TryRemove<ListBlockParser>();
+        var pipeline = pipelineBuilder.Build();
         var plaintext = Markdown.ToPlainText(markdown, pipeline);
-        return plaintext.Trim() == text.Trim();
+        return plaintext.Trim() == normalizedInput.Trim();
     }
 
     public static bool ValidateMarkdown(string markdown)
     {
         var config = new ReverseMarkdown.Config
         {
-            CleanupUnnecessarySpaces = false,
-            PassThroughTags = new String[] { "br" },
+            CleanupUnnecessarySpaces = false
         };
+        config.PassThroughTags.Add("br");
         var converter = new ReverseMarkdown.Converter(config);
         // change all codeblocks to <code> to keep html content in codeblocks
         var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);
@@ -41,8 +47,9 @@ public class TextValidation
         var text = WebUtility.HtmlDecode(WebUtility.HtmlDecode(markdown));
         result = WebUtility.HtmlDecode(WebUtility.HtmlDecode(result));
 
-        //As reversemarkdown makes all code blocks to ` we need to replace ``` with ` and `` with ` to compare the strings
-        return ReplaceWhitespaceAndEscapeCharacters(text.Replace("```", "`").Replace("``", "`")) == ReplaceWhitespaceAndEscapeCharacters(result.Replace("```", "`").Replace("``", "`"));
+        // Ignore backticks in the comparison so backticks are always accepted. 
+        // This is to make the validation consistent with how we allow ambiguous use of * and _ in markdown (lenient markdown validation).
+        return ReplaceWhitespaceAndEscapeCharacters(text.Replace("`", "")) == ReplaceWhitespaceAndEscapeCharacters(result.Replace("`", ""));
     }
 
     public static string ReplaceWhitespaceAndEscapeCharacters(string text)
@@ -54,7 +61,7 @@ public class TextValidation
     {
         var codeTagsContent = new List<List<string>>();
         var validCodeTagDelimiters = new List<string> { "```", "``", "`" };
-        var newText = text;
+        var newText = WebUtility.HtmlEncode(text);
         var i = 0;
         foreach (var delimiter in validCodeTagDelimiters)
         {

@@ -165,7 +165,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Checking access for party {party} and resource {resourceId}", party.SanitizeForLogging(), resourceId.SanitizeForLogging());
+        _logger.LogDebug("Checking access for party {party} and resource {resourceId}", party.SanitizeForLogging(), resourceId.SanitizeForLogging());
         if (user is null)
         {
             throw new InvalidOperationException("This operation cannot be called outside an authenticated HttpContext");
@@ -215,7 +215,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             {
                 if (!string.IsNullOrWhiteSpace(serviceOwnerId) && consumerOrg.Equals(serviceOwnerId, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("Bypass granted for service owner: {serviceOwner} accessing resource: {resourceId}",
+                    _logger.LogDebug("Bypass granted for service owner: {serviceOwner} accessing resource: {resourceId}",
                         consumerOrg.SanitizeForLogging(), resourceId.SanitizeForLogging());
                     return true; // Allow access without PDP call
                 }
