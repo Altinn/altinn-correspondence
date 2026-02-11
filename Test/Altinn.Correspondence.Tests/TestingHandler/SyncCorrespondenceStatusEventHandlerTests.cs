@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Common.Constants;
@@ -60,15 +61,18 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _backgroundJobClientMock.Object,
                 _dialogPortenServiceMock.Object,
                 _correspondenceRepositoryMock.Object);
-            _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
-
-            _handler = new SyncCorrespondenceStatusEventHandler(
-                _correspondenceRepositoryMock.Object,
+            var correspondenceEventHelper = new CorrespondenceSyncStatusEventHelper(
                 _correspondenceStatusRepositoryMock.Object,
                 _correspondenceDeleteEventRepositoryMock.Object,
                 _altinnRegisterServiceMock.Object,
                 _purgeHelper,
                 _backgroundJobClientMock.Object,
+                new Mock<ILogger<CorrespondenceSyncStatusEventHelper>>().Object);
+            _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
+
+            _handler = new SyncCorrespondenceStatusEventHandler(
+                _correspondenceRepositoryMock.Object,
+                correspondenceEventHelper,
                 _loggerMock.Object);
         }
 
