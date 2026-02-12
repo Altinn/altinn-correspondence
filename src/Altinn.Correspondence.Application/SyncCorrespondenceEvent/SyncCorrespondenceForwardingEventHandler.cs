@@ -68,7 +68,7 @@ public class SyncCorrespondenceForwardingEventHandler(
             }
 
             // Add the new forwarding event to the repository
-            await TransactionWithRetriesPolicy.Execute(async (canellationToken) =>
+            await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
             {
                 await forwardingEventRepository.AddForwardingEvents(forwardingEventsToExecute, cancellationToken);
                 foreach(var forwardingEvent in forwardingEventsToExecute)
