@@ -24,8 +24,8 @@ using System.Text.Json;
 using Altinn.Correspondence.Tests.TestingFeature;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Platform.Register.Models;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {

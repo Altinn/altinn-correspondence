@@ -1,11 +1,11 @@
 ﻿using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
+using Altinn.Platform.Register.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;

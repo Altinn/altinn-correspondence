@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Platform.Register.Models;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;

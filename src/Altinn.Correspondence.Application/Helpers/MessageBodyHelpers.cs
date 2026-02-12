@@ -1,5 +1,4 @@
 ﻿using ReverseMarkdown;
-using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Application.Helpers;

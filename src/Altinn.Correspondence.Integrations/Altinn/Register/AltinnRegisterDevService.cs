@@ -1,9 +1,9 @@
 using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Platform.Register.Enums;
+using Altinn.Platform.Register.Models;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterDevService : IAltinnRegisterService
@@ -43,8 +43,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _digdirPartyId,
                 OrgNumber = "991825827",
                 SSN = "",
-                Resources = new List<string>(),
-                PartyTypeName = PartyType.Organization,
+                PartyTypeName = PartyType.Organisation,
                 UnitType = "Virksomhet",
                 Name = "Digitaliseringsdirektoratet",
                 PartyUuid = _digdirPartyUuid,
@@ -63,8 +62,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _digdirPartyId,
                 OrgNumber = "991825827",
                 SSN = "",
-                Resources = new List<string>(),
-                PartyTypeName = PartyType.Organization,
+                PartyTypeName = PartyType.Organisation,
                 UnitType = "Virksomhet",
                 Name = "Digitaliseringsdirektoratet",
                 PartyUuid = _digdirPartyUuid,
@@ -77,7 +75,6 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _delegatedUserPartyid,
                 OrgNumber = "",
                 SSN = "01018045678",
-                Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
                 Name = "Delegert test bruker",
@@ -97,8 +94,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _digdirPartyId,
                 OrgNumber = "991825827",
                 SSN = "",
-                Resources = new List<string>(),
-                PartyTypeName = PartyType.Organization,
+                PartyTypeName = PartyType.Organisation,
                 UnitType = "Virksomhet",
                 Name = "Digitaliseringsdirektoratet",
                 PartyUuid = _digdirPartyUuid,
@@ -111,7 +107,6 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _delegatedUserPartyid,
                 OrgNumber = "",
                 SSN = "01018045678",
-                Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
                 Name = "Delegert test bruker",
@@ -125,7 +120,6 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _secondUserPartyId,
                 OrgNumber = "",
                 SSN = "01027845678",
-                Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
                 Name = "Annen test bruker",
@@ -133,7 +127,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             };
         }
 
-        return Task.FromResult<Party?>(party);
+        return Task.FromResult(party);
     }
 
     public Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
@@ -148,8 +142,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                     PartyId = _digdirPartyId,
                     OrgNumber = id,
                     SSN = id,
-                    Resources = new List<string>(),
-                    PartyTypeName = PartyType.Organization,
+                    PartyTypeName = PartyType.Organisation,
                     UnitType = "Virksomhet",
                     Name = "Digitaliseringsdirektoratet",
                     PartyUuid = Guid.NewGuid(),
@@ -181,7 +174,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         {
             new MainUnitItem
             {
-                PartyType = "organization",
+                PartyType = "Organisation",
                 OrganizationIdentifier = "991825827",
                 PartyUuid = _digdirPartyUuid,
                 VersionId = 1,

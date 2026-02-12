@@ -1,16 +1,17 @@
-﻿using Altinn.Correspondence.Common.Constants;
+﻿using Altinn.Correspondence.Common.Caching;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.AccessManagement;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Platform.Register.Enums;
+using Altinn.Platform.Register.Models;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Altinn.Correspondence.Common.Caching;
-using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 
@@ -38,11 +39,11 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         };
     }
 
-    public async Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, string? userId, CancellationToken cancellationToken = default)
+    public async Task<List<AuthorizedParty>> GetAuthorizedParties(Party partyToRequestFor, string? userId, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"AuthorizedParties_{partyToRequestFor.PartyId}_{userId}";
         try {
-            var cachedParties = await CacheHelpers.GetObjectFromCacheAsync<List<Party>>(cacheKey, _cache, cancellationToken);
+            var cachedParties = await CacheHelpers.GetObjectFromCacheAsync<List<AuthorizedParty>>(cacheKey, _cache, cancellationToken);
             if (cachedParties != null)
             {
                 return cachedParties;
@@ -73,12 +74,12 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
             _logger.LogError("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
             throw new Exception("Unexpected null or invalid json response from Authorization GetAuthorizedParties.");
         }
-        List<Party> parties = new();
+        List<AuthorizedParty> parties = new();
         foreach (var p in responseContent)
         {
             if (!p.onlyHierarchyElementWithNoAccess)
             {
-                parties.Add(new Party
+                parties.Add(new AuthorizedParty
                 {
                     PartyId = p.partyId,
                     PartyUuid = p.partyUuid,
@@ -105,19 +106,19 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
 
         return parties;
     }
-    public PartyType GetType(string type)
+    public AuthorizedPartyType GetType(string type)
     {
         return type switch
         {
-            "Person" => PartyType.Person,
-            "Organization" => PartyType.Organization,
-            "SelfIdentified" => PartyType.SelfIdentified,
+            "Person" => AuthorizedPartyType.Person,
+            "Organization" => AuthorizedPartyType.Organization,
+            "SelfIdentified" => AuthorizedPartyType.SelfIdentified,
             _ => throw new NotImplementedException()
         };
     }
-    private List<Party> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits, int depth = 0)
+    private List<AuthorizedParty> GetPartiesFromSubunits(List<AuthroizedPartiesResponse> subunits, int depth = 0)
     {
-        List<Party> parties = new();
+        List<AuthorizedParty> parties = new();
         if (depth > _MAX_DEPTH_FOR_SUBUNITS)
         {
             _logger.LogWarning("Max depth for subunits reached. Ignoring further subunits.");
@@ -125,7 +126,7 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
         }
         foreach (var subunit in subunits)
         {
-            parties.Add(new Party
+            parties.Add(new AuthorizedParty
             {
 
                 PartyId = subunit.partyId,

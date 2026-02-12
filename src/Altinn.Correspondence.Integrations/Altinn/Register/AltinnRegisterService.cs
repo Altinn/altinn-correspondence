@@ -9,7 +9,6 @@ using Altinn.Correspondence.Core.Models.Register;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Party = Altinn.Correspondence.Core.Models.Entities.Party;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterService : IAltinnRegisterService

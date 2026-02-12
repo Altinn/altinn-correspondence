@@ -1,11 +1,11 @@
 using Altinn.Correspondence.Application.ConfirmCorrespondence;
 using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Platform.Register.Models;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;

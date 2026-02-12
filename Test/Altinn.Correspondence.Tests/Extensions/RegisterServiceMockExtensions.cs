@@ -1,6 +1,6 @@
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Platform.Register.Models;
 using Moq;
 
 namespace Altinn.Correspondence.Tests.Extensions

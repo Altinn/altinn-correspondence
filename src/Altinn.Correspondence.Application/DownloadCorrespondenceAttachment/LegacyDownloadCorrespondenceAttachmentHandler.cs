@@ -2,7 +2,6 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Core.Models.Enums;
 using Hangfire;
 using OneOf;
 using System.Security.Claims;

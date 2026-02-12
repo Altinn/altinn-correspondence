@@ -12,6 +12,7 @@ using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
+using Altinn.Platform.Register.Models;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -262,7 +263,7 @@ public class DialogportenTests
         correspondenceRepository.Setup(correspondenceRepository => correspondenceRepository
             .GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
             .ReturnsAsync(testCorrespondence);
-        altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Core.Models.Entities.Party
+        altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Party
         {
             PartyUuid = Guid.NewGuid()
         });

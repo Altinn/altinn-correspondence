@@ -2,13 +2,14 @@
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.AccessManagement;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
+using Altinn.Platform.Register.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;
@@ -236,14 +237,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         [Fact]
         public async Task LegacyGetCorrespondences_DuplicateAuthorizedParties_IsIgnored()
         {
-            var duplicateParty = new PartyWithSubUnits()
+            var duplicateParty = new AuthorizedPartyWithSubUnits()
             {
                 PartyId = 1,
                 Name = "hovedenhet",
                 OnlyHierarchyElementWithNoAccess = false,
-                SubUnits = new List<PartyWithSubUnits>()
+                SubUnits = new List<AuthorizedPartyWithSubUnits>()
                             {
-                                new PartyWithSubUnits()
+                                new AuthorizedPartyWithSubUnits()
                                 {
                                     PartyId = 2,
                                     Name = "underenhet",
@@ -263,7 +264,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new List<Party>()
+                    .ReturnsAsync(new List<AuthorizedParty>()
                     {
                         duplicateParty,
                         duplicateParty
@@ -286,14 +287,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         public async Task LegacyGetCorrespondences_CalledWithUserId_UsesUserIdForAuthorizedParties()
         {
             var userId = "1234567";
-            var party = new PartyWithSubUnits()
+            var party = new AuthorizedPartyWithSubUnits()
             {
                 PartyId = 1,
                 Name = "hovedenhet",
                 OnlyHierarchyElementWithNoAccess = false,
-                SubUnits = new List<PartyWithSubUnits>()
+                SubUnits = new List<AuthorizedPartyWithSubUnits>()
                             {
-                                new PartyWithSubUnits()
+                                new AuthorizedPartyWithSubUnits()
                                 {
                                     PartyId = 2,
                                     Name = "underenhet",
@@ -304,7 +305,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
             mockAccessManagementService
                 .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<Party>()
+                .ReturnsAsync(new List<AuthorizedParty>()
                 {
                         party
                 });
@@ -373,16 +374,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new List<Party>()
+                    .ReturnsAsync(new List<AuthorizedParty>()
                     {
-                        new PartyWithSubUnits()
+                        new AuthorizedPartyWithSubUnits()
                         {
                             PartyId = 1,
                             Name = "hovedenhet",
                             OnlyHierarchyElementWithNoAccess = true,
-                            SubUnits = new List<PartyWithSubUnits>()
+                            SubUnits = new List<AuthorizedPartyWithSubUnits>()
                                         {
-                                            new PartyWithSubUnits()
+                                            new AuthorizedPartyWithSubUnits()
                                             {
                                                 PartyId = 2,
                                                 Name = "underenhet",

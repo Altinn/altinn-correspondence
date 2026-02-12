@@ -1,10 +1,8 @@
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Application.SendSlackNotification;
 using Hangfire;
 using Hangfire.Common;

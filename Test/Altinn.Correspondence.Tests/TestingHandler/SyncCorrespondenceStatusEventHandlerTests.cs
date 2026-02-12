@@ -7,12 +7,13 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Platform.Register.Enums;
+using Altinn.Platform.Register.Models;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -675,7 +676,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(Guid.NewGuid());
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyByPartyUuid(eusOrgpartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = eusOrgpartyUuid, OrgNumber = eusOrgNumber, PartyTypeName = PartyType.Organization });
+                .ReturnsAsync(new Party { PartyUuid = eusOrgpartyUuid, OrgNumber = eusOrgNumber, PartyTypeName = PartyType.Organisation });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
