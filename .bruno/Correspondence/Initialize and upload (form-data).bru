@@ -51,7 +51,6 @@ script:pre-request {
   const millisecondsPerDay = 24 * 60 * 60 * 1000;
   bru.setVar("requestedPublishTime", new Date(now.getTime()).toISOString());
   bru.setVar("dueDateTime", new Date(now.getTime() + (14 * millisecondsPerDay)).toISOString());
-  bru.setVar("allowSystemDeleteAfter", new Date(now.getTime() + (365 * millisecondsPerDay)).toISOString());
 }
 
 script:post-response {
