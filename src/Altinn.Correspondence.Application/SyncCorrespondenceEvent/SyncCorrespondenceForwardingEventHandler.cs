@@ -73,7 +73,7 @@ public class SyncCorrespondenceForwardingEventHandler(
                 await forwardingEventRepository.AddForwardingEvents(forwardingEventsToExecute, cancellationToken);
                 foreach(var forwardingEvent in forwardingEventsToExecute)
                 {
-                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.AddForwardingEvent(forwardingEvent, cancellationToken));
+                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.AddForwardingEvent(forwardingEvent, CancellationToken.None));
                 }
                 return Task.CompletedTask;
             }, logger, cancellationToken);
