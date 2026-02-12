@@ -917,26 +917,68 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task AddForwardingEvent(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
     {
-        if (forwardingEvent == null)
+        ArgumentNullException.ThrowIfNull(forwardingEvent);
+
+        var forwardedByParty = await altinnRegisterService
+            .LookUpPartyByPartyUuid(forwardingEvent.ForwardedByPartyUuid, cancellationToken);
+        if (forwardedByParty == null)
         {
-            throw new ArgumentNullException(nameof(forwardingEvent));
+            throw new Exception($"Could not find party for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
         }
 
-        var forwarderPartyInfo = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedByPartyUuid, cancellationToken);
-        var forwarderUserInfo = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedByUserUuid, cancellationToken);
-        string[] tokens =  {
-                forwardingEvent.Correspondence?.Content?.MessageTitle ?? "",
-                forwardingEvent.ForwardedToEmailAddress ?? "ukjent mottaker", // TODO Can we use forwardedToUserInfo here?
+        if (forwardingEvent.ForwardedToUserUuid is not null) {
+            // Instance delegation
+            var forwardedToParty = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedToUserUuid.Value, cancellationToken);
+            if (forwardedToParty == null)
+            {
+                throw new Exception($"Could not find party for ForwardedToUserUuid {forwardingEvent.ForwardedToUserUuid} in forwarding event {forwardingEvent.Id}");
+            }
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                forwardedToParty.Name,
                 forwardingEvent.ForwardingText ?? string.Empty
             };
 
-        await CreateInformationActivity(forwardingEvent.CorrespondenceId,
-                                        DialogportenActorType.Recipient,
-                                        DialogportenTextType.CorrespondenceForwardedInformation,
-                                        UrnConstants.PersonIdAttribute + ":" + forwarderPartyInfo.SSN, // TODO forwarderUserInfo.Email for SI users? DP now supports urn:altinn:person:legacy-selfidentified: and urn:altinn:person:idporten-email:
-                                        forwardingEvent.ForwardedOnDate,
-                                        tokens);
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceInstanceDelegated,
+                UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN, // TODO: refine for SI / enterprise users if needed
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else if (!string.IsNullOrEmpty(forwardingEvent.ForwardedToEmailAddress))
+        {
+            // Email forwarding
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                forwardingEvent.ForwardedToEmailAddress,
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
 
-
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceForwardedToEmail,
+                UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN, // TODO: refine for SI / enterprise users if needed
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else if (!string.IsNullOrWhiteSpace(forwardingEvent.MailboxSupplier))
+        {
+            // Forwarding to own Secure Digital Mailbox (Digipost / e-Boks)
+            // urn:altinn:organization:identifier-no:922020175 // e-Boks
+            // TODO
+        }
+        else
+        {
+            logger.LogWarning("Forwarding event {ForwardingEventId} has no valid forwarding target (no ForwardedToUserUuid, ForwardedToEmailAddress or MailboxSupplier)", forwardingEvent.Id);
+            throw new Exception($"Forwarding event {forwardingEvent.Id} has no valid forwarding target (no ForwardedToUserUuid, ForwardedToEmailAddress or MailboxSupplier)");
+        }
     }
+
+    //  {forwardedByParty.NAME} delte {correspondence.MessageTitle} med {forwardedToParty.Name} i Altinn og skrev : <<{forwardingEvent.ForwardingText}>> 
+    //  {forwardedByParty.NAME} videresendte {correspondence.MessageTitle} til {forwardingEvent.ForwardedToEmailAddress} og skrev : <<{forwardingEvent.ForwardingText}>> 
 }

@@ -10,6 +10,7 @@
         CorrespondencePublished,
         CorrespondenceConfirmed,
         CorrespondencePurged,
-        CorrespondenceForwardedInformation
+        CorrespondenceForwardedToEmail,
+        CorrespondenceInstanceDelegated
     }
 }
