@@ -951,7 +951,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             string[] tokens =
             {
                 forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
-                forwardedToParty.Name,
+                forwardedToParty.Name ?? throw new Exception($"No name found for user {forwardedToParty.PartyUuid}"),
                 forwardingEvent.ForwardingText ?? string.Empty
             };
 
