@@ -10,7 +10,7 @@ namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
 public class SyncCorrespondenceStatusEventHandler(
 ICorrespondenceRepository correspondenceRepository,
-CorrespondenceSyncStatusEventHelper correspondenceEventHelper,
+CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
 ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorrespondenceStatusEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceStatusEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -26,9 +26,6 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
             logger.LogInformation("No events to sync for Correspondence {CorrespondenceId}. Exiting sync process.", request.CorrespondenceId);
             return request.CorrespondenceId;
         }
-
-        // Only fetch Dialogporten enduserIds if we have events 
-        Dictionary<Guid, string> enduserIdsByPartyUuids = await correspondenceEventHelper.GetDialogPortenEndUserIdsForEvents(request.SyncedEvents, request.SyncedDeleteEvents, cancellationToken);
 
         var txResult = await TransactionWithRetriesPolicy.Execute<OneOf<Guid, Error>>(async (cancellationToken) =>
         {
@@ -49,7 +46,7 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
 
             if (numSyncedEvents > 0)
             {
-                statusEventsToProcess = correspondenceEventHelper.FilterStatusEvents(request.CorrespondenceId, request.SyncedEvents, correspondence);
+                statusEventsToProcess = correspondenceMigrationEventHelper.FilterStatusEvents(request.CorrespondenceId, request.SyncedEvents, correspondence);
                 if (statusEventsToProcess.Count == 0)
                 {
                     logger.LogWarning("None of the Status Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
@@ -58,7 +55,7 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
 
             if (numSyncedDeletes > 0)
             {
-                deletionEventsToProcess = await correspondenceEventHelper.FilterDeleteEvents(request.CorrespondenceId, request.SyncedDeleteEvents, cancellationToken);
+                deletionEventsToProcess = await correspondenceMigrationEventHelper.FilterDeleteEvents(request.CorrespondenceId, request.SyncedDeleteEvents, cancellationToken);
                 if (deletionEventsToProcess.Count == 0)
                 {
                     logger.LogWarning("None of the Delete Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
@@ -71,41 +68,14 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
                 return request.CorrespondenceId;
             }
 
-            // After filtering both collections, combine them into a single sorted collection, sorted by timestamp they occurred
-            var allEventsToProcess = statusEventsToProcess
-                .Select(e => new { EventType = "Status", Event = (object)e, Timestamp = e.StatusChanged })
-                .Concat(deletionEventsToProcess
-                    .Select(e => new { EventType = "Delete", Event = (object)e, Timestamp = e.EventOccurred }))
-                .OrderBy(e => e.Timestamp)
-                .ToList();
-
-            // Process events sequentially by chronological order to maintain granular control
-            foreach (var evt in allEventsToProcess)
-            {
-                logger.LogInformation("Processing {EventType} event for correspondence {CorrespondenceId} at {Timestamp}", 
-                    evt.EventType, request.CorrespondenceId, evt.Timestamp);
-                
-                try
-                {
-                    if (evt.EventType == "Status")
-                    {
-                        await correspondenceEventHelper.ProcessStatusEvent(request.CorrespondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, cancellationToken);
-                    }
-                    else if (evt.EventType == "Delete")
-                    {
-                        await correspondenceEventHelper.ProcessDeleteEvent(request.CorrespondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, cancellationToken);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to process {EventType} event for correspondence {CorrespondenceId} at {Timestamp}", 
-                        evt.EventType, request.CorrespondenceId, evt.Timestamp);
-                    throw; // Re-throw to trigger transaction rollback
-                }
-            }
-
-            logger.LogInformation("Successfully processed {TotalEvents} events for correspondence {CorrespondenceId}", 
-                allEventsToProcess.Count, request.CorrespondenceId);
+            // Process all events using the shared helper method
+            await correspondenceMigrationEventHelper.ProcessEventsInChronologicalOrder(
+                request.CorrespondenceId,
+                correspondence,
+                statusEventsToProcess,
+                deletionEventsToProcess,
+                "sync",
+                cancellationToken);
 
             return request.CorrespondenceId;
         }, logger, cancellationToken);

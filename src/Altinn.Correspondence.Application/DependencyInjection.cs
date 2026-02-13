@@ -91,7 +91,7 @@ public static class DependencyInjection
         services.AddScoped<MobileNumberHelper>();
         services.AddScoped<HangfireScheduleHelper>();
         services.AddScoped<NotificationMapper>();
-        services.AddScoped<CorrespondenceSyncStatusEventHelper>();
+        services.AddScoped<CorrespondenceMigrationEventHelper>();
 
         // Legacy
         services.AddScoped<LegacyGetCorrespondencesHandler>();

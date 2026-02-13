@@ -5,7 +5,6 @@ using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -30,11 +29,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ILogger<MigrateCorrespondenceHandler>> _loggerMock;
         private readonly Mock<ICorrespondenceDeleteEventRepository> _correspondenceDeleteRepositoryMock;
         private readonly Mock<ICorrespondenceStatusRepository> _correspondenceStatusRepositoryMock;
+        private readonly Mock<ICorrespondenceNotificationRepository> _correspondenceNotificationRepositoryMock;
+        private readonly Mock<ICorrespondenceForwardingEventRepository> _correspondenceForwardingEventRepositoryMock;
         private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
         private readonly Mock<IAttachmentRepository> _attachmentRepositoryMock;
         private readonly Mock<IAttachmentStatusRepository> _attachmentStatusRepositoryMock;
         private readonly Mock<IDialogportenService> _dialogportenServiceForHelperMock;
-        private readonly Mock<ILogger<CorrespondenceSyncStatusEventHelper>> _eventHelperLoggerMock;
+        private readonly Mock<ILogger<CorrespondenceMigrationEventHelper>> _eventHelperLoggerMock;
         private readonly MigrateCorrespondenceHandler _handler;
 
         private Guid _defaultUserPartyUuid = Guid.NewGuid();
@@ -44,7 +45,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         public MigrateCorrespondenceHandlerTests()
         {
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
-            _correspondenceDeleteRepositoryMock = new Mock<ICorrespondenceDeleteEventRepository>();
+            _correspondenceDeleteRepositoryMock = new Mock<ICorrespondenceDeleteEventRepository>();            
             _dialogportenServiceMock = new Mock<IDialogportenService>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _hostEnvironmentMock = new Mock<IHostEnvironment>();
@@ -54,11 +55,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Setup mocks for CorrespondenceEventHelper dependencies
             _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
+            _correspondenceNotificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();
+            _correspondenceForwardingEventRepositoryMock = new Mock<ICorrespondenceForwardingEventRepository>();
             _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
             _attachmentRepositoryMock = new Mock<IAttachmentRepository>();
-            _attachmentStatusRepositoryMock = new Mock<IAttachmentStatusRepository>();
+            _attachmentStatusRepositoryMock = new Mock<IAttachmentStatusRepository>();            
             _dialogportenServiceForHelperMock = new Mock<IDialogportenService>();
-            _eventHelperLoggerMock = new Mock<ILogger<CorrespondenceSyncStatusEventHelper>>();
+            _eventHelperLoggerMock = new Mock<ILogger<CorrespondenceMigrationEventHelper>>();
             
             var purgeCorrespondenceHelper = new PurgeCorrespondenceHelper(
                 _attachmentRepositoryMock.Object,
@@ -68,9 +71,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _dialogportenServiceForHelperMock.Object,
                 _correspondenceRepositoryMock.Object);
 
-            var correspondenceEventHelper = new CorrespondenceSyncStatusEventHelper(
+            var correspondenceEventHelper = new CorrespondenceMigrationEventHelper(
                 _correspondenceStatusRepositoryMock.Object,
                 _correspondenceDeleteRepositoryMock.Object,
+                _correspondenceNotificationRepositoryMock.Object,
+                _correspondenceForwardingEventRepositoryMock.Object,
                 _altinnRegisterServiceMock.Object,
                 purgeCorrespondenceHelper,
                 _backgroundJobClientMock.Object,
@@ -84,7 +89,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var hangfireScheduleHelper = new HangfireScheduleHelper(_backgroundJobClientMock.Object, mockCache.Object, _correspondenceRepositoryMock.Object, new NullLogger<HangfireScheduleHelper>());
             _handler = new MigrateCorrespondenceHandler(
                 _correspondenceRepositoryMock.Object,
-                _correspondenceDeleteRepositoryMock.Object,
                 _dialogportenServiceMock.Object,
                 hangfireScheduleHelper,
                 _backgroundJobClientMock.Object,
@@ -230,7 +234,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task MakeCorrespondenceAvailable_WithCorrespondenceId_CorrespondenceBelongsToSeflidentifiedRecipient_ShouldNotMakeAvailable()
+        public async Task MakeCorrespondenceAvailable_WithCorrespondenceId_CorrespondenceBelongsToSelfIdentifiedRecipient_ShouldNotMakeAvailable()
         {
             // Arrange
             var correspondenceId = Guid.NewGuid();
@@ -647,7 +651,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 e.SyncedFromAltinn2 != null
             ), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
-            _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
             _dialogportenServiceMock.Verify(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
                 correspondenceId, It.IsAny<CorrespondenceEntity>(), It.IsAny<bool>(), true), Times.Once);
@@ -781,9 +784,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _dialogportenServiceMock.VerifyNoOtherCalls();
         }
 
-
         [Fact]
-        public async Task Remigrate_AllDuplicates_OK()
+        public async Task Remigrate_NewEventsInA3_NothingChanged()
         {
             // Arrange
             var correspondenceId = Guid.NewGuid();
@@ -798,19 +800,16 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithStatus(CorrespondenceStatus.Read)
                     .Build();
 
-            var correspondenceMockReturn = new CorrespondenceEntity
-            {
-                Id = correspondenceId,
-                ResourceId = correspondenceRequestObject.ResourceId,
-                Recipient = correspondenceRequestObject.Recipient,
-                Sender = correspondenceRequestObject.Sender,
-                SendersReference = correspondenceRequestObject.SendersReference,
-                RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
-                Statuses = correspondenceRequestObject.Statuses,
-                ExternalReferences = correspondenceRequestObject.ExternalReferences,
-                Created = correspondenceRequestObject.Created,
-                Altinn2CorrespondenceId = correspondenceRequestObject.Altinn2CorrespondenceId
-            };
+            var correspondenceExistingObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithRecipient(_defaultUserPartyIdentifier)
+                    .WithDialogId("dialog-id-123")
+                    .WithId(correspondenceId)
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithStatus(CorrespondenceStatus.Published)
+                    .WithStatus(CorrespondenceStatus.Read)
+                    .WithStatus(CorrespondenceStatus.Confirmed)
+                    .Build();
 
             var request = new MigrateCorrespondenceRequest
             {
@@ -820,11 +819,24 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             };
 
             _correspondenceRepositoryMock.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
-                .Throws(new DbUpdateException("An error occurred while updating the entries.", 
+                .Throws(new DbUpdateException("An error occurred while updating the entries.",
                     new Npgsql.PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505")));
             _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceByAltinn2Id(
                 altinn2CorrespondenceId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondenceMockReturn);
+                .ReturnsAsync(new CorrespondenceEntity
+                {
+                    Id = correspondenceId,
+                    ResourceId = correspondenceExistingObject.ResourceId,
+                    Recipient = correspondenceExistingObject.Recipient,
+                    Sender = correspondenceExistingObject.Sender,
+                    SendersReference = correspondenceExistingObject.SendersReference,
+                    RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
+                    Statuses = correspondenceExistingObject.Statuses,
+                    ExternalReferences = correspondenceExistingObject.ExternalReferences,
+                    Created = correspondenceExistingObject.Created,
+                    Altinn2CorrespondenceId = correspondenceExistingObject.Altinn2CorrespondenceId
+                });
+            _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -838,10 +850,77 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByAltinn2Id(
                 altinn2CorrespondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceForwardingEventRepositoryMock.VerifyNoOtherCalls();
             _dialogportenServiceMock.VerifyNoOtherCalls();
             _backgroundJobClientMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Remigrate_AllDuplicates_NothingAdded()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 12345;
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithRecipient(_defaultUserPartyIdentifier)
+                    .WithDialogId("dialog-id-123")
+                    .WithId(correspondenceId)
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithStatus(CorrespondenceStatus.Published)
+                    .WithStatus(CorrespondenceStatus.Read)
+                    .Build();
+
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                MakeAvailable = true
+            };
+
+            _correspondenceRepositoryMock.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .Throws(new DbUpdateException("An error occurred while updating the entries.", 
+                    new Npgsql.PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505")));
+            _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CorrespondenceEntity
+                {
+                    Id = correspondenceId,
+                    ResourceId = correspondenceRequestObject.ResourceId,
+                    Recipient = correspondenceRequestObject.Recipient,
+                    Sender = correspondenceRequestObject.Sender,
+                    SendersReference = correspondenceRequestObject.SendersReference,
+                    RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
+                    Statuses = correspondenceRequestObject.Statuses,
+                    ExternalReferences = correspondenceRequestObject.ExternalReferences,
+                    Created = correspondenceRequestObject.Created,
+                    Altinn2CorrespondenceId = correspondenceRequestObject.Altinn2CorrespondenceId
+                });
+            _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+
+            _correspondenceRepositoryMock.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId
+            ), It.IsAny<CancellationToken>()), Times.Once);
+
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceForwardingEventRepositoryMock.VerifyNoOtherCalls();
+            _dialogportenServiceMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.VerifyNoOtherCalls();            
         }
 
         [Fact]
@@ -870,20 +949,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00), _defaultUserPartyUuid)
                     .Build();
 
-            var correspondenceMockReturn = new CorrespondenceEntity
-            {
-                Id = correspondenceId,
-                ResourceId = correspondenceExistingObject.ResourceId,
-                Recipient = correspondenceExistingObject.Recipient,
-                Sender = correspondenceExistingObject.Sender,
-                SendersReference = correspondenceExistingObject.SendersReference,
-                RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
-                Statuses = correspondenceExistingObject.Statuses,
-                ExternalReferences = correspondenceExistingObject.ExternalReferences,
-                Created = correspondenceExistingObject.Created,
-                Altinn2CorrespondenceId = correspondenceExistingObject.Altinn2CorrespondenceId
-            };
-
             var request = new MigrateCorrespondenceRequest
             {
                 Altinn2CorrespondenceId = altinn2CorrespondenceId,
@@ -894,9 +959,22 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
                 .Throws(new DbUpdateException("An error occurred while updating the entries.",
                     new Npgsql.PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505")));
+            _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
             _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceByAltinn2Id(
                 altinn2CorrespondenceId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondenceMockReturn);
+                .ReturnsAsync(new CorrespondenceEntity
+                {
+                    Id = correspondenceId,
+                    ResourceId = correspondenceExistingObject.ResourceId,
+                    Recipient = correspondenceExistingObject.Recipient,
+                    Sender = correspondenceExistingObject.Sender,
+                    SendersReference = correspondenceExistingObject.SendersReference,
+                    RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
+                    Statuses = correspondenceExistingObject.Statuses,
+                    ExternalReferences = correspondenceExistingObject.ExternalReferences,
+                    Created = correspondenceExistingObject.Created,
+                    Altinn2CorrespondenceId = correspondenceExistingObject.Altinn2CorrespondenceId
+                });
 
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
@@ -944,9 +1022,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             VerifyDialogportenServicePatchCorrespondenceDialogToConfirmedEnqueued(correspondenceId);
             VerifyDialogportenServiceCreateConfirmedActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, _defaultUserPartyIdentifier);
             VerifyDialogportenServiceCreateOpenedActivityEnqueued(correspondenceId, _defaultUserPartyIdentifier);
-            
-            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceForwardingEventRepositoryMock.VerifyNoOtherCalls();
             _dialogportenServiceMock.VerifyNoOtherCalls();
             _backgroundJobClientMock.VerifyNoOtherCalls();
         }
@@ -976,23 +1057,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithId(correspondenceId)
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
                     .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00), _defaultUserPartyUuid)
-                    .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
+                     .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
                     .WithStatus(CorrespondenceStatus.Confirmed, new DateTime(2025, 12, 10, 10, 05, 10), _defaultUserPartyUuid)                    
                     .Build();
-
-            var correspondenceMockReturn = new CorrespondenceEntity
-            {
-                Id = correspondenceId,
-                ResourceId = correspondenceExistingObject.ResourceId,
-                Recipient = correspondenceExistingObject.Recipient,
-                Sender = correspondenceExistingObject.Sender,
-                SendersReference = correspondenceExistingObject.SendersReference,
-                RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
-                Statuses = correspondenceExistingObject.Statuses,
-                ExternalReferences = correspondenceExistingObject.ExternalReferences,
-                Created = correspondenceExistingObject.Created,
-                Altinn2CorrespondenceId = correspondenceExistingObject.Altinn2CorrespondenceId
-            };
 
             var request = new MigrateCorrespondenceRequest
             {
@@ -1006,7 +1073,20 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new Npgsql.PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505")));
             _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceByAltinn2Id(
                 altinn2CorrespondenceId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(correspondenceMockReturn);
+                .ReturnsAsync(new CorrespondenceEntity
+                {
+                    Id = correspondenceId,
+                    ResourceId = correspondenceExistingObject.ResourceId,
+                    Recipient = correspondenceExistingObject.Recipient,
+                    Sender = correspondenceExistingObject.Sender,
+                    SendersReference = correspondenceExistingObject.SendersReference,
+                    RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
+                    Statuses = correspondenceExistingObject.Statuses,
+                    ExternalReferences = correspondenceExistingObject.ExternalReferences,
+                    Created = correspondenceExistingObject.Created,
+                    Altinn2CorrespondenceId = correspondenceExistingObject.Altinn2CorrespondenceId
+                });
+            _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
 
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
@@ -1041,6 +1121,173 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, _defaultUserPartyIdentifier);
 
+            _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceForwardingEventRepositoryMock.VerifyNoOtherCalls();
+            _dialogportenServiceMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Remigrate_NewAndDuplicateOfAllTypes_NewAdded()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 12345;
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithRecipient(_defaultUserPartyIdentifier)
+                    .WithDialogId("dialog-id-123")
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Confirmed, new DateTime(2025, 12, 10, 10, 05, 10), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Archived, new DateTime(2025, 12, 10, 10, 10, 10), _defaultUserPartyUuid)
+                    .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>
+                        {
+                            new CorrespondenceForwardingEventEntity
+                            {
+                                // Example of Copy sent to own email address
+                                ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
+                                ForwardedByPartyUuid = _defaultUserPartyUuid,
+                                ForwardedByUserId = 123,
+                                ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                                ForwardedToEmailAddress = "user1@awesometestusers.com",
+                                ForwardingText = "Keep this as a backup in my email."
+                            },
+                            new CorrespondenceForwardingEventEntity
+                            {
+                                // Example of Copy sent to own digital mailbox
+                                ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0)),
+                                ForwardedByPartyUuid = _defaultUserPartyUuid,
+                                ForwardedByUserId = 123,
+                                ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                                MailboxSupplier = "urn:altinn:organization:identifier-no:123456789"
+                            },
+                            new CorrespondenceForwardingEventEntity
+                            {
+                                // Example of Instance Delegation by User 1 to User2
+                                ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15, 0)),
+                                ForwardedByPartyUuid = _defaultUserPartyUuid,
+                                ForwardedByUserId = 123,
+                                ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                                ForwardedToUserId = 456,
+                                ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
+                                ForwardingText = "User2, - look into this for me please. - User1.",
+                                ForwardedToEmailAddress  = "user2@awesometestusers.com"
+                            }
+                        })
+                    .WithSingleAltinn2Notification(2, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 14), true)
+                    .Build();
+
+            var correspondenceExistingObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithRecipient(_defaultUserPartyIdentifier)
+                    .WithDialogId("dialog-id-123")
+                    .WithId(correspondenceId)
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Confirmed, new DateTime(2025, 12, 10, 10, 05, 10), _defaultUserPartyUuid)
+                    .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>
+                        {
+                            new CorrespondenceForwardingEventEntity
+                            {
+                                // Example of Copy sent to own email address
+                                ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
+                                ForwardedByPartyUuid = _defaultUserPartyUuid,
+                                ForwardedByUserId = 123,
+                                ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                                ForwardedToEmailAddress = "user1@awesometestusers.com",
+                                ForwardingText = "Keep this as a backup in my email."
+                            }
+                        })
+                    .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
+                    .Build();
+
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                MakeAvailable = true
+            };
+
+            _correspondenceRepositoryMock.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .Throws(new DbUpdateException("An error occurred while updating the entries.",
+                    new Npgsql.PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505")));
+            _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CorrespondenceEntity
+                {
+                    Id = correspondenceId,
+                    ResourceId = correspondenceExistingObject.ResourceId,
+                    Recipient = correspondenceExistingObject.Recipient,
+                    Sender = correspondenceExistingObject.Sender,
+                    SendersReference = correspondenceExistingObject.SendersReference,
+                    RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
+                    Statuses = correspondenceExistingObject.Statuses,
+                    ExternalReferences = correspondenceExistingObject.ExternalReferences,
+                    Created = correspondenceExistingObject.Created,
+                    Altinn2CorrespondenceId = correspondenceExistingObject.Altinn2CorrespondenceId,
+                    ForwardingEvents = correspondenceExistingObject.ForwardingEvents,
+                    Notifications = correspondenceExistingObject.Notifications
+                });
+            _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
+
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+
+            _correspondenceNotificationRepositoryMock
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondenceId);
+            _correspondenceForwardingEventRepositoryMock
+                .Setup(x => x.AddForwardingEvents(It.IsAny<List<CorrespondenceForwardingEventEntity>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((List<CorrespondenceForwardingEventEntity> events, CancellationToken _) => events);
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+
+            _correspondenceRepositoryMock.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId
+            ), It.IsAny<CancellationToken>()), Times.Once);
+
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()), Times.Once);
+
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Archived &&
+                    e.StatusChanged == new DateTime(2025, 12, 10, 10, 10, 10) &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            _correspondenceForwardingEventRepositoryMock.Verify(
+                x => x.AddForwardingEvents(
+                    It.Is<List<CorrespondenceForwardingEventEntity>>(n => n.Count == 2),
+                    It.IsAny<CancellationToken>()),
+                Times.Once
+            );
+            _correspondenceForwardingEventRepositoryMock.VerifyNoOtherCalls();
+
+            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
+                n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+
+            VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, _defaultUserPartyIdentifier);
+
+            _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             _dialogportenServiceMock.VerifyNoOtherCalls();
             _backgroundJobClientMock.VerifyNoOtherCalls();
@@ -1062,18 +1309,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             };
         }
 
-        private static CorrespondenceEntity CreateMockMigratedCorrespondence(Guid correspondenceId, int altinn2CorrespondenceId)
-        {
-            return new CorrespondenceEntityBuilder()
-                .WithResourceId("TTD-migratedCorrespondence-1-1")
-                .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                .WithId(correspondenceId)
-                .WithStatus(CorrespondenceStatus.Published)
-                .WithStatus(CorrespondenceStatus.Read)                
-                .Build();
-        }
-
-
         private void VerifyAltinnEventEnqueued(Guid correspondenceId, AltinnEventType eventType, string recipient)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
@@ -1081,24 +1316,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 It.IsAny<EnqueuedState>()));
         }
 
-        private void VerifyStorageDeletionScheduled()
-        {
-            _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IStorageRepository.PurgeAttachment)), It.IsAny<EnqueuedState>()));
-        }
-
         private void VerifyDialogportenServiceCreateConfirmedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string partyUrn)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (string)job.Args[3] == partyUrn),
                 It.IsAny<IState>()));
-        }
-
-        private void VerifyDialogportenServiceCreatePurgedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string actorname, DateTimeOffset operationTimestamp)
-        {
-            _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateCorrespondencePurgedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (string)job.Args[2] == actorname && (DateTimeOffset)job.Args[3] == operationTimestamp),
-                It.IsAny<EnqueuedState>()));
         }
 
         private void VerifyDialogportenServicePatchCorrespondenceDialogToConfirmedEnqueued(Guid correspondenceId)
@@ -1121,46 +1343,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.IsAny<EnqueuedState>()));
         }
 
-        private void VerifySoftDeleteUpdateForDialogportenEnqueued(Guid correspondenceId, string partyIdentifier, CorrespondenceDeleteEventType eventType)
-        {
-            if (eventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient)
-            {
-                _backgroundJobClientMock.Verify(x => x.Create(
-                    It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)
-                        && (Guid)job.Args[0] == correspondenceId
-                        && (string)job.Args[1] == partyIdentifier
-                        && (DialogportenActorType)job.Args[2] == DialogportenActorType.PartyRepresentative
-                        && job.Args[3] != null
-                        && ((List<DialogPortenSystemLabel>)job.Args[3]).Contains(DialogPortenSystemLabel.Bin)
-                        && job.Args[4] == null),
-                    It.IsAny<EnqueuedState>()));
-            }
-            else if (eventType == CorrespondenceDeleteEventType.RestoredByRecipient)
-            {
-                _backgroundJobClientMock.Verify(x => x.Create(
-                    It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)
-                        && (Guid)job.Args[0] == correspondenceId
-                        && (string)job.Args[1] == partyIdentifier
-                        && (DialogportenActorType)job.Args[2] == DialogportenActorType.PartyRepresentative
-                        && job.Args[3] == null
-                        && job.Args[4] != null
-                        && ((List<DialogPortenSystemLabel>)job.Args[4]).Contains(DialogPortenSystemLabel.Bin)),
-                    It.IsAny<EnqueuedState>()));
-            }
-        }
-
         private void VerifyDialogportenServiceCreateOpenedActivityEnqueued(Guid correspondenceId, string partyUrn)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateOpenedActivity) && (Guid)job.Args[0] == correspondenceId && (string)job.Args[3] == partyUrn),
                 It.IsAny<EnqueuedState>()));
-        }
-
-        private void VerifyDialogportenServiceSoftDeleteDialogEnqueued(string dialogId)
-        {
-            _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.SoftDeleteDialog)),
-                It.IsAny<IState>()), Times.Once);
         }
     }
 }

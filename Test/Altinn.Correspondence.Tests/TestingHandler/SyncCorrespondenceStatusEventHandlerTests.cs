@@ -61,13 +61,15 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _backgroundJobClientMock.Object,
                 _dialogPortenServiceMock.Object,
                 _correspondenceRepositoryMock.Object);
-            var correspondenceEventHelper = new CorrespondenceSyncStatusEventHelper(
+            var correspondenceEventHelper = new CorrespondenceMigrationEventHelper(
                 _correspondenceStatusRepositoryMock.Object,
                 _correspondenceDeleteEventRepositoryMock.Object,
+                new Mock<ICorrespondenceNotificationRepository>().Object,
+                new Mock<ICorrespondenceForwardingEventRepository>().Object,
                 _altinnRegisterServiceMock.Object,
                 _purgeHelper,
                 _backgroundJobClientMock.Object,
-                new Mock<ILogger<CorrespondenceSyncStatusEventHelper>>().Object);
+                new Mock<ILogger<CorrespondenceMigrationEventHelper>>().Object);
             _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
 
             _handler = new SyncCorrespondenceStatusEventHandler(

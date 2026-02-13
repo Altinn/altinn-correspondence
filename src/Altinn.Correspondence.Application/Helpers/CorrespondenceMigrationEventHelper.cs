@@ -11,13 +11,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.Helpers;
 
-public class CorrespondenceSyncStatusEventHelper(
+public class CorrespondenceMigrationEventHelper(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     ICorrespondenceDeleteEventRepository correspondenceDeleteEventRepository,
+    ICorrespondenceNotificationRepository correspondenceNotificationRepository,
+    ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
     IAltinnRegisterService altinnRegisterService,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     IBackgroundJobClient backgroundJobClient,
-    ILogger<CorrespondenceSyncStatusEventHelper> logger)
+    ILogger<CorrespondenceMigrationEventHelper> logger)
 {
     public async Task ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, CancellationToken cancellationToken)
     {
@@ -409,6 +411,7 @@ public class CorrespondenceSyncStatusEventHelper(
     public async Task StoreDeleteEventForCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
     {
         deleteEventToSync.CorrespondenceId = correspondence.Id;
+        deleteEventToSync.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
         deleteEventToSync.SyncedFromAltinn2 = syncedTimestamp;
         await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEventToSync, cancellationToken);
     }
@@ -474,5 +477,249 @@ public class CorrespondenceSyncStatusEventHelper(
 
         // Return true if soft delete occurred after the most recent restore
         return softDeletedEvent.EventOccurred > restoredEvent.EventOccurred;
+    }
+
+    public List<CorrespondenceNotificationEntity> FilterNotificationEvents(Guid correspondenceId, List<CorrespondenceNotificationEntity>? syncedEvents, CorrespondenceEntity correspondence)
+    {
+        var notificationsToProcess = new List<CorrespondenceNotificationEntity>();
+
+        if (syncedEvents is null)
+        {
+            return notificationsToProcess;
+        }
+
+        foreach (var syncedEvent in syncedEvents)
+        {
+            bool isDuplicate = (correspondence.Notifications ?? Enumerable.Empty<CorrespondenceNotificationEntity>()).Any(
+                n => n.NotificationAddress == syncedEvent.NotificationAddress
+                && n.NotificationChannel == syncedEvent.NotificationChannel
+                && n.NotificationSent.HasValue
+                && syncedEvent.NotificationSent.HasValue
+                && n.NotificationSent.Value.EqualsToSecond(syncedEvent.NotificationSent.Value)
+                && n.Altinn2NotificationId == syncedEvent.Altinn2NotificationId);
+
+            if (isDuplicate)
+            {
+                logger.LogInformation("Current Notification Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. NotificationId: {NotificationId} - NotificationSent: {NotificationSent}",
+                    correspondenceId, syncedEvent.Altinn2NotificationId, syncedEvent.NotificationSent);
+            }
+            else
+            {
+                notificationsToProcess.Add(syncedEvent);
+            }
+        }
+
+        return notificationsToProcess;
+    }
+
+    public List<CorrespondenceForwardingEventEntity> FilterForwardingEvents(Guid correspondenceId, List<CorrespondenceForwardingEventEntity>? syncedEvents, CorrespondenceEntity correspondence)
+    {
+        var forwardingEventsToProcess = new List<CorrespondenceForwardingEventEntity>();
+
+        if (syncedEvents is null)
+        {
+            return forwardingEventsToProcess;
+        }
+
+        foreach (var syncedEvent in syncedEvents)
+        {
+            bool isDuplicate = (correspondence.ForwardingEvents ?? Enumerable.Empty<CorrespondenceForwardingEventEntity>())
+                .Any(fe =>
+                    fe.ForwardedOnDate.EqualsToSecond(syncedEvent.ForwardedOnDate)
+                    && fe.ForwardedByPartyUuid == syncedEvent.ForwardedByPartyUuid
+                    && fe.ForwardedByUserUuid == syncedEvent.ForwardedByUserUuid
+                    && fe.ForwardedToUserId == syncedEvent.ForwardedToUserId
+                    && fe.ForwardedToUserUuid == syncedEvent.ForwardedToUserUuid
+                    && fe.ForwardedToEmailAddress == syncedEvent.ForwardedToEmailAddress
+                    && fe.ForwardingText == syncedEvent.ForwardingText
+                    && fe.MailboxSupplier == syncedEvent.MailboxSupplier);
+
+            if (isDuplicate)
+            {
+                logger.LogInformation("Current Forwarding Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. ForwardedOnDate: {ForwardedOnDate} - ForwardedByPartyUuid: {ForwardedByPartyUuid}",
+                    correspondenceId, syncedEvent.ForwardedOnDate, syncedEvent.ForwardedByPartyUuid);
+            }
+            else
+            {
+                forwardingEventsToProcess.Add(syncedEvent);
+            }
+        }
+
+        return forwardingEventsToProcess;
+    }
+
+    public async Task ProcessNotificationEvents(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEvents, string operationName, CancellationToken cancellationToken)
+    {
+        foreach (var notification in notificationEvents)
+        {
+            logger.LogInformation("Processing {OperationName} notification event for correspondence {CorrespondenceId} at {NotificationSent}",
+                operationName, correspondenceId, notification.NotificationSent);
+
+            notification.CorrespondenceId = correspondenceId;
+            notification.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
+            notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
+            var addedNotificationId = await correspondenceNotificationRepository.AddNotification(notification, cancellationToken);
+            
+            logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", addedNotificationId, correspondenceId);
+        }
+
+        if (notificationEvents.Count > 0)
+        {
+            logger.LogInformation("Successfully {OperationName}d {TotalEvents} notification events for correspondence {CorrespondenceId}",
+                operationName, notificationEvents.Count, correspondenceId);
+        }
+    }
+
+    public async Task ProcessForwardingEvents(Guid correspondenceId, List<CorrespondenceForwardingEventEntity> forwardingEvents, string operationName, CancellationToken cancellationToken)
+    {
+        if (forwardingEvents.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var forwardingEvent in forwardingEvents)
+        {
+            logger.LogInformation("Processing {OperationName} forwarding event for correspondence {CorrespondenceId} at {ForwardedOnDate}",
+                operationName, correspondenceId, forwardingEvent.ForwardedOnDate);
+
+            forwardingEvent.CorrespondenceId = correspondenceId;
+            forwardingEvent.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
+            forwardingEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
+        }
+
+        // Add the new forwarding events to the repository
+        await correspondenceForwardingEventRepository.AddForwardingEvents(forwardingEvents, cancellationToken);
+
+        logger.LogInformation("Successfully {OperationName}d {TotalEvents} forwarding events for correspondence {CorrespondenceId}",
+            operationName, forwardingEvents.Count, correspondenceId);
+    }
+
+    /// <summary>
+    /// Processes status and delete events for a correspondence in chronological order.
+    /// This method contains the shared logic used by both sync and migration scenarios.
+    /// </summary>
+    /// <param name="correspondenceId">The correspondence ID</param>
+    /// <param name="correspondence">The correspondence entity</param>
+    /// <param name="statusEvents">List of status events to process (already filtered)</param>
+    /// <param name="deleteEvents">List of delete events to process (already filtered)</param>
+    /// <param name="operationName">Name of the operation for logging (e.g., "sync", "remigrate")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of events processed</returns>
+    public async Task<int> ProcessEventsInChronologicalOrder(
+        Guid correspondenceId,
+        CorrespondenceEntity correspondence,
+        List<CorrespondenceStatusEntity> statusEvents,
+        List<CorrespondenceDeleteEventEntity> deleteEvents,
+        string operationName,
+        CancellationToken cancellationToken)
+    {
+        // Get dialog porten end user IDs for the events that need them
+        var enduserIdsByPartyUuids = await GetDialogPortenEndUserIdsForEvents(statusEvents, deleteEvents, cancellationToken);
+
+        // After filtering both collections, combine them into a single sorted collection, sorted by timestamp they occurred
+        var allEventsToProcess = statusEvents
+            .Select(e => new { EventType = "Status", Event = (object)e, Timestamp = e.StatusChanged })
+            .Concat(deleteEvents
+                .Select(e => new { EventType = "Delete", Event = (object)e, Timestamp = e.EventOccurred }))
+            .OrderBy(e => e.Timestamp)
+            .ToList();
+
+        // Process events sequentially by chronological order to maintain granular control
+        foreach (var evt in allEventsToProcess)
+        {
+            logger.LogInformation("Processing {OperationName} {EventType} event for correspondence {CorrespondenceId} at {Timestamp}",
+                operationName, evt.EventType, correspondenceId, evt.Timestamp);
+
+            try
+            {
+                if (evt.EventType == "Status")
+                {
+                    await ProcessStatusEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, cancellationToken);
+                }
+                else if (evt.EventType == "Delete")
+                {
+                    await ProcessDeleteEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to {OperationName} {EventType} event for correspondence {CorrespondenceId} at {Timestamp}",
+                    operationName, evt.EventType, correspondenceId, evt.Timestamp);
+                throw; // Re-throw to trigger transaction rollback
+            }
+        }
+
+        logger.LogInformation("Successfully {OperationName}d {TotalEvents} events for correspondence {CorrespondenceId}",
+            operationName, allEventsToProcess.Count, correspondenceId);
+
+        return allEventsToProcess.Count;
+    }
+
+    /// <summary>
+    /// Processes all event types (status, delete, notification, forwarding) for a correspondence.
+    /// This method handles filtering and processing all event types in sequence.
+    /// </summary>
+    /// <param name="correspondenceId">The correspondence ID</param>
+    /// <param name="correspondence">The correspondence entity</param>
+    /// <param name="statusEvents">List of status events to process (will be filtered)</param>
+    /// <param name="deleteEvents">List of delete events to process (will be filtered)</param>
+    /// <param name="notificationEvents">List of notification events to process (will be filtered)</param>
+    /// <param name="forwardingEvents">List of forwarding events to process (will be filtered)</param>
+    /// <param name="operationName">Name of the operation for logging (e.g., "sync", "remigrate")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Total number of events processed across all types</returns>
+    public async Task<int> ProcessAllEventsForCorrespondence(
+        Guid correspondenceId,
+        CorrespondenceEntity correspondence,
+        List<CorrespondenceStatusEntity>? statusEvents,
+        List<CorrespondenceDeleteEventEntity>? deleteEvents,
+        List<CorrespondenceNotificationEntity>? notificationEvents,
+        List<CorrespondenceForwardingEventEntity>? forwardingEvents,
+        string operationName,
+        CancellationToken cancellationToken)
+    {
+        int totalEventsProcessed = 0;
+
+        // Process status and delete events together (chronologically ordered as they interact with each other)
+        if ((statusEvents != null && statusEvents.Count > 0) || (deleteEvents != null && deleteEvents.Count > 0))
+        {
+            var filteredStatusEvents = statusEvents != null ? FilterStatusEvents(correspondenceId, statusEvents, correspondence) : new List<CorrespondenceStatusEntity>();
+            var filteredDeleteEvents = deleteEvents != null ? await FilterDeleteEvents(correspondenceId, deleteEvents, cancellationToken) : new List<CorrespondenceDeleteEventEntity>();
+            
+            if (filteredStatusEvents.Count > 0 || filteredDeleteEvents.Count > 0)
+            {
+                totalEventsProcessed += await ProcessEventsInChronologicalOrder(correspondenceId, correspondence, filteredStatusEvents, filteredDeleteEvents, operationName, cancellationToken);
+            }
+        }
+
+        // Process notification events - Only provides information about notifications being sent, so they don't interact with status and delete events and can be processed independently after those
+        if (notificationEvents != null && notificationEvents.Count > 0)
+        {
+            var filteredNotificationEvents = FilterNotificationEvents(correspondenceId, notificationEvents, correspondence);
+            if (filteredNotificationEvents.Count > 0)
+            {
+                await ProcessNotificationEvents(correspondenceId, filteredNotificationEvents, operationName, cancellationToken);
+                totalEventsProcessed += filteredNotificationEvents.Count;
+            }
+        }
+
+        // Process forwarding events - Only provides information about forwarding events, so they don't interact with status and delete events and can be processed independently after those
+        if (forwardingEvents != null && forwardingEvents.Count > 0)
+        {
+            var filteredForwardingEvents = FilterForwardingEvents(correspondenceId, forwardingEvents, correspondence);
+            if (filteredForwardingEvents.Count > 0)
+            {
+                await ProcessForwardingEvents(correspondenceId, filteredForwardingEvents, operationName, cancellationToken);
+                totalEventsProcessed += filteredForwardingEvents.Count;
+            }
+        }
+
+        if (totalEventsProcessed > 0)
+        {
+            logger.LogInformation("Successfully {OperationName}d {TotalEvents} events total for correspondence {CorrespondenceId}",
+                operationName, totalEventsProcessed, correspondenceId);
+        }
+
+        return totalEventsProcessed;
     }
 }
