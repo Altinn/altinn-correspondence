@@ -191,6 +191,52 @@ public class AltinnAuthorizationServiceTests
         Assert.Equal(0, attributes.GetArrayLength());
     }
 
+    [Fact]
+    public async Task CheckAccessAsAny_WhenPartyIsIdportenEmailUrn_ResolvesToPartyIdInResourceCategory()
+    {
+        const string idportenIssuer = "https://test.idporten.no";
+        const string emailUrn = "urn:altinn:person:idporten-email:recipient@example.com";
+        const int resolvedPartyId = 50952483;
+
+        var userClaims = new List<Claim>
+        {
+            new("iss", idportenIssuer, ClaimValueTypes.String, idportenIssuer),
+            new("pid", "01018045678", ClaimValueTypes.String, idportenIssuer),
+        };
+        var user = new ClaimsPrincipal(new ClaimsIdentity(userClaims, "TestAuth"));
+
+        var captureHandler = new CapturePdpRequestHandler();
+        var httpClient = new HttpClient(captureHandler) { BaseAddress = new Uri("https://unit.test/") };
+        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        var altinnOptions = Options.Create(new AltinnOptions { PlatformSubscriptionKey = "dummy", PlatformGatewayUrl = "https://unit.test/" });
+        var dialogportenSettings = Options.Create(new DialogportenSettings { Issuer = "https://dialogporten.example.test/api/v1" });
+        var idportenSettings = Options.Create(new IdportenSettings { Issuer = idportenIssuer });
+
+        var resourceRegistry = new Mock<IResourceRegistryService>(MockBehavior.Strict);
+        resourceRegistry.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("unit-test-service-owner");
+
+        var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
+        registerService.Setup(x => x.LookUpPartyById(emailUrn, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Party { PartyId = resolvedPartyId, PartyUuid = Guid.NewGuid() });
+
+        var sut = new AltinnAuthorizationService(
+            httpClient, altinnOptions, dialogportenSettings, idportenSettings,
+            resourceRegistry.Object, registerService.Object, new Mock<ILogger<AltinnAuthorizationService>>().Object);
+
+        var allowed = await sut.CheckAccessAsAny(user, resource: "unit-test-resource", party: emailUrn, cancellationToken: CancellationToken.None);
+
+        Assert.True(allowed);
+        Assert.NotNull(captureHandler.LastRequestJson);
+        using var doc = JsonDocument.Parse(captureHandler.LastRequestJson);
+        var resourceAttributes = doc.RootElement.GetProperty("request").GetProperty("resource").EnumerateArray()
+            .SelectMany(r => r.GetProperty("attribute").EnumerateArray())
+            .Where(a => a.GetProperty("attributeId").GetString() == UrnConstants.Party)
+            .ToList();
+        Assert.Single(resourceAttributes);
+        Assert.Equal(resolvedPartyId.ToString(), resourceAttributes[0].GetProperty("value").GetString());
+    }
+
     private sealed class CapturePdpRequestHandler : HttpMessageHandler
     {
         public string? LastRequestJson { get; private set; }
