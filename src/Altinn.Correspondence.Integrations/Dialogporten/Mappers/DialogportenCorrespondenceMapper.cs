@@ -37,7 +37,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var correctOrgFormat = new Regex($@"^{OrgNoPrefix}:\d{{9}}$");
             var correctSSNFormat = new Regex($@"^{SsnPrefix}:\d{{11}}$");
             var personFormat = new Regex(@"^\d{11}$");
+            
             if (correctOrgFormat.IsMatch(input) || correctSSNFormat.IsMatch(input))
+            {
+                return input;
+            }
+            else if (input.IsIdPortenEmailUrn())
             {
                 return input;
             }

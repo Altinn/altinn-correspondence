@@ -26,6 +26,10 @@ public static class UrnConstants
     /// </summary>
     public const string PersonIdAttribute = "urn:altinn:person:identifier-no";
     /// <summary>
+    /// xacml string that represents person identifier with idporten email
+    /// </summary>
+    public const string PersonIdPortenEmailAttribute = "urn:altinn:person:idporten-email";
+    /// <summary>
     /// xacml string that represents resource
     /// </summary>
     public const string Resource = "urn:altinn:resource";

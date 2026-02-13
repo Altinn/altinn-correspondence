@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Core.Models.Entities
 {
@@ -58,5 +58,10 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public List<Party>? ChildParties { get; set; }
 
         public List<string>? Resources { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Altinn user id associated with this party, if any
+        /// </summary>
+        public int? UserId { get; set; }
     }
 }
