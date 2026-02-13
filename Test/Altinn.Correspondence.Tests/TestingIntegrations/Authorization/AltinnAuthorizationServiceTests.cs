@@ -61,10 +61,9 @@ public class AltinnAuthorizationServiceTests
             .Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("unit-test-service-owner");
 
-        var hostEnvironment = new Mock<IHostEnvironment>(MockBehavior.Loose);
-        hostEnvironment.SetupGet(x => x.EnvironmentName).Returns("Development");
-
         var logger = new Mock<ILogger<AltinnAuthorizationService>>();
+
+        var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
 
         var sut = new AltinnAuthorizationService(
             httpClient,
@@ -72,7 +71,7 @@ public class AltinnAuthorizationServiceTests
             dialogportenSettings,
             idportenSettings,
             resourceRegistry.Object,
-            hostEnvironment.Object,
+            registerService.Object,
             logger.Object);
 
         // Act

@@ -1,5 +1,7 @@
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Idporten;
+using Moq;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Tests.TestingIntegrations.Authorization;
@@ -7,7 +9,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Authorization;
 public class IdportenXacmlMapperTests
 {
     [Fact]
-    public void CreateIdPortenDecisionRequest_WhenPrincipalHasManyClaims_UsesOnlyPidAsAccessSubjectIdentifier()
+    public async Task CreateIdPortenDecisionRequest_WhenPrincipalHasManyClaims_UsesOnlyPidAsAccessSubjectIdentifier()
     {
         // Arrange
         const string tokenIssuer = "https://issuer.example.test/openid/";
@@ -15,6 +17,7 @@ public class IdportenXacmlMapperTests
 
         var claims = new List<Claim>
         {
+            new("iss", tokenIssuer, ClaimValueTypes.String, tokenIssuer),
             new("nameid", "9001001", ClaimValueTypes.String, tokenIssuer),
             new(UrnConstants.UserId, "9001001", ClaimValueTypes.String, tokenIssuer),
             new("urn:altinn:username", "unit-test-user-42", ClaimValueTypes.String, tokenIssuer),
@@ -29,10 +32,12 @@ public class IdportenXacmlMapperTests
         };
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
+        var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
 
         // Act
-        var requestRoot = IdportenXacmlMapper.CreateIdPortenDecisionRequest(
+        var requestRoot = await IdportenXacmlMapper.CreateIdPortenDecisionRequest(
             user,
+            registerService.Object,
             actionTypes: ["read"],
             resourceId: "unit-test-resource",
             party: "999888777",
@@ -52,7 +57,6 @@ public class IdportenXacmlMapperTests
         Assert.Equal(UrnConstants.PersonIdAttribute, subjectAttr.AttributeId);
         Assert.Equal(pid, subjectAttr.Value);
 
-        // check that the altinn user id was not forwarded to AccessSubject (which would happen with the other Xacmlmappers).
         Assert.DoesNotContain(subject.Attribute, a => a.AttributeId == UrnConstants.UserId);
     }
 }
