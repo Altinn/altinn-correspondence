@@ -261,6 +261,7 @@ public class AltinnRegisterService : IAltinnRegisterService
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
                 response.StatusCode == System.Net.HttpStatusCode.NoContent)
             {
+                _logger.LogWarning("IdentificationIds {identificationIds} is not a valid identificator", identificationIds);
                 return new List<Party>();
             }
             
