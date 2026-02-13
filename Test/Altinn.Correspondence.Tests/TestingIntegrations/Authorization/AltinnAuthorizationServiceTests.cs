@@ -131,7 +131,8 @@ public class AltinnAuthorizationServiceTests
         resourceRegistry.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("unit-test-service-owner");
 
         var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
-        registerService.Setup(x => x.LookUpPartyById(email, It.IsAny<CancellationToken>()))
+        var emailUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:{email}";
+        registerService.Setup(x => x.LookUpPartyById(emailUrn, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Party { PartyId = 12345678, UserId = userId });
 
         var sut = new AltinnAuthorizationService(
@@ -177,7 +178,8 @@ public class AltinnAuthorizationServiceTests
         resourceRegistry.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("unit-test-service-owner");
 
         var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
-        registerService.Setup(x => x.LookUpPartyById(email, It.IsAny<CancellationToken>())).ReturnsAsync((Party?)null);
+        var emailUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:{email}";
+        registerService.Setup(x => x.LookUpPartyById(emailUrn, It.IsAny<CancellationToken>())).ReturnsAsync((Party?)null);
 
         var sut = new AltinnAuthorizationService(
             httpClient, altinnOptions, dialogportenSettings, idportenSettings,

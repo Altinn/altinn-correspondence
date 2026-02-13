@@ -80,8 +80,9 @@ public class IdportenXacmlMapperTests
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
         var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
+        var emailUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:{email}";
         registerService
-            .Setup(x => x.LookUpPartyById(email, It.IsAny<CancellationToken>()))
+            .Setup(x => x.LookUpPartyById(emailUrn, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Party { PartyId = 12345678, UserId = userId });
 
         var requestRoot = await IdportenXacmlMapper.CreateIdPortenDecisionRequest(
@@ -113,8 +114,9 @@ public class IdportenXacmlMapperTests
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
         var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
+        var emailUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:{email}";
         registerService
-            .Setup(x => x.LookUpPartyById(email, It.IsAny<CancellationToken>()))
+            .Setup(x => x.LookUpPartyById(emailUrn, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Party?)null);
 
         var requestRoot = await IdportenXacmlMapper.CreateIdPortenDecisionRequest(
