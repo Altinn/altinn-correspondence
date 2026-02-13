@@ -84,7 +84,7 @@ namespace Altinn.Correspondence.Core.Repositories
             List<CorrespondenceStatus> excludedCurrentStatuses,
             CancellationToken cancellationToken);
 
-        Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+        Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReference(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
             CancellationToken cancellationToken);

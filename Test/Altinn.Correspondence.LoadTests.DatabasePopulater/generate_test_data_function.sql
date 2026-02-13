@@ -42,7 +42,6 @@ begin
             "SendersReference",
             "MessageSender",
             "RequestedPublishTime",
-            "AllowSystemDeleteAfter",
             "DueDateTime",
             "PropertyList",
             "IgnoreReservation",
