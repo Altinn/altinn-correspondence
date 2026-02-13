@@ -252,8 +252,8 @@ public class AltinnRegisterService : IAltinnRegisterService
         };
 
         var response = await _httpClient.PostAsJsonAsync(
-            "register/api/v1/correspondence/parties/query", 
-            request, 
+            "register/api/v1/correspondence/parties/query?fields=identifiers&fields=display-name&fields=user",
+            request,
             cancellationToken);
 
         if (!response.IsSuccessStatusCode)

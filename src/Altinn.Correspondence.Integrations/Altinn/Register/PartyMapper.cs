@@ -30,7 +30,8 @@ public static class PartyMapper
             IsDeleted = partyV2.IsDeleted == true,
             Resources = new List<string>(),
             SSN = partyV2.PersonIdentifier,
-            OrgNumber = partyV2.OrganizationIdentifier
+            OrgNumber = partyV2.OrganizationIdentifier,
+            UserId = partyV2.User?.UserId
         };
 
         if (!string.IsNullOrWhiteSpace(partyV2.PartyType))
