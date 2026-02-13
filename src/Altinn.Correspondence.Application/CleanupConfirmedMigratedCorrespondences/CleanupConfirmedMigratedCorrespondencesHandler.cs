@@ -7,7 +7,6 @@ using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
-using System.Security.Cryptography.Xml;
 
 namespace Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
 

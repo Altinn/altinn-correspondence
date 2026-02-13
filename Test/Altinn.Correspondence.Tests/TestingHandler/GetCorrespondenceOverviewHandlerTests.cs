@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Platform.Register.Models;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Moq;

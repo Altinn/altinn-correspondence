@@ -1,11 +1,9 @@
-﻿using Altinn.Correspondence.Core.Models.Enums;
-
-namespace Altinn.Correspondence.Core.Models.Entities
+﻿namespace Altinn.Correspondence.Core.Models.AccessManagement
 {
     /// <summary>
     /// Class representing a party
     /// </summary>
-    public class Party
+    public class AuthorizedParty
     {
         /// <summary>
         /// Gets or sets the ID of the party
@@ -20,7 +18,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// <summary>
         /// Gets or sets the type of party
         /// </summary>
-        public PartyType PartyTypeName { get; set; }
+        public AuthorizedPartyType PartyTypeName { get; set; }
 
         /// <summary>
         /// Gets the parties org number
@@ -55,7 +53,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// <summary>
         /// Gets or sets the value of ChildParties
         /// </summary>
-        public List<Party>? ChildParties { get; set; }
+        public List<AuthorizedParty>? ChildParties { get; set; }
 
         public List<string>? Resources { get; set; }
     }

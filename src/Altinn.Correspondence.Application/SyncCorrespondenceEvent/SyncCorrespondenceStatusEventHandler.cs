@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Platform.Register.Enums;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -339,7 +340,7 @@ public class SyncCorrespondenceStatusEventHandler(
                 case PartyType.Person:
                     enduserIdByPartyUuid[uuid] = $"{UrnConstants.PersonIdAttribute}:{party.SSN}";
                     break;
-                case PartyType.Organization:
+                case PartyType.Organisation:
                     enduserIdByPartyUuid[uuid] = $"{UrnConstants.OrganizationNumberAttribute}:{party.OrgNumber}";
                     break;
                 default:

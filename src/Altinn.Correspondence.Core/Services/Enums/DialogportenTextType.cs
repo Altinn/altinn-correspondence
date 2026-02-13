@@ -9,6 +9,9 @@
         DownloadStarted,
         CorrespondencePublished,
         CorrespondenceConfirmed,
-        CorrespondencePurged
+        CorrespondencePurged,
+        CorrespondenceForwardedToEmail,
+        CorrespondenceInstanceDelegated,
+        CorrespondenceForwardedToMailboxSupplier
     }
 }

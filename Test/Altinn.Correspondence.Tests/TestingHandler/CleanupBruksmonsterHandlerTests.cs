@@ -1,14 +1,11 @@
-using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Altinn.Correspondence.Tests.TestingHandler;

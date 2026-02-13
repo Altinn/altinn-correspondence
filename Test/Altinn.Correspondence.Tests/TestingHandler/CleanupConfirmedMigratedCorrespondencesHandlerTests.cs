@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;

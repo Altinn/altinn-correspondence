@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -12,6 +13,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
     {
         private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
         private readonly Mock<ICorrespondenceForwardingEventRepository> _forwardingEventRepositoryMock;
+        private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
         private readonly Mock<ILogger<SyncCorrespondenceForwardingEventHandler>> _loggerMock;
         private readonly SyncCorrespondenceForwardingEventHandler _handler;
 
@@ -19,11 +21,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
             _forwardingEventRepositoryMock = new Mock<ICorrespondenceForwardingEventRepository>();
+            _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _loggerMock = new Mock<ILogger<SyncCorrespondenceForwardingEventHandler>>();
 
             _handler = new SyncCorrespondenceForwardingEventHandler(
                 _correspondenceRepositoryMock.Object,
                 _forwardingEventRepositoryMock.Object,
+                _backgroundJobClientMock.Object,
                 _loggerMock.Object);
         }
 

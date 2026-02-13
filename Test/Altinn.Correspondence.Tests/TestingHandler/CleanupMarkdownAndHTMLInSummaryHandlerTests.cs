@@ -7,7 +7,6 @@ using Hangfire;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Altinn.Correspondence.Common.Helpers;
-using Xunit;
 using Altinn.Correspondence.Tests.Factories;
 
 namespace Altinn.Correspondence.Tests.TestingHandler;

@@ -1,5 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Register;
+﻿using Altinn.Correspondence.Core.Models.Register;
+using Altinn.Platform.Register.Models;
 
 namespace Altinn.Correspondence.Core.Services;
 public interface IAltinnRegisterService

@@ -1,9 +1,9 @@
-﻿namespace Altinn.Correspondence.Core.Models.Enums
+﻿namespace Altinn.Correspondence.Core.Models.AccessManagement
 {
     /// <summary>
     /// Enum containing values for the different types of parties
     /// </summary>
-    public enum PartyType
+    public enum AuthorizedPartyType
     {
         /// <summary>
         /// Party Type is Person

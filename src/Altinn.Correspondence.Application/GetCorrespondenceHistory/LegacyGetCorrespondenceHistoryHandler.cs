@@ -4,11 +4,12 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Platform.Register.Models;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 
-    namespace Altinn.Correspondence.Application.GetCorrespondenceHistory;
+namespace Altinn.Correspondence.Application.GetCorrespondenceHistory;
 public class LegacyGetCorrespondenceHistoryHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnNotificationService altinnNotificationService,

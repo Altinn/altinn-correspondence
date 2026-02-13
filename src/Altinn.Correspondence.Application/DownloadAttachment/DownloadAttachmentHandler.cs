@@ -1,6 +1,5 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
