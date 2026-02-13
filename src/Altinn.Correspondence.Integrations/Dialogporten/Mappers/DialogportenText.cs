@@ -60,7 +60,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
             DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("shared {0} with {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: {2}"), tokens),
             DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("forwarded {0} to {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: {2}"), tokens),
-            DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sent {0} til mailbox supplier {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: {2}"), tokens),
+            DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sent {0} to mailbox supplier {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: {2}"), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
 
