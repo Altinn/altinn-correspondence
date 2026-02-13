@@ -153,8 +153,8 @@ namespace Altinn.Correspondence.Integrations.Idporten
         private static async Task<XacmlJsonCategory> CreateSubjectCategoryFromEmail(Claim emailClaim, IAltinnRegisterService altinnRegisterService, CancellationToken cancellationToken)
         {
             XacmlJsonCategory subjectCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
-            var email = emailClaim.Value;
-            var party = await altinnRegisterService.LookUpPartyById(email, cancellationToken);
+            var emailUrn = emailClaim.Value.ToLowerInvariant().WithUrnPrefix();
+            var party = await altinnRegisterService.LookUpPartyById(emailUrn, cancellationToken);
             if (party is not null && party.UserId is int userId && userId > 0)
             {
                 subjectCategory.Attribute.Add(
