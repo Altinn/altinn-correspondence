@@ -61,9 +61,10 @@ public class DialogportenServiceTests
         var mockLogger = new Mock<ILogger<DialogportenService>>();
         var mockResourceRegistryService = new Mock<IResourceRegistryService>();
         var mockRegisterService = new Mock<IAltinnRegisterService>();
+        var mockCorrespondenceForwardingEventRepository = new Mock<ICorrespondenceForwardingEventRepository>();
         var options = Options.Create(new GeneralSettings { CorrespondenceBaseUrl = "https://correspondence.example" });
 
-        var service = new DialogportenService(httpClient, mockRepo.Object, mockRegisterService.Object, options, mockLogger.Object, mockIdem.Object, mockResourceRegistryService.Object);
+        var service = new DialogportenService(httpClient, mockRepo.Object, mockRegisterService.Object, options, mockLogger.Object, mockIdem.Object, mockResourceRegistryService.Object, mockCorrespondenceForwardingEventRepository.Object);
         return (service, () => capturedRequestBody);
     }
 
