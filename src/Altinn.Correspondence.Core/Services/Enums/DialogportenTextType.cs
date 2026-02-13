@@ -11,6 +11,7 @@
         CorrespondenceConfirmed,
         CorrespondencePurged,
         CorrespondenceForwardedToEmail,
-        CorrespondenceInstanceDelegated
+        CorrespondenceInstanceDelegated,
+        CorrespondenceForwardedToMailboxSupplier
     }
 }

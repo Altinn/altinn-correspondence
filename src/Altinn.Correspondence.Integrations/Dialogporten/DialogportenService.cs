@@ -11,6 +11,7 @@ using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Altinn.Platform.Register.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -19,7 +20,7 @@ using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IAltinnRegisterService altinnRegisterService, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository, IResourceRegistryService _resourceRegistryService) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IAltinnRegisterService altinnRegisterService, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository, IResourceRegistryService _resourceRegistryService, ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -915,15 +916,29 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
     }
 
-    public async Task AddForwardingEvent(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
+    public async Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(forwardingEvent);
+        var forwardingEvent = await correspondenceForwardingEventRepository.GetForwardingEvent(forwardingEventId, cancellationToken);
 
         var forwardedByParty = await altinnRegisterService
             .LookUpPartyByPartyUuid(forwardingEvent.ForwardedByPartyUuid, cancellationToken);
         if (forwardedByParty == null)
         {
             throw new Exception($"Could not find party for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
+        }
+
+        string forwardedByUrn;
+        if (forwardedByParty.PartyTypeName == PartyType.Person)
+        {
+            forwardedByUrn = UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN;
+        }
+        else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
+        {
+            forwardedByUrn = UrnConstants.PartyUuid + ":" + forwardedByParty.PartyUuid;
+        }
+        else
+        {
+            throw new Exception($"Unsupported party type {forwardedByParty.PartyTypeName} for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
         }
 
         if (forwardingEvent.ForwardedToUserUuid is not null) {
@@ -944,7 +959,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 forwardingEvent.CorrespondenceId,
                 DialogportenActorType.Recipient,
                 DialogportenTextType.CorrespondenceInstanceDelegated,
-                UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN, // TODO: refine for SI / enterprise users if needed
+                forwardedByUrn,
                 forwardingEvent.ForwardedOnDate,
                 tokens);
         }
@@ -962,23 +977,39 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
                 forwardingEvent.CorrespondenceId,
                 DialogportenActorType.Recipient,
                 DialogportenTextType.CorrespondenceForwardedToEmail,
-                UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN, // TODO: refine for SI / enterprise users if needed
+                forwardedByUrn,
                 forwardingEvent.ForwardedOnDate,
                 tokens);
         }
         else if (!string.IsNullOrWhiteSpace(forwardingEvent.MailboxSupplier))
         {
-            // Forwarding to own Secure Digital Mailbox (Digipost / e-Boks)
-            // urn:altinn:organization:identifier-no:922020175 // e-Boks
-            // TODO
+            // Mailbox forwarding
+            var mailboxSupplierName = forwardingEvent.MailboxSupplier.ToLower() switch
+            {
+                "urn:altinn:organization:identifier-no:984661185" => "Digipost",
+                "urn:altinn:organization:identifier-no:922020175" => "e-Boks",
+                "urn:altinn:organization:identifier-no:996460320" => "e-Boks",
+                _ => throw new Exception($"Unknown mailbox supplier {forwardingEvent.MailboxSupplier} in forwarding event {forwardingEvent.Id}")
+            };
+
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                mailboxSupplierName,
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceForwardedToMailboxSupplier, 
+                forwardedByUrn,
+                forwardingEvent.ForwardedOnDate,
+                tokens);
         }
         else
         {
-            logger.LogWarning("Forwarding event {ForwardingEventId} has no valid forwarding target (no ForwardedToUserUuid, ForwardedToEmailAddress or MailboxSupplier)", forwardingEvent.Id);
             throw new Exception($"Forwarding event {forwardingEvent.Id} has no valid forwarding target (no ForwardedToUserUuid, ForwardedToEmailAddress or MailboxSupplier)");
         }
     }
-
-    //  {forwardedByParty.NAME} delte {correspondence.MessageTitle} med {forwardedToParty.Name} i Altinn og skrev : <<{forwardingEvent.ForwardingText}>> 
-    //  {forwardedByParty.NAME} videresendte {correspondence.MessageTitle} til {forwardingEvent.ForwardedToEmailAddress} og skrev : <<{forwardingEvent.ForwardingText}>> 
 }

@@ -30,6 +30,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("delte {0} med {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
             DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("videresendte {0} til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
+            DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sendte {0} til postkasseleverandør {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
 
@@ -44,6 +45,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("delte {0} med {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
             DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("videresendte {0} til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
+            DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sendte {0} til postkasseleverandør {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
 
@@ -56,8 +58,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.DownloadStarted => string.Format("Started downloading attachment {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Message published.",
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
-            DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("shared {0} with {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: {2}"), tokens),
+            DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("shared {0} with {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: {2}"), tokens),
             DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("forwarded {0} to {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: {2}"), tokens),
+            DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sent {0} til mailbox supplier {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: {2}"), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
 
