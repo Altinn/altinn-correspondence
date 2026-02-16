@@ -365,6 +365,18 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         }
 
+        [Fact]
+        public async Task InitializeCorrespondence_WithIdportenEmailRecipient_Succeeds()
+        {
+            var idportenEmailRecipient = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com";
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([idportenEmailRecipient])
+                .Build();
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+        }
+
         [Theory]
         [InlineData("invalid-recipient")]
         [InlineData("123456789")]

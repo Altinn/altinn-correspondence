@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.Core.Models.AccessManagement
+namespace Altinn.Correspondence.Core.Models.AccessManagement
 {
     /// <summary>
     /// Class representing a party
@@ -56,5 +56,10 @@
         public List<AuthorizedParty>? ChildParties { get; set; }
 
         public List<string>? Resources { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Altinn user id associated with this party, if any
+        /// </summary>
+        public int? UserId { get; set; }
     }
 }

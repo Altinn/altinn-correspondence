@@ -1,12 +1,14 @@
-﻿using Altinn.Authorization.ABAC.Xacml;
+using Altinn.Authorization.ABAC.Xacml;
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Services;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using static Altinn.Authorization.ABAC.Constants.XacmlConstants;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
@@ -16,7 +18,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         internal const string DefaultIssuer = "Dialogporten";
         internal const string DefaultType = "string";
 
-        public static XacmlJsonRequestRoot CreateDialogportenDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? instanceId)
+        public static async Task<XacmlJsonRequestRoot> CreateDialogportenDecisionRequest(ClaimsPrincipal user, IAltinnRegisterService altinnRegisterService, string resourceId, string party, string? instanceId, CancellationToken cancellationToken = default)
         {
             XacmlJsonRequest request = new()
             {
@@ -25,10 +27,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Resource = new List<XacmlJsonCategory>()
             };
 
-            var subjectCategory = CreateSubjectCategory(user);
+            var subjectCategory = await CreateSubjectCategory(user, altinnRegisterService, cancellationToken);
             request.AccessSubject.Add(subjectCategory);
             request.Action.Add(CreateActionCategory(user));
-            var resourceCategory = CreateResourceCategory(resourceId, party, instanceId);
+            var resourceCategory = XacmlRequestFactory.CreateResourceCategory(resourceId, party, instanceId, DefaultIssuer);
             request.Resource.Add(resourceCategory);
 
             XacmlJsonRequestRoot jsonRequest = new() { Request = request };
@@ -55,31 +57,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return actionAttributes;
         }
 
-        private static XacmlJsonCategory CreateResourceCategory(string resourceId, string party, string? instanceId)
-        {
-            XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
-            resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.Resource, resourceId, DefaultType, DefaultIssuer));
-            var partyWithoutPrefix = party.WithoutPrefix();
-            if (partyWithoutPrefix.IsOrganizationNumber())
-            {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.OrganizationNumberAttribute, partyWithoutPrefix, DefaultType, DefaultIssuer));
-            }
-            else if (partyWithoutPrefix.IsSocialSecurityNumber())
-            {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, partyWithoutPrefix, DefaultType, DefaultIssuer));
-            }
-            else
-            {
-                throw new InvalidOperationException("RecipientId is not a valid organization or person number");
-            }
-            if (instanceId is not null)
-            {
-                resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.ResourceInstance, instanceId, DefaultType, DefaultIssuer));
-            }
-            return resourceCategory;
-        }
-
-        private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
+        private static async Task<XacmlJsonCategory> CreateSubjectCategory(ClaimsPrincipal user, IAltinnRegisterService altinnRegisterService, CancellationToken cancellationToken)
         {
             XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
             List<XacmlJsonAttribute> list = new List<XacmlJsonAttribute>();
@@ -96,7 +74,20 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 }
                 else if (IsConsumerClaim(claim.Type))
                 {
-                    list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, claim.Value.WithoutPrefix(), DefaultType, claim.Issuer));
+                    var identifier = claim.Value;
+
+                    if (identifier.IsSocialSecurityNumber())
+                    {
+                        list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, identifier.WithoutPrefix(), DefaultType, claim.Issuer));
+                    }
+                    else if (identifier.IsIdPortenEmailUrn())
+                    {
+                        var party = await altinnRegisterService.LookUpPartyById(identifier, cancellationToken);
+                        if (party is not null && party.UserId is int userId && userId > 0)
+                        {
+                            list.Add(CreateXacmlJsonAttribute(UrnConstants.UserId, userId.ToString(), DefaultType, claim.Issuer));
+                        }
+                    }
                 }
                 else if (IsSystemUserClaim(claim.Type))
                 {
@@ -145,11 +136,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 if (result.Obligations != null)
                 {
                     List<XacmlJsonObligationOrAdvice> obligations = result.Obligations;
-                    XacmlJsonAttributeAssignment obligation = GetObligation(UrnConstants.MinimumAuthenticationLevel, obligations);
+                    XacmlJsonAttributeAssignment? obligation = GetObligation(UrnConstants.MinimumAuthenticationLevel, obligations);
                     if (obligation != null)
                     {
                         string obligationRequiredLevel = obligation.Value;
-                        string claimLevel = user.Claims.FirstOrDefault((Claim c) => c.Type.Equals("l")).Value;
+                        string? claimLevel = user.Claims.FirstOrDefault((Claim c) => c.Type.Equals("l"))?.Value;
                         if (claimLevel == "0")
                         {
                             return true; // Hotfix until Dialogporten starts sending correct level
