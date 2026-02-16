@@ -27,9 +27,11 @@ public class InitializeCorrespondencesMapperTests
 
     [Theory]
     [InlineData("0192:123456789", "urn:altinn:organization:identifier-no:123456789")]
+    [InlineData("urn:altinn:organization:identifier-no:123456789", "urn:altinn:organization:identifier-no:123456789")]
     [InlineData("123456789", "urn:altinn:organization:identifier-no:123456789")]
     [InlineData("urn:altinn:person:idporten-email:User@Example.com", "urn:altinn:person:idporten-email:user@example.com")]
     [InlineData("07827199405", "urn:altinn:person:identifier-no:07827199405")]
+    [InlineData("urn:altinn:person:identifier-no:07827199405", "urn:altinn:person:identifier-no:07827199405")]
     public void MapToRequest_Normalizes_Recipient_To_Urn(string recipientInput, string expectedMappedRecipient)
     {
         var request = CreateMinimalRequest([recipientInput]);

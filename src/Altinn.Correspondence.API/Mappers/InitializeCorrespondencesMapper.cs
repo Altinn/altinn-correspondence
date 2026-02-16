@@ -10,9 +10,9 @@ using System.Text.Json;
 
 namespace Altinn.Correspondence.Mappers;
 
-public static class InitializeCorrespondencesMapper
+internal static class InitializeCorrespondencesMapper
 {
-    public static OneOf<InitializeCorrespondencesRequest, Error> MapToRequest(InitializeCorrespondencesExt request, List<IFormFile>? attachments = null)
+    internal static OneOf<InitializeCorrespondencesRequest, Error> MapToRequest(InitializeCorrespondencesExt request, List<IFormFile>? attachments = null)
     {
         var rawRequest = JsonSerializer.Serialize(request);
 
