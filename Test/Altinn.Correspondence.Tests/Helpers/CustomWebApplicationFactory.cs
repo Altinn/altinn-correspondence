@@ -22,6 +22,7 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Common.Helpers;
 
 namespace Altinn.Correspondence.Tests.Helpers;
 
@@ -103,8 +104,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             // services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
             var mockContactReservationRegistryService = new Mock<IContactReservationRegistryService>();
-            mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => recipients.Contains(ReservedSsn)))).ReturnsAsync([ReservedSsn]);
-            mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn)))).ReturnsAsync([]);
+            mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => recipients.Contains(ReservedSsn.WithUrnPrefix())))).ReturnsAsync([ReservedSsn]);
+            mockContactReservationRegistryService.Setup(x => x.GetReservedRecipients(It.Is<List<string>>(recipients => !recipients.Contains(ReservedSsn.WithUrnPrefix())))).ReturnsAsync([]);
             services.AddScoped(_ => mockContactReservationRegistryService.Object);
             var resourceRegistryService = new Mock<IResourceRegistryService>();
             resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
