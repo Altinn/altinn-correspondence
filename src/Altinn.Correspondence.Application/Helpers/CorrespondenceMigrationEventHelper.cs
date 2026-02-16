@@ -11,6 +11,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.Helpers;
 
+/// <summary>
+/// Helper to enable both sync of various types of events from Altinn 2, as well as enable re-migration of already migrated correspondences by re-processing events for a given correspondence.
+/// </summary>
 public class CorrespondenceMigrationEventHelper(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     ICorrespondenceDeleteEventRepository correspondenceDeleteEventRepository,
@@ -211,11 +214,9 @@ public class CorrespondenceMigrationEventHelper(
         partyUuidsToLookup = partyUuidsToLookup
            .Concat((deletionEventsToExecute ?? Enumerable.Empty<CorrespondenceDeleteEventEntity>())
                .Where(e => e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient || e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient) // Only SoftDelete and Restore events require Dialogporten enduserId
-               .Select(e => e.PartyUuid)
-               .Distinct()
-           )
-           .Where(uuid => !enduserIdByPartyUuid.ContainsKey(uuid));
-
+               .Select(e => e.PartyUuid))
+           .Distinct(); // Handles all duplicates
+        
         foreach (var uuid in partyUuidsToLookup)
         {
             var party = await altinnRegisterService.LookUpPartyByPartyUuid(uuid, cancellationToken);
@@ -554,6 +555,11 @@ public class CorrespondenceMigrationEventHelper(
 
     public async Task ProcessNotificationEvents(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEvents, string operationName, CancellationToken cancellationToken)
     {
+        if (notificationEvents.Count == 0)
+        {
+            return;
+        }
+
         foreach (var notification in notificationEvents)
         {
             logger.LogInformation("Processing {OperationName} notification event for correspondence {CorrespondenceId} at {NotificationSent}",
