@@ -1044,15 +1044,15 @@ public class DialogportenService(HttpClient _httpClient,
         if (forwardingEvent.ForwardedToUserUuid is not null)
         {
             // Instance delegation
-            var forwardedToParty = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedToUserUuid.Value, cancellationToken);
-            if (forwardedToParty == null)
+            var forwardedToUser = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedToUserUuid.Value, cancellationToken);
+            if (forwardedToUser == null)
             {
                 throw new Exception($"Could not find party for ForwardedToUserUuid {forwardingEvent.ForwardedToUserUuid} in forwarding event {forwardingEvent.Id}");
             }
             string[] tokens =
             {
                 forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
-                forwardedToParty.Name ?? throw new Exception($"No name found for user {forwardedToParty.PartyUuid}"),
+                forwardedToUser.Name ?? throw new Exception($"No name found for user {forwardedToUser.PartyUuid}"),
                 forwardingEvent.ForwardingText ?? string.Empty
             };
 
