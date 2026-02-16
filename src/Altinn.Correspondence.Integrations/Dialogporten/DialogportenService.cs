@@ -1,24 +1,34 @@
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Altinn.Register;
+using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Persistence.Repositories;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
-using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository, IResourceRegistryService _resourceRegistryService) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient,
+                                 ICorrespondenceRepository _correspondenceRepository,
+                                 ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
+                                 IAltinnRegisterService altinnRegisterService,
+                                 IOptions<GeneralSettings> generalSettings,
+                                 ILogger<DialogportenService> logger,
+                                 IIdempotencyKeyRepository _idempotencyKeyRepository,
+                                 IResourceRegistryService _resourceRegistryService) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -882,6 +892,15 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         );
         var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels";
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.Gone)
+        {
+            logger.LogWarning("Dialog {dialogId} for correspondence {correspondenceId} is already deleted in Dialogporten when attempting to update system labels. Response: {responseStatusCode}: {responseContent}",
+                dialogId,
+                correspondenceId,
+                response.StatusCode,
+                await response.Content.ReadAsStringAsync());
+            return;
+        }
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting system labels for dialogid {dialogId} for correpondence {correspondenceId}");
@@ -903,5 +922,102 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             return false;
         }
         throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+    }
+    public async Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)
+    {
+        var forwardingEvent = await correspondenceForwardingEventRepository.GetForwardingEvent(forwardingEventId, cancellationToken);
+
+        var forwardedByParty = await altinnRegisterService
+            .LookUpPartyByPartyUuid(forwardingEvent.ForwardedByPartyUuid, cancellationToken);
+        if (forwardedByParty == null)
+        {
+            throw new Exception($"Could not find party for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
+        }
+
+        string forwardedByUrn;
+        if (forwardedByParty.PartyTypeName == PartyType.Person)
+        {
+            forwardedByUrn = UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN;
+        }
+        else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
+        {
+            forwardedByUrn = UrnConstants.PartyUuid + ":" + forwardedByParty.PartyUuid;
+        }
+        else
+        {
+            throw new Exception($"Unsupported party type {forwardedByParty.PartyTypeName} for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
+        }
+
+        if (forwardingEvent.ForwardedToUserUuid is not null)
+        {
+            // Instance delegation
+            var forwardedToParty = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedToUserUuid.Value, cancellationToken);
+            if (forwardedToParty == null)
+            {
+                throw new Exception($"Could not find party for ForwardedToUserUuid {forwardingEvent.ForwardedToUserUuid} in forwarding event {forwardingEvent.Id}");
+            }
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                forwardedToParty.Name ?? throw new Exception($"No name found for user {forwardedToParty.PartyUuid}"),
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceInstanceDelegated,
+                forwardedByUrn,
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else if (!string.IsNullOrEmpty(forwardingEvent.ForwardedToEmailAddress))
+        {
+            // Email forwarding
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                forwardingEvent.ForwardedToEmailAddress,
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceForwardedToEmail,
+                forwardedByUrn,
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else if (!string.IsNullOrWhiteSpace(forwardingEvent.MailboxSupplier))
+        {
+            // Mailbox forwarding
+            var mailboxSupplierName = forwardingEvent.MailboxSupplier.ToLower() switch
+            {
+                "urn:altinn:organization:identifier-no:984661185" => "Digipost",
+                "urn:altinn:organization:identifier-no:922020175" => "e-Boks",
+                "urn:altinn:organization:identifier-no:996460320" => "e-Boks",
+                _ => throw new Exception($"Unknown mailbox supplier {forwardingEvent.MailboxSupplier} in forwarding event {forwardingEvent.Id}")
+            };
+
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                mailboxSupplierName,
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceForwardedToMailboxSupplier,
+                forwardedByUrn,
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else
+        {
+            throw new Exception($"Forwarding event {forwardingEvent.Id} has no valid forwarding target (no ForwardedToUserUuid, ForwardedToEmailAddress or MailboxSupplier)");
+        }
     }
 }

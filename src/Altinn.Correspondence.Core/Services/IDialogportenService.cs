@@ -30,4 +30,5 @@ public interface IDialogportenService
     Task<bool> ValidateDialogRecipientMatch(string dialogId, string expectedRecipient, CancellationToken cancellationToken = default);
     Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default);
     Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences);
+    Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken);
 }
