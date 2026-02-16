@@ -24,6 +24,8 @@ public class CorrespondenceMigrationEventHelper(
     IBackgroundJobClient backgroundJobClient,
     ILogger<CorrespondenceMigrationEventHelper> logger)
 {
+    private static readonly CorrespondenceStatus[] _validSyncStatuses = { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };
+
     public async Task ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, CancellationToken cancellationToken)
     {
         logger.LogDebug("Process Sync status event {Status} for {CorrespondenceId}", eventToExecute.Status, correspondenceId);
@@ -291,14 +293,7 @@ public class CorrespondenceMigrationEventHelper(
     /// <returns></returns>
     public bool ValidateStatusUpdate(CorrespondenceStatusEntity statusEntity)
     {
-        var validStatuses = new[] { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };
-
-        if (!validStatuses.Contains(statusEntity.Status))
-        {
-            return false;
-        }
-
-        return true;
+        return _validSyncStatuses.Contains(statusEntity.Status);
     }
 
     public bool ValidatePerformPurge(CorrespondenceEntity correspondence)
