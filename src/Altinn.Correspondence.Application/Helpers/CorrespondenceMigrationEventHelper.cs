@@ -573,11 +573,8 @@ public class CorrespondenceMigrationEventHelper(
             logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", addedNotificationId, correspondenceId);
         }
 
-        if (notificationEvents.Count > 0)
-        {
-            logger.LogInformation("Successfully {OperationName}d {TotalEvents} notification events for correspondence {CorrespondenceId}",
-                operationName, notificationEvents.Count, correspondenceId);
-        }
+        logger.LogInformation("Successfully {OperationName}d {TotalEvents} notification events for correspondence {CorrespondenceId}",
+            operationName, notificationEvents.Count, correspondenceId);
     }
 
     public async Task ProcessForwardingEvents(Guid correspondenceId, List<CorrespondenceForwardingEventEntity> forwardingEvents, string operationName, CancellationToken cancellationToken)
