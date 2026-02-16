@@ -38,11 +38,11 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsWithoutDialogActivityBatch(int count, CancellationToken cancellationToken)
+    public async Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsWithoutDialogActivityBatch(int count, DateTimeOffset lastProcessed, CancellationToken cancellationToken)
     {
         return await _context.CorrespondenceForwardingEvents
-            .Where(e => e.DialogActivityId == null)
-            .OrderBy(e => e.ForwardedOnDate)
+            .Where(e => e.DialogActivityId == null && e.ForwardedOnDate < lastProcessed)
+            .OrderByDescending(e => e.ForwardedOnDate)
             .Take(count)
             .ToListAsync(cancellationToken);
     }

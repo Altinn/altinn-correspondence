@@ -14,6 +14,7 @@ using Altinn.Correspondence.Application.RepairNotificationDelivery;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Repositories;
 using Hangfire;
+using Altinn.Correspondence.Application.MigrateForwardingEventsBatch;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -283,6 +284,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         [FromRoute] int count,
         CancellationToken cancellationToken)
     {
+        backgroundJobClient.Enqueue<MigrateForwardingEventsBatchHandler>(handler => handler.Process(count, DateTimeOffset.UtcNow));
         var forwardingEventsWithoutDialogActivity = await repository.GetForwardingEventsWithoutDialogActivityBatch(count, cancellationToken);
         foreach (var forwardingEvent in forwardingEventsWithoutDialogActivity)
         {
