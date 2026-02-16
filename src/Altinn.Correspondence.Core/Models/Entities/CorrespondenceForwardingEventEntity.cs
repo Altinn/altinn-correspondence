@@ -39,5 +39,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public CorrespondenceEntity? Correspondence { get; set; }
 
         public DateTimeOffset? SyncedFromAltinn2 { get; set; }
+
+        public Guid? DialogActivityId { get; set; }
     }
 }

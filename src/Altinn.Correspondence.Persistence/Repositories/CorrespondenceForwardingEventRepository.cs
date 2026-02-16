@@ -25,4 +25,25 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
         var forwardingEvent = await correspondenceForwardingEventQuery.SingleOrDefaultAsync(c => c.Id == forwardingEventId, cancellationToken);
         return forwardingEvent ?? throw new KeyNotFoundException($"Could not find correspondence forwarding event with id {forwardingEventId}");
     }
+
+    public async Task SetDialogActivityId(Guid forwardingEventId, Guid dialogActivityId, CancellationToken cancellationToken)
+    {
+        var forwardingEvent = await _context.CorrespondenceForwardingEvents.SingleOrDefaultAsync(c => c.Id == forwardingEventId, cancellationToken);
+        if (forwardingEvent == null)
+        {
+            throw new KeyNotFoundException($"Could not find correspondence forwarding event with id {forwardingEventId}");
+        }
+        forwardingEvent.DialogActivityId = dialogActivityId;
+        _context.CorrespondenceForwardingEvents.Update(forwardingEvent);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsWithoutDialogActivityBatch(int count, CancellationToken cancellationToken)
+    {
+        return await _context.CorrespondenceForwardingEvents
+            .Where(e => e.DialogActivityId == null)
+            .OrderBy(e => e.ForwardedOnDate)
+            .Take(count)
+            .ToListAsync(cancellationToken);
+    }
 }
