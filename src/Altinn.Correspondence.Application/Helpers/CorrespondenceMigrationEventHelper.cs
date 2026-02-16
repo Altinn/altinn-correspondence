@@ -218,8 +218,12 @@ public class CorrespondenceMigrationEventHelper(
 
         foreach (var uuid in partyUuidsToLookup)
         {
-            var party = await altinnRegisterService.LookUpPartyByPartyUuid(uuid, cancellationToken)
-                        ?? throw new ArgumentException($"Party with UUID {uuid} not found in Altinn Register.");
+            var party = await altinnRegisterService.LookUpPartyByPartyUuid(uuid, cancellationToken);
+            if (party is null)
+            {
+                logger.LogWarning("Party with UUID {PartyUuid} not found in Altinn Register. Skipping Dialogporten mapping, which may lead to issues later on.", uuid);
+                continue;
+            }
             switch (party.PartyTypeName)
             {
                 case PartyType.Person:

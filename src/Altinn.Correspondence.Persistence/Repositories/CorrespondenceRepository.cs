@@ -224,6 +224,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public void ClearChangeTracker()
         {
+            var trackedCount = _context.ChangeTracker.Entries().Count();
+            var trackedTypes = _context.ChangeTracker.Entries()
+                .GroupBy(e => e.Entity.GetType().Name)
+                .Select(g => $"{g.Key}: {g.Count()}");
+
+            logger.LogInformation("Tracked entities before clear: {Count}. Types: {Types}",
+                trackedCount, string.Join(", ", trackedTypes));
             _context.ChangeTracker.Clear();
         }
 
