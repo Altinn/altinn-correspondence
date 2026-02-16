@@ -11,6 +11,7 @@ using Altinn.Correspondence.Application.InitializeServiceOwner;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
 using Altinn.Correspondence.Application.RepairNotificationDelivery;
+using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -235,6 +236,29 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             Ok,
             Problem
         );
+    }
+
+    /// <summary>
+    /// Enqueue a repair job that schedules delivery checks for Altinn3 notifications
+    /// missing the "notification sent" information activity in Dialogporten.
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("sync-forwarding-event/{correspondenceForwardingId}")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(EnqueueMissingNotificationSentChecksResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> SyncForwardingEvent(
+        [FromServices] IDialogportenService service,
+        [FromQuery] Guid correspondenceForwardingId,
+        CancellationToken cancellationToken)
+    {
+        await service.AddForwardingEvent(correspondenceForwardingId, cancellationToken);
+        return Ok();
     }
 
     private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
