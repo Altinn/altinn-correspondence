@@ -265,7 +265,7 @@ public class DialogportenService(HttpClient _httpClient,
     }
 
 
-    // TOOD - should be removed when old Hangfire invocations are gone
+    // TODO - should be removed when old Hangfire invocations are gone
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, DateTimeOffset activityTimestamp, params string[] tokens)
     {
         logger.LogDebug("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
