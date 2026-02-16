@@ -1,7 +1,9 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Idporten;
+using Altinn.Platform.Register.Models;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
 using System.Security.Claims;
@@ -82,8 +84,12 @@ public class IdportenXacmlMapperTests
         var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
         var emailUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:{email}";
         registerService
-            .Setup(x => x.LookUpPartyById(emailUrn, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party { PartyId = 12345678, UserId = userId });
+            .Setup(x => x.LookUpPartyV2ById(emailUrn, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PartyV2 { PartyId = 12345678, User = new PartyUser()
+            {
+                UserId = userId
+            }
+            });
 
         var requestRoot = await IdportenXacmlMapper.CreateIdPortenDecisionRequest(
             user,

@@ -47,7 +47,6 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _digdirPartyId,
                 OrgNumber = "",
                 SSN = "",
-                Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
                 Name = $"User with email {email}",
@@ -103,6 +102,32 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         return Task.FromResult<Party?>(party);
     }
 
+    public Task<PartyV2?> LookUpPartyV2ById(string identificationId, CancellationToken cancellationToken = default)
+    {
+        var party = (PartyV2?)null;
+        if (identificationId.IsOrganizationNumber())
+        {
+            party = new PartyV2
+            {
+                OrganizationIdentifier = identificationId.WithoutPrefix(),
+                PersonIdentifier = "",
+                PartyType = nameof(PartyType.Organisation),
+                PartyUuid = _digdirPartyUuid,
+            };
+        }
+        else
+        {
+            party = new PartyV2
+            {
+                OrganizationIdentifier = "",
+                PersonIdentifier = identificationId.WithoutPrefix(),
+                PartyType = nameof(PartyType.Person),
+                PartyUuid = _delegatedUserPartyUuid,
+            };
+        }
+        return Task.FromResult<PartyV2?>(party);
+    }
+
     public Task<Party?> LookUpPartyByPartyUuid(Guid partyUuid, CancellationToken cancellationToken)
     {
         var party = (Party?)null;
@@ -149,26 +174,23 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         return Task.FromResult(party);
     }
 
-    public Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
+    public Task<List<PartyV2>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
     {
-        var parties = new List<Party>();
+        var parties = new List<PartyV2>();
         foreach (var id in identificationIds)
         {
             if (IdentificationIDRegex.IsMatch(id.WithoutPrefix()))
             {
-                parties.Add(new Party
+                parties.Add(new PartyV2
                 {
-                    PartyId = _digdirPartyId,
-                    OrgNumber = id,
-                    SSN = id,
-                    PartyTypeName = PartyType.Organisation,
-                    UnitType = "Virksomhet",
-                    Name = "Digitaliseringsdirektoratet",
+                    PartyId = (uint)_digdirPartyId,
+                    OrganizationIdentifier = id,
+                    PersonIdentifier = id,
                     PartyUuid = Guid.NewGuid(),
                 });
             }
         }
-        return Task.FromResult<List<Party>?>(parties);
+        return Task.FromResult<List<PartyV2>?>(parties);
     }
 
     public Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken)

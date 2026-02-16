@@ -82,8 +82,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                     else if (identifier.IsIdPortenEmailUrn())
                     {
-                        var party = await altinnRegisterService.LookUpPartyById(identifier, cancellationToken);
-                        if (party is not null && party.UserId is int userId && userId > 0)
+                        var party = await altinnRegisterService.LookUpPartyV2ById(identifier, cancellationToken);
+                        if (party is not null && party.User?.UserId is int userId && userId > 0)
                         {
                             list.Add(CreateXacmlJsonAttribute(UrnConstants.UserId, userId.ToString(), DefaultType, claim.Issuer));
                         }

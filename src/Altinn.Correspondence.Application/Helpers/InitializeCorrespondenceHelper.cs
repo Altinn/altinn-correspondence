@@ -6,9 +6,9 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
+using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Notifications.Core.Helpers;
-using Altinn.Platform.Register.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -283,7 +283,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return text.Contains(tag, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        public async Task<CorrespondenceEntity> MapToCorrespondenceEntityAsync(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, Party? partyDetails, bool isReserved, string serviceOwnerOrgNumber, CancellationToken cancellationToken)
+        public async Task<CorrespondenceEntity> MapToCorrespondenceEntityAsync(InitializeCorrespondencesRequest request, string recipient, List<AttachmentEntity> attachmentsToBeUploaded, Guid partyUuid, PartyV2? partyDetails, bool isReserved, string serviceOwnerOrgNumber, CancellationToken cancellationToken)
         {
             List<CorrespondenceStatusEntity> statuses =
             [
@@ -342,9 +342,9 @@ namespace Altinn.Correspondence.Application.Helpers
                         ExpirationTime = a.ExpirationInDays.HasValue ? expirationAnchorTime.AddDays(a.ExpirationInDays.Value) : null,
                     }).ToList(),
                     Language = request.Correspondence.Content.Language,
-                    MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.Name),
-                    MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.Name),
-                    MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.Name),
+                    MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.DisplayName),
+                    MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.DisplayName),
+                    MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.DisplayName),
                 },
                 RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 DueDateTime = request.Correspondence.DueDateTime,

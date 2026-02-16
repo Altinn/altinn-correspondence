@@ -1,7 +1,7 @@
-using System.Globalization;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Register;
+using Altinn.Platform.Register.Enums;
+using Altinn.Platform.Register.Models;
+using System.Globalization;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 
@@ -28,10 +28,9 @@ public static class PartyMapper
             PartyUuid = partyV2.PartyUuid,
             Name = normalizedName,
             IsDeleted = partyV2.IsDeleted == true,
-            Resources = new List<string>(),
             SSN = partyV2.PersonIdentifier,
-            OrgNumber = partyV2.OrganizationIdentifier,
-            UserId = partyV2.User?.UserId
+            OrgNumber = partyV2.OrganizationIdentifier
+            //UserId = partyV2.User?.UserId
         };
 
         if (!string.IsNullOrWhiteSpace(partyV2.PartyType))

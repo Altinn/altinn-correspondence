@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Models.Register;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Altinn.Platform.Register.Models;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterService : IAltinnRegisterService
@@ -132,9 +133,79 @@ public class AltinnRegisterService : IAltinnRegisterService
     public async Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"PartyById_{identificationId}";
-        try 
+        try
         {
             var cachedParty = await CacheHelpers.GetObjectFromCacheAsync<Party>(cacheKey, _cache, cancellationToken);
+            if (cachedParty != null)
+            {
+                return cachedParty;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving organization from cache when looking up organization in Altinn Register Service.");
+        }
+
+        if (identificationId.IsPartyId())
+        {
+            if (int.TryParse(identificationId.WithoutPrefix(), out int partyId))
+            {
+                return await LookUpPartyByPartyId(partyId, cancellationToken);
+            }
+            else
+            {
+                _logger.LogError("identificationId is not a valid party id.");
+                return null;
+            }
+        }
+
+        identificationId = identificationId.WithoutPrefix();
+
+        if (!identificationId.IsOrganizationNumber() && !identificationId.IsSocialSecurityNumber())
+        {
+            _logger.LogError("IdentificationId {identificationId} is not a valid organization number or social security number.", identificationId);
+            return null;
+        }
+
+        var partyLookup = new PartyLookup()
+        {
+            OrgNo = identificationId.IsOrganizationNumber() ? identificationId : null,
+            Ssn = identificationId.IsSocialSecurityNumber() ? identificationId : null
+        };
+        var response = await _httpClient.PostAsJsonAsync("register/api/v1/parties/lookup", partyLookup, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            throw new Exception($"Error when looking up organization in Altinn Register.Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        var party = await response.Content.ReadFromJsonAsync<Party>();
+        if (party is null)
+        {
+            throw new Exception("Unexpected json response when looking up organization in Altinn Register");
+        }
+
+        try
+        {
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, party, _cache, _cacheOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error storing response content to cache when looking up organization in Altinn Register Service.");
+        }
+
+        return party;
+    }
+
+    public async Task<PartyV2?> LookUpPartyV2ById(string identificationId, CancellationToken cancellationToken = default)
+    {
+        string cacheKey = $"PartyV2ById_{identificationId}";
+        try
+        {
+            var cachedParty = await CacheHelpers.GetObjectFromCacheAsync<PartyV2>(cacheKey, _cache, cancellationToken);
             if (cachedParty != null)
             {
                 return cachedParty;
@@ -182,12 +253,12 @@ public class AltinnRegisterService : IAltinnRegisterService
         return roles.Data ?? new List<RoleItem>();
     }
 
-    public async Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken = default)
+    public async Task<List<PartyV2>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"PartiesByIds_{string.Join("_", identificationIds).GetHashCode()}";
         try
         {
-            var cachedParty = await CacheHelpers.GetObjectFromCacheAsync<List<Party>>(cacheKey, _cache, cancellationToken);
+            var cachedParty = await CacheHelpers.GetObjectFromCacheAsync<List<PartyV2>>(cacheKey, _cache, cancellationToken);
             if (cachedParty != null)
             {
                 return cachedParty;
@@ -240,7 +311,7 @@ public class AltinnRegisterService : IAltinnRegisterService
     /// <param name="identificationIds">The party identifiers to look up.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A list of parties matching the provided identifiers.</returns>
-    private async Task<List<Party>?> QueryParties(List<string> identificationIds, CancellationToken cancellationToken = default)
+    private async Task<List<PartyV2>?> QueryParties(List<string> identificationIds, CancellationToken cancellationToken = default)
     {
         var partyUrns = identificationIds.Select(id => id.WithUrnPrefix()).ToList();
 
@@ -260,7 +331,7 @@ public class AltinnRegisterService : IAltinnRegisterService
                 response.StatusCode == System.Net.HttpStatusCode.NoContent)
             {
                 _logger.LogWarning("IdentificationIds did not have any valid identifers");
-                return new List<Party>();
+                return new List<PartyV2>();
             }
             
             throw new Exception($"Error when querying parties in Altinn Register. Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
@@ -271,10 +342,7 @@ public class AltinnRegisterService : IAltinnRegisterService
         {
             throw new Exception("Unexpected json response when querying parties in Altinn Register");
         }
-
-        // Map V2 parties to V1 party model
-        var parties = PartyMapper.MapListToV1(partiesV2Response.Data);
         
-        return parties;
+        return partiesV2Response.Data;
     }
 }

@@ -7,6 +7,7 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -41,7 +42,7 @@ public class InitializeCorrespondencesHandler(
         public List<AttachmentEntity> AttachmentsToBeUploaded { get; set; } = new();
         public Guid PartyUuid { get; set; }
         public List<string> ReservedRecipients { get; set; } = new();
-        public List<Party> RecipientDetails { get; set; } = new();
+        public List<PartyV2> RecipientDetails { get; set; } = new();
         public string ServiceOwnerOrgNumber { get; set; } = string.Empty;
     }
 
@@ -280,14 +281,14 @@ public class InitializeCorrespondencesHandler(
             {
                 return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(
                     validatedData.RecipientDetails != null ?
-                    validatedData.RecipientDetails.Select(r => r.SSN ?? r.OrgNumber) :
+                    validatedData.RecipientDetails.Select(r => r.PersonIdentifier ?? r.OrganizationIdentifier ?? "") :
                     new List<string>()).ToList());
             }
             foreach (var details in validatedData.RecipientDetails)
             {
                 if (details.PartyUuid == Guid.Empty)
                 {
-                    return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
+                    return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.PersonIdentifier ?? details.OrganizationIdentifier ?? "" });
                 }
             }
         }
@@ -381,7 +382,7 @@ public class InitializeCorrespondencesHandler(
         foreach (var recipient in request.Recipients)
         {
             var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());
-            var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
+            var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.PersonIdentifier == recipient.WithoutPrefix() || r.OrganizationIdentifier == recipient.WithoutPrefix());
             var correspondence = await initializeCorrespondenceHelper.MapToCorrespondenceEntityAsync(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber, cancellationToken);
             correspondences.Add(correspondence);
         }

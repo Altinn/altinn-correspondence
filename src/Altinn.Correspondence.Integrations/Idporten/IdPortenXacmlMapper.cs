@@ -154,8 +154,8 @@ namespace Altinn.Correspondence.Integrations.Idporten
         {
             XacmlJsonCategory subjectCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
             var emailUrn = emailClaim.Value.ToLowerInvariant().WithUrnPrefix();
-            var party = await altinnRegisterService.LookUpPartyById(emailUrn, cancellationToken);
-            if (party is not null && party.UserId is int userId && userId > 0)
+            var party = await altinnRegisterService.LookUpPartyV2ById(emailUrn, cancellationToken);
+            if (party is not null && party.User?.UserId is int userId && userId > 0)
             {
                 subjectCategory.Attribute.Add(
                     DecisionHelper.CreateXacmlJsonAttribute(
