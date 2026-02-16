@@ -948,8 +948,30 @@ public class DialogportenService(HttpClient _httpClient,
             throw new Exception($"Unsupported party type {forwardedByParty.PartyTypeName} for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
         }
 
-        
-        if (!string.IsNullOrEmpty(forwardingEvent.ForwardedToEmailAddress))
+        if (forwardingEvent.ForwardedToUserUuid is not null)
+        {
+            // Instance delegation
+            var forwardedToParty = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedToUserUuid.Value, cancellationToken);
+            if (forwardedToParty == null)
+            {
+                throw new Exception($"Could not find party for ForwardedToUserUuid {forwardingEvent.ForwardedToUserUuid} in forwarding event {forwardingEvent.Id}");
+            }
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                forwardedToParty.Name ?? throw new Exception($"No name found for user {forwardedToParty.PartyUuid}"),
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceInstanceDelegated,
+                forwardedByUrn,
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else if (!string.IsNullOrEmpty(forwardingEvent.ForwardedToEmailAddress))
         {
             // Email forwarding
             string[] tokens =
@@ -989,29 +1011,6 @@ public class DialogportenService(HttpClient _httpClient,
                 forwardingEvent.CorrespondenceId,
                 DialogportenActorType.Recipient,
                 DialogportenTextType.CorrespondenceForwardedToMailboxSupplier,
-                forwardedByUrn,
-                forwardingEvent.ForwardedOnDate,
-                tokens);
-        }
-        else if (forwardingEvent.ForwardedToUserUuid is not null)
-        {
-            // Instance delegation
-            var forwardedToParty = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedToUserUuid.Value, cancellationToken);
-            if (forwardedToParty == null)
-            {
-                throw new Exception($"Could not find party for ForwardedToUserUuid {forwardingEvent.ForwardedToUserUuid} in forwarding event {forwardingEvent.Id}");
-            }
-            string[] tokens =
-            {
-                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
-                forwardedToParty.Name ?? throw new Exception($"No name found for user {forwardedToParty.PartyUuid}"),
-                forwardingEvent.ForwardingText ?? string.Empty
-            };
-
-            await CreateInformationActivity(
-                forwardingEvent.CorrespondenceId,
-                DialogportenActorType.Recipient,
-                DialogportenTextType.CorrespondenceInstanceDelegated,
                 forwardedByUrn,
                 forwardingEvent.ForwardedOnDate,
                 tokens);
