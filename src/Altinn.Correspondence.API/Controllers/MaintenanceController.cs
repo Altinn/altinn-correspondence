@@ -255,7 +255,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> SyncForwardingEvent(
         [FromServices] IDialogportenService service,
-        [FromQuery] Guid correspondenceForwardingId,
+        [FromRoute] Guid correspondenceForwardingId,
         CancellationToken cancellationToken)
     {
         await service.AddForwardingEvent(correspondenceForwardingId, cancellationToken);
@@ -280,7 +280,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         [FromServices] IDialogportenService service,
         [FromServices] ICorrespondenceForwardingEventRepository repository,
         [FromServices] IBackgroundJobClient backgroundJobClient,
-        [FromQuery] int count,
+        [FromRoute] int count,
         CancellationToken cancellationToken)
     {
         var forwardingEventsWithoutDialogActivity = await repository.GetForwardingEventsWithoutDialogActivityBatch(count, cancellationToken);
