@@ -129,6 +129,7 @@ namespace Altinn.Correspondence.API.Auth
                         OnRedirectToIdentityProvider = context =>
                         {
                             context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
+                            context.ProtocolMessage.AcrValues = "selfregistered-email idporten-loa-substantial";
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>
