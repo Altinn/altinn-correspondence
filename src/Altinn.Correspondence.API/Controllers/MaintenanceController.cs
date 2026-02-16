@@ -278,18 +278,11 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> SyncForwardingEvents(
-        [FromServices] IDialogportenService service,
-        [FromServices] ICorrespondenceForwardingEventRepository repository,
         [FromServices] IBackgroundJobClient backgroundJobClient,
         [FromRoute] int count,
         CancellationToken cancellationToken)
     {
         backgroundJobClient.Enqueue<MigrateForwardingEventsBatchHandler>(handler => handler.Process(count, DateTimeOffset.UtcNow));
-        var forwardingEventsWithoutDialogActivity = await repository.GetForwardingEventsWithoutDialogActivityBatch(count, cancellationToken);
-        foreach (var forwardingEvent in forwardingEventsWithoutDialogActivity)
-        {
-            backgroundJobClient.Enqueue<IDialogportenService>((service) => service.AddForwardingEvent(forwardingEvent.Id, CancellationToken.None));
-        }
         return Ok();
     }
 
