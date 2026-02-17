@@ -272,7 +272,12 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
-        var dialog = await GetDialog(dialogId);
+        CreateDialogRequest? dialog = null;
+        try {
+            dialog = await GetDialog(dialogId);
+        } catch (DialogNotFoundException) {
+            return true; // Dialog not found, skipping.
+        }
         if (dialog.Activities is null || dialog.Activities.Count == 0)
         {
             return false;
