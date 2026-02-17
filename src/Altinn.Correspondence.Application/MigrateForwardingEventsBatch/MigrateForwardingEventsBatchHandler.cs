@@ -2,10 +2,11 @@
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.MigrateForwardingEventsBatch
 {
-    public class MigrateForwardingEventsBatchHandler(ICorrespondenceForwardingEventRepository forwardingEventRepository, IBackgroundJobClient backgroundJobClient)
+    public class MigrateForwardingEventsBatchHandler(ICorrespondenceForwardingEventRepository forwardingEventRepository, IBackgroundJobClient backgroundJobClient, ILogger<MigrateForwardingEventsBatchHandler> logger)
     {
         public async Task Process(int batchCount, DateTimeOffset lastProcessed)
         {
@@ -17,6 +18,11 @@ namespace Altinn.Correspondence.Application.MigrateForwardingEventsBatch
             } else
             {
                 var batch = await forwardingEventRepository.GetForwardingEventsWithoutDialogActivityBatch(batchCount, lastProcessed, CancellationToken.None);
+                if (batch.Count == 0)
+                {
+                    logger.LogInformation("No more forwarding events to process. Migration of forwarding events is complete.");
+                    return; // No more events to process
+                }
                 foreach (var forwardingEvent in batch)
                 {
                     backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.Migration, service => service.AddForwardingEvent(forwardingEvent.Id, CancellationToken.None));
