@@ -27,9 +27,9 @@ public class CorrespondenceMigrationEventHelper(
 {
     private static readonly CorrespondenceStatus[] _validSyncStatuses = { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };
 
-    public async Task ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, CancellationToken cancellationToken)
+    public async Task ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, string operationName, CancellationToken cancellationToken)
     {
-        logger.LogDebug("Process Sync status event {Status} for {CorrespondenceId}", eventToExecute.Status, correspondenceId);
+        logger.LogDebug("Process {OperationName} status event {Status} for {CorrespondenceId}", operationName, eventToExecute.Status, correspondenceId);
         
         // Enqueue background jobs inside the transaction
         if (correspondence.IsMigrating == false)
@@ -88,9 +88,9 @@ public class CorrespondenceMigrationEventHelper(
         await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, cancellationToken);
     }
 
-    public async Task ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, CancellationToken cancellationToken)
+    public async Task ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, string operationName, CancellationToken cancellationToken)
     {
-        logger.LogDebug("Process Sync delete event {EventType} for {CorrespondenceId}", deletionEvent.EventType, correspondenceId);
+        logger.LogDebug("Process {OperationName} delete event {EventType} for {CorrespondenceId}", operationName, deletionEvent.EventType, correspondenceId);
         switch (deletionEvent.EventType)
         {
             case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
@@ -569,7 +569,7 @@ public class CorrespondenceMigrationEventHelper(
             logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", addedNotificationId, correspondenceId);
         }
 
-        logger.LogInformation("Successfully {OperationName}d {TotalEvents} notification events for correspondence {CorrespondenceId}",
+        logger.LogInformation("Successfully processed {OperationName} of {TotalEvents} notification events for correspondence {CorrespondenceId}",
             operationName, notificationEvents.Count, correspondenceId);
     }
 
@@ -593,7 +593,7 @@ public class CorrespondenceMigrationEventHelper(
         // Add the new forwarding events to the repository
         await correspondenceForwardingEventRepository.AddForwardingEvents(forwardingEvents, cancellationToken);
 
-        logger.LogInformation("Successfully {OperationName}d {TotalEvents} forwarding events for correspondence {CorrespondenceId}",
+        logger.LogInformation("Successfully processed {OperationName} of {TotalEvents} forwarding events for correspondence {CorrespondenceId}",
             operationName, forwardingEvents.Count, correspondenceId);
     }
 
@@ -637,11 +637,11 @@ public class CorrespondenceMigrationEventHelper(
             {
                 if (evt.EventType == "Status")
                 {
-                    await ProcessStatusEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, cancellationToken);
+                    await ProcessStatusEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, operationName, cancellationToken);
                 }
                 else if (evt.EventType == "Delete")
                 {
-                    await ProcessDeleteEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, cancellationToken);
+                    await ProcessDeleteEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, operationName, cancellationToken);
                 }
             }
             catch (Exception ex)
@@ -652,7 +652,7 @@ public class CorrespondenceMigrationEventHelper(
             }
         }
 
-        logger.LogInformation("Successfully {OperationName}d {TotalEvents} events for correspondence {CorrespondenceId}",
+        logger.LogInformation("Successfully processed {OperationName} of {TotalEvents} events for correspondence {CorrespondenceId}",
             operationName, allEventsToProcess.Count, correspondenceId);
 
         return allEventsToProcess.Count;
@@ -719,7 +719,7 @@ public class CorrespondenceMigrationEventHelper(
 
         if (totalEventsProcessed > 0)
         {
-            logger.LogInformation("Successfully {OperationName}d {TotalEvents} events total for correspondence {CorrespondenceId}",
+            logger.LogInformation("Successfully processed {OperationName} of {TotalEvents} events total for correspondence {CorrespondenceId}",
                 operationName, totalEventsProcessed, correspondenceId);
         }
 
