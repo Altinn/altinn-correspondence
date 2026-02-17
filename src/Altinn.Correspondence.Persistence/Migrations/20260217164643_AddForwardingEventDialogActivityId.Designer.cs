@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260216145734_AddForwardingEventDialogActivityId")]
+    [Migration("20260217164643_AddForwardingEventDialogActivityId")]
     partial class AddForwardingEventDialogActivityId
     {
         /// <inheritdoc />

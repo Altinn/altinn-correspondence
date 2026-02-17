@@ -11,11 +11,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "AllowSystemDeleteAfter",
-                schema: "correspondence",
-                table: "Correspondences");
-
             migrationBuilder.AddColumn<Guid>(
                 name: "DialogActivityId",
                 schema: "correspondence",
@@ -31,13 +26,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 name: "DialogActivityId",
                 schema: "correspondence",
                 table: "CorrespondenceForwardingEvents");
-
-            migrationBuilder.AddColumn<DateTimeOffset>(
-                name: "AllowSystemDeleteAfter",
-                schema: "correspondence",
-                table: "Correspondences",
-                type: "timestamp with time zone",
-                nullable: true);
         }
     }
 }
