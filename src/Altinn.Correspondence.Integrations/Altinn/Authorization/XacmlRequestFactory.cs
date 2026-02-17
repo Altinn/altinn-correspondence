@@ -16,10 +16,7 @@ public static class XacmlRequestFactory
     public static XacmlJsonCategory CreateResourceCategory(string resourceId, string party, string? instanceId, string issuer)
     {
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
-
-        resourceCategory.Attribute.Add(
-            DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, issuer));
-
+        resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, issuer));
         var partyWithoutPrefix = party.WithoutPrefix();
         if (partyWithoutPrefix.IsOrganizationNumber())
         {
@@ -31,9 +28,14 @@ public static class XacmlRequestFactory
             resourceCategory.Attribute.Add(
                 DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, partyWithoutPrefix, DefaultType, issuer));
         }
+        else if (partyWithoutPrefix.IsPartyId())
+        {
+            resourceCategory.Attribute.Add(
+                DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.Party, partyWithoutPrefix, DefaultType, issuer));
+        }
         else
         {
-            throw new InvalidOperationException("RecipientId is not a valid organization or person number: " + party);
+            throw new InvalidOperationException("RecipientId is not a valid organization number, person number or party id: " + party);
         }
 
         if (instanceId is not null)

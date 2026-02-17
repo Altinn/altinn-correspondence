@@ -61,7 +61,7 @@ internal static class InitializeCorrespondencesMapper
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),
             ExistingAttachments = request.ExistingAttachments ?? new List<Guid>(),
-            Recipients = request.Recipients,
+            Recipients = request.Recipients.Select(NormalizeRecipientToUrn).ToList(),
             Notification = correspondenceNotification,
             IdempotentKey = request.IdempotentKey
         };
@@ -85,5 +85,10 @@ internal static class InitializeCorrespondencesMapper
             }).ToList(),
             AttachmentIds = response.AttachmentIds
         };
+    }
+
+    private static string NormalizeRecipientToUrn(string recipient)
+    {
+        return recipient.ToLowerInvariant().WithoutPrefix().WithUrnPrefix();
     }
 }

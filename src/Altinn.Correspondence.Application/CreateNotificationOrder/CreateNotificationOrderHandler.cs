@@ -140,15 +140,27 @@ public class CreateNotificationOrderHandler(
         // If OverrideRegisteredContactInformation is false (default), add the default correspondence recipient
         if (!notificationRequest.OverrideRegisteredContactInformation)
         {
-            string recipientWithoutPrefix = correspondence.Recipient.WithoutPrefix();
-            bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
-            bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
-            
-            recipientsToProcess.Add(new Recipient
+            string recipient = correspondence.Recipient;
+            string recipientWithoutPrefix = recipient.WithoutPrefix();
+
+            if (recipient.IsIdPortenEmailUrn())
             {
-                OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
-                NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null
-            });
+                // Temporary: send notification directly to the email in the URN until the notification service supports idporten-email recipients
+                recipientsToProcess.Add(new Recipient
+                {
+                    EmailAddress = recipientWithoutPrefix
+                });
+            }
+            else
+            {
+                bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
+                bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
+                recipientsToProcess.Add(new Recipient
+                {
+                    OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
+                    NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null
+                });
+            }
         }
         
         // Add custom recipients if they exist (in addition to default recipient when OverrideRegisteredContactInformation is false)
