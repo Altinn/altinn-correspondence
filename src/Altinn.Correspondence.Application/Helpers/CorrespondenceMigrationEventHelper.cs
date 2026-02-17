@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 
@@ -37,16 +38,16 @@ public class CorrespondenceMigrationEventHelper(
             {
                 case CorrespondenceStatus.Confirmed:
                     {
-                        var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId, CancellationToken.None));
+                        var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId, CancellationToken.None));
                         if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
                         {
                             logger.LogWarning("Skipping updating dialog for Confirm for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
                         }
                         else
                         {
-                            backgroundJobClient.ContinueJobWith<IDialogportenService>(patchJobId, (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId), JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2
+                            backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: patchJobId, queue: HangfireQueues.LiveMigration, methodCall: (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId), options: JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2
                         }                        
-                        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                        backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
                         break;
                     }
 
@@ -59,9 +60,9 @@ public class CorrespondenceMigrationEventHelper(
                         }
                         else
                         {
-                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId));
+                            backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId));
                         }
-                        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                        backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
                         break;
                     }
 
@@ -73,7 +74,7 @@ public class CorrespondenceMigrationEventHelper(
                         }
                         else
                         {
-                            backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondence.Id, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                            backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondence.Id, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
                         }                        
                         break;
                     }
@@ -328,7 +329,7 @@ public class CorrespondenceMigrationEventHelper(
 
         if (correspondence.IsMigrating == false)
         {
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
         }
 
         await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, cancellationToken);
@@ -337,14 +338,14 @@ public class CorrespondenceMigrationEventHelper(
         {
             var actorType = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
             var actorName = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? "avsender" : "mottaker";
-            var purgedActivityJobId = backgroundJobClient.Enqueue<IDialogportenService>(service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
+            var purgedActivityJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
 
             var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
             if (dialogId is null)
-            {   
+            {
                 throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
             }
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(purgedActivityJobId, service => service.SoftDeleteDialog(dialogId), JobContinuationOptions.OnlyOnSucceededState);
+            backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: purgedActivityJobId, queue: HangfireQueues.LiveMigration, methodCall: service => service.SoftDeleteDialog(dialogId), options: JobContinuationOptions.OnlyOnSucceededState);
         }
 
         return correspondence.Id;
@@ -422,7 +423,7 @@ public class CorrespondenceMigrationEventHelper(
         {
             case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
                 {
-                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }, null));
+                    backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }, null));
                     break;
                 }
 
@@ -431,11 +432,11 @@ public class CorrespondenceMigrationEventHelper(
                     if (isArchived)
                     {
                         // Add "Archive" label if the correspondence has been archived
-                        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                        backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
                     }
                     else
                     {
-                        backgroundJobClient.Enqueue<IDialogportenService>(service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, null, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }));
+                        backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondenceId, endUserId, DialogportenActorType.PartyRepresentative, null, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Bin }));
                     }
                     break;
                 }
