@@ -127,12 +127,11 @@ public class DownloadCorrespondenceAttachmentHandler(
             }
 
             _backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => 
-            dialogportenService.CreateInformationActivity(
+            dialogportenService.CreateDownloadStartedActivity(
                 request.CorrespondenceId,
                 DialogportenActorType.Recipient, 
-                DialogportenTextType.DownloadStarted,
-                caller,
                 operationTimestamp,
+                caller,
                 attachment.DisplayName ?? attachment.FileName,
                 request.AttachmentId.ToString()));
             _logger.LogInformation("Successfully processed download request for correspondence {CorrespondenceId} and attachment {AttachmentId}", 

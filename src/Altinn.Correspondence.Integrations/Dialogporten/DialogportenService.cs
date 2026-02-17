@@ -1,24 +1,32 @@
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
-using Altinn.Correspondence.Core.Exceptions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
-using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
-public class DialogportenService(HttpClient _httpClient, ICorrespondenceRepository _correspondenceRepository, IOptions<GeneralSettings> generalSettings, ILogger<DialogportenService> logger, IIdempotencyKeyRepository _idempotencyKeyRepository, IResourceRegistryService _resourceRegistryService) : IDialogportenService
+public class DialogportenService(HttpClient _httpClient,
+                                 ICorrespondenceRepository _correspondenceRepository,
+                                 ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
+                                 IAltinnRegisterService altinnRegisterService,
+                                 IOptions<GeneralSettings> generalSettings,
+                                 ILogger<DialogportenService> logger,
+                                 IIdempotencyKeyRepository _idempotencyKeyRepository,
+                                 IResourceRegistryService _resourceRegistryService) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -169,6 +177,95 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
         return !hasGuiAction && !hasApiAction && statusOk;
     }
+
+    public async Task CreateDownloadStartedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
+    {
+        if (tokens.Length < 2 || !Guid.TryParse(tokens[1], out var attachmentId))
+        {
+            logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
+            throw new ArgumentException("Invalid attachment ID token", nameof(tokens));
+        }
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var existingIdempotencyKey = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
+            correspondenceId,
+            attachmentId,
+            partyUrn?.WithUrnPrefix(),
+            StatusAction.AttachmentDownloaded,
+            IdempotencyType.DialogportenActivity,
+            cancellationToken);
+
+        if (existingIdempotencyKey is null)
+        {
+            existingIdempotencyKey = await _idempotencyKeyRepository.CreateAsync(
+                new IdempotencyKeyEntity
+                {
+                    Id = Uuid.NewDatabaseFriendly(Database.PostgreSql),
+                    CorrespondenceId = correspondenceId,
+                    AttachmentId = attachmentId,
+                    PartyUrn = partyUrn?.WithUrnPrefix(),
+                    StatusAction = StatusAction.AttachmentDownloaded,
+                    IdempotencyType = IdempotencyType.DialogportenActivity
+                },
+                cancellationToken);
+        }
+
+        await CreateInformationActivity(correspondenceId, actorType, DialogportenTextType.DownloadStarted, partyUrn, existingIdempotencyKey.Id, activityTimestamp, tokens);
+    }
+
+    public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, Guid? dialogActivityId, DateTimeOffset activityTimestamp,params string[] tokens)
+    {
+        logger.LogDebug("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
+            Enum.GetName(typeof(DialogportenActorType), actorType),
+            Enum.GetName(typeof(DialogportenTextType), textType),
+            correspondenceId
+        );
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                logger.LogWarning("Skipping creating information activity for {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondenceId);
+                return;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
+        }
+
+        var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, partyUrn, activityTimestamp, tokens);
+
+        if (dialogActivityId is not null)
+        {
+            createDialogActivityRequest.Id = dialogActivityId.ToString();
+        }
+
+        var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                if (errorContent.Contains("already exists"))
+                {
+                    logger.LogWarning("Activity already exists for correspondence {correspondenceId} and dialog {dialogId}", correspondenceId, dialogId);
+                    return; // Skip if the activity already exists
+                }
+            }
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+    }
+
+
+    // TODO - should be removed when old Hangfire invocations are gone
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, DateTimeOffset activityTimestamp, params string[] tokens)
     {
         logger.LogDebug("CreateInformationActivity {actorType}: {textType} for correspondence {correspondenceId}",
@@ -250,7 +347,7 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
 
     public async Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens)
     {
-        await CreateInformationActivity(correspondenceId, actorType, textType, null, activityTimestamp, tokens);
+        await CreateInformationActivity(correspondenceId, actorType, textType, null, null, activityTimestamp, tokens);
     }
 
     public async Task<bool> HasInformationActivityByTextType(Guid correspondenceId, DialogportenTextType textType, CancellationToken cancellationToken = default)
@@ -882,6 +979,15 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
         );
         var url = $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/endusercontext/systemlabels";
         var response = await _httpClient.PutAsJsonAsync(url, request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.Gone)
+        {
+            logger.LogWarning("Dialog {dialogId} for correspondence {correspondenceId} is already deleted in Dialogporten when attempting to update system labels. Response: {responseStatusCode}: {responseContent}",
+                dialogId,
+                correspondenceId,
+                response.StatusCode,
+                await response.Content.ReadAsStringAsync());
+            return;
+        }
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()} when setting system labels for dialogid {dialogId} for correpondence {correspondenceId}");
@@ -903,5 +1009,111 @@ public class DialogportenService(HttpClient _httpClient, ICorrespondenceReposito
             return false;
         }
         throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+    }
+    public async Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)
+    {
+        var forwardingEvent = await correspondenceForwardingEventRepository.GetForwardingEvent(forwardingEventId, cancellationToken);
+        if (forwardingEvent.DialogActivityId is null)
+        {
+            var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+            forwardingEvent.DialogActivityId = dialogActivityId;
+            await correspondenceForwardingEventRepository.SetDialogActivityId(forwardingEvent.Id, dialogActivityId, cancellationToken);
+        }
+
+        var forwardedByParty = await altinnRegisterService
+            .LookUpPartyByPartyUuid(forwardingEvent.ForwardedByPartyUuid, cancellationToken);
+        if (forwardedByParty == null)
+        {
+            throw new Exception($"Could not find party for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
+        }
+
+        string forwardedByUrn;
+        if (forwardedByParty.PartyTypeName == PartyType.Person)
+        {
+            forwardedByUrn = UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN;
+        }
+        else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
+        {
+            forwardedByUrn = UrnConstants.PartyUuid + ":" + forwardedByParty.PartyUuid;
+        }
+        else
+        {
+            throw new Exception($"Unsupported party type {forwardedByParty.PartyTypeName} for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
+        }
+
+        if (forwardingEvent.ForwardedToUserUuid is not null)
+        {
+            // Instance delegation
+            var forwardedToUser = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedToUserUuid.Value, cancellationToken);
+            if (forwardedToUser == null)
+            {
+                throw new Exception($"Could not find party for ForwardedToUserUuid {forwardingEvent.ForwardedToUserUuid} in forwarding event {forwardingEvent.Id}");
+            }
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                forwardedToUser.Name ?? throw new Exception($"No name found for user {forwardedToUser.PartyUuid}"),
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceInstanceDelegated,
+                forwardedByUrn,
+                forwardingEvent.DialogActivityId,
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else if (!string.IsNullOrEmpty(forwardingEvent.ForwardedToEmailAddress))
+        {
+            // Email forwarding
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                forwardingEvent.ForwardedToEmailAddress,
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceForwardedToEmail,
+                forwardedByUrn,
+                forwardingEvent.DialogActivityId,
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else if (!string.IsNullOrWhiteSpace(forwardingEvent.MailboxSupplier))
+        {
+            // Mailbox forwarding
+            var mailboxSupplierName = forwardingEvent.MailboxSupplier.ToLower() switch
+            {
+                "urn:altinn:organization:identifier-no:984661185" => "Digipost",
+                "urn:altinn:organization:identifier-no:922020175" => "e-Boks",
+                "urn:altinn:organization:identifier-no:996460320" => "e-Boks",
+                _ => throw new Exception($"Unknown mailbox supplier {forwardingEvent.MailboxSupplier} in forwarding event {forwardingEvent.Id}")
+            };
+
+            string[] tokens =
+            {
+                forwardingEvent.Correspondence?.Content?.MessageTitle ?? string.Empty,
+                mailboxSupplierName,
+                forwardingEvent.ForwardingText ?? string.Empty
+            };
+
+            await CreateInformationActivity(
+                forwardingEvent.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                DialogportenTextType.CorrespondenceForwardedToMailboxSupplier,
+                forwardedByUrn,
+                forwardingEvent.DialogActivityId,
+                forwardingEvent.ForwardedOnDate,
+                tokens);
+        }
+        else
+        {
+            throw new Exception($"Forwarding event {forwardingEvent.Id} has no valid forwarding target (no ForwardedToUserUuid, ForwardedToEmailAddress or MailboxSupplier)");
+        }
     }
 }
