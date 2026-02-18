@@ -85,7 +85,7 @@ public class CorrespondenceMigrationEventHelper(
         }
 
         // Save status to Correspondence Database - this is the critical database operation that must succeed within the transaction
-        await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, cancellationToken);
+        await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, operationName, cancellationToken);
     }
 
     public async Task ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, string operationName, CancellationToken cancellationToken)
@@ -97,7 +97,7 @@ public class CorrespondenceMigrationEventHelper(
             case CorrespondenceDeleteEventType.HardDeletedByRecipient:
                 if (ValidatePerformPurge(correspondence))
                 {
-                    await PurgeCorrespondence(correspondence, deletionEvent, cancellationToken);
+                    await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken);
                 }
                 break;
             case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
@@ -307,7 +307,7 @@ public class CorrespondenceMigrationEventHelper(
         return true;
     }
 
-    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, CancellationToken cancellationToken)
+    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, string operationName, CancellationToken cancellationToken)
     {
         var corrStatus = CorrespondenceStatus.PurgedByRecipient;
         DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
@@ -324,7 +324,7 @@ public class CorrespondenceMigrationEventHelper(
         }
 
         // Save to Correspondence Database
-        await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, cancellationToken);
+        await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, operationName, cancellationToken);
         await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
 
         if (correspondence.IsMigrating == false)
@@ -381,12 +381,12 @@ public class CorrespondenceMigrationEventHelper(
         }
     }
 
-    public async Task StoreStatusEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
+    public async Task StoreStatusEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, DateTimeOffset syncedTimestamp, string operationName, CancellationToken cancellationToken)
     {
         CorrespondenceStatusEntity statusToSave = new CorrespondenceStatusEntity()
         {
             CorrespondenceId = correspondence.Id,
-            StatusText = $"Synced event {statusEventToSync.Status} from Altinn 2",
+            StatusText = $"{operationName} event {statusEventToSync.Status} from Altinn 2",
             Status = statusEventToSync.Status,
             StatusChanged = statusEventToSync.StatusChanged,
             PartyUuid = statusEventToSync.PartyUuid,
@@ -395,14 +395,14 @@ public class CorrespondenceMigrationEventHelper(
         await correspondenceStatusRepository.AddCorrespondenceStatus(statusToSave, cancellationToken);
     }
 
-    public async Task StoreDeleteEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatus statusCodeToSave, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
+    public async Task StoreDeleteEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatus statusCodeToSave, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, string operationName, CancellationToken cancellationToken)
     {
         CorrespondenceStatusEntity statusToSave = new CorrespondenceStatusEntity()
         {
             CorrespondenceId = correspondence.Id,
             Status = statusCodeToSave,
             StatusChanged = deleteEventToSync.EventOccurred,
-            StatusText = $"Synced event {statusCodeToSave} from Altinn 2",
+            StatusText = $"{operationName} event {statusCodeToSave} from Altinn 2",
             PartyUuid = deleteEventToSync.PartyUuid,
             SyncedFromAltinn2 = syncedTimestamp
         };

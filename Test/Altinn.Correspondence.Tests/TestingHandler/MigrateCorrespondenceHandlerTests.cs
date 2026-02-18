@@ -1001,6 +1001,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.Read &&
                     e.StatusChanged == new DateTime(2025, 12, 10, 10, 05, 00) &&
+                    e.StatusText == "remigrate event Read from Altinn 2" &&
                     e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
@@ -1010,6 +1011,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.Confirmed &&
                     e.StatusChanged == new DateTime(2025, 12, 10, 10, 05, 10) &&
+                    e.StatusText == "remigrate event Confirmed from Altinn 2" &&
                     e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
@@ -1113,6 +1115,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.Archived &&
                     e.StatusChanged == new DateTime(2025, 12, 10, 10, 10, 10) &&
+                    e.StatusText == "remigrate event Archived from Altinn 2" &&
                     e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
@@ -1267,6 +1270,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.Archived &&
                     e.StatusChanged == new DateTime(2025, 12, 10, 10, 10, 10) &&
+                    e.StatusText == "remigrate event Archived from Altinn 2" &&
                     e.PartyUuid == _defaultUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
