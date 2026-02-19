@@ -42,7 +42,6 @@ var setByPipelineSecretEnvVars = [
   { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretName: 'application-insights-connection-string' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
-  { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
 ]
 
 // Combine required and optional secrets
