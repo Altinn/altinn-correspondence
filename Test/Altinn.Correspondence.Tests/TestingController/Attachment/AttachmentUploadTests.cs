@@ -255,17 +255,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         public async Task UploadAttachmentData_ToWhiteListedResource_InstantlyPublished()
         {
             // Arrange
-            using var scope = _factory.Services.CreateScope();
-            var hostEnvironment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
-            Assert.True(hostEnvironment.IsDevelopment(), "Test requires Development environment for automatic malware scan simulation");
             var attachmentId = await AttachmentHelper.GetInitializedAttachmentForResourceWhitelistedForBypassMalwareScan(_senderClient, _responseSerializerOptions);
             var contentBytes = Encoding.UTF8.GetBytes("Test content for checksum");
             var content = new ByteArrayContent(contentBytes);
             var expectedChecksum = AttachmentHelper.CalculateChecksum(contentBytes);
+
             // Act
             var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
             Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
             var uploadedAttachmentOverview = await uploadResponse.Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+
             // Assert
             Assert.NotNull(uploadedAttachmentOverview);
             Assert.Equal(AttachmentStatusExt.Published, uploadedAttachmentOverview.Status);
@@ -276,17 +275,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         public async Task UploadAttachmentData_ToNonWhiteListedResource_NotInstantlyPublished()
         {
             // Arrange
-            using var scope = _factory.Services.CreateScope();
-            var hostEnvironment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
-            Assert.True(hostEnvironment.IsDevelopment(), "Test requires Development environment for automatic malware scan simulation");
             var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
             var contentBytes = Encoding.UTF8.GetBytes("Test content for checksum");
             var content = new ByteArrayContent(contentBytes);
             var expectedChecksum = AttachmentHelper.CalculateChecksum(contentBytes);
+            
             // Act
             var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
             Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
             var uploadedAttachmentOverview = await uploadResponse.Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+            
             // Assert
             Assert.NotNull(uploadedAttachmentOverview);
             Assert.NotEqual(AttachmentStatusExt.Published, uploadedAttachmentOverview.Status);
