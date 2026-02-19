@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Altinn.Correspondence.Tests.TestingController.Attachment
 {
     [Collection(nameof(CustomWebApplicationTestsCollection))]
-    public class AttatchmentUploadTests(CustomWebApplicationFactory factory) : AttachmentTestBase(factory)
+    public class AttachmentUploadTests(CustomWebApplicationFactory factory) : AttachmentTestBase(factory)
     {
         [Fact]
         public async Task UploadAttachmentData_WhenAttachmentDoesNotExist_ReturnsNotFound()
