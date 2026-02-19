@@ -73,13 +73,13 @@ namespace Altinn.Correspondence.Application.Helpers
 
                 if (!isValidUpdate)
                 {
-                    await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
+                    currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
                     await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
                     return AttachmentErrors.UploadFailed;
                 }
                 if (bypassMalwareScan)
                 {
-                    await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken, "Bypassed malware scan");
+                    currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken, "Bypassed malware scan");
                 }
                 else if (hostEnvironment.IsDevelopment())
                 {
