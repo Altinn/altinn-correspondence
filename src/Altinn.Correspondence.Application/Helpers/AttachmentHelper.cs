@@ -109,10 +109,10 @@ namespace Altinn.Correspondence.Application.Helpers
             return whiteList.Any(whiteListedResource => attachment.ResourceId == whiteListedResource);
         }
 
-        public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool forMigration, CancellationToken cancellationToken)
+        public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool bypassMalwareScan, CancellationToken cancellationToken)
         {
             ServiceOwnerEntity? serviceOwnerEntity = null;
-            if (forMigration)
+            if (bypassMalwareScan)
             {
                 var serviceOwnerShortHand = attachment.ResourceId.Split('-')[0];
                 serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
@@ -132,7 +132,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogError($"Could not find service owner entity for {attachment.ResourceId} in database");
                 //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
             }
-            return serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true);
+            return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan ? false : true);
         }
 
         private async Task<OneOf<(string? locationUrl, string? hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)
