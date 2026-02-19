@@ -33,6 +33,7 @@ var predefinedKeyvaultSecretEnvVars = [
   { name: 'IdportenSettings__ClientId', secretName: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretName: 'idporten-client-secret' }
   { name: 'StatisticsApiKey', secretName: 'statistics-api-key' }
+  { name: 'GeneralSettings__MalwareScanBypassWhiteList', secretName 'malware-scan-bypass-white-list' }
 ]
 
 var setByPipelineSecretEnvVars = [
@@ -40,6 +41,7 @@ var setByPipelineSecretEnvVars = [
   { name: 'AttachmentStorageOptions__ConnectionString', secretName: 'storage-connection-string' }
   { name: 'GeneralSettings__RedisConnectionString', secretName: 'redis-connection-string' }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretName: 'application-insights-connection-string' }
+  { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
   { name: 'GeneralSettings__ApplicationInsightsConnectionString', secretName: 'application-insights-connection-string' }
 ]
 
