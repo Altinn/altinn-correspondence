@@ -12,6 +12,8 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using Hangfire;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
+using Altinn.Correspondence.Core.Options;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -24,6 +26,7 @@ namespace Altinn.Correspondence.Application.Helpers
         IHostEnvironment hostEnvironment,
         IBackgroundJobClient backgroundJobClient,
         MalwareScanResultHandler malwareScanResultHandler,
+        IOptions<GeneralSettings> generalSettings,
         ILogger<AttachmentHelper> logger)
     {
 
@@ -37,7 +40,7 @@ namespace Altinn.Correspondence.Application.Helpers
         RegexOptions.IgnoreCase | RegexOptions.Compiled
         );
         
-        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
+        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
             var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
@@ -49,7 +52,8 @@ namespace Altinn.Correspondence.Application.Helpers
 
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, partyUuid, cancellationToken);
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
-            var storageProvider = await GetStorageProvider(attachment, forMigration, cancellationToken);
+            var bypassMalwareScan = ShouldBypassMalwareScan(attachment);
+            var storageProvider = await GetStorageProvider(attachment, bypassMalwareScan, cancellationToken);
             var uploadResult = await UploadBlob(attachment, file, storageProvider, partyUuid, cancellationToken);
             if (uploadResult.TryPickT1(out var uploadError, out var successResult))
             {
@@ -73,7 +77,11 @@ namespace Altinn.Correspondence.Application.Helpers
                     await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
                     return AttachmentErrors.UploadFailed;
                 }
-                if (hostEnvironment.IsDevelopment())
+                if (bypassMalwareScan)
+                {
+                    await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken, "Bypassed malware scan");
+                }
+                else if (hostEnvironment.IsDevelopment())
                 {
                     logger.LogInformation("Development mode detected. Enqueing simulated malware scan result for attachment {attachmentId}", attachmentId);
                     backgroundJobClient.Enqueue<AttachmentHelper>(helper => helper.SimulateMalwareScanResult(attachmentId));
@@ -89,6 +97,16 @@ namespace Altinn.Correspondence.Application.Helpers
                     StatusText = currentStatus.StatusText
                 };
             }, logger, cancellationToken);
+        }
+
+        private bool ShouldBypassMalwareScan(AttachmentEntity attachment)
+        {
+            if (string.IsNullOrWhiteSpace(generalSettings.Value.MalwareScanBypassWhiteList))
+            {
+                return false;
+            }
+            var whiteList = generalSettings.Value.MalwareScanBypassWhiteList.Split(',').ToList();
+            return whiteList.Any(whiteListedResource => attachment.ResourceId == whiteListedResource);
         }
 
         public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool forMigration, CancellationToken cancellationToken)

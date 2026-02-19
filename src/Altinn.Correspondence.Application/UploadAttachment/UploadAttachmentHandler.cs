@@ -66,7 +66,7 @@ public class UploadAttachmentHandler(
         logger.LogInformation("Retrieved party UUID {PartyUuid} for caller {caller}", partyUuid, caller);
         try
         {
-            var uploadResponse = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, false, cancellationToken);
+            var uploadResponse = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
             if (!uploadResponse.TryPickT0(out var uploadAttachmentResponse, out var error))
             {
                 logger.LogError("Failed to upload attachment {AttachmentId}: {ErrorMessage}", request.AttachmentId, error.Message);

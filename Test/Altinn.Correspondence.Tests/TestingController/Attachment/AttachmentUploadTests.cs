@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Altinn.Correspondence.Tests.TestingController.Attachment
 {
     [Collection(nameof(CustomWebApplicationTestsCollection))]
-    public class AttachmentUploadTests(CustomWebApplicationFactory factory) : AttachmentTestBase(factory)
+    public class AttatchmentUploadTests(CustomWebApplicationFactory factory) : AttachmentTestBase(factory)
     {
         [Fact]
         public async Task UploadAttachmentData_WhenAttachmentDoesNotExist_ReturnsNotFound()
@@ -240,15 +240,57 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             Assert.True(hostEnvironment.IsDevelopment(), "Test requires Development environment for automatic malware scan simulation");
             var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
             var content = new ByteArrayContent(Encoding.UTF8.GetBytes("Test content"));
-            
+
             // Act
             var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
             Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
             var attachmentOverview = await AttachmentHelper.WaitForAttachmentStatusUpdate(_senderClient, _responseSerializerOptions, attachmentId, AttachmentStatusExt.Published);
-            
+
             // Assert
             Assert.NotNull(attachmentOverview);
             Assert.Equal(AttachmentStatusExt.Published, attachmentOverview.Status);
+        }
+
+        [Fact]
+        public async Task UploadAttachmentData_ToWhiteListedResource_InstantlyPublished()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var hostEnvironment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+            Assert.True(hostEnvironment.IsDevelopment(), "Test requires Development environment for automatic malware scan simulation");
+            var attachmentId = await AttachmentHelper.GetInitializedAttachmentForResourceWhitelistedForBypassMalwareScan(_senderClient, _responseSerializerOptions);
+            var contentBytes = Encoding.UTF8.GetBytes("Test content for checksum");
+            var content = new ByteArrayContent(contentBytes);
+            var expectedChecksum = AttachmentHelper.CalculateChecksum(contentBytes);
+            // Act
+            var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
+            Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
+            var uploadedAttachmentOverview = await uploadResponse.Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+            // Assert
+            Assert.NotNull(uploadedAttachmentOverview);
+            Assert.Equal(AttachmentStatusExt.Published, uploadedAttachmentOverview.Status);
+            Assert.Equal(expectedChecksum, uploadedAttachmentOverview.Checksum);
+        }
+
+        [Fact]
+        public async Task UploadAttachmentData_ToNonWhiteListedResource_NotInstantlyPublished()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var hostEnvironment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+            Assert.True(hostEnvironment.IsDevelopment(), "Test requires Development environment for automatic malware scan simulation");
+            var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
+            var contentBytes = Encoding.UTF8.GetBytes("Test content for checksum");
+            var content = new ByteArrayContent(contentBytes);
+            var expectedChecksum = AttachmentHelper.CalculateChecksum(contentBytes);
+            // Act
+            var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
+            Assert.True(uploadResponse.IsSuccessStatusCode, await uploadResponse.Content.ReadAsStringAsync());
+            var uploadedAttachmentOverview = await uploadResponse.Content.ReadFromJsonAsync<AttachmentOverviewExt>(_responseSerializerOptions);
+            // Assert
+            Assert.NotNull(uploadedAttachmentOverview);
+            Assert.NotEqual(AttachmentStatusExt.Published, uploadedAttachmentOverview.Status);
+            Assert.Equal(expectedChecksum, uploadedAttachmentOverview.Checksum);
         }
     }
 }
