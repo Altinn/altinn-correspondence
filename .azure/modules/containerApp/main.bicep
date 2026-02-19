@@ -33,7 +33,7 @@ var predefinedKeyvaultSecretEnvVars = [
   { name: 'IdportenSettings__ClientId', secretName: 'idporten-client-id' }
   { name: 'IdportenSettings__ClientSecret', secretName: 'idporten-client-secret' }
   { name: 'StatisticsApiKey', secretName: 'statistics-api-key' }
-  { name: 'GeneralSettings__MalwareScanBypassWhiteList', secretName 'malware-scan-bypass-white-list' }
+  { name: 'GeneralSettings__MalwareScanBypassWhiteList', secretName: 'malware-scan-bypass-white-list' }
 ]
 
 var setByPipelineSecretEnvVars = [
