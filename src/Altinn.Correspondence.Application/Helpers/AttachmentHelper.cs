@@ -132,7 +132,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogError($"Could not find service owner entity for {attachment.ResourceId} in database");
                 //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
             }
-            return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan ? false : true);
+            return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan: bypassMalwareScan);
         }
 
         private async Task<OneOf<(string? locationUrl, string? hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)
