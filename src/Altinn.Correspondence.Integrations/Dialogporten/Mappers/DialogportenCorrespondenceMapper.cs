@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using System.Text.RegularExpressions;
@@ -43,6 +43,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 return input;
             }
             else if (input.IsIdPortenEmailUrn())
+            {
+                return input;
+            }
+            else if (input.IsLegacySelfIdentifiedUrn())
             {
                 return input;
             }
