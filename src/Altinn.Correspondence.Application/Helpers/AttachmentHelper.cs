@@ -111,25 +111,16 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool bypassMalwareScan, CancellationToken cancellationToken)
         {
-            ServiceOwnerEntity? serviceOwnerEntity = null;
-            if (bypassMalwareScan)
+            var serviceOwnerOrgCode = await resourceRegistryService.GetServiceOwnerOrgCode(attachment.ResourceId, cancellationToken);
+            if (serviceOwnerOrgCode is null)
             {
-                var serviceOwnerShortHand = attachment.ResourceId.Split('-')[0];
-                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
+                logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
+                return null;
             }
-            else
+            var serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerOrgCode, cancellationToken);
+            if (serviceOwnerEntity is null)
             {
-                var serviceOwnerOrgCode = await resourceRegistryService.GetServiceOwnerOrgCode(attachment.ResourceId, cancellationToken);
-                if (serviceOwnerOrgCode is null)
-                {
-                    logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
-                    return null;
-                }
-                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerOrgCode, cancellationToken);
-            }
-            if (serviceOwnerEntity == null)
-            {
-                logger.LogError($"Could not find service owner entity for {attachment.ResourceId} in database");
+                logger.LogError("Could not find service owner entity for {resourceId} in database", attachment.ResourceId);
                 //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
             }
             return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan: bypassMalwareScan);
