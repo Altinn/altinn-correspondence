@@ -1,10 +1,11 @@
+using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Tests.Common;
+using Altinn.Correspondence.Tests.Factories;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Altinn.Correspondence.API.Models;
-using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Tests.Factories;
 
 namespace Altinn.Correspondence.Tests.Helpers
 {
@@ -36,6 +37,24 @@ namespace Altinn.Correspondence.Tests.Helpers
             Assert.Equal(AttachmentStatusExt.Initialized, attachmentOverview?.Status);
             return attachmentId;
         }
+
+        public static async Task<Guid> GetInitializedAttachmentForResourceWhitelistedForBypassMalwareScan(HttpClient client, JsonSerializerOptions responseSerializerOptions, string? sender = null)
+        {
+            var tempData = new AttachmentBuilder().CreateAttachment();
+            if (sender != null)
+            {
+                tempData.WithSender(sender);
+            }
+            tempData.WithResourceId(TestConstants.ResourceWhitelistedForMalwareScanBypass);
+            var attachment = tempData.Build();
+            var initializeAttachmentResponse = await client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+            Assert.Equal(HttpStatusCode.OK, initializeAttachmentResponse.StatusCode);
+            var attachmentId = await initializeAttachmentResponse.Content.ReadFromJsonAsync<Guid>();
+            var attachmentOverview = await (await client.GetAsync($"correspondence/api/v1/attachment/{attachmentId}")).Content.ReadFromJsonAsync<AttachmentOverviewExt>(responseSerializerOptions);
+            Assert.Equal(AttachmentStatusExt.Initialized, attachmentOverview?.Status);
+            return attachmentId;
+        }
+
         public async static Task<Guid> GetPublishedAttachment(HttpClient client, JsonSerializerOptions responseSerializerOptions)
         {
             var attachment = new AttachmentBuilder().CreateAttachment().Build();
