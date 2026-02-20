@@ -1,19 +1,42 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class CorrespondenceNotificationRepository(ApplicationDbContext context) : ICorrespondenceNotificationRepository
+    public class CorrespondenceNotificationRepository(ApplicationDbContext context, ILogger<ICorrespondenceNotificationRepository> logger) : ICorrespondenceNotificationRepository
     {
         private readonly ApplicationDbContext _context = context;
 
         public async Task<Guid> AddNotification(CorrespondenceNotificationEntity notification, CancellationToken cancellationToken)
         {
             await _context.CorrespondenceNotifications.AddAsync(notification, cancellationToken);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
             return notification.Id;
+        }
+
+        public async Task<Guid> AddNotificationForSync(CorrespondenceNotificationEntity notification, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _context.CorrespondenceNotifications.AddAsync(notification, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+                return notification.Id;
+            }
+            catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
+            {
+                logger.LogInformation(
+                    "Notification event already exists for correspondence {CorrespondenceId} during sync. Altinn2NotificationId: {Altinn2NotificationId}, NotificationSent: {NotificationSent}. Skipping duplicate.",
+                    notification.CorrespondenceId,
+                    notification.Altinn2NotificationId,
+                    notification.NotificationSent);
+                
+                // Return empty Guid to indicate duplicate was skipped
+                return Guid.Empty;
+            }
         }
 
         public async Task<CorrespondenceNotificationEntity?> GetPrimaryNotification(Guid correspondenceId, CancellationToken cancellationToken)

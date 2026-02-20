@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -9,11 +10,25 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
 {
     private readonly ApplicationDbContext _context = context;
 
-    public async Task<List<CorrespondenceForwardingEventEntity>> AddForwardingEvents(List<CorrespondenceForwardingEventEntity> correspondenceForwardingEventEntities, CancellationToken cancellationToken)
+    public async Task<Guid> AddForwardingEventForSync(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
     {
-        await _context.CorrespondenceForwardingEvents.AddRangeAsync(correspondenceForwardingEventEntities, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
-        return correspondenceForwardingEventEntities;
+        try
+        {
+            await _context.CorrespondenceForwardingEvents.AddAsync(forwardingEvent, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            return forwardingEvent.Id;
+        }
+        catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
+        {
+            logger.LogInformation(
+                "Forwarding event already exists for correspondence {CorrespondenceId}. ForwardedOnDate: {ForwardedOnDate}, ForwardedByPartyUuid: {ForwardedByPartyUuid}. Skipping duplicate.",
+                forwardingEvent.CorrespondenceId,
+                forwardingEvent.ForwardedOnDate,
+                forwardingEvent.ForwardedByPartyUuid);
+
+            // Return empty ID to indicate duplicate
+            return Guid.Empty;
+        }
     }
 
     public async Task<CorrespondenceForwardingEventEntity> GetForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)

@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
@@ -9,7 +9,7 @@ namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
 public class SyncCorrespondenceNotificationEventHandler(
     ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceNotificationRepository notificationRepository,    
+    CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
     ILogger<SyncCorrespondenceNotificationEventHandler> logger) : IHandler<SyncCorrespondenceNotificationEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceNotificationEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -25,40 +25,29 @@ public class SyncCorrespondenceNotificationEventHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        var notificationsToExecute = new List<CorrespondenceNotificationEntity>();
-        foreach (var syncedEvent in request.SyncedEvents)
-        {
-            if ((correspondence.Notifications ?? Enumerable.Empty<CorrespondenceNotificationEntity>()).Any(
-                n => n.NotificationAddress == syncedEvent.NotificationAddress
-                && n.NotificationChannel == syncedEvent.NotificationChannel
-                && n.NotificationSent.HasValue
-                && syncedEvent.NotificationSent.HasValue
-                && n.NotificationSent.Value.EqualsToSecond(syncedEvent.NotificationSent.Value)
-                && n.Altinn2NotificationId == syncedEvent.Altinn2NotificationId))
-            {
-                logger.LogWarning("Notification event {NotificationId} already exists for correspondence {CorrespondenceId}. Skipping sync.", syncedEvent.Id, request.CorrespondenceId);
-                continue;
-            }
-            else
-            {
-                notificationsToExecute.Add(syncedEvent);
-            }
-        }
+        // Use common helper method to filter duplicate events
+        var notificationsToExecute = correspondenceMigrationEventHelper.FilterNotificationEvents(
+            request.CorrespondenceId,
+            request.SyncedEvents,
+            correspondence);
 
         if (notificationsToExecute.Count == 0)
         {
             logger.LogInformation("No new notification events to sync for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            return request.CorrespondenceId; // No new events to sync
+            return request.CorrespondenceId;
         }
 
-        // Save the new Notificaitons to repository
-        foreach (var notification in notificationsToExecute)
-        {            
-            notification.CorrespondenceId = request.CorrespondenceId;
-            notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-            var addedNotificationId = await notificationRepository.AddNotification(notification, cancellationToken);
-            logger.LogInformation("Added new notification {NotificationId} for correspondence {CorrespondenceId}", addedNotificationId, request.CorrespondenceId);
-        }
+        // Use common helper method to process and save notification events
+        await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        {
+            await correspondenceMigrationEventHelper.ProcessNotificationEvents(
+                request.CorrespondenceId,
+                notificationsToExecute,
+                MigrationOperationType.Sync,
+                cancellationToken);
+            
+            return Task.CompletedTask;
+        }, logger, cancellationToken);
 
         return request.CorrespondenceId;
     }

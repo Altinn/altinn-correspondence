@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Altinn.Correspondence.Application.Helpers;
+namespace Altinn.Correspondence.Persistence.Helpers;
 
 public static class DbUpdateExceptionExtensions
 {

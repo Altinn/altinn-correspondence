@@ -129,18 +129,6 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
             return true;
         }
 
-        if (pathSpan.Contains("/correspondence/api/v1/migration/correspondence/sync".AsSpan(), StringComparison.OrdinalIgnoreCase))
-        {
-            return _generalSettings.DisableTelemetryForSync;
-        }
-
-        if (_generalSettings.DisableTelemetryForMigration)
-        {
-            return pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.OrdinalIgnoreCase)
-                || pathSpan.Contains("/correspondence/api/v1/migration/makemigratedcorrespondenceavailable".AsSpan(), StringComparison.OrdinalIgnoreCase)
-                || pathSpan.Contains("/correspondence/api/v1/migration/attachment".AsSpan(), StringComparison.OrdinalIgnoreCase);
-        }
-
         return false;
     }
 }
