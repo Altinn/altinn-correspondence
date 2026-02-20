@@ -120,7 +120,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerOrgCode, cancellationToken);
             if (serviceOwnerEntity is null)
             {
-                logger.LogError($"Could not find service owner entity for {attachment.ResourceId} in database");
+                logger.LogError("Could not find service owner entity for {resourceId} in database", attachment.ResourceId);
                 //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
             }
             return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan: bypassMalwareScan);
