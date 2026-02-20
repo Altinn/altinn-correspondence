@@ -75,10 +75,10 @@ public class CreateNotificationOrderHandler(
         if (string.IsNullOrEmpty(sendersName))
         {
             logger.LogInformation("Looking up sender name for correspondence {CorrespondenceId}", correspondence.Id);
-            sendersName = await altinnRegisterService.LookUpName(correspondence.Sender.WithoutPrefix(), cancellationToken);
+            sendersName = await altinnRegisterService.LookUpName(correspondence.Sender, cancellationToken);
         }
         logger.LogInformation("Looking up recipient name for correspondence {CorrespondenceId}", correspondence.Id);
-        var recipientName = await altinnRegisterService.LookUpName(correspondence.Recipient.WithoutPrefix(), cancellationToken);
+        var recipientName = await altinnRegisterService.LookUpName(correspondence.Recipient, cancellationToken);
         var messageTitle = correspondence.Content?.MessageTitle ?? string.Empty;
         
         foreach (var template in templates)

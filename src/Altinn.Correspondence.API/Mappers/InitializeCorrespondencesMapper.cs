@@ -89,6 +89,13 @@ internal static class InitializeCorrespondencesMapper
 
     private static string NormalizeRecipientToUrn(string recipient)
     {
-        return recipient.ToLowerInvariant().WithoutPrefix().WithUrnPrefix();
+        var normalized = recipient.ToLowerInvariant();
+
+        if (normalized.StartsWith($"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:", StringComparison.Ordinal))
+        {
+            return normalized;
+        }
+
+        return normalized.WithoutPrefix().WithUrnPrefix();
     }
 }

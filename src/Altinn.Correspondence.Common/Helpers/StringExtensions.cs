@@ -150,16 +150,32 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Adds a prefix to the identifier if it is a organization number (9 digits), social security number (11 digits), email address, party ID, or party UUID.
+    /// Checks if the provided string is a legacy selfidentified URN format.
+    /// </summary>
+    /// <param name="identifier">The string to validate.</param>
+    /// <returns>True if the string starts with the legacy selfidentified URN prefix, false otherwise.</returns>
+    public static bool IsLegacySelfIdentifiedUrn(this string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return false;
+        }
+        return identifier.StartsWith($"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Adds a prefix to the identifier if it is a organization number (9 digits), social security number (11 digits), email address, party ID, party UUID,
+    /// or already a supported URN (including legacy selfidentified person identifiers).
     /// </summary>
     /// <param name="identifier">The organization number, social security number, email address, party ID, or party UUID to add the prefix to.</param>
-    /// <returns>The identifier with the appropriate prefix, or the original identifier if it already has a prefix.</returns>
+    /// <returns>The identifier with the appropriate prefix, or the original identifier if it already has a supported URN prefix.</returns>
     /// <exception cref="ArgumentException">Thrown if the identifier is not a valid organization number, social security number, email address, party ID, or party UUID.</exception>
     public static string WithUrnPrefix(this string identifier)
     {
         if (identifier.StartsWith(UrnConstants.OrganizationNumberAttribute)
                 || identifier.StartsWith(UrnConstants.PersonIdAttribute)
                 || identifier.StartsWith(UrnConstants.PersonIdPortenEmailAttribute)
+                || identifier.StartsWith(UrnConstants.PersonLegacySelfIdentifiedAttribute)
                 || identifier.StartsWith(UrnConstants.Party)
                 || identifier.StartsWith(UrnConstants.PartyUuid))
         {
