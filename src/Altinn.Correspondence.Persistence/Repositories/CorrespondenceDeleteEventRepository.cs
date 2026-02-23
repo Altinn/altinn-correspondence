@@ -27,7 +27,7 @@ public class CorrespondenceDeleteEventRepository(ApplicationDbContext context, I
                 correspondenceDeleteEventEntity.EventOccurred,
                 correspondenceDeleteEventEntity.PartyUuid);
 
-            // Return empty ID to indicate duplicate
+            _context.Entry(correspondenceDeleteEventEntity).State = EntityState.Detached;
             return Guid.Empty;
         }
     }

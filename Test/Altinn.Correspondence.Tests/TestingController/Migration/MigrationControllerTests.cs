@@ -734,7 +734,18 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse1.StatusCode);
         var getCorrespondenceDetailsResponseObject1 = await getCorrespondenceDetailsResponse1.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
-        MigrateCorrespondenceExt migrateCorrespondenceExt2 = migrateCorrespondenceExt;
+        MigrateCorrespondenceExt migrateCorrespondenceExt2 = new MigrateCorrespondenceExt
+        {
+            CorrespondenceData = migrateCorrespondenceExt.CorrespondenceData,
+            Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
+            EventHistory = new List<MigrateCorrespondenceStatusEventExt>(migrateCorrespondenceExt.EventHistory),
+            NotificationHistory = new List<MigrateCorrespondenceNotificationExt>(migrateCorrespondenceExt.NotificationHistory),
+            ForwardingHistory = new List<MigrateCorrespondenceForwardingEventExt>(migrateCorrespondenceExt.ForwardingHistory),
+            IsMigrating = migrateCorrespondenceExt.IsMigrating,
+            Created = migrateCorrespondenceExt.Created,
+            PartyId = migrateCorrespondenceExt.PartyId,
+            MakeAvailable = migrateCorrespondenceExt.MakeAvailable
+        };
         migrateCorrespondenceExt2.EventHistory.Add(new MigrateCorrespondenceStatusEventExt
         {
             EventUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920"),

@@ -27,7 +27,7 @@ public class CorrespondenceMigrationEventHelper(
 {
     private static readonly CorrespondenceStatus[] _validSyncStatuses = { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };
 
-    public async Task ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public async Task<bool> ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         logger.LogDebug("Process {OperationName} status event {Status} for {CorrespondenceId}", operationName, eventToExecute.Status, correspondenceId);
         
@@ -37,7 +37,7 @@ public class CorrespondenceMigrationEventHelper(
         if (!wasSaved)
         {
             logger.LogDebug("Status event was a duplicate for correspondence {CorrespondenceId}, skipping background job processing", correspondenceId);
-            return;
+            return false;
         }
         
         // Enqueue background jobs only if the event was actually saved (not a duplicate)
@@ -92,9 +92,11 @@ public class CorrespondenceMigrationEventHelper(
                     break;
             }
         }
+        
+        return true;
     }
 
-    public async Task ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public async Task<bool> ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         logger.LogDebug("Process {OperationName} delete event {EventType} for {CorrespondenceId}", operationName, deletionEvent.EventType, correspondenceId);
         switch (deletionEvent.EventType)
@@ -103,16 +105,15 @@ public class CorrespondenceMigrationEventHelper(
             case CorrespondenceDeleteEventType.HardDeletedByRecipient:
                 if (ValidatePerformPurge(correspondence))
                 {
-                    await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken);
+                    return await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken);
                 }
-                break;
+                return false;
             case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
             case CorrespondenceDeleteEventType.RestoredByRecipient:
-                await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken);
-                break;
+                return await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken);
             default:
                 logger.LogWarning("Unknown Deletion Event Type {EventType} for Correspondence {CorrespondenceId}. The event will be ignored.", deletionEvent.EventType, correspondenceId);
-                break;
+                return false;
         }
     }
 
@@ -313,7 +314,7 @@ public class CorrespondenceMigrationEventHelper(
         return true;
     }
 
-    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public async Task<bool> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         var corrStatus = CorrespondenceStatus.PurgedByRecipient;
         DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
@@ -337,7 +338,7 @@ public class CorrespondenceMigrationEventHelper(
         if (!statusSaved || !eventSaved)
         {
             logger.LogDebug("Purge events were duplicates for correspondence {CorrespondenceId}, skipping background job processing", correspondence.Id);
-            return correspondence.Id;
+            return false;
         }
 
         if (correspondence.IsMigrating == false)
@@ -361,10 +362,10 @@ public class CorrespondenceMigrationEventHelper(
             backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: purgedActivityJobId, queue: HangfireQueues.LiveMigration, methodCall: service => service.SoftDeleteDialog(dialogId), options: JobContinuationOptions.OnlyOnSucceededState);
         }
 
-        return correspondence.Id;
+        return true;
     }
 
-    public async Task SoftDeleteOrRestoreCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, Dictionary<Guid, string> enduserIdByPartyUuid, CancellationToken cancellationToken)
+    public async Task<bool> SoftDeleteOrRestoreCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, Dictionary<Guid, string> enduserIdByPartyUuid, CancellationToken cancellationToken)
     {
         DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
         if (CorrespondenceDeleteEventType.SoftDeletedByRecipient != deleteEventToSync.EventType && CorrespondenceDeleteEventType.RestoredByRecipient != deleteEventToSync.EventType)
@@ -379,7 +380,7 @@ public class CorrespondenceMigrationEventHelper(
         if (!eventSaved)
         {
             logger.LogDebug("Soft delete/restore event was a duplicate for correspondence {CorrespondenceId}, skipping Dialogporten update", correspondence.Id);
-            return;
+            return false;
         }
 
         if (correspondence.IsMigrating == false)
@@ -399,6 +400,8 @@ public class CorrespondenceMigrationEventHelper(
                 SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived);
             }
         }
+        
+        return true;
     }
 
     public async Task<bool> StoreStatusEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, DateTimeOffset syncedTimestamp, MigrationOperationType operationName, CancellationToken cancellationToken)
@@ -433,8 +436,7 @@ public class CorrespondenceMigrationEventHelper(
 
     public async Task<bool> StoreDeleteEventForCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
     {
-        deleteEventToSync.CorrespondenceId = correspondence.Id;
-        // Keep full precision - unique index compares at second level using date_trunc
+        deleteEventToSync.CorrespondenceId = correspondence.Id;        
         deleteEventToSync.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
         deleteEventToSync.SyncedFromAltinn2 = syncedTimestamp;
         var savedId = await correspondenceDeleteEventRepository.AddDeleteEventForSync(deleteEventToSync, cancellationToken);
@@ -620,6 +622,7 @@ public class CorrespondenceMigrationEventHelper(
         }
 
         int savedCount = 0;
+        var syncedTimestamp = DateTimeOffset.UtcNow;
         
         foreach (var forwardingEvent in forwardingEvents)
         {
@@ -628,25 +631,19 @@ public class CorrespondenceMigrationEventHelper(
 
             forwardingEvent.CorrespondenceId = correspondenceId;
             forwardingEvent.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
-            forwardingEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-            
-            // Add the forwarding event to the repository using sync-specific method
-            var savedId = await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, cancellationToken);
-            
-            // Check if event was actually saved (not a duplicate)
-            if (savedId != Guid.Empty)
+            forwardingEvent.SyncedFromAltinn2 = syncedTimestamp;
+        }
+        
+        // Save all events in a single batch operation
+        var savedIds = await correspondenceForwardingEventRepository.AddForwardingEventsForSync(forwardingEvents, cancellationToken);
+        savedCount = savedIds.Count;
+        
+        // Enqueue Dialogporten background jobs only for saved events
+        if (correspondence.IsMigrating == false)
+        {
+            foreach (var savedId in savedIds)
             {
-                savedCount++;
-                
-                // Enqueue Dialogporten background job only for saved event
-                if (correspondence.IsMigrating == false)
-                {
-                    backgroundJobClient.Enqueue<IDialogportenService>(service => service.AddForwardingEvent(savedId, CancellationToken.None));
-                }
-            }
-            else
-            {
-                logger.LogDebug("Forwarding event was a duplicate for correspondence {CorrespondenceId}, skipping background job enqueueing", correspondenceId);
+                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(savedId, CancellationToken.None));
             }
         }
 
@@ -666,7 +663,7 @@ public class CorrespondenceMigrationEventHelper(
     /// <param name="deleteEvents">List of delete events to process (already filtered)</param>
     /// <param name="operationName">Name of the operation for logging (e.g., "sync", "remigrate")</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Number of events processed</returns>
+    /// <returns>Number of events actually saved (non-duplicates)</returns>
     public async Task<int> ProcessEventsInChronologicalOrder(
         Guid correspondenceId,
         CorrespondenceEntity correspondence,
@@ -686,6 +683,8 @@ public class CorrespondenceMigrationEventHelper(
             .OrderBy(e => e.Timestamp)
             .ToList();
 
+        int savedCount = 0;
+
         // Process events sequentially by chronological order to maintain granular control
         foreach (var evt in allEventsToProcess)
         {
@@ -694,13 +693,19 @@ public class CorrespondenceMigrationEventHelper(
 
             try
             {
+                bool wasSaved = false;
                 if (evt.EventType == "Status")
                 {
-                    await ProcessStatusEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, operationName, cancellationToken);
+                    wasSaved = await ProcessStatusEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, operationName, cancellationToken);
                 }
                 else if (evt.EventType == "Delete")
                 {
-                    await ProcessDeleteEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, operationName, cancellationToken);
+                    wasSaved = await ProcessDeleteEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, operationName, cancellationToken);
+                }
+
+                if (wasSaved)
+                {
+                    savedCount++;
                 }
             }
             catch (Exception ex)
@@ -711,10 +716,10 @@ public class CorrespondenceMigrationEventHelper(
             }
         }
 
-        logger.LogInformation("Successfully processed {OperationName} of {TotalEvents} events for correspondence {CorrespondenceId}",
-            operationName, allEventsToProcess.Count, correspondenceId);
+        logger.LogInformation("Successfully processed {OperationName} of {SavedCount}/{TotalEvents} events for correspondence {CorrespondenceId}",
+            operationName, savedCount, allEventsToProcess.Count, correspondenceId);
 
-        return allEventsToProcess.Count;
+        return savedCount;
     }
 
     /// <summary>

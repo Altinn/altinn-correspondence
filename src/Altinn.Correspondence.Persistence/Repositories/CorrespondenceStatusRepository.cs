@@ -33,7 +33,7 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
                 "Status event already exists for correspondence {CorrespondenceId}. Status: {Status}, StatusChanged: {StatusChanged}, PartyUuid: {PartyUuid}. Skipping duplicate.",
                 status.CorrespondenceId, status.Status, status.StatusChanged, status.PartyUuid);
             
-            // Return empty Guid to indicate duplicate
+            _context.Entry(status).State = EntityState.Detached;
             return Guid.Empty;
         }
     }

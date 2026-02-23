@@ -38,15 +38,13 @@ public class SyncCorrespondenceNotificationEventHandler(
         }
 
         // Use common helper method to process and save notification events
-        await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        await TransactionWithRetriesPolicy.Execute((cancellationToken) =>
         {
-            await correspondenceMigrationEventHelper.ProcessNotificationEvents(
+            return correspondenceMigrationEventHelper.ProcessNotificationEvents(
                 request.CorrespondenceId,
                 notificationsToExecute,
                 MigrationOperationType.Sync,
                 cancellationToken);
-            
-            return Task.CompletedTask;
         }, logger, cancellationToken);
 
         return request.CorrespondenceId;

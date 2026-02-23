@@ -1139,7 +1139,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var correspondenceId = Guid.NewGuid();
             int altinn2CorrespondenceId = 12345;
             DateTimeOffset fwdDate1 = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0));
-            Guid fwdId1 = Guid.NewGuid();
             DateTimeOffset fwdDate2 = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0));
             Guid fwdId2 = Guid.NewGuid();
             DateTimeOffset fwdDate3 = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15, 0));

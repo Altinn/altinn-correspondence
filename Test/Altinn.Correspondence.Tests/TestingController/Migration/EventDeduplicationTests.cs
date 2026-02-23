@@ -52,6 +52,7 @@ public class EventDeduplicationTests : MigrationTestBase
         };
 
         // Act - Add the same status twice
+        // Note: Reusing statusEvent - EF Core regenerates PK on second AddCorrespondenceStatusForSync, triggering unique index violation
         var firstResult = await statusRepo.AddCorrespondenceStatusForSync(statusEvent, CancellationToken.None);
         var secondResult = await statusRepo.AddCorrespondenceStatusForSync(statusEvent, CancellationToken.None);
 
@@ -137,6 +138,7 @@ public class EventDeduplicationTests : MigrationTestBase
         };
 
         // Act - Add the same notification twice
+        // Note: Reusing notification - EF Core regenerates PK on second AddNotificationForSync, triggering unique index violation
         var firstResult = await notificationRepo.AddNotificationForSync(notification, CancellationToken.None);
         var secondResult = await notificationRepo.AddNotificationForSync(notification, CancellationToken.None);
 
@@ -227,6 +229,7 @@ public class EventDeduplicationTests : MigrationTestBase
         };
 
         // Act - Add the same forwarding event twice
+        // Note: Reusing forwardingEvent - EF Core regenerates PK on second AddForwardingEventForSync, triggering unique index violation
         var firstResult = await forwardingRepo.AddForwardingEventForSync(forwardingEvent, CancellationToken.None);
         var secondResult = await forwardingRepo.AddForwardingEventForSync(forwardingEvent, CancellationToken.None);
 
@@ -311,6 +314,7 @@ public class EventDeduplicationTests : MigrationTestBase
         };
 
         // Act - Add the same delete event twice
+        // Note: Reusing deleteEvent - EF Core regenerates PK on second AddDeleteEventForSync, triggering unique index violation
         var firstResult = await deleteEventRepo.AddDeleteEventForSync(deleteEvent, CancellationToken.None);
         var secondResult = await deleteEventRepo.AddDeleteEventForSync(deleteEvent, CancellationToken.None);
 

@@ -11,7 +11,6 @@ namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 public class SyncCorrespondenceForwardingEventHandler(
     ICorrespondenceRepository correspondenceRepository,
     CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
-    IBackgroundJobClient backgroundJobClient,
     ILogger<SyncCorrespondenceForwardingEventHandler> logger) : IHandler<SyncCorrespondenceForwardingEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceForwardingEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -42,14 +41,12 @@ public class SyncCorrespondenceForwardingEventHandler(
         // Use common helper method to process, save, and enqueue background jobs for forwarding events
         await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
         {
-            await correspondenceMigrationEventHelper.ProcessForwardingEvents(
+            return correspondenceMigrationEventHelper.ProcessForwardingEvents(
                 request.CorrespondenceId,
                 correspondence,
                 forwardingEventsToExecute,
                 MigrationOperationType.Sync,
                 cancellationToken);
-            
-            return Task.CompletedTask;
         }, logger, cancellationToken);
 
         return request.CorrespondenceId;

@@ -68,7 +68,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _handler = new SyncCorrespondenceForwardingEventHandler(
                 _correspondenceRepositoryMock.Object,
                 correspondenceMigrationEventHelper,
-                _backgroundJobClientMock.Object,
                 _loggerMock.Object);
         }
 
@@ -324,10 +323,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange            
             var partyUuid = Guid.NewGuid();
 
-            DateTimeOffset fwdEvent01Date = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0));
-            DateTimeOffset fwdEvent02Date = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0));
-            DateTimeOffset fwdEvent03Date = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15, 0));
-
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
@@ -335,7 +330,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>() { new CorrespondenceForwardingEventEntity
                     {
                         // Example of Copy sent to own email address
-                        ForwardedOnDate = fwdEvent01Date,
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
                         ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
@@ -345,7 +340,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new CorrespondenceForwardingEventEntity
                     {
                         // Example of Copy sent to own digital mailbox
-                        ForwardedOnDate = fwdEvent02Date,
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
                         ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
@@ -354,7 +349,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new CorrespondenceForwardingEventEntity
                     {
                         // Example of Instance Delegation by User 1 to User2
-                        ForwardedOnDate = fwdEvent03Date,
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15, 0)),
                         ForwardedByPartyUuid = partyUuid,
                         ForwardedByUserId = 123,
                         ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
@@ -410,16 +405,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<CorrespondenceSyncType>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
-
-            _forwardingEventRepositoryMock
-                .Setup(x => x.AddForwardingEventForSync(It.Is<CorrespondenceForwardingEventEntity>(f => f.ForwardedOnDate == fwdEvent01Date), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Guid.Empty); // Simulate duplicate event
-            _forwardingEventRepositoryMock
-                .Setup(x => x.AddForwardingEventForSync(It.Is<CorrespondenceForwardingEventEntity>(f => f.ForwardedOnDate == fwdEvent02Date), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Guid.Empty); // Simulate duplicate event
-            _forwardingEventRepositoryMock
-                .Setup(x => x.AddForwardingEventForSync(It.Is<CorrespondenceForwardingEventEntity>(f => f.ForwardedOnDate == fwdEvent03Date), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Guid.Empty); // Simulate duplicate event
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
