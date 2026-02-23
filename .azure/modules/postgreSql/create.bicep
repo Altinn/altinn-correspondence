@@ -33,9 +33,14 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     }
     highAvailability: null
   }
-  sku: prodLikeEnvironment
+  sku: environment == 'production'
     ? {
         name: 'Standard_E16ads_v5'
+        tier: 'GeneralPurpose'
+      }
+    : prodLikeEnvironment 
+    ? {
+        name: 'Standard_E8ads_v5'
         tier: 'GeneralPurpose'
       }
     : {
