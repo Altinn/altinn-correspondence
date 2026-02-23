@@ -56,7 +56,7 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
 
             if (numSyncedDeletes > 0)
             {
-                deletionEventsToProcess = correspondenceMigrationEventHelper.FilterDeleteEvents(request.CorrespondenceId, request.SyncedDeleteEvents);
+                deletionEventsToProcess = await correspondenceMigrationEventHelper.FilterDeleteEvents(request.CorrespondenceId, request.SyncedDeleteEvents, cancellationToken);
                 if (deletionEventsToProcess.Count == 0)
                 {
                     logger.LogWarning("None of the Delete Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);

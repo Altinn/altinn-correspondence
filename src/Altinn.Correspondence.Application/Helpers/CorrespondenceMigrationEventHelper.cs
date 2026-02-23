@@ -116,18 +116,42 @@ public class CorrespondenceMigrationEventHelper(
         }
     }
 
-    public List<CorrespondenceDeleteEventEntity> FilterDeleteEvents(Guid correspondenceId, List<CorrespondenceDeleteEventEntity>? syncedDeleteEvents)
+    public async Task<List<CorrespondenceDeleteEventEntity>> FilterDeleteEvents(Guid correspondenceId, List<CorrespondenceDeleteEventEntity>? syncedDeleteEvents, CancellationToken cancellationToken)
     {
-        if(syncedDeleteEvents is null)
+        if (syncedDeleteEvents is null)
         {
             return new List<CorrespondenceDeleteEventEntity>();
         }
 
         var deletionEventsFilteredForRequestDuplicates = FilterDuplicateDeleteEvents(syncedDeleteEvents);
 
-        // Note: Database-level duplicate checking is now handled by unique index on (CorrespondenceId, EventType, EventOccurred, PartyUuid)
-        // The repository methods will return Guid.Empty for duplicates caught by the database constraint
-        return deletionEventsFilteredForRequestDuplicates;
+        if (deletionEventsFilteredForRequestDuplicates.Count == 0)
+        {
+            return new List<CorrespondenceDeleteEventEntity>();
+        }
+
+        var deletionEventsToExecute = new List<CorrespondenceDeleteEventEntity>();
+        var deletionEventsInDatabase = await correspondenceDeleteEventRepository.GetDeleteEventsForCorrespondenceId(correspondenceId, cancellationToken);
+
+        foreach (var deletionEventToSync in deletionEventsFilteredForRequestDuplicates)
+        {
+            bool isDuplicate = deletionEventsInDatabase.Any(
+                e => e.EventType == deletionEventToSync.EventType
+                && e.EventOccurred.EqualsToSecond(deletionEventToSync.EventOccurred)
+                && e.PartyUuid == deletionEventToSync.PartyUuid);
+
+            if (isDuplicate)
+            {
+                logger.LogInformation("Current Deletion Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. EventType: {EventType} - EventOccurred: {EventOccurred} - PartyUuid: {PartyUuid}",
+                    correspondenceId, deletionEventToSync.EventType, deletionEventToSync.EventOccurred, deletionEventToSync.PartyUuid);
+            }
+            else
+            {
+                deletionEventsToExecute.Add(deletionEventToSync);
+            }
+        }
+
+        return deletionEventsToExecute;
     }
 
     public List<CorrespondenceStatusEntity> FilterStatusEvents(Guid correspondenceId, List<CorrespondenceStatusEntity>? syncedEvents, CorrespondenceEntity correspondence)
@@ -483,18 +507,71 @@ public class CorrespondenceMigrationEventHelper(
 
     public List<CorrespondenceNotificationEntity> FilterNotificationEvents(Guid correspondenceId, List<CorrespondenceNotificationEntity>? syncedEvents, CorrespondenceEntity correspondence)
     {
-        // Note: Database-level duplicate checking is now handled by unique index on (CorrespondenceId, NotificationAddress, NotificationChannel, NotificationSent, Altinn2NotificationId)
-        // The repository methods will return Guid.Empty for duplicates caught by the database constraint
-        // We still return the events here for processing; duplicates will be caught at the database level
-        return syncedEvents ?? new List<CorrespondenceNotificationEntity>();
+        var notificationsToProcess = new List<CorrespondenceNotificationEntity>();
+
+        if (syncedEvents is null)
+        {
+            return notificationsToProcess;
+        }
+
+        foreach (var syncedEvent in syncedEvents)
+        {
+            bool isDuplicate = (correspondence.Notifications ?? Enumerable.Empty<CorrespondenceNotificationEntity>()).Any(
+                n => n.NotificationAddress == syncedEvent.NotificationAddress
+                && n.NotificationChannel == syncedEvent.NotificationChannel
+                && n.NotificationSent.HasValue
+                && syncedEvent.NotificationSent.HasValue
+                && n.NotificationSent.Value.EqualsToSecond(syncedEvent.NotificationSent.Value)
+                && n.Altinn2NotificationId == syncedEvent.Altinn2NotificationId);
+
+            if (isDuplicate)
+            {
+                logger.LogInformation("Current Notification Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. NotificationId: {NotificationId} - NotificationSent: {NotificationSent}",
+                    correspondenceId, syncedEvent.Altinn2NotificationId, syncedEvent.NotificationSent);
+            }
+            else
+            {
+                notificationsToProcess.Add(syncedEvent);
+            }
+        }
+
+        return notificationsToProcess;
     }
 
     public List<CorrespondenceForwardingEventEntity> FilterForwardingEvents(Guid correspondenceId, List<CorrespondenceForwardingEventEntity>? syncedEvents, CorrespondenceEntity correspondence)
     {
-        // Note: Database-level duplicate checking is now handled by unique index on (CorrespondenceId, ForwardedOnDate, ForwardedByPartyUuid)
-        // The repository methods will return Guid.Empty for duplicates caught by the database constraint
-        // We still return the events here for processing; duplicates will be caught at the database level
-        return syncedEvents ?? new List<CorrespondenceForwardingEventEntity>();
+        var forwardingEventsToProcess = new List<CorrespondenceForwardingEventEntity>();
+
+        if (syncedEvents is null)
+        {
+            return forwardingEventsToProcess;
+        }
+
+        foreach (var syncedEvent in syncedEvents)
+        {
+            bool isDuplicate = (correspondence.ForwardingEvents ?? Enumerable.Empty<CorrespondenceForwardingEventEntity>())
+                .Any(fe =>
+                    fe.ForwardedOnDate.EqualsToSecond(syncedEvent.ForwardedOnDate)
+                    && fe.ForwardedByPartyUuid == syncedEvent.ForwardedByPartyUuid
+                    && fe.ForwardedByUserUuid == syncedEvent.ForwardedByUserUuid
+                    && fe.ForwardedToUserId == syncedEvent.ForwardedToUserId
+                    && fe.ForwardedToUserUuid == syncedEvent.ForwardedToUserUuid
+                    && fe.ForwardedToEmailAddress == syncedEvent.ForwardedToEmailAddress
+                    && fe.ForwardingText == syncedEvent.ForwardingText
+                    && fe.MailboxSupplier == syncedEvent.MailboxSupplier);
+
+            if (isDuplicate)
+            {
+                logger.LogInformation("Current Forwarding Event for {CorrespondenceId} has been deemed duplicate of existing and will be skipped. ForwardedOnDate: {ForwardedOnDate} - ForwardedByPartyUuid: {ForwardedByPartyUuid}",
+                    correspondenceId, syncedEvent.ForwardedOnDate, syncedEvent.ForwardedByPartyUuid);
+            }
+            else
+            {
+                forwardingEventsToProcess.Add(syncedEvent);
+            }
+        }
+
+        return forwardingEventsToProcess;
     }
 
     public async Task<int> ProcessNotificationEvents(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEvents, MigrationOperationType operationName, CancellationToken cancellationToken)
@@ -669,7 +746,7 @@ public class CorrespondenceMigrationEventHelper(
         if ((statusEvents != null && statusEvents.Count > 0) || (deleteEvents != null && deleteEvents.Count > 0))
         {
             var filteredStatusEvents = statusEvents != null ? FilterStatusEvents(correspondenceId, statusEvents, correspondence) : new List<CorrespondenceStatusEntity>();
-            var filteredDeleteEvents = deleteEvents != null ? FilterDeleteEvents(correspondenceId, deleteEvents) : new List<CorrespondenceDeleteEventEntity>();
+            var filteredDeleteEvents = deleteEvents != null ? await FilterDeleteEvents(correspondenceId, deleteEvents, cancellationToken) : new List<CorrespondenceDeleteEventEntity>();
             
             if (filteredStatusEvents.Count > 0 || filteredDeleteEvents.Count > 0)
             {
