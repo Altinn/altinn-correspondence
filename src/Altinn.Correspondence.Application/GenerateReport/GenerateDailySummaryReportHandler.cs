@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -28,21 +29,23 @@ public class GenerateDailySummaryReportHandler(
         {
             logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", request.Altinn2Included);
 
-            // Get correspondences for statistics with filtering
-            var correspondences = await correspondenceRepository.GetCorrespondencesForReport(request.Altinn2Included, cancellationToken);
-            logger.LogInformation("Retrieved {count} correspondences for daily summary report", correspondences.Count);
+            // Get aggregated daily summary data directly from database
+            var summaryDataDto = await correspondenceRepository.GetDailySummaryData(request.Altinn2Included, cancellationToken);
+            logger.LogInformation("Retrieved {count} aggregated daily summary records from database", summaryDataDto.Count);
 
-            if (correspondences.Count == 0)
+            if (summaryDataDto.Count == 0)
             {
                 logger.LogWarning("No correspondences found for daily summary report generation");
                 return StatisticsErrors.NoCorrespondencesFound;
             }
-            // Aggregate daily data
-            var summaryData = AggregateDailyData(correspondences);
-            logger.LogInformation("Aggregated data into {count} daily summary records", summaryData.Count);
+
+            // Map DTO to domain model and enrich with ResourceTitle
+            var summaryData = await MapToDailySummaryData(summaryDataDto, cancellationToken);
+            logger.LogInformation("Mapped and enriched data into {count} daily summary records", summaryData.Count);
 
             // Generate parquet file and upload to blob storage
-            var (blobUrl, fileHash, fileSize) = await GenerateAndUploadParquetFile(summaryData, correspondences.Count, request.Altinn2Included, cancellationToken);
+            var totalCorrespondenceCount = summaryData.Sum(d => d.MessageCount);
+            var (blobUrl, fileHash, fileSize) = await GenerateAndUploadParquetFile(summaryData, totalCorrespondenceCount, request.Altinn2Included, cancellationToken);
 
             var response = new GenerateDailySummaryReportResponse
             {
@@ -63,6 +66,62 @@ public class GenerateDailySummaryReportHandler(
         {
             logger.LogError(ex, "Failed to generate daily summary report");
             return StatisticsErrors.ReportGenerationFailed;
+        }
+    }
+
+    private async Task<List<DailySummaryData>> MapToDailySummaryData(List<DailySummaryDataDto> dtoList, CancellationToken cancellationToken)
+    {
+        // Get unique resource IDs to fetch titles in bulk
+        var resourceIds = dtoList
+            .Where(d => !string.IsNullOrEmpty(d.ResourceId) && d.ResourceId != "unknown")
+            .Select(d => d.ResourceId)
+            .Distinct()
+            .ToList();
+
+        // Fetch resource titles in parallel (with error handling)
+        var resourceTitleTasks = resourceIds.ToDictionary(
+            resourceId => resourceId,
+            resourceId => GetResourceTitleAsync(resourceId, cancellationToken)
+        );
+
+        await Task.WhenAll(resourceTitleTasks.Values);
+
+        var resourceTitles = resourceTitleTasks.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.Result
+        );
+
+        // Map DTO to domain model
+        return dtoList.Select(dto => new DailySummaryData
+        {
+            Date = dto.Date,
+            Year = dto.Year,
+            Month = dto.Month,
+            Day = dto.Day,
+            ServiceOwnerId = dto.ServiceOwnerId,
+            ServiceOwnerName = dto.ServiceOwnerName ?? GetServiceOwnerName(dto.ServiceOwnerId),
+            MessageSender = dto.MessageSender,
+            ResourceId = dto.ResourceId,
+            ResourceTitle = resourceTitles.GetValueOrDefault(dto.ResourceId) ?? GetResourceTitle(dto.ResourceId),
+            RecipientType = dto.RecipientType,
+            AltinnVersion = dto.AltinnVersion,
+            MessageCount = dto.MessageCount,
+            DatabaseStorageBytes = dto.DatabaseStorageBytes,
+            AttachmentStorageBytes = dto.AttachmentStorageBytes
+        }).ToList();
+    }
+
+    private async Task<string> GetResourceTitleAsync(string? resourceId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var resourceTitle = await resourceRegistryService.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
+            return resourceTitle ?? $"Unknown ({resourceId})";
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to get resource title for ID: {resourceId}", resourceId);
+            return $"Error ({resourceId})";
         }
     }
 
@@ -334,19 +393,19 @@ public class GenerateDailySummaryReportHandler(
 
         try
         {
-            // Get correspondences data
-            var correspondences = await correspondenceRepository.GetCorrespondencesForReport(request.Altinn2Included, cancellationToken);
+            // Get aggregated daily summary data directly from database
+            var summaryDataDto = await correspondenceRepository.GetDailySummaryData(request.Altinn2Included, cancellationToken);
             
-            if (!correspondences.Any())
+            if (!summaryDataDto.Any())
             {
                 logger.LogWarning("No correspondences found for report generation");
                 return StatisticsErrors.NoCorrespondencesFound;
             }
 
-            logger.LogInformation("Found {count} correspondences for report generation", correspondences.Count);
+            logger.LogInformation("Found {count} aggregated daily summary records", summaryDataDto.Count);
 
-            // Aggregate data by day and service owner
-            var summaryData = AggregateDailyData(correspondences);
+            // Map DTO to domain model and enrich with ResourceTitle
+            var summaryData = await MapToDailySummaryData(summaryDataDto, cancellationToken);
 
             // Generate the parquet file as a stream
             var (parquetStream, fileHash, fileSize) = await GenerateParquetFileStream(summaryData, request.Altinn2Included, cancellationToken);
@@ -362,7 +421,7 @@ public class GenerateDailySummaryReportHandler(
                 FileHash = fileHash,
                 FileSizeBytes = fileSize,
                 ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
-                TotalCorrespondenceCount = correspondences.Count,
+                TotalCorrespondenceCount = summaryData.Sum(d => d.MessageCount),
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Environment = hostEnvironment.EnvironmentName,
                 Altinn2Included = request.Altinn2Included

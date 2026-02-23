@@ -1,3 +1,5 @@
+using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -516,6 +518,86 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     StatusFetched = new List<CorrespondenceStatusFetchedEntity>()
                 })
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<DailySummaryDataDto>> GetDailySummaryData(bool includeAltinn2, CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences.AsQueryable();
+
+            // Filter by Altinn version if needed
+            if (!includeAltinn2)
+            {
+                query = query
+                    .Where(c => c.Altinn2CorrespondenceId == null)
+                    .Where(c => c.Created > new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+            }
+            if (includeAltinn2)
+            {
+                throw new ArgumentException("Not supported");
+            }
+
+            // Aggregate data directly in SQL using EF Core GroupBy
+            // Now using RecipientType column directly for better performance
+            var groupedData = await query
+                .GroupBy(c => new
+                {
+                    Date = c.Created.Date,
+                    ServiceOwnerId = c.Sender,
+                    MessageSender = c.MessageSender ?? "",
+                    c.ResourceId,
+                    c.RecipientType
+                })
+                .Select(g => new
+                {
+                    g.Key.Date,
+                    g.Key.ServiceOwnerId,
+                    g.Key.MessageSender,
+                    g.Key.ResourceId,
+                    g.Key.RecipientType,
+                    MessageCount = g.Count()
+                })
+                .ToListAsync(cancellationToken);
+
+            // Get service owner names in bulk
+            var serviceOwnerIds = groupedData.Select(g => g.ServiceOwnerId).Distinct().ToList();
+            var serviceOwners = await _context.ServiceOwners
+                .Where(so => serviceOwnerIds.Contains(so.Id))
+                .ToDictionaryAsync(so => so.Id, so => so.Name, cancellationToken);
+
+            // Map to DailySummaryDataDto
+            var aggregatedData = groupedData
+                .Select(g => new DailySummaryDataDto
+                {
+                    Date = g.Date,
+                    Year = g.Date.Year,
+                    Month = g.Date.Month,
+                    Day = g.Date.Day,
+                    ServiceOwnerId = g.ServiceOwnerId,
+                    ServiceOwnerName = serviceOwners.GetValueOrDefault(g.ServiceOwnerId),
+                    MessageSender = g.MessageSender,
+                    ResourceId = g.ResourceId,
+                    RecipientType = g.RecipientType switch
+                    {
+                        UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
+                        UrnConstants.PersonIdAttribute => RecipientType.Person,
+                        UrnConstants.PartyUuid => RecipientType.Person,
+                        UrnConstants.PersonIdPortenEmailAttribute => RecipientType.Person,
+                        _ => RecipientType.Unknown,
+                    },
+                    AltinnVersion = AltinnVersion.Altinn3,
+                    MessageCount = g.MessageCount,
+                    DatabaseStorageBytes = 0, 
+                    AttachmentStorageBytes = 0
+                })
+                .OrderBy(d => d.Date)
+                .ThenBy(d => d.ServiceOwnerId)
+                .ThenBy(d => d.MessageSender)
+                .ThenBy(d => d.ResourceId)
+                .ThenBy(d => d.RecipientType)
+                .ThenBy(d => d.AltinnVersion)
+                .ToList();
+
+            return aggregatedData;
         }
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken)

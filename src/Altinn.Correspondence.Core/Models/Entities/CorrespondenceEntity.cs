@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Core.Models.Entities
@@ -26,6 +27,8 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         [Required]
         public required string Recipient { get; set; }
+
+        public string RecipientType => Recipient.Substring(0, Recipient.LastIndexOf(':'));
 
         [Required]
         [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
