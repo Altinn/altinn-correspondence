@@ -25,6 +25,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Hangfire
         public async Task ServerAndClientFilters_PropagateOrigin_ToChildJobs()
         {
             using var factory = new UnitWebApplicationFactory(_ => { });
+            using var httpClient = factory.CreateClient(); // To ensure Hangfire is initialized
             var client = factory.Services.GetRequiredService<IBackgroundJobClient>();
 
             OriginProbe.Reset();
