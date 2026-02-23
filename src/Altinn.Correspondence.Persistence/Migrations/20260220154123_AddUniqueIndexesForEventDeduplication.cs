@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddExpressionIndexesForEventDeduplication : Migration
+    public partial class AddUniqueIndexesForEventDeduplication : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -42,7 +42,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Drop the expression indexes (FK indexes remain)
+            // Drop the unique indexes (FK indexes remain)
             migrationBuilder.Sql(@"DROP INDEX IF EXISTS correspondence.""IX_CorrespondenceStatuses_Unique"";");
             migrationBuilder.Sql(@"DROP INDEX IF EXISTS correspondence.""IX_CorrespondenceDeleteEvents_Unique"";");
             migrationBuilder.Sql(@"DROP INDEX IF EXISTS correspondence.""IX_CorrespondenceNotifications_Unique"";");

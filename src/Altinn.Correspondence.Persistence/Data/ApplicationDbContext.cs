@@ -56,62 +56,43 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<CorrespondenceForwardingEventEntity>()
             .HasIndex(e => e.CorrespondenceId);
 
-        // Configure unique indexes with second-precision for datetime fields using PostgreSQL expression indexes
-        // This allows storing full precision values while enforcing uniqueness at the second level
+        // Configure unique indexes for event deduplication
+        // These indexes enforce uniqueness at full timestamp precision
         
-        // CorrespondenceStatusEntity - unique on (CorrespondenceId, Status, date_trunc('second', StatusChanged), PartyUuid)
+        // CorrespondenceStatusEntity - unique on (CorrespondenceId, Status, StatusChanged, PartyUuid)
         modelBuilder.Entity<CorrespondenceStatusEntity>()
             .HasIndex(nameof(CorrespondenceStatusEntity.CorrespondenceId), 
                      nameof(CorrespondenceStatusEntity.Status), 
                      nameof(CorrespondenceStatusEntity.StatusChanged), 
                      nameof(CorrespondenceStatusEntity.PartyUuid))
             .IsUnique()
-            .HasDatabaseName("IX_CorrespondenceStatuses_Unique")
-            .HasAnnotation("Npgsql:IndexExpression", 
-                $"(\"{nameof(CorrespondenceStatusEntity.CorrespondenceId)}\", " +
-                $"\"{nameof(CorrespondenceStatusEntity.Status)}\", " +
-                $"date_trunc('second', \"{nameof(CorrespondenceStatusEntity.StatusChanged)}\"), " +
-                $"\"{nameof(CorrespondenceStatusEntity.PartyUuid)}\")");
+            .HasDatabaseName("IX_CorrespondenceStatuses_Unique");
 
-        // CorrespondenceDeleteEventEntity - unique on (CorrespondenceId, EventType, date_trunc('second', EventOccurred), PartyUuid)
+        // CorrespondenceDeleteEventEntity - unique on (CorrespondenceId, EventType, EventOccurred, PartyUuid)
         modelBuilder.Entity<CorrespondenceDeleteEventEntity>()
             .HasIndex(nameof(CorrespondenceDeleteEventEntity.CorrespondenceId),
                      nameof(CorrespondenceDeleteEventEntity.EventType),
                      nameof(CorrespondenceDeleteEventEntity.EventOccurred),
                      nameof(CorrespondenceDeleteEventEntity.PartyUuid))
             .IsUnique()
-            .HasDatabaseName("IX_CorrespondenceDeleteEvents_Unique")
-            .HasAnnotation("Npgsql:IndexExpression",
-                $"(\"{nameof(CorrespondenceDeleteEventEntity.CorrespondenceId)}\", " +
-                $"\"{nameof(CorrespondenceDeleteEventEntity.EventType)}\", " +
-                $"date_trunc('second', \"{nameof(CorrespondenceDeleteEventEntity.EventOccurred)}\"), " +
-                $"\"{nameof(CorrespondenceDeleteEventEntity.PartyUuid)}\")");
+            .HasDatabaseName("IX_CorrespondenceDeleteEvents_Unique");
 
-        // CorrespondenceNotificationEntity - unique on (CorrespondenceId, NotificationAddress, NotificationChannel, date_trunc('second', NotificationSent))
+        // CorrespondenceNotificationEntity - unique on (CorrespondenceId, NotificationAddress, NotificationChannel, NotificationSent)
         modelBuilder.Entity<CorrespondenceNotificationEntity>()
             .HasIndex(nameof(CorrespondenceNotificationEntity.CorrespondenceId),
                      nameof(CorrespondenceNotificationEntity.NotificationAddress),
                      nameof(CorrespondenceNotificationEntity.NotificationChannel),
                      nameof(CorrespondenceNotificationEntity.NotificationSent))
             .IsUnique()
-            .HasDatabaseName("IX_CorrespondenceNotifications_Unique")
-            .HasAnnotation("Npgsql:IndexExpression",
-                $"(\"{nameof(CorrespondenceNotificationEntity.CorrespondenceId)}\", " +
-                $"\"{nameof(CorrespondenceNotificationEntity.NotificationAddress)}\", " +
-                $"\"{nameof(CorrespondenceNotificationEntity.NotificationChannel)}\", " +
-                $"date_trunc('second', \"{nameof(CorrespondenceNotificationEntity.NotificationSent)}\"))");
+            .HasDatabaseName("IX_CorrespondenceNotifications_Unique");
 
-        // CorrespondenceForwardingEventEntity - unique on (CorrespondenceId, date_trunc('second', ForwardedOnDate), ForwardedByPartyUuid)
+        // CorrespondenceForwardingEventEntity - unique on (CorrespondenceId, ForwardedOnDate, ForwardedByPartyUuid)
         modelBuilder.Entity<CorrespondenceForwardingEventEntity>()
             .HasIndex(nameof(CorrespondenceForwardingEventEntity.CorrespondenceId),
                      nameof(CorrespondenceForwardingEventEntity.ForwardedOnDate),
                      nameof(CorrespondenceForwardingEventEntity.ForwardedByPartyUuid))
             .IsUnique()
-            .HasDatabaseName("IX_CorrespondenceForwardingEvents_Unique")
-            .HasAnnotation("Npgsql:IndexExpression",
-                $"(\"{nameof(CorrespondenceForwardingEventEntity.CorrespondenceId)}\", " +
-                $"date_trunc('second', \"{nameof(CorrespondenceForwardingEventEntity.ForwardedOnDate)}\"), " +
-                $"\"{nameof(CorrespondenceForwardingEventEntity.ForwardedByPartyUuid)}\")");
+            .HasDatabaseName("IX_CorrespondenceForwardingEvents_Unique");
     }
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

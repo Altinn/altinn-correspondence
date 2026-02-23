@@ -218,8 +218,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId", "EventType", "EventOccurred", "PartyUuid")
                         .IsUnique()
-                        .HasDatabaseName("IX_CorrespondenceDeleteEvents_Unique")
-                        .HasAnnotation("Npgsql:IndexExpression", "(\"CorrespondenceId\", \"EventType\", date_trunc('second', \"EventOccurred\"), \"PartyUuid\")");
+                        .HasDatabaseName("IX_CorrespondenceDeleteEvents_Unique");
 
                     b.ToTable("CorrespondenceDeleteEvents", "correspondence");
                 });
@@ -371,8 +370,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId", "ForwardedOnDate", "ForwardedByPartyUuid")
                         .IsUnique()
-                        .HasDatabaseName("IX_CorrespondenceForwardingEvents_Unique")
-                        .HasAnnotation("Npgsql:IndexExpression", "(\"CorrespondenceId\", date_trunc('second', \"ForwardedOnDate\"), \"ForwardedByPartyUuid\")");
+                        .HasDatabaseName("IX_CorrespondenceForwardingEvents_Unique");
 
                     b.ToTable("CorrespondenceForwardingEvents", "correspondence");
                 });
@@ -428,8 +426,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId", "NotificationAddress", "NotificationChannel", "NotificationSent")
                         .IsUnique()
-                        .HasDatabaseName("IX_CorrespondenceNotifications_Unique")
-                        .HasAnnotation("Npgsql:IndexExpression", "(\"CorrespondenceId\", \"NotificationAddress\", \"NotificationChannel\", date_trunc('second', \"NotificationSent\"))");
+                        .HasDatabaseName("IX_CorrespondenceNotifications_Unique");
 
                     b.ToTable("CorrespondenceNotifications", "correspondence");
                 });
@@ -491,8 +488,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId", "Status", "StatusChanged", "PartyUuid")
                         .IsUnique()
-                        .HasDatabaseName("IX_CorrespondenceStatuses_Unique")
-                        .HasAnnotation("Npgsql:IndexExpression", "(\"CorrespondenceId\", \"Status\", date_trunc('second', \"StatusChanged\"), \"PartyUuid\")");
+                        .HasDatabaseName("IX_CorrespondenceStatuses_Unique");
 
                     b.ToTable("CorrespondenceStatuses", "correspondence");
                 });
