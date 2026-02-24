@@ -10,12 +10,13 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
+            migrationBuilder.AddColumn<string>(
                 name: "RecipientType",
                 schema: "correspondence",
                 table: "Correspondences",
                 type: "text",
-                nullable: false);
+                nullable: false,
+                defaultValue: "");
         }
 
         /// <inheritdoc />
