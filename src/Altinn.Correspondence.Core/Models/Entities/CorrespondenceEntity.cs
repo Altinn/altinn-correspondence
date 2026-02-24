@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,13 +27,14 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public required string ResourceId { get; set; }
 
         [Required]
-        public required string Recipient { get; set; }
+        public required string Recipient { get; set
+            {
+                RecipientType = ComputeRecipientType(value);
+                field = value;
+            }
+        }
 
-        public string RecipientType => Recipient.Contains(':') 
-            ? Recipient.Substring(0, Recipient.LastIndexOf(':')) 
-            : Recipient.Length == 9 
-                ? UrnConstants.OrganizationNumberAttribute 
-                : UrnConstants.PersonIdAttribute;
+        public string RecipientType { get; set; }
 
         [Required]
         [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
@@ -103,5 +105,19 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// This field is temporary and will be removed when the migration is complete.
         /// </summary>
         public int ServiceOwnerMigrationStatus { get; set; } = 0;
+
+        public CorrespondenceEntity()
+        {
+            Statuses = new List<CorrespondenceStatusEntity>();
+        }   
+
+        public string ComputeRecipientType(string? recipient) => 
+            string.IsNullOrWhiteSpace(recipient)
+          ? ""
+          : recipient.Contains(':')
+            ? recipient.Substring(0, recipient.LastIndexOf(':'))
+            : recipient.Length == 9
+                ? UrnConstants.OrganizationNumberAttribute
+                : UrnConstants.PersonIdAttribute;
     }
 }
