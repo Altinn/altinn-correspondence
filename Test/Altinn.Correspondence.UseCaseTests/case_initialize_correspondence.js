@@ -28,7 +28,6 @@ export const options = {
  */
 export default async function () {
     try {
-        throw new Error('Intentional failure for testing use case test step');
         const { correspondenceId, attachmentId } = await TC01_InitializeCorrespondenceWithAttachment();
         await TC02_GetCorrespondencePublishedAsRecipient(correspondenceId);
         await TC03_GetAttachmentOverviewAsSender(attachmentId);
