@@ -28,7 +28,11 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Required]
         public required string Recipient { get; set; }
 
-        public string RecipientType => Recipient.Substring(0, Recipient.LastIndexOf(':'));
+        public string RecipientType => Recipient.Contains(':') 
+            ? Recipient.Substring(0, Recipient.LastIndexOf(':')) 
+            : Recipient.Length == 9 
+                ? UrnConstants.OrganizationNumberAttribute 
+                : UrnConstants.PersonIdAttribute;
 
         [Required]
         [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
