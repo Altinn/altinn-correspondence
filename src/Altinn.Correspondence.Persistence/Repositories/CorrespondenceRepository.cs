@@ -280,7 +280,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var query = _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating)
                 .ExcludePurged()
-                .ExcludeSelfIdentifiedRecipients()
                 .AsQueryable();
 
             if (createdFrom.HasValue)
