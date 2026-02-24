@@ -11,7 +11,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   kind: 'StorageV2'
   sku: {
     name: storageAccountSku
-    name: 'Standard_ZRS'
   }
   properties: {
     accessTier: 'Cool'

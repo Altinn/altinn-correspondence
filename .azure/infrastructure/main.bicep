@@ -139,16 +139,6 @@ module reddis '../modules/redis/main.bicep' = {
   }
 }
 
-module storageAccount '../modules/storageAccount/create.bicep' = {
-  scope: resourceGroup
-  name: storageAccountName
-  params: {
-    storageAccountName: storageAccountName
-    location: location
-    fileshare: 'migrations'
-  }
-}
-
 module grantDeploymentPrincipalStorageFileAccess '../modules/storageAccount/addFileDataPrivilegedContributorRole.bicep' = {
   scope: resourceGroup
   name: 'storage-file-privileged-contributor-deployment'
