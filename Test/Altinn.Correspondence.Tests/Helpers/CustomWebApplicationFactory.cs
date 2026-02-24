@@ -23,6 +23,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Tests.Common;
 
 namespace Altinn.Correspondence.Tests.Helpers;
 
@@ -43,6 +44,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
         builder.UseConfiguration(new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")
             .AddJsonFile("appsettings.Development.json")
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["GeneralSettings:MalwareScanBypassWhiteList"] = TestConstants.ResourceWhitelistedForMalwareScanBypass
+            })
             .Build());
 
         // Overwrite registrations from Program.cs

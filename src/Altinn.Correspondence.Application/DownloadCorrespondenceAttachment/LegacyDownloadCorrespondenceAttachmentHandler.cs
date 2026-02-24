@@ -60,7 +60,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
             caller = party.OrgNumber;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateInformationActivity(request.CorrespondenceId, DialogportenActorType.Recipient, DialogportenTextType.DownloadStarted, caller, operationTimestamp, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateDownloadStartedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, operationTimestamp, caller, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
         return new DownloadCorrespondenceAttachmentResponse()
         {
             FileName = attachment.FileName,

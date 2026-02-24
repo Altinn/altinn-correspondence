@@ -25,11 +25,26 @@ jobs:
   usecase-test:
     environment: ${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}
     runs-on: ubuntu-latest
+    outputs:
+      tests-enabled: ${{ steps.check-enable.outputs.enabled }}
     steps:
+    - name: Check if use case tests are enabled
+      id: check-enable
+      run: |
+        if [ "${{ secrets.ENABLE_USE_CASE_TESTS }}" == "true" ]; then
+          echo "enabled=true" >> $GITHUB_OUTPUT
+          echo "Use case tests are enabled"
+        else
+          echo "enabled=false" >> $GITHUB_OUTPUT
+          echo "Use case tests are disabled. Set ENABLE_USE_CASE_TESTS secret to 'true' to enable."
+        fi
+    
     - name: Checkout
+      if: steps.check-enable.outputs.enabled == 'true'
       uses: actions/checkout@v4
 
     - name: Run use case test (case_initialize_correspondence.js)
+      if: steps.check-enable.outputs.enabled == 'true'
       uses: grafana/k6-action@e4714b734f2b0afaabeb7b4a69142745548ab9ec # v0.3.1
       env:
         base_url: ${{ secrets.CORRESPONDENCE_BASE_URL }}
@@ -41,14 +56,14 @@ jobs:
         filename: Test/Altinn.Correspondence.UseCaseTests/case_initialize_correspondence.js
 
     - name: Build failure report
-      if: failure()
+      if: failure() && steps.check-enable.outputs.enabled == 'true'
       run: |
           report=":warning: Correspondence use case test failure :warning: \n"
           report+="\n Environment: ${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}"
           report+="\n Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           echo "stepreport=$report" >> $GITHUB_ENV
     - name: Report failure to Slack
-      if: failure()
+      if: failure() && steps.check-enable.outputs.enabled == 'true'
       id: slack
       uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # v2.1.1
       with:

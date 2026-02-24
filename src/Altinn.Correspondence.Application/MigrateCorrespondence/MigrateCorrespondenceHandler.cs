@@ -16,13 +16,13 @@ using System.Security.Claims;
 namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
 public class MigrateCorrespondenceHandler(
-    ICorrespondenceRepository correspondenceRepository,
-    ICorrespondenceDeleteEventRepository correspondenceDeleteEventRepository,
-    IDialogportenService dialogportenService,
-    HangfireScheduleHelper hangfireScheduleHelper,
-    IBackgroundJobClient backgroundJobClient,
-    IHostEnvironment hostEnvironment,
-    ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
+ICorrespondenceRepository correspondenceRepository,
+IDialogportenService dialogportenService,
+HangfireScheduleHelper hangfireScheduleHelper,
+IBackgroundJobClient backgroundJobClient,
+IHostEnvironment hostEnvironment,
+CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
+ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -47,15 +47,12 @@ public class MigrateCorrespondenceHandler(
         try
         {
             var correspondence = await correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
-
-            // Save any delete events associated with the correspondence
-            if (request.DeleteEventEntities != null && request.DeleteEventEntities.Any())
+            
+            if (request.DeleteEventEntities != null && request.DeleteEventEntities.Any()) // Handled separately
             {
-                foreach(var deleteEvent in request.DeleteEventEntities)
+                foreach (var deleteEvent in request.DeleteEventEntities)
                 {
-                    deleteEvent.CorrespondenceId = correspondence.Id;
-                    deleteEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-                    await correspondenceDeleteEventRepository.AddDeleteEvent(deleteEvent, cancellationToken);
+                    await correspondenceMigrationEventHelper.StoreDeleteEventForCorrespondence(correspondence, deleteEvent, DateTimeOffset.UtcNow, cancellationToken);
                 }
             }
 
@@ -96,16 +93,50 @@ public class MigrateCorrespondenceHandler(
         }
         catch (DbUpdateException e)
         {
-            if (e.IsPostgresUniqueViolation())
+            if (e.IsPostgresUniqueViolation()) // Correspondence Already Migrated
             {
-                var correspondence = await correspondenceRepository.GetCorrespondenceByAltinn2Id((int)request.CorrespondenceEntity.Altinn2CorrespondenceId, cancellationToken);
-                return new MigrateCorrespondenceResponse()
+                // Use transaction protection for remigration logic
+                var remigrationResult = await TransactionWithRetriesPolicy.Execute<MigrateCorrespondenceResponse>(async (cancellationToken) =>
                 {
-                    Altinn2CorrespondenceId = request.Altinn2CorrespondenceId,
-                    CorrespondenceId = correspondence.Id,
-                    IsAlreadyMigrated = true,
-                    AttachmentMigrationStatuses = correspondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null
-                };
+                    // Fetch correspondence within transaction to get fresh data
+                    var existingCorrespondence = await correspondenceRepository.GetCorrespondenceByAltinn2Id((int)request.CorrespondenceEntity.Altinn2CorrespondenceId, cancellationToken);
+                    if (existingCorrespondence == null)
+                    {
+                        throw new InvalidOperationException($"Correspondence with Altinn2Id {request.CorrespondenceEntity.Altinn2CorrespondenceId} not found during remigration transaction");
+                    }
+
+                    var correspondenceId = existingCorrespondence.Id;
+
+                    // Clear the change tracker to prevent EF Core from tracking request.CorrespondenceEntity
+                    // when processing events that have navigation properties pointing to it
+                    correspondenceRepository.ClearChangeTracker();
+
+                    // Process all event types if they exist in the request
+                    var eventsProcessed = await correspondenceMigrationEventHelper.ProcessAllEventsForCorrespondence(
+                        correspondenceId,
+                        existingCorrespondence,
+                        request.CorrespondenceEntity.Statuses,
+                        request.DeleteEventEntities,
+                        request.CorrespondenceEntity.Notifications,
+                        request.CorrespondenceEntity.ForwardingEvents,
+                        "remigrate",
+                        cancellationToken);
+
+                    if (eventsProcessed == 0)
+                    {
+                        logger.LogInformation("No new events to remigrate for Correspondence {CorrespondenceId}. Exiting remigrate process.", correspondenceId);
+                    }
+
+                    return new MigrateCorrespondenceResponse()
+                    {
+                        Altinn2CorrespondenceId = request.Altinn2CorrespondenceId,
+                        CorrespondenceId = correspondenceId,
+                        IsAlreadyMigrated = true,
+                        AttachmentMigrationStatuses = existingCorrespondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null
+                    };
+                }, logger, cancellationToken);
+
+                return remigrationResult;
             }
 
             throw;
@@ -240,14 +271,9 @@ public class MigrateCorrespondenceHandler(
         {
             throw new InvalidOperationException($"Correspondence with id {correspondenceId} is purged and cannot be made available in Dialogporten or API");
         }
-        
-        if(!string.IsNullOrEmpty(correspondence.Recipient) && correspondence.Recipient.IsWithPartyUuidPrefix())
-        {
-            throw new InvalidOperationException($"Correspondence with id {correspondenceId} has a Self-Identifed user as recipient and cannot be made available in Dialogporten");
-        }
 
         // If the correspondence was soft deleted in Altinn 2, we need to pass this forward in order to set the system label correctly on the Dialog
-        bool isSoftDeleted = await IsCorrespondenceSoftDeleted(correspondence, cancellationToken);
+        bool isSoftDeleted = await correspondenceMigrationEventHelper.IsCorrespondenceSoftDeleted(correspondence, cancellationToken);
         var dialogId = await dialogportenService.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId: correspondenceId, correspondence: correspondence, enableEvents: createEvents, isSoftDeleted: isSoftDeleted);
         if (string.IsNullOrEmpty(dialogId))
         {
@@ -301,39 +327,5 @@ public class MigrateCorrespondenceHandler(
     {
         List<string> supportedLanguages = ["nb", "nn", "en"];
         return supportedLanguages.Contains(language.ToLower());
-    }
-
-    private async Task<bool> IsCorrespondenceSoftDeleted(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
-    {
-        var deletionEventsInDatabase = await correspondenceDeleteEventRepository.GetDeleteEventsForCorrespondenceId(correspondence.Id, cancellationToken);
-        if (deletionEventsInDatabase == null || !deletionEventsInDatabase.Any())
-        {
-            return false;
-        }
-
-        var softDeletedEvent = deletionEventsInDatabase
-            .Where(e => e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient)
-            .OrderByDescending(e => e.EventOccurred)
-            .FirstOrDefault();
-
-        var restoredEvent = deletionEventsInDatabase
-            .Where(e => e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient)
-            .OrderByDescending(e => e.EventOccurred)
-            .FirstOrDefault();
-
-        // If no soft delete event exists, it's not soft deleted
-        if (softDeletedEvent == null)
-        {
-            return false;
-        }
-
-        // If no restore event exists, it is still soft deleted
-        if (restoredEvent == null)
-        {
-            return true;
-        }
-
-        // Return true if soft delete occurred after the most recent restore
-        return softDeletedEvent.EventOccurred > restoredEvent.EventOccurred;
     }
 }
