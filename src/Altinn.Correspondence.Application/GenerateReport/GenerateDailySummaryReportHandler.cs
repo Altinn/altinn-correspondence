@@ -81,7 +81,7 @@ public class GenerateDailySummaryReportHandler(
         // Fetch resource titles in parallel (with error handling)
         var resourceTitleTasks = resourceIds.ToDictionary(
             resourceId => resourceId,
-            resourceId => GetResourceTitleAsync(resourceId, cancellationToken)
+            resourceId => GetResourceTitle(resourceId, cancellationToken)
         );
 
         await Task.WhenAll(resourceTitleTasks.Values);
@@ -111,11 +111,11 @@ public class GenerateDailySummaryReportHandler(
         }).ToList();
     }
 
-    private async Task<string> GetResourceTitleAsync(string? resourceId, CancellationToken cancellationToken)
+    private async Task<string> GetResourceTitle(string resourceId, CancellationToken cancellationToken)
     {
         try
         {
-            var resourceTitle = await resourceRegistryService.GetServiceOwnerNameOfResource(resourceId, cancellationToken);
+            var resourceTitle = await resourceRegistryService.GetResourceTitle(resourceId, null, cancellationToken);
             return resourceTitle ?? $"Unknown ({resourceId})";
         }
         catch (Exception ex)
