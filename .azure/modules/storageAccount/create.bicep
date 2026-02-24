@@ -2,13 +2,14 @@
 param storageAccountName string
 param fileshare string
 param location string
+param storageAccountSku string = 'Standard_LRS'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: storageAccountName
   location: location
   kind: 'StorageV2'
   sku: {
-    name: 'Standard_LRS'
+    name: storageAccountSku
   }
   properties: {
     accessTier: 'Cool'

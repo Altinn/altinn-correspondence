@@ -29,6 +29,10 @@ inputs:
   AZURE_STORAGE_ACCOUNT_NAME:
     description: "Name of the storage account for migration files"
     required: true
+  STORAGE_ACCOUNT_SKU:
+    description: "Storage account SKU (e.g. Standard_ZRS)"
+    required: false
+    default: ""
   MAINTENANCE_AD_GROUP_ID:
     description: "AD Group principal id for the group that should have access"
     required: false
@@ -55,6 +59,23 @@ runs:
         client-id: ${{ inputs.AZURE_CLIENT_ID }}
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Resolve storage account SKU
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -n "${{ inputs.STORAGE_ACCOUNT_SKU }}" ]; then
+          echo "STORAGE_ACCOUNT_SKU=${{ inputs.STORAGE_ACCOUNT_SKU }}" >> "$GITHUB_ENV"
+          exit 0
+        fi
+        RG="${{ inputs.AZURE_NAME_PREFIX }}-rg"
+        SA="${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}"
+        if az storage account show -g "$RG" -n "$SA" > /dev/null 2>&1; then
+          SKU=$(az storage account show -g "$RG" -n "$SA" --query sku.name -o tsv)
+          echo "STORAGE_ACCOUNT_SKU=$SKU" >> "$GITHUB_ENV"
+        else
+          echo "STORAGE_ACCOUNT_SKU=Standard_LRS" >> "$GITHUB_ENV"
+        fi
 
     - name: Check Container Apps environment health
       shell: bash
@@ -94,6 +115,7 @@ runs:
         NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
+        STORAGE_ACCOUNT_SKU: ${{ env.STORAGE_ACCOUNT_SKU }}
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}

@@ -11,6 +11,7 @@ param environment string
 param namePrefix string
 @secure()
 param storageAccountName string
+param storageAccountSku string = 'Standard_LRS'
 @secure()
 param grafanaMonitoringPrincipalId string
 
@@ -74,6 +75,7 @@ module storageAccount '../modules/storageAccount/create.bicep' = {
     storageAccountName: storageAccountName
     location: location
     fileshare: 'migrations'
+    storageAccountSku: storageAccountSku
   }
 }
 
