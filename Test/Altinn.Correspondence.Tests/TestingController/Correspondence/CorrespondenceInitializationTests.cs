@@ -365,6 +365,18 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         }
 
+        [Fact]
+        public async Task InitializeCorrespondence_WithIdportenEmailRecipient_Succeeds()
+        {
+            var idportenEmailRecipient = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com";
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([idportenEmailRecipient])
+                .Build();
+            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+            initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+        }
+
         [Theory]
         [InlineData("invalid-recipient")]
         [InlineData("123456789")]
@@ -418,58 +430,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .CreateCorrespondence()
                 .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(7))
                 .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(14))
-                .Build();
-
-            // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-        }
-
-        [Fact]
-        public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorToday_Returns_BadRequest()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(-7))
-                .Build();
-
-            // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-        }
-
-        [Fact]
-        public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorRequestedPublishTime_Returns_BadRequest()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(7))
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(14))
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(21)) // ensure DueDate is after RequestedPublishTime
-                .Build();
-
-            // Act
-            var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-        }
-
-        [Fact]
-        public async Task InitializeCorrespondence_AllowSystemDeleteAfter_PriorDueDate_Returns_BadRequest()
-        {
-            // Arrange
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithAllowSystemDeleteAfter(DateTimeOffset.UtcNow.AddDays(14))
-                .WithRequestedPublishTime(DateTimeOffset.UtcNow.AddDays(7))
-                .WithDueDateTime(DateTimeOffset.UtcNow.AddDays(21))
                 .Build();
 
             // Act

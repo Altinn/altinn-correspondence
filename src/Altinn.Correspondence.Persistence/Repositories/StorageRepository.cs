@@ -46,7 +46,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             return _blobServiceClients.GetOrAdd(storageResourceName, key =>
             {
-                _logger.LogInformation("Creating BlobServiceClient for {storageResourceName}", storageResourceName);
+                _logger.LogDebug("Creating BlobServiceClient for {storageResourceName}", storageResourceName);
                 var storageUri = new Uri($"https://{storageResourceName}.blob.core.windows.net");
                 return new BlobServiceClient(storageUri, new DefaultAzureCredential(), _blobClientOptions);
             });
@@ -61,26 +61,22 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         private async Task<BlobContainerClient> GetBlobContainerClient(Guid fileId, StorageProviderEntity? storageProviderEntity)
         {
-            string storageResourceName;
-
             if (storageProviderEntity is not null)
             {
-                var blobServiceClient = GetOrCreateBlobServiceClient(storageProviderEntity.StorageResourceName);
-                return blobServiceClient.GetBlobContainerClient("attachments");
+                return GetOrCreateBlobServiceClient(storageProviderEntity.StorageResourceName).GetBlobContainerClient("attachments");
             }
-            else // Legacy implementation
+            else
             {
-                _logger.LogInformation("Using Correspondence's storage account");
+                _logger.LogDebug("Using Correspondence's storage account");
                 var connectionString = _options.ConnectionString;
-                var blobServiceClient = new BlobServiceClient(connectionString,
-                    new BlobClientOptions()
-                    {
-                        Retry =
-                            {
-                                NetworkTimeout = TimeSpan.FromHours(1),
-                            }
-                    });
-                return blobServiceClient.GetBlobContainerClient("attachments");
+                var connectionStringParts = connectionString.Split(';');
+                if (connectionStringParts.Any(connectionStringPart => connectionStringPart.StartsWith("AccountName="))) // Using Correspondence's storage account
+                {
+                    var storageResourceName = GetAccountNameFromConnectionString(connectionString) ?? throw new Exception("Failed to extract AccountName from connection string");
+                    return GetOrCreateBlobServiceClient(storageResourceName).GetBlobContainerClient("attachments");
+                }
+                // For local testing
+                return new BlobServiceClient(connectionString).GetBlobContainerClient("attachments");
             }
         }
 
@@ -99,7 +95,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<(string locationUrl, string hash, long size)> UploadAttachment(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Starting upload of {attachment.Id} for {storageProviderEntity?.ServiceOwnerId}");
+            _logger.LogDebug($"Starting upload of {attachment.Id} for {storageProviderEntity?.ServiceOwnerId}");
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var blobContainerClient = await GetBlobContainerClient(attachment.Id, storageProviderEntity);
             BlockBlobClient blockBlobClient = blobContainerClient.GetBlockBlobClient(attachment.Id.ToString());
@@ -162,7 +158,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                                 await UploadBlock(client, currentBlockId, currentBlockData, cancellationToken);
 
                                 var uploadSpeedMBps = totalBytesRead / (1024.0 * 1024) / (stopwatch.ElapsedMilliseconds / 1000.0);
-                                _logger.LogInformation($"Uploaded block {currentBlock}. Progress: " +
+                                _logger.LogDebug($"Uploaded block {currentBlock}. Progress: " +
                                     $"{totalBytesRead / (1024.0 * 1024.0 * 1024.0):N2} GiB ({uploadSpeedMBps:N2} MB/s)");
                             }
                             finally
@@ -196,7 +192,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 await CommitBlocks(blockBlobClient, blockList, firstCommit: blockList.Count <= BLOCKS_BEFORE_COMMIT, null, cancellationToken);
 
                 double finalSpeedMBps = totalBytesRead / (1024.0 * 1024) / (stopwatch.ElapsedMilliseconds / 1000.0);
-                _logger.LogInformation($"Successfully uploaded {totalBytesRead / (1024.0 * 1024.0 * 1024.0):N2} GiB " +
+                _logger.LogDebug($"Successfully uploaded {totalBytesRead / (1024.0 * 1024.0 * 1024.0):N2} GiB " +
                     $"in {stopwatch.ElapsedMilliseconds / 1000.0:N1}s (avg: {finalSpeedMBps:N2} MB/s)");
 
                 var hash = BitConverter.ToString(blobMd5.Hash).Replace("-", "").ToLowerInvariant();
@@ -218,7 +214,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             await BlobRetryPolicy.ExecuteAsync(_logger, async () =>
             {
-                _logger.LogInformation("Uploading block " + blockId);
+                _logger.LogDebug("Uploading block " + blockId);
                 using var blockMd5 = MD5.Create();
                 using var blockStream = new MemoryStream(blockData, writable: false);
                 blockStream.Position = 0;
@@ -242,7 +238,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             await BlobRetryPolicy.ExecuteAsync(_logger, async () =>
             {
-                _logger.LogInformation($"Committing {blockList.Count} blocks");
+                _logger.LogDebug($"Committing {blockList.Count} blocks");
                 var options = new CommitBlockListOptions
                 {
                     // Only use ifNoneMatch for the first commit to ensure concurrent upload attempts do not work simultaneously
@@ -253,7 +249,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     }
                 };
                 var response = await client.CommitBlockListAsync(blockList, options, cancellationToken);
-                _logger.LogInformation($"Committed {blockList.Count} blocks: {response.GetRawResponse().ReasonPhrase}");
+                _logger.LogDebug($"Committed {blockList.Count} blocks: {response.GetRawResponse().ReasonPhrase}");
             });
         }
 
@@ -304,7 +300,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<(string locationUrl, string hash, long size)> UploadReportFile(string fileName, int serviceOwnerCount, int correspondenceCount, Stream stream, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Starting upload of report file: {fileName}", fileName);
+            _logger.LogDebug("Starting upload of report file: {fileName}", fileName);
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             
             try
@@ -335,7 +331,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 cancellationToken);
 
                 stopwatch.Stop();
-                _logger.LogInformation("Successfully uploaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
+                _logger.LogDebug("Successfully uploaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
                 
                 return (blobClient.Uri.ToString(), hash, stream.Length);
             }
@@ -381,7 +377,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
     public async Task<Stream> DownloadReportFile(string fileName, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting download of report file: {fileName}", fileName);
+        _logger.LogDebug("Starting download of report file: {fileName}", fileName);
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         
         try
@@ -403,7 +399,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }, cancellationToken);
             
             stopwatch.Stop();
-            _logger.LogInformation("Successfully downloaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
+            _logger.LogDebug("Successfully downloaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
             
             return stream;
         }

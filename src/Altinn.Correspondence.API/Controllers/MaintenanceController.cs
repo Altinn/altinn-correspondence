@@ -11,6 +11,10 @@ using Altinn.Correspondence.Application.InitializeServiceOwner;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
 using Altinn.Correspondence.Application.RepairNotificationDelivery;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Repositories;
+using Hangfire;
+using Altinn.Correspondence.Application.MigrateForwardingEventsBatch;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -49,7 +53,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     }
 
     /// <summary>
-    /// Enqueue cleanup to remove expiresAt from dialogs in Dialogporten for correspondences where AllowSystemDeleteAfter has been set
+    /// Enqueue cleanup to remove expiresAt from dialogs in Dialogporten
     /// </summary>
     /// <response code="200">Returns the enqueued job id</response>
     /// <response code="401">Unauthorized</response>
@@ -235,6 +239,51 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             Ok,
             Problem
         );
+    }
+
+    /// <summary>
+    /// Sync a single Correspondence forwarding event to Dialogporten
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("sync-forwarding-event/{correspondenceForwardingId}")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(EnqueueMissingNotificationSentChecksResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> SyncForwardingEvent(
+        [FromServices] IDialogportenService service,
+        [FromRoute] Guid correspondenceForwardingId,
+        CancellationToken cancellationToken)
+    {
+        await service.AddForwardingEvent(correspondenceForwardingId, cancellationToken);
+        return Ok();
+    }
+
+
+    /// <summary>
+    /// Sync all forwarding events that has no dialog activity id yet to Dialogporten
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("sync-forwarding-events-batch/{count}")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(EnqueueMissingNotificationSentChecksResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> SyncForwardingEvents(
+        [FromServices] IBackgroundJobClient backgroundJobClient,
+        [FromRoute] int count,
+        CancellationToken cancellationToken)
+    {
+        backgroundJobClient.Enqueue<MigrateForwardingEventsBatchHandler>(handler => handler.Process(count, DateTimeOffset.UtcNow));
+        return Ok();
     }
 
     private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);

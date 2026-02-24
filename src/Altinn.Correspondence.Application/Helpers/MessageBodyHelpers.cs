@@ -15,35 +15,15 @@ public static class MessageBodyHelpers
             UnknownTags = Config.UnknownTagsOption.Bypass, 
             GithubFlavored = true, 
             RemoveComments = true,
-            SmartHrefHandling = true,
-            DefaultCodeBlockLanguage = "", 
-            WhitelistUriSchemes = ["http", "https", "mailto"],
+            SmartHrefHandling = false,
+            DefaultCodeBlockLanguage = ""
         };
+        config.WhitelistUriSchemes.Add("mailto");
+        config.WhitelistUriSchemes.Add("http");
+        config.WhitelistUriSchemes.Add("https");
 
         var converter = new Converter(config);
-
-        // Split by lines to handle mixed content properly
-        string preprocessed = ConvertLinksToMarkdown(html);
-        var processed = converter.Convert(preprocessed);
+        var processed = converter.Convert(html);
         return processed;
-    }
-
-    private static string ConvertLinksToMarkdown(string input)
-    {
-        string result = input;
-
-        // Handle complex anchor tags with multiple attributes
-        result = Regex.Replace(result,
-            @"<a(?:\s+[^>]*?)?\s+href=[""']([^""']*)[""'](?:\s+[^>]*?)?>([^<]*?)</a>",
-            "[$2]($1)",
-            RegexOptions.IgnoreCase | RegexOptions.Multiline);
-
-        // Handle simpler cases
-        result = Regex.Replace(result,
-            @"<a\s+href=[""']([^""']*)[""']\s*>([^<]*?)</a>",
-            "[$2]($1)",
-            RegexOptions.IgnoreCase);
-
-        return result;
     }
 }

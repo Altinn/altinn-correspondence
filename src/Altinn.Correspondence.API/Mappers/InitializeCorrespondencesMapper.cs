@@ -25,7 +25,6 @@ internal static class InitializeCorrespondencesMapper
             ServiceOwnerId = null, // Will be populated by the handler after determining service owner from ResourceRegistry
             MessageSender = request.Correspondence.MessageSender,
             RequestedPublishTime = request.Correspondence.RequestedPublishTime ?? DateTimeOffset.UtcNow,
-            AllowSystemDeleteAfter = request.Correspondence.AllowSystemDeleteAfter,
             DueDateTime = request.Correspondence.DueDateTime,
             PropertyList = request.Correspondence.PropertyList,
             ReplyOptions = request.Correspondence.ReplyOptions != null ? CorrespondenceReplyOptionsMapper.MapListToEntities(request.Correspondence.ReplyOptions) : new List<CorrespondenceReplyOptionEntity>(),
@@ -62,7 +61,7 @@ internal static class InitializeCorrespondencesMapper
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),
             ExistingAttachments = request.ExistingAttachments ?? new List<Guid>(),
-            Recipients = request.Recipients,
+            Recipients = request.Recipients.Select(NormalizeRecipientToUrn).ToList(),
             Notification = correspondenceNotification,
             IdempotentKey = request.IdempotentKey
         };
@@ -86,5 +85,10 @@ internal static class InitializeCorrespondencesMapper
             }).ToList(),
             AttachmentIds = response.AttachmentIds
         };
+    }
+
+    private static string NormalizeRecipientToUrn(string recipient)
+    {
+        return recipient.ToLowerInvariant().WithoutPrefix().WithUrnPrefix();
     }
 }

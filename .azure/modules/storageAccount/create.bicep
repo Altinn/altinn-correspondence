@@ -7,13 +7,16 @@ param storageAccountSku string = 'Standard_LRS'
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: storageAccountName
   location: location
+  tags: resourceGroup().tags
   kind: 'StorageV2'
   sku: {
     name: storageAccountSku
+    name: 'Standard_ZRS'
   }
   properties: {
     accessTier: 'Cool'
     minimumTlsVersion: 'TLS1_2'
+    allowSharedKeyAccess: false
   }
 }
 

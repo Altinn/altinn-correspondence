@@ -34,10 +34,16 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             var organizationWithoutPrefixFormat = new Regex(@"^\d{9}$");
             var organizationWithPrefixFormat = new Regex(@"^0192:\d{9}$");
+            var partyUrnWithPrefixFormat = new Regex(@"^urn:altinn:party:uuid:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
             var correctOrgFormat = new Regex($@"^{OrgNoPrefix}:\d{{9}}$");
             var correctSSNFormat = new Regex($@"^{SsnPrefix}:\d{{11}}$");
             var personFormat = new Regex(@"^\d{11}$");
+            
             if (correctOrgFormat.IsMatch(input) || correctSSNFormat.IsMatch(input))
+            {
+                return input;
+            }
+            else if (input.IsIdPortenEmailUrn())
             {
                 return input;
             }
@@ -52,6 +58,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             else if (personFormat.IsMatch(input))
             {
                 return $"{SsnPrefix}:{input}";
+            }
+            else if (partyUrnWithPrefixFormat.IsMatch(input))
+            {
+                return input;
             }
             else
             {

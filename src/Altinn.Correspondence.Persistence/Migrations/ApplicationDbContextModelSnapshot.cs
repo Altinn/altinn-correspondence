@@ -225,9 +225,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset?>("AllowSystemDeleteAfter")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int?>("Altinn2CorrespondenceId")
                         .HasColumnType("integer");
 
@@ -326,6 +323,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CorrespondenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DialogActivityId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ForwardedByPartyUuid")
@@ -776,7 +776,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.CorrespondenceStatusFetchedEntity", b =>
                 {
                     b.HasOne("Altinn.Correspondence.Core.Models.Entities.CorrespondenceEntity", "Correspondence")
-                        .WithMany()
+                        .WithMany("StatusFetched")
                         .HasForeignKey("CorrespondenceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -844,6 +844,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Navigation("Notifications");
 
                     b.Navigation("ReplyOptions");
+
+                    b.Navigation("StatusFetched");
 
                     b.Navigation("Statuses");
                 });

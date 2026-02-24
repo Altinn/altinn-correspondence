@@ -14,7 +14,9 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     private readonly Guid _digdirPartyUuid = new Guid("36E2BCC6-D5B8-4399-AA90-4AFEB2D1A0BF");
     private readonly int _delegatedUserPartyid = 100;
     private readonly Guid _delegatedUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
-
+    private readonly int _secondUserPartyId = 200;
+    private readonly Guid _secondUserPartyUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
+    
     public Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
         if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
@@ -34,7 +36,26 @@ public class AltinnRegisterDevService : IAltinnRegisterService
 
     public Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken)
     {
-        if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
+        var cleanId = identificationId.WithoutPrefix();
+        
+        // Check for email URN
+        if (identificationId.IsIdPortenEmailUrn())
+        {
+            var email = cleanId;
+            return Task.FromResult<Party?>(new Party
+            {
+                PartyId = _digdirPartyId,
+                OrgNumber = "",
+                SSN = "",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = $"User with email {email}",
+                PartyUuid = _digdirPartyUuid,
+            });
+        }
+        
+        if (IdentificationIDRegex.IsMatch(cleanId))
         {
             return Task.FromResult<Party?>(new Party
             {
@@ -114,6 +135,20 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 UnitType = "Person",
                 Name = "Delegert test bruker",
                 PartyUuid = _delegatedUserPartyUuid,
+            };
+        }
+        else if (partyUuid == _secondUserPartyUuid)
+        {
+            party = new Party
+            {
+                PartyId = _secondUserPartyId,
+                OrgNumber = "",
+                SSN = "01027845678",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = "Annen test bruker",
+                PartyUuid = _secondUserPartyUuid,
             };
         }
 

@@ -3,8 +3,10 @@ using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Integrations.Idporten
@@ -47,6 +49,10 @@ namespace Altinn.Correspondence.Integrations.Idporten
                         else if (userAuthLevelClaim.Value == "idporten-loa-low")
                         {
                             return minimumAuthLevel <= 2;
+                        }
+                        else if (userAuthLevelClaim.Value == "selfregistered-email")
+                        {
+                            return minimumAuthLevel <= 0;
                         }
                         else
                         {
@@ -104,27 +110,43 @@ namespace Altinn.Correspondence.Integrations.Idporten
             return null;
         }
 
-        public static XacmlJsonRequestRoot CreateIdPortenDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string party, string? instanceId)
+        public static async Task<XacmlJsonRequestRoot> CreateIdPortenDecisionRequest(ClaimsPrincipal user, IAltinnRegisterService altinnRegisterService, List<string> actionTypes, string resourceId, string party, string? instanceId, CancellationToken cancellationToken = default)
         {
-            var pidClaim = user.Claims.FirstOrDefault(claim => IsValidPid(claim.Type));
-            if (pidClaim is null)
+            var issuer = user.Claims.FirstOrDefault(c => c.Type == "iss")?.Value ?? string.Empty;
+            var subjectCategory = await CreateSubjectCategory(user, altinnRegisterService, cancellationToken);
+
+            XacmlJsonRequest request = new()
             {
-                throw new SecurityTokenException("Idporten token does not contain the required pid claim");
-            }
-
-            XacmlJsonRequest request = new XacmlJsonRequest();
-            request.AccessSubject = new List<XacmlJsonCategory>();
-            request.Action = new List<XacmlJsonCategory>();
-            request.Resource = new List<XacmlJsonCategory>();
-
-            request.AccessSubject.Add(CreateSubjectCategory(pidClaim));
+                AccessSubject = new List<XacmlJsonCategory> { subjectCategory },
+                Action = new List<XacmlJsonCategory>(),
+                Resource = new List<XacmlJsonCategory>()
+            };
             request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
-            request.Resource.Add(XacmlRequestFactory.CreateResourceCategory(resourceId, party, instanceId, pidClaim.Issuer));
+            request.Resource.Add(XacmlRequestFactory.CreateResourceCategory(resourceId, party, instanceId, issuer));
 
             return new XacmlJsonRequestRoot { Request = request };
         }
 
-        private static XacmlJsonCategory CreateSubjectCategory(Claim pidClaim)
+        private static async Task<XacmlJsonCategory> CreateSubjectCategory(ClaimsPrincipal user, IAltinnRegisterService altinnRegisterService, CancellationToken cancellationToken)
+        {
+            var pidClaim = user.Claims.FirstOrDefault(claim => IsValidPid(claim.Type));
+            if (pidClaim is not null)
+            {
+                return CreateSubjectCategoryFromPid(pidClaim);
+            }
+            var emailClaim = user.Claims.FirstOrDefault(claim => claim.Type == "email");
+            if (emailClaim is null)
+            {
+                emailClaim = user.Claims.FirstOrDefault(claim => claim.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+            }
+            if (emailClaim is null)
+            {
+                throw new SecurityTokenException("Idporten token does not contain the required pid or email claim");
+            }
+            return await CreateSubjectCategoryFromEmail(emailClaim, altinnRegisterService, cancellationToken);
+        }
+
+        private static XacmlJsonCategory CreateSubjectCategoryFromPid(Claim pidClaim)
         {
             XacmlJsonCategory subjectCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
             subjectCategory.Attribute.Add(
@@ -133,6 +155,24 @@ namespace Altinn.Correspondence.Integrations.Idporten
                     pidClaim.Value.WithoutPrefix(),
                     DefaultType,
                     pidClaim.Issuer));
+            return subjectCategory;
+        }
+
+        private static async Task<XacmlJsonCategory> CreateSubjectCategoryFromEmail(Claim emailClaim, IAltinnRegisterService altinnRegisterService, CancellationToken cancellationToken)
+        {
+            XacmlJsonCategory subjectCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
+            var emailUrn = emailClaim.Value.ToLowerInvariant().WithUrnPrefix();
+            var party = await altinnRegisterService.LookUpPartyById(emailUrn, cancellationToken);
+            if (party is not null && party.UserId is int userId && userId > 0)
+            {
+                subjectCategory.Attribute.Add(
+                    DecisionHelper.CreateXacmlJsonAttribute(
+                        UrnConstants.UserId,
+                        userId.ToString(CultureInfo.InvariantCulture),
+                        DefaultType,
+                        emailClaim.Issuer));
+                return subjectCategory;
+            }
 
             return subjectCategory;
         }

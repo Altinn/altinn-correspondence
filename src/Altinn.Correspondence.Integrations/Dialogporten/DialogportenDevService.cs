@@ -129,5 +129,15 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.FromResult(DialogPortenSystemLabel.Default);
         }
+
+        public Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task CreateDownloadStartedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

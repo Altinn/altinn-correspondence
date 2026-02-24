@@ -78,7 +78,7 @@ public class SlackExceptionNotificationHandler(
         var shouldNotify = retryCount == 3 || retryCount == 6 || retryCount == 10;
         if (!shouldNotify)
         {
-            logger.LogInformation("Skipping Slack notification for job {JobId} on retry {RetryCount} (only notifying on retries 3, 6, and 10)", jobId, retryCount);
+            logger.LogDebug("Skipping Slack notification for job {JobId} on retry {RetryCount} (only notifying on retries 3, 6, and 10)", jobId, retryCount);
             return true;
         }
         var exceptionMessage = FormatExceptionMessage(jobId, jobName, exception, retryCount);

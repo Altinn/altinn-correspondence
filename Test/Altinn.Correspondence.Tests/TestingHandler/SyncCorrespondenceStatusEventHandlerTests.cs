@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Common.Constants;
@@ -60,15 +61,20 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _backgroundJobClientMock.Object,
                 _dialogPortenServiceMock.Object,
                 _correspondenceRepositoryMock.Object);
+            var correspondenceEventHelper = new CorrespondenceMigrationEventHelper(
+                _correspondenceStatusRepositoryMock.Object,
+                _correspondenceDeleteEventRepositoryMock.Object,
+                new Mock<ICorrespondenceNotificationRepository>().Object,
+                new Mock<ICorrespondenceForwardingEventRepository>().Object,
+                _altinnRegisterServiceMock.Object,
+                _purgeHelper,
+                _backgroundJobClientMock.Object,
+                new Mock<ILogger<CorrespondenceMigrationEventHelper>>().Object);
             _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
 
             _handler = new SyncCorrespondenceStatusEventHandler(
                 _correspondenceRepositoryMock.Object,
-                _correspondenceStatusRepositoryMock.Object,
-                _correspondenceDeleteEventRepositoryMock.Object,
-                _altinnRegisterServiceMock.Object,
-                _purgeHelper,
-                _backgroundJobClientMock.Object,
+                correspondenceEventHelper,
                 _loggerMock.Object);
         }
 
@@ -110,6 +116,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Guid.NewGuid());
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -237,6 +246,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
 
@@ -431,6 +444,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Guid.NewGuid());
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -461,7 +477,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Available_ReadAndConfirmed_OK()
+        public async Task Available_ReadAndConfirmedByOtherUser_OK()
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
@@ -471,6 +487,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Build();
             var correspondenceId = correspondence.Id;
             var recipient = correspondence.Recipient;
+            Guid otherUserPartyUuid = Guid.NewGuid();
+            string otherUserSSN = "13018054321";
+            string otherUserPartyIdentifier = $"{UrnConstants.PersonIdAttribute}:{otherUserSSN}";
             DateTimeOffset readTime = DateTimeOffset.UtcNow;
             DateTimeOffset confirmedTime = DateTimeOffset.UtcNow;
             var request = new SyncCorrespondenceStatusEventRequest
@@ -482,13 +501,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Status = CorrespondenceStatus.Read,
                         StatusChanged = readTime,
-                        PartyUuid = _defaultUserPartyUuid
+                        PartyUuid = otherUserPartyUuid
                     },
                     new CorrespondenceStatusEntity
                     {
                         Status = CorrespondenceStatus.Confirmed,
                         StatusChanged = confirmedTime,
-                        PartyUuid = _defaultUserPartyUuid
+                        PartyUuid = otherUserPartyUuid
                     }
                 }
             };
@@ -500,6 +519,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Guid.NewGuid());
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(otherUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = otherUserPartyUuid, SSN = otherUserSSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -519,7 +541,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.Read &&
                     e.StatusChanged == readTime &&
-                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.PartyUuid == otherUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -528,7 +550,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     e.CorrespondenceId == correspondenceId &&
                     e.Status == CorrespondenceStatus.Confirmed &&
                     e.StatusChanged == confirmedTime &&
-                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.PartyUuid == otherUserPartyUuid &&
                     e.SyncedFromAltinn2 != null),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -538,9 +560,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondenceReceiverRead, recipient);
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondenceReceiverConfirmed, recipient);
             // Verify background jobs Dialogporten activities
-            VerifyDialogportenServiceCreateInformationActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed, recipient);
+            VerifyDialogportenServiceCreateConfirmedActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, otherUserPartyIdentifier);
             VerifyDialogportenServicePatchCorrespondenceDialogToConfirmedEnqueued(correspondenceId);
-            VerifyDialogportenServiceCreateOpenedActivityEnqueued(correspondenceId);
+            VerifyDialogportenServiceCreateOpenedActivityEnqueued(correspondenceId, otherUserPartyIdentifier);
           
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
@@ -1556,6 +1578,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var recipient = correspondence.Recipient;
             DateTimeOffset readTime = DateTimeOffset.UtcNow.AddSeconds(-30);
             DateTimeOffset confirmedTime = DateTimeOffset.UtcNow;
+
+            // urn:altinn:person:identifier-no:12018012345
             var request = new SyncCorrespondenceStatusEventRequest
             {
                 CorrespondenceId = correspondenceId,
@@ -1583,6 +1607,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceStatusRepositoryMock
                 .Setup(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Guid.NewGuid());
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1611,9 +1638,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondenceReceiverRead, recipient);
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondenceReceiverConfirmed, recipient);
             // Verify background jobs Dialogporten activities
-            VerifyDialogportenServiceCreateInformationActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, DialogportenTextType.CorrespondenceConfirmed, recipient);
             VerifyDialogportenServicePatchCorrespondenceDialogToConfirmedEnqueued(correspondenceId);
-            VerifyDialogportenServiceCreateOpenedActivityEnqueued(correspondenceId);
+            VerifyDialogportenServiceCreateConfirmedActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, _defaultUserPartyIdentifier);
+            VerifyDialogportenServiceCreateOpenedActivityEnqueued(correspondenceId, _defaultUserPartyIdentifier);
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
@@ -2117,17 +2144,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 It.Is<Job>(job => job.Method.Name == nameof(IStorageRepository.PurgeAttachment)), It.IsAny<EnqueuedState>()));
         }
 
-        private void VerifyDialogportenServiceCreateInformationActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType dpTextType, string recipient)
+        private void VerifyDialogportenServiceCreateConfirmedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string partyUrn)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType),
-                It.IsAny<IState>()));
-        }
-
-        private void VerifyDialogportenServiceCreateConfirmedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string recipient)
-        {
-            _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType),
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (string)job.Args[3] == partyUrn),
                 It.IsAny<IState>()));
         }
 
@@ -2186,10 +2206,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             }
         }
 
-        private void VerifyDialogportenServiceCreateOpenedActivityEnqueued(Guid correspondenceId)
+        private void VerifyDialogportenServiceCreateOpenedActivityEnqueued(Guid correspondenceId, string partyUrn)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateOpenedActivity) && (Guid)job.Args[0] == correspondenceId),
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateOpenedActivity) && (Guid)job.Args[0] == correspondenceId && (string)job.Args[3] == partyUrn),
                 It.IsAny<EnqueuedState>()));
         }
 

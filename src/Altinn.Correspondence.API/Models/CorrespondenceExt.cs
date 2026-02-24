@@ -31,8 +31,6 @@ public class CorrespondenceExt
 
     public required DateTimeOffset RequestedPublishTime { get; set; }
 
-    public DateTimeOffset? AllowSystemDeleteAfter { get; set; }
-
     public DateTimeOffset? DueDateTime { get; set; }
 
     public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();

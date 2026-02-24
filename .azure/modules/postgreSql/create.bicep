@@ -16,13 +16,14 @@ var poolSize = prodLikeEnvironment ? 100 : 25
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: '${namePrefix}-dbserver'
   location: location
+  tags: resourceGroup().tags
   properties: {
     version: '16'
     availabilityZone: environment == 'production' ? '2' : null
     storage: {
       storageSizeGB: environment == 'production' ? 8192 : prodLikeEnvironment ? 4096 : 32
       autoGrow: 'Enabled'
-      tier: prodLikeEnvironment ? 'P50' : 'P4'
+      tier: environment == 'production' ? 'P60' : prodLikeEnvironment ? 'P50' : 'P4'
     }
     backup: { backupRetentionDays: 35 }
     authConfig: {
@@ -30,14 +31,16 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
       passwordAuth: 'Disabled'
       tenantId: tenantId
     }
-    highAvailability: environment == 'production' ? {
-      mode: 'ZoneRedundant'
-      standbyAvailabilityZone: '1'
-    } : null
+    highAvailability: null
   }
-  sku: prodLikeEnvironment
+  sku: environment == 'production'
     ? {
-        name: 'Standard_D32ads_v5'
+        name: 'Standard_E16ads_v5'
+        tier: 'GeneralPurpose'
+      }
+    : prodLikeEnvironment 
+    ? {
+        name: 'Standard_E8ads_v5'
         tier: 'GeneralPurpose'
       }
     : {

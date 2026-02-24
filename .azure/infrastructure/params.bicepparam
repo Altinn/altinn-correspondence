@@ -15,3 +15,4 @@ param maintenanceAdGroupName = readEnvironmentVariable('MAINTENANCE_AD_GROUP_NAM
 param grafanaMonitoringPrincipalId = readEnvironmentVariable('GRAFANA_MONITORING_PRINCIPAL_ID')
 param backupImageTag = readEnvironmentVariable('BACKUP_IMAGE_TAG')
 
+param deploymentPrincipalId = readEnvironmentVariable('DEPLOYMENT_PRINCIPAL_ID')

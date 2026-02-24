@@ -60,6 +60,7 @@ runs:
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
+<<<<<<< feat/backupIaC
     - name: Resolve storage account SKU
       shell: bash
       run: |
@@ -102,6 +103,14 @@ runs:
         else
           echo "Container Apps environment not found yet, continuing."
         fi
+=======
+    - name: Get deployment service principal Object ID
+      id: get-sp-object-id
+      shell: bash
+      run: |
+        OBJECT_ID=$(az ad sp show --id ${{ inputs.AZURE_CLIENT_ID }} --query id -o tsv)
+        echo "objectId=$OBJECT_ID" >> $GITHUB_OUTPUT
+>>>>>>> main
         
     - name: Deploy to Azure
       uses: azure/arm-deploy@v2
@@ -119,7 +128,11 @@ runs:
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
+<<<<<<< feat/backupIaC
         BACKUP_IMAGE_TAG: ${{ steps.get-version.outputs.imageTag }}
+=======
+        DEPLOYMENT_PRINCIPAL_ID: ${{ steps.get-sp-object-id.outputs.objectId }}
+>>>>>>> main
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep

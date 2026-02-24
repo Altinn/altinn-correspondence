@@ -59,6 +59,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task UpdateIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken);
         Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default);
         Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, DateTimeOffset? cursorCreated, Guid? cursorId, DateTimeOffset? createdFrom, DateTimeOffset? createdTo, CancellationToken cancellationToken = default);
+        void ClearChangeTracker();
         Task<List<CorrespondenceEntity>> GetCorrespondencesWindowAfter(
             int limit,
             DateTimeOffset? lastCreated,
@@ -84,7 +85,7 @@ namespace Altinn.Correspondence.Core.Repositories
             List<CorrespondenceStatus> excludedCurrentStatuses,
             CancellationToken cancellationToken);
 
-        Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReferenceAndAllowSystemDeleteAfter(
+        Task<List<CorrespondenceEntity>> GetCorrespondencesByIdsWithExternalReference(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,
             CancellationToken cancellationToken);

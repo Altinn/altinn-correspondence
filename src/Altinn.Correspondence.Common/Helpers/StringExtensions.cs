@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Constants;
 using Markdig.Helpers;
 using System.Globalization;
 using System.Text;
@@ -136,15 +136,32 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Adds a prefix to the identifier if it is a organization number (9 digits) or social security number (11 digits).
+    /// Checks if the provided string is an idporten email URN format.
     /// </summary>
-    /// <param name="identifier">The organization number or social security number to add the prefix to.</param>
-    /// <returns>The organization number or social security number with the prefix.</returns>
-    /// <exception cref="ArgumentException">Thrown if the identifier is not a valid organization number or social security number.</exception>
+    /// <param name="identifier">The string to validate.</param>
+    /// <returns>True if the string starts with the idporten email URN prefix, false otherwise.</returns>
+    public static bool IsIdPortenEmailUrn(this string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return false;
+        }
+        return identifier.StartsWith($"{UrnConstants.PersonIdPortenEmailAttribute}", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Adds a prefix to the identifier if it is a organization number (9 digits), social security number (11 digits), email address, party ID, or party UUID.
+    /// </summary>
+    /// <param name="identifier">The organization number, social security number, email address, party ID, or party UUID to add the prefix to.</param>
+    /// <returns>The identifier with the appropriate prefix, or the original identifier if it already has a prefix.</returns>
+    /// <exception cref="ArgumentException">Thrown if the identifier is not a valid organization number, social security number, email address, party ID, or party UUID.</exception>
     public static string WithUrnPrefix(this string identifier)
     {
         if (identifier.StartsWith(UrnConstants.OrganizationNumberAttribute)
-                || identifier.StartsWith(UrnConstants.PersonIdAttribute))
+                || identifier.StartsWith(UrnConstants.PersonIdAttribute)
+                || identifier.StartsWith(UrnConstants.PersonIdPortenEmailAttribute)
+                || identifier.StartsWith(UrnConstants.Party)
+                || identifier.StartsWith(UrnConstants.PartyUuid))
         {
             return identifier;
         }
@@ -160,6 +177,30 @@ public static class StringExtensions
         {
             return $"{UrnConstants.Party}:{identifier.WithoutPrefix()}";
         }
-        throw new ArgumentException("Identifier is not a valid organization number or social security number", nameof(identifier));
+        else if (identifier.IsEmailAddress())
+        {
+            return $"{UrnConstants.PersonIdPortenEmailAttribute}:{identifier.WithoutPrefix()}";
+        }
+        else if (Guid.TryParse(identifier.WithoutPrefix(), out var uuid))
+        {
+            return $"{UrnConstants.PartyUuid}:{uuid}";
+        }
+        throw new ArgumentException("Identifier is not a valid organization number, social security number, email address, party ID, or party UUID", nameof(identifier));
+    }
+
+    /// <summary>
+    /// Checks if the provided string is a valid email address format.
+    /// </summary>
+    /// <param name="identifier">The string to validate.</param>
+    /// <returns>True if the string appears to be a valid email address, false otherwise.</returns>
+    public static bool IsEmailAddress(this string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return false;
+        }
+        // Simple email validation: contains @ and has characters before and after @
+        var atIndex = identifier.IndexOf('@');
+        return atIndex > 0 && atIndex < identifier.Length - 1 && identifier.IndexOf('@', atIndex + 1) == -1;
     }
 }
