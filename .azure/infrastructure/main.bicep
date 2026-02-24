@@ -72,7 +72,6 @@ module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerR
 // Create resources with dependencies to other resources
 // #####################################################
 
-<<<<<<< feat/backupIaC
 module storageAccount '../modules/storageAccount/create.bicep' = {
   scope: resourceGroup
   name: storageAccountName
@@ -83,9 +82,6 @@ module storageAccount '../modules/storageAccount/create.bicep' = {
     storageAccountSku: storageAccountSku
   }
 }
-=======
-
->>>>>>> main
 
 module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   scope: resourceGroup
