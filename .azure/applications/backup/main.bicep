@@ -167,6 +167,8 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     volumeMounts: volumeMounts
     principalId: backupIdentity.id
     replicaTimeout: 172800
+    triggerType: 'Schedule'
+    cronExpression: '0 13 * * *'
   }
 }
 
