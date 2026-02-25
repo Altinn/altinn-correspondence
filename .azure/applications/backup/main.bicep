@@ -166,7 +166,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     volumes: volumes
     volumeMounts: volumeMounts
     principalId: backupIdentity.id
-    replicaTimeout: 21600
+    replicaTimeout: 172800
   }
 }
 
