@@ -111,7 +111,7 @@ namespace Altinn.Correspondence.API.Auth
                 {
                     options.SignInScheme = AuthorizationConstants.AllSchemes;
                     options.ResponseMode = OpenIdConnectResponseMode.Query;
-                    options.Authority = idPortenSettings.Issuer;
+                    options.Authority = $"{altinnOptions.PlatformGatewayUrl}/authentication/api/v1/openid";
                     options.ClientId = idPortenSettings.ClientId;
                     options.ClientSecret = idPortenSettings.ClientSecret;
                     options.ResponseType = OpenIdConnectResponseType.Code;
@@ -122,8 +122,7 @@ namespace Altinn.Correspondence.API.Auth
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
                     options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
-                    options.SkipUnrecognizedRequests = true;
-                    options.ProtocolValidator.RequireNonce = false;                    
+                    options.SkipUnrecognizedRequests = true;                    
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
@@ -175,7 +174,7 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
+                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope, AuthorizationConstants.LegacyScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
                 options.AddPolicy(AuthorizationConstants.Maintenance, policy =>
