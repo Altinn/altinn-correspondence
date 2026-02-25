@@ -36,12 +36,12 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   sku: environment == 'production'
     ? {
         name: 'Standard_E16ads_v5'
-        tier: 'GeneralPurpose'
+        tier: 'MemoryOptimized'
       }
     : prodLikeEnvironment 
     ? {
         name: 'Standard_E8ads_v5'
-        tier: 'GeneralPurpose'
+        tier: 'MemoryOptimized'
       }
     : {
         name: 'Standard_B1ms'
