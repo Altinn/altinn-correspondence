@@ -145,7 +145,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<CorrespondenceEntity> GetCorrespondenceByAltinn2Id(int altinn2Id, CancellationToken cancellationToken)
         {
-            return await _context.Correspondences.SingleAsync(c => c.Altinn2CorrespondenceId == altinn2Id, cancellationToken);
+            return await _context.Correspondences
+                .AsNoTracking()
+                .Include(c => c.ExternalReferences)
+                .Include(c => c.Statuses)
+                .Include(c => c.Notifications)
+                .Include(c => c.ForwardingEvents)
+                .SingleAsync(c => c.Altinn2CorrespondenceId == altinn2Id, cancellationToken);
         }
 
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByAttachmentId(Guid attachmentId, bool includeStatus, CancellationToken cancellationToken = default)
@@ -216,6 +222,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
+        public void ClearChangeTracker()
+        {
+            var trackedCount = _context.ChangeTracker.Entries().Count();
+            var trackedTypes = _context.ChangeTracker.Entries()
+                .GroupBy(e => e.Entity.GetType().Name)
+                .Select(g => $"{g.Key}: {g.Count()}");
+
+            logger.LogInformation("Tracked entities before clear: {Count}. Types: {Types}",
+                trackedCount, string.Join(", ", trackedTypes));
+            _context.ChangeTracker.Clear();
+        }
+
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
         {
             var correspondences = recipientIds.Count == 1
@@ -260,7 +278,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var query = _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating)
                 .ExcludePurged()
-                .ExcludeSelfIdentifiedRecipients()
                 .AsQueryable();
 
             if (createdFrom.HasValue)

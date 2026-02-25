@@ -50,6 +50,10 @@ namespace Altinn.Correspondence.Integrations.Idporten
                         {
                             return minimumAuthLevel <= 2;
                         }
+                        else if (userAuthLevelClaim.Value == "selfregistered-email")
+                        {
+                            return minimumAuthLevel <= 0;
+                        }
                         else
                         {
                             return false;
@@ -131,6 +135,10 @@ namespace Altinn.Correspondence.Integrations.Idporten
                 return CreateSubjectCategoryFromPid(pidClaim);
             }
             var emailClaim = user.Claims.FirstOrDefault(claim => claim.Type == "email");
+            if (emailClaim is null)
+            {
+                emailClaim = user.Claims.FirstOrDefault(claim => claim.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+            }
             if (emailClaim is null)
             {
                 throw new SecurityTokenException("Idporten token does not contain the required pid or email claim");

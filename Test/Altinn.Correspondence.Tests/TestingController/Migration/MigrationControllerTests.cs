@@ -247,43 +247,6 @@ public class MigrationControllerTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task MakeCorrespondenceAvailable_SelfIdentfied_Rejected()
-    {
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .WithRecipient(_selfIdentifedPartyUuidUrn)
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 11, 10, 21))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 7, 15, 11, 56))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 8, 14, 19, 22))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 8, 14, 20, 5))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 9, 10, 50, 17))
-            .Build();
-        SetNotificationHistory(migrateCorrespondenceExt);
-
-        CorrespondenceMigrationStatusExt resultObj = await MigrateSingleCorrespondence(migrateCorrespondenceExt);
-        Assert.NotNull(resultObj);
-
-        MakeCorrespondenceAvailableRequestExt request = new MakeCorrespondenceAvailableRequestExt()
-        {
-            CreateEvents = false,
-            CorrespondenceIds = [resultObj.CorrespondenceId],
-            CorrespondenceId = resultObj.CorrespondenceId
-        };
-        var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, request);
-        Assert.True(makeAvailableResponse.IsSuccessStatusCode);
-        MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
-        Assert.NotNull(respExt);
-        Assert.NotNull(respExt.Statuses);
-        Assert.Equal(1, respExt.Statuses.Count);
-        Assert.Equal(resultObj.CorrespondenceId, respExt.Statuses.First().CorrespondenceId);
-        Assert.False(respExt.Statuses.First().Ok);
-
-        // Verify that correspondence still has IsMigrating set to true, which means we cannot retrieve it through GetOverview.
-        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
-        Assert.False(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
-    }
-
-    [Fact]
     public async Task MakeCorrespondenceAvailable_Defined()
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
@@ -403,33 +366,6 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
         CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
         Assert.NotNull(resultObj.DialogId);
-    }
-
-    [Fact]
-    public async Task MakeCorrespondenceAvailable_OnCall_SelfIdentified_NotMadeAvailable()
-    {
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 12, 14, 20, 11))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 12, 14, 21, 05))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 22, 09, 55, 20))
-            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
-            .WithRecipient(_selfIdentifedPartyUuidUrn)
-            .WithResourceId("skd-migratedcorrespondence-5229-1")
-            .Build();
-        SetNotificationHistory(migrateCorrespondenceExt);
-
-        migrateCorrespondenceExt.MakeAvailable = true;
-
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
-        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
-        CorrespondenceMigrationStatusExt resultObj = JsonConvert.DeserializeObject<CorrespondenceMigrationStatusExt>(result);
-        Assert.True(String.IsNullOrEmpty(resultObj.DialogId));
-
-        // Verify that correspondence has IsMigrating set to true, which means we cannot retrieve it through GetOverview.
-        var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{resultObj.CorrespondenceId}/content");
-        Assert.False(getCorrespondenceOverviewResponse.IsSuccessStatusCode);
     }
 
     [Fact]
@@ -645,6 +581,107 @@ public class MigrationControllerTests : MigrationTestBase
 
         var response = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
         Assert.False(response.IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task ReMigrateCorrespondence_AllDuplicate()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 7))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, new DateTime(2024, 1, 9))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 01, 04),false)
+            .WithForwardingEventHistory(new List<MigrateCorrespondenceForwardingEventExt>
+                {
+                    new MigrateCorrespondenceForwardingEventExt
+                    {
+                        // Example of Copy sent to own email address
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
+                        ForwardedByPartyUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C"),
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                        ForwardedToEmail = "user1@awesometestusers.com",
+                        ForwardingText = "Keep this as a backup in my email."
+                    }
+            })
+            .Build();
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+
+        // Re-migrate the same correspondence, which should be allowed and not create duplicates.
+        var initializeCorrespondenceResponse2 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        string result2 = await initializeCorrespondenceResponse2.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, result2);
+    }
+
+    [Fact]
+    public async Task ReMigrateCorrespondence_NewEvents()
+    {
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 7))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, new DateTime(2024, 1, 9))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 01, 04), false)
+            .WithForwardingEventHistory(new List<MigrateCorrespondenceForwardingEventExt>
+                {
+                    new MigrateCorrespondenceForwardingEventExt
+                    {
+                        // Example of Copy sent to own email address
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
+                        ForwardedByPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920"),
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C"),
+                        ForwardedToEmail = "user1@awesometestusers.com",
+                        ForwardingText = "Keep this as a backup in my email."
+                    }
+            })
+            .Build();
+
+        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+
+        MigrateCorrespondenceExt migrateCorrespondenceExt2 = migrateCorrespondenceExt;
+        migrateCorrespondenceExt2.EventHistory.Add(new MigrateCorrespondenceStatusEventExt
+        {
+            EventUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920"),
+            EventUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C"),
+            Status = MigrateCorrespondenceStatusExt.RestoredByRecipient,
+            StatusChanged = new DateTime(2024, 1, 10)
+        });
+        migrateCorrespondenceExt2.EventHistory.Add( new MigrateCorrespondenceStatusEventExt
+        {
+            EventUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920"),
+            EventUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C"),
+            Status = MigrateCorrespondenceStatusExt.Archived,
+            StatusChanged = new DateTime(2024, 1, 11)
+        });
+        migrateCorrespondenceExt2.NotificationHistory.Add(new MigrateCorrespondenceNotificationExt
+        {
+            Altinn2NotificationId = 2,
+            NotificationAddress = "testemail2@altinn.no",
+            NotificationChannel = NotificationChannelExt.Email,
+            NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 15)),
+            IsReminder = true
+        });
+        migrateCorrespondenceExt2.ForwardingHistory.Add(new MigrateCorrespondenceForwardingEventExt
+        {
+            // Example of Copy sent to own digital mailbox
+            ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0)),
+            ForwardedByPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920"),
+            ForwardedByUserId = 123,
+            ForwardedByUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C"),
+            MailboxSupplier = "urn:altinn:organization:identifier-no:123456789"
+        });
+
+        // Re-migrate the same correspondence, which should be allowed and create new events
+        var initializeCorrespondenceResponse2 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt2);
+        string result2 = await initializeCorrespondenceResponse2.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, result2);
     }
 
     private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)
