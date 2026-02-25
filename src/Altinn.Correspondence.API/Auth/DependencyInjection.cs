@@ -1,4 +1,4 @@
-﻿using Altinn.Common.PEP.Authorization;
+using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
@@ -21,8 +21,8 @@ namespace Altinn.Correspondence.API.Auth
         {
             var altinnOptions = new AltinnOptions();
             config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-            var idPortenSettings = new IdportenSettings();
-            config.GetSection(nameof(IdportenSettings)).Bind(idPortenSettings);
+            var altinnIdProviderSettings = new AltinnIdProviderSettings();
+            config.GetSection(nameof(AltinnIdProviderSettings)).Bind(altinnIdProviderSettings);
             var dialogportenSettings = new DialogportenSettings();
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
             var generalSettings = new GeneralSettings();
@@ -112,8 +112,8 @@ namespace Altinn.Correspondence.API.Auth
                     options.SignInScheme = AuthorizationConstants.AllSchemes;
                     options.ResponseMode = OpenIdConnectResponseMode.Query;
                     options.Authority = $"{altinnOptions.PlatformGatewayUrl}/authentication/api/v1/openid";
-                    options.ClientId = idPortenSettings.ClientId;
-                    options.ClientSecret = idPortenSettings.ClientSecret;
+                    options.ClientId = altinnIdProviderSettings.ClientId;
+                    options.ClientSecret = altinnIdProviderSettings.ClientSecret;
                     options.ResponseType = OpenIdConnectResponseType.Code;
                     options.UsePkce = true;
                     options.CallbackPath = "/correspondence/api/v1/idporten-callback";
