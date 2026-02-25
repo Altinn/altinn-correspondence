@@ -131,7 +131,7 @@ public class DownloadCorrespondenceAttachmentHandler(
                 request.CorrespondenceId,
                 DialogportenActorType.Recipient, 
                 DialogportenTextType.DownloadStarted,
-                caller,
+                party.ExternalUrn ?? caller,
                 operationTimestamp,
                 attachment.DisplayName ?? attachment.FileName,
                 request.AttachmentId.ToString()));
