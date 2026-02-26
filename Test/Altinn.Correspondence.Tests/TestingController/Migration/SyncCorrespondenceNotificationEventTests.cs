@@ -48,6 +48,14 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
                     NotificationSent = new DateTimeOffset(new DateTime(2024, 1, 8)),
                     Altinn2NotificationId = 2,
                     IsReminder = true
+                },
+                new MigrateCorrespondenceNotificationExt
+                {
+                    NotificationAddress = "90112233",
+                    NotificationChannel = NotificationChannelExt.Sms,
+                    NotificationSent = new DateTimeOffset(new DateTime(2024, 1, 15)),
+                    Altinn2NotificationId = 3,
+                    IsReminder = true
                 }
             }
         };

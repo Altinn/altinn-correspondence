@@ -1,9 +1,14 @@
+using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -15,6 +20,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceForwardingEventRepository> _forwardingEventRepositoryMock;
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
         private readonly Mock<ILogger<SyncCorrespondenceForwardingEventHandler>> _loggerMock;
+        private readonly Mock<ICorrespondenceStatusRepository> _correspondenceStatusRepositoryMock;
+        private readonly Mock<ICorrespondenceDeleteEventRepository> _correspondenceDeleteRepositoryMock;
+        private readonly Mock<ICorrespondenceNotificationRepository> _correspondenceNotificationRepositoryMock;
+        private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
+        private readonly Mock<IAttachmentRepository> _attachmentRepositoryMock;
+        private readonly Mock<IAttachmentStatusRepository> _attachmentStatusRepositoryMock;
+        private readonly Mock<IDialogportenService> _dialogportenServiceMock;
+        private readonly Mock<ILogger<CorrespondenceMigrationEventHelper>> _eventHelperLoggerMock;
         private readonly SyncCorrespondenceForwardingEventHandler _handler;
 
         public SyncCorrespondenceForwardingEventRequestTests()
@@ -23,11 +36,38 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _forwardingEventRepositoryMock = new Mock<ICorrespondenceForwardingEventRepository>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _loggerMock = new Mock<ILogger<SyncCorrespondenceForwardingEventHandler>>();
+            
+            // Setup mocks for CorrespondenceMigrationEventHelper dependencies
+            _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
+            _correspondenceDeleteRepositoryMock = new Mock<ICorrespondenceDeleteEventRepository>();
+            _correspondenceNotificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();
+            _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
+            _attachmentRepositoryMock = new Mock<IAttachmentRepository>();
+            _attachmentStatusRepositoryMock = new Mock<IAttachmentStatusRepository>();
+            _dialogportenServiceMock = new Mock<IDialogportenService>();
+            _eventHelperLoggerMock = new Mock<ILogger<CorrespondenceMigrationEventHelper>>();
+            
+            var purgeCorrespondenceHelper = new PurgeCorrespondenceHelper(
+                _attachmentRepositoryMock.Object,
+                _attachmentStatusRepositoryMock.Object,
+                _correspondenceStatusRepositoryMock.Object,
+                _backgroundJobClientMock.Object,
+                _dialogportenServiceMock.Object,
+                _correspondenceRepositoryMock.Object);
+
+            var correspondenceMigrationEventHelper = new CorrespondenceMigrationEventHelper(
+                _correspondenceStatusRepositoryMock.Object,
+                _correspondenceDeleteRepositoryMock.Object,
+                _correspondenceNotificationRepositoryMock.Object,
+                _forwardingEventRepositoryMock.Object,
+                _altinnRegisterServiceMock.Object,
+                purgeCorrespondenceHelper,
+                _backgroundJobClientMock.Object,
+                _eventHelperLoggerMock.Object);
 
             _handler = new SyncCorrespondenceForwardingEventHandler(
                 _correspondenceRepositoryMock.Object,
-                _forwardingEventRepositoryMock.Object,
-                _backgroundJobClientMock.Object,
+                correspondenceMigrationEventHelper,
                 _loggerMock.Object);
         }
 
@@ -89,8 +129,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(correspondence);
             // Mock forwarding event repository
             _forwardingEventRepositoryMock
-                .Setup(x => x.AddForwardingEvents(It.IsAny<List<CorrespondenceForwardingEventEntity>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((List<CorrespondenceForwardingEventEntity> events, CancellationToken _) => events);
+                .Setup(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -104,12 +144,177 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
            _forwardingEventRepositoryMock.Verify(
-                x => x.AddForwardingEvents(
-                    It.Is<List<CorrespondenceForwardingEventEntity>>(n => n.Count == 3),
-                    It.IsAny<CancellationToken>()),
-                Times.Once
+                x => x.AddForwardingEventForSync(
+                    It.Is<CorrespondenceForwardingEventEntity>(f => 
+                        f.ForwardedToEmailAddress == "user1@awesometestusers.com" &&
+                        f.ForwardingText == "Keep this as a backup in my email." &&
+                        f.ForwardedByPartyUuid == partyUuid &&
+                        f.ForwardedByUserId == 123 &&
+                        f.ForwardedByUserUuid == new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E")),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+            );
+            _forwardingEventRepositoryMock.Verify(
+                x => x.AddForwardingEventForSync(
+                    It.Is<CorrespondenceForwardingEventEntity>(f => 
+                        f.MailboxSupplier == "urn:altinn:organization:identifier-no:123456789" &&
+                        f.ForwardedByPartyUuid == partyUuid &&
+                        f.ForwardedByUserId == 123 &&
+                        f.ForwardedByUserUuid == new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E")),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+            );
+            _forwardingEventRepositoryMock.Verify(
+                x => x.AddForwardingEventForSync(
+                    It.Is<CorrespondenceForwardingEventEntity>(f => 
+                        f.ForwardedToUserId == 456 &&
+                        f.ForwardedToUserUuid == new Guid("1D5FD16E-2905-414A-AC97-844929975F17") &&
+                        f.ForwardingText == "User2, - look into this for me please. - User1." &&
+                        f.ForwardedToEmailAddress == "user2@awesometestusers.com" &&
+                        f.ForwardedByPartyUuid == partyUuid &&
+                        f.ForwardedByUserId == 123 &&
+                        f.ForwardedByUserUuid == new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E")),
+                It.IsAny<CancellationToken>()),
+            Times.Once
             );
             _forwardingEventRepositoryMock.VerifyNoOtherCalls();
+
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Process_Available_NewForwardingEvents_AddedOK_WithDPUpdate()
+        {
+            // Arrange            
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithIsMigrating(false) // Availabe in Altinn 3 APIs and Dialoporten
+                .WithDialogId("123")
+                .Build();
+            var correspondenceId = correspondence.Id;
+
+            DateTimeOffset fwdDate1 = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0));
+            Guid fwdId1 = Guid.NewGuid();
+            DateTimeOffset fwdDate2 = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0));
+            Guid fwdId2 = Guid.NewGuid();
+            DateTimeOffset fwdDate3 = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15, 0));
+            Guid fwdId3 = Guid.NewGuid();
+
+            var request = new SyncCorrespondenceForwardingEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceForwardingEventEntity>
+                {
+                    new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Copy sent to own email address
+                        ForwardedOnDate = fwdDate1,
+                        ForwardedByPartyUuid = partyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                        ForwardedToEmailAddress = "user1@awesometestusers.com",
+                        ForwardingText = "Keep this as a backup in my email."
+                    },
+                    new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Copy sent to own digital mailbox
+                        ForwardedOnDate = fwdDate2,
+                        ForwardedByPartyUuid = partyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                        MailboxSupplier = "urn:altinn:organization:identifier-no:123456789"
+                    },
+                    new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Instance Delegation by User 1 to User2
+                        ForwardedOnDate = fwdDate3,
+                        ForwardedByPartyUuid = partyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                        ForwardedToUserId = 456,
+                        ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
+                        ForwardingText = "User2, - look into this for me please. - User1.",
+                        ForwardedToEmailAddress  = "user2@awesometestusers.com"
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<CorrespondenceSyncType>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondence);
+            // Mock forwarding event repository
+            _forwardingEventRepositoryMock
+                .Setup(x => x.AddForwardingEventForSync(It.Is<CorrespondenceForwardingEventEntity>(f => f.ForwardedOnDate == fwdDate1), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(fwdId1);
+            _forwardingEventRepositoryMock
+                .Setup(x => x.AddForwardingEventForSync(It.Is<CorrespondenceForwardingEventEntity>(f => f.ForwardedOnDate == fwdDate2), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(fwdId2);
+            _forwardingEventRepositoryMock
+                .Setup(x => x.AddForwardingEventForSync(It.Is<CorrespondenceForwardingEventEntity>(f => f.ForwardedOnDate == fwdDate3), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(fwdId3);
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.ForwardingEvents, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            _forwardingEventRepositoryMock.Verify(
+                 x => x.AddForwardingEventForSync(
+                     It.Is<CorrespondenceForwardingEventEntity>(f =>
+                         f.ForwardedToEmailAddress == "user1@awesometestusers.com" &&
+                         f.ForwardingText == "Keep this as a backup in my email." &&
+                         f.ForwardedByPartyUuid == partyUuid &&
+                         f.ForwardedByUserId == 123 &&
+                         f.ForwardedByUserUuid == new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E")),
+                 It.IsAny<CancellationToken>()),
+             Times.Once
+             );
+            _forwardingEventRepositoryMock.Verify(
+                x => x.AddForwardingEventForSync(
+                    It.Is<CorrespondenceForwardingEventEntity>(f =>
+                        f.MailboxSupplier == "urn:altinn:organization:identifier-no:123456789" &&
+                        f.ForwardedByPartyUuid == partyUuid &&
+                        f.ForwardedByUserId == 123 &&
+                        f.ForwardedByUserUuid == new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E")),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+            );
+            _forwardingEventRepositoryMock.Verify(
+                x => x.AddForwardingEventForSync(
+                    It.Is<CorrespondenceForwardingEventEntity>(f =>
+                        f.ForwardedToUserId == 456 &&
+                        f.ForwardedToUserUuid == new Guid("1D5FD16E-2905-414A-AC97-844929975F17") &&
+                        f.ForwardingText == "User2, - look into this for me please. - User1." &&
+                        f.ForwardedToEmailAddress == "user2@awesometestusers.com" &&
+                        f.ForwardedByPartyUuid == partyUuid &&
+                        f.ForwardedByUserId == 123 &&
+                        f.ForwardedByUserUuid == new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E")),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+            );
+            _forwardingEventRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that BackgroundJobClient was called to update Dialogporten for the new forwarding events
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.AddForwardingEvent) && (Guid)job.Args[0] == fwdId1),
+                It.IsAny<EnqueuedState>()));
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.AddForwardingEvent) && (Guid)job.Args[0] == fwdId2),
+                It.IsAny<EnqueuedState>()));
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.AddForwardingEvent) && (Guid)job.Args[0] == fwdId3),
+                It.IsAny<EnqueuedState>()));
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -211,7 +416,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Verify correct calls to Correspondence repository
             _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.ForwardingEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
             _forwardingEventRepositoryMock.VerifyNoOtherCalls();
+
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -315,6 +523,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.ForwardingEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             _forwardingEventRepositoryMock.VerifyNoOtherCalls();
+
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
     }
-} 
+}

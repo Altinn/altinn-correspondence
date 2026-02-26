@@ -606,15 +606,32 @@ public class MigrationControllerTests : MigrationTestBase
                     }
             })
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
-        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+        // Initial migration of the correspondence
+        var initializeCorrespondenceResponse1 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        string initializeCorrespondenceResult1 = await initializeCorrespondenceResponse1.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse1.IsSuccessStatusCode, initializeCorrespondenceResult1);
+        var initializeCorrespondenceResponseObject1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        var correspondenceId = initializeCorrespondenceResponseObject1.CorrespondenceId;
 
-        // Re-migrate the same correspondence, which should be allowed and not create duplicates.
+        var getCorrespondenceDetailsResponse1 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse1.StatusCode);
+        var getCorrespondenceDetailsResponseObject1 = await getCorrespondenceDetailsResponse1.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+
+        // Re-migrate the same correspondence, which should be allowed and not create duplicates, but will not throw exceptions either
         var initializeCorrespondenceResponse2 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
-        string result2 = await initializeCorrespondenceResponse2.Content.ReadAsStringAsync();
-        Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, result2);
+        string initializeCorrespondenceResult2 = await initializeCorrespondenceResponse2.Content.ReadAsStringAsync();        
+        Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, initializeCorrespondenceResult2);
+        var resultObject2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+
+        var getCorrespondenceDetailsResponse2 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse2.StatusCode);
+        var getCorrespondenceDetailsResponseObject2 = await getCorrespondenceDetailsResponse2.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+
+        // Assert that details are the same and no duplicates are created        
+        Assert.Equal(getCorrespondenceDetailsResponseObject1.Notifications.Count, getCorrespondenceDetailsResponseObject2.Notifications.Count);
+        Assert.Equal(getCorrespondenceDetailsResponseObject1.StatusHistory.Where(x => x.Status != CorrespondenceStatusExt.Fetched).ToList().Count, getCorrespondenceDetailsResponseObject2.StatusHistory.Where(x => x.Status != CorrespondenceStatusExt.Fetched).ToList().Count);
     }
 
     [Fact]
@@ -640,17 +657,36 @@ public class MigrationControllerTests : MigrationTestBase
                     }
             })
             .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
 
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
-        string result = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-        Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, result);
+        // Initial migration of the correspondence
+        var initializeCorrespondenceResponse1 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        string initializeCorrespondenceResult1 = await initializeCorrespondenceResponse1.Content.ReadAsStringAsync();
+        Assert.True(initializeCorrespondenceResponse1.IsSuccessStatusCode, initializeCorrespondenceResult1);
+        var initializeCorrespondenceResponseObject1 = await initializeCorrespondenceResponse1.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        var correspondenceId = initializeCorrespondenceResponseObject1.CorrespondenceId;
 
-        MigrateCorrespondenceExt migrateCorrespondenceExt2 = migrateCorrespondenceExt;
+        var getCorrespondenceDetailsResponse1 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse1.StatusCode);
+        var getCorrespondenceDetailsResponseObject1 = await getCorrespondenceDetailsResponse1.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+
+        MigrateCorrespondenceExt migrateCorrespondenceExt2 = new MigrateCorrespondenceExt
+        {
+            CorrespondenceData = migrateCorrespondenceExt.CorrespondenceData,
+            Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
+            EventHistory = new List<MigrateCorrespondenceStatusEventExt>(migrateCorrespondenceExt.EventHistory),
+            NotificationHistory = new List<MigrateCorrespondenceNotificationExt>(migrateCorrespondenceExt.NotificationHistory),
+            ForwardingHistory = new List<MigrateCorrespondenceForwardingEventExt>(migrateCorrespondenceExt.ForwardingHistory),
+            IsMigrating = migrateCorrespondenceExt.IsMigrating,
+            Created = migrateCorrespondenceExt.Created,
+            PartyId = migrateCorrespondenceExt.PartyId,
+            MakeAvailable = migrateCorrespondenceExt.MakeAvailable
+        };
         migrateCorrespondenceExt2.EventHistory.Add(new MigrateCorrespondenceStatusEventExt
         {
             EventUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920"),
             EventUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C"),
-            Status = MigrateCorrespondenceStatusExt.RestoredByRecipient,
+            Status = MigrateCorrespondenceStatusExt.RestoredByRecipient, // will not be mapped to a status, but should still be created as a Delete event with the correct user and timestamp
             StatusChanged = new DateTime(2024, 1, 10)
         });
         migrateCorrespondenceExt2.EventHistory.Add( new MigrateCorrespondenceStatusEventExt
@@ -663,8 +699,8 @@ public class MigrationControllerTests : MigrationTestBase
         migrateCorrespondenceExt2.NotificationHistory.Add(new MigrateCorrespondenceNotificationExt
         {
             Altinn2NotificationId = 2,
-            NotificationAddress = "testemail2@altinn.no",
-            NotificationChannel = NotificationChannelExt.Email,
+            NotificationAddress = "+4799887766",
+            NotificationChannel = NotificationChannelExt.Sms,
             NotificationSent = new DateTimeOffset(new DateTime(2024, 01, 15)),
             IsReminder = true
         });
@@ -682,6 +718,16 @@ public class MigrationControllerTests : MigrationTestBase
         var initializeCorrespondenceResponse2 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt2);
         string result2 = await initializeCorrespondenceResponse2.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, result2);
+
+        var getCorrespondenceDetailsResponse2 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse2.StatusCode);
+        var getCorrespondenceDetailsResponseObject2 = await getCorrespondenceDetailsResponse2.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+
+        // Assert that new events were created and no duplicates are created
+        Assert.Equal(2, getCorrespondenceDetailsResponseObject2.Notifications.Count);
+        Assert.Equal(1, getCorrespondenceDetailsResponseObject2.Notifications.Where(x => x.NotificationChannel == NotificationChannelExt.Sms).ToList().Count);
+        Assert.Equal(5, getCorrespondenceDetailsResponseObject2.StatusHistory.Where(x => x.Status != CorrespondenceStatusExt.Fetched).ToList().Count);
+
     }
 
     private static void SetNotificationHistory(MigrateCorrespondenceExt migrateCorrespondenceExt)

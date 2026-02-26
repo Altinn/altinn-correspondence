@@ -1,15 +1,16 @@
-using System.Text.Json;
+using Altinn.Correspondence.Application.CheckNotificationDelivery;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Application.CheckNotificationDelivery;
+using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
-using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Application.Helpers;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Application.SendNotificationOrder;
 

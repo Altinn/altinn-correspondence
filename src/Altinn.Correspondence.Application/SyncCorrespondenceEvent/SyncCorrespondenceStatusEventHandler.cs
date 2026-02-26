@@ -53,6 +53,7 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
                 }
             }
 
+
             if (numSyncedDeletes > 0)
             {
                 deletionEventsToProcess = await correspondenceMigrationEventHelper.FilterDeleteEvents(request.CorrespondenceId, request.SyncedDeleteEvents, cancellationToken);
@@ -74,7 +75,7 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
                 correspondence,
                 statusEventsToProcess,
                 deletionEventsToProcess,
-                "sync",
+                MigrationOperationType.Sync,
                 cancellationToken);
 
             return request.CorrespondenceId;

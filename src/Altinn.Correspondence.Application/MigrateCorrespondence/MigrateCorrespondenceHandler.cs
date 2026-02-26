@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -119,7 +120,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                         request.DeleteEventEntities,
                         request.CorrespondenceEntity.Notifications,
                         request.CorrespondenceEntity.ForwardingEvents,
-                        "remigrate",
+                        MigrationOperationType.Remigrate,
                         cancellationToken);
 
                     if (eventsProcessed == 0)
