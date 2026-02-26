@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using Parquet.Serialization;
+using Altinn.Correspondence.Core.Models;
 
 namespace Altinn.Correspondence.Tests.TestingHandler;
 
@@ -47,9 +48,26 @@ public class GenerateDailySummaryReportHandlerTests
         var user = new ClaimsPrincipal();
         var request = new GenerateDailySummaryReportRequest { Altinn2Included = false };
         
-        var correspondences = CreateTestCorrespondences();
-        _mockCorrespondenceRepository.Setup(x => x.GetCorrespondencesForReport(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(correspondences);
+        var correspondenceDailySummaries = new List<DailySummaryDataDto>()
+        {
+            new DailySummaryDataDto()
+            {
+                AltinnVersion = Core.Models.Enums.AltinnVersion.Altinn3,
+                AttachmentStorageBytes = 0,
+                DatabaseStorageBytes = 0,
+                Date = DateTime.UtcNow.Date,
+                Day = (int)DateTime.UtcNow.DayOfWeek,
+                MessageCount = 1,
+                MessageSender = "",
+                Month = DateTime.UtcNow.Month,
+                RecipientType = Core.Models.Enums.RecipientType.Organization,
+                ResourceId = "test-resource",
+                ServiceOwnerId = "123456789",
+                ServiceOwnerName = "Test Service Owner",
+                Year = DateTime.UtcNow.Year
+            }
+        };
+        _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync(correspondenceDailySummaries);
 
         var serviceOwner = new ServiceOwnerEntity 
         { 

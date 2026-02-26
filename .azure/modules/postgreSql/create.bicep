@@ -19,7 +19,6 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   tags: resourceGroup().tags
   properties: {
     version: '16'
-    availabilityZone: environment == 'production' ? '2' : null
     storage: {
       storageSizeGB: environment == 'production' ? 8192 : prodLikeEnvironment ? 4096 : 32
       autoGrow: 'Enabled'
