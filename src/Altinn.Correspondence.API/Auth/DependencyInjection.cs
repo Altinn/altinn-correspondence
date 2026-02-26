@@ -111,7 +111,7 @@ namespace Altinn.Correspondence.API.Auth
                 {
                     options.SignInScheme = AuthorizationConstants.AllSchemes;
                     options.ResponseMode = OpenIdConnectResponseMode.Query;
-                    options.Authority = $"{altinnOptions.PlatformGatewayUrl}/authentication/api/v1/openid";
+                    options.Authority = $"{altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid";
                     options.ClientId = altinnIdProviderSettings.ClientId;
                     options.ClientSecret = altinnIdProviderSettings.ClientSecret;
                     options.ResponseType = OpenIdConnectResponseType.Code;
