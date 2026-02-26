@@ -540,9 +540,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var groupedData = await query
                 .GroupBy(c => new
                 {
-                    Date = c.Created.Date,
-                    ServiceOwnerId = c.Sender,
-                    MessageSender = c.MessageSender ?? "",
+                    c.Created.Date,
+                    c.ServiceOwnerId,
+                    c.MessageSender,
                     c.ResourceId,
                     c.RecipientType
                 })
