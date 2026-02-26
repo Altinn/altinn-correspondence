@@ -1,4 +1,4 @@
-﻿using Altinn.Common.PEP.Authorization;
+using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
@@ -21,8 +21,8 @@ namespace Altinn.Correspondence.API.Auth
         {
             var altinnOptions = new AltinnOptions();
             config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
-            var idPortenSettings = new IdportenSettings();
-            config.GetSection(nameof(IdportenSettings)).Bind(idPortenSettings);
+            var altinnIdProviderSettings = new AltinnIdProviderSettings();
+            config.GetSection(nameof(AltinnIdProviderSettings)).Bind(altinnIdProviderSettings);
             var dialogportenSettings = new DialogportenSettings();
             config.GetSection(nameof(DialogportenSettings)).Bind(dialogportenSettings);
             var generalSettings = new GeneralSettings();
@@ -111,9 +111,9 @@ namespace Altinn.Correspondence.API.Auth
                 {
                     options.SignInScheme = AuthorizationConstants.AllSchemes;
                     options.ResponseMode = OpenIdConnectResponseMode.Query;
-                    options.Authority = idPortenSettings.Issuer;
-                    options.ClientId = idPortenSettings.ClientId;
-                    options.ClientSecret = idPortenSettings.ClientSecret;
+                    options.Authority = $"{altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid";
+                    options.ClientId = altinnIdProviderSettings.ClientId;
+                    options.ClientSecret = altinnIdProviderSettings.ClientSecret;
                     options.ResponseType = OpenIdConnectResponseType.Code;
                     options.UsePkce = true;
                     options.CallbackPath = "/correspondence/api/v1/idporten-callback";
@@ -122,8 +122,7 @@ namespace Altinn.Correspondence.API.Auth
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
                     options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
-                    options.SkipUnrecognizedRequests = true;
-                    options.ProtocolValidator.RequireNonce = false;                    
+                    options.SkipUnrecognizedRequests = true;                    
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
@@ -175,7 +174,7 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
+                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope, AuthorizationConstants.LegacyScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
                 options.AddPolicy(AuthorizationConstants.Maintenance, policy =>

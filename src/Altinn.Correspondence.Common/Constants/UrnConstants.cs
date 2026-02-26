@@ -30,6 +30,10 @@ public static class UrnConstants
     /// </summary>
     public const string PersonIdPortenEmailAttribute = "urn:altinn:person:idporten-email";
     /// <summary>
+    /// xacml string that represents a legacy selfidentified person identifier (Altinn 2 username)
+    /// </summary>
+    public const string PersonLegacySelfIdentifiedAttribute = "urn:altinn:person:legacy-selfidentified";
+    /// <summary>
     /// xacml string that represents resource
     /// </summary>
     public const string Resource = "urn:altinn:resource";

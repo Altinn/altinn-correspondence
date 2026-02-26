@@ -11,5 +11,7 @@ public class Recipient
 
     public string? NationalIdentityNumber { get; set; }
 
+    public string? ExternalIdentity { get; set; }
+
     public bool? IsReserved { get; set; }
 }
