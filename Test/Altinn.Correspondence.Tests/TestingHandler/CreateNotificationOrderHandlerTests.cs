@@ -287,6 +287,34 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Equal(ignoreReservation, deserialized!.Recipient.RecipientPerson!.IgnoreReservation);
         }
 
+        [Theory]
+        [InlineData("urn:altinn:person:idporten-email:recipient@example.com")]
+        [InlineData("urn:altinn:person:legacy-selfidentified:legacy-user")]
+        public async Task Process_ShouldUseRecipientExternalIdentity_ForSelfidentifiedUrnRecipients(string correspondenceRecipient)
+        {
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, correspondence, _) = SetupOrderData(requestedPublishTime);
+            correspondence.Recipient = correspondenceRecipient;
+
+            CorrespondenceNotificationEntity? captured = null;
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured = n)
+                .ReturnsAsync(Guid.NewGuid());
+
+            await _handler.Process(request, CancellationToken.None);
+
+            Assert.NotNull(captured);
+            var deserialized = JsonSerializer.Deserialize<NotificationOrderRequestV2>(captured!.OrderRequest!);
+            Assert.NotNull(deserialized);
+            Assert.NotNull(deserialized!.Recipient.RecipientExternalIdentity);
+            Assert.Equal(correspondenceRecipient, deserialized.Recipient.RecipientExternalIdentity!.ExternalIdentity);
+            Assert.NotNull(deserialized.Recipient.RecipientExternalIdentity.ResourceId);
+            Assert.Null(deserialized.Recipient.RecipientEmail);
+            Assert.Null(deserialized.Recipient.RecipientOrganization);
+            Assert.Null(deserialized.Recipient.RecipientPerson);
+        }
+
         [Fact]
         public async Task Process_ShouldSkipPersist_WhenIdempotencyKeyExists()
         {

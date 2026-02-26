@@ -142,25 +142,24 @@ public class CreateNotificationOrderHandler(
         {
             string recipient = correspondence.Recipient;
             string recipientWithoutPrefix = recipient.WithoutPrefix();
+            bool isExternalIdentity =
+                recipient.StartsWith($"{UrnConstants.PersonIdPortenEmailAttribute}:", StringComparison.Ordinal)
+                || recipient.StartsWith($"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:", StringComparison.Ordinal);
+            bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
+            bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumberWithNoPrefix();
 
-            if (recipient.IsIdPortenEmailUrn())
+            if (!isExternalIdentity && !isOrganization && !isPerson)
             {
-                // Temporary: send notification directly to the email in the URN until the notification service supports idporten-email recipients
-                recipientsToProcess.Add(new Recipient
-                {
-                    EmailAddress = recipientWithoutPrefix
-                });
+                throw new InvalidOperationException($"Unsupported correspondence recipient format for notifications: {recipient}");
             }
-            else
+
+            recipientsToProcess.Add(new Recipient
             {
-                bool isOrganization = recipientWithoutPrefix.IsOrganizationNumber();
-                bool isPerson = recipientWithoutPrefix.IsSocialSecurityNumber();
-                recipientsToProcess.Add(new Recipient
-                {
-                    OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
-                    NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null
-                });
-            }
+                OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
+                NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null,
+                ExternalIdentity = isExternalIdentity ? recipient : null
+            });
+        
         }
         
         // Add custom recipients if they exist (in addition to default recipient when OverrideRegisteredContactInformation is false)
@@ -223,6 +222,7 @@ public class CreateNotificationOrderHandler(
     {
         if (!string.IsNullOrEmpty(recipient.OrganizationNumber)) return $"org:{recipient.OrganizationNumber}";
         if (!string.IsNullOrEmpty(recipient.NationalIdentityNumber)) return $"nin:{recipient.NationalIdentityNumber}";
+        if (!string.IsNullOrEmpty(recipient.ExternalIdentity)) return $"ext:{recipient.ExternalIdentity.ToLowerInvariant()}";
         if (!string.IsNullOrEmpty(recipient.EmailAddress)) return $"email:{recipient.EmailAddress.ToLowerInvariant()}";
         if (!string.IsNullOrEmpty(recipient.MobileNumber)) return $"sms:{recipient.MobileNumber}";
         throw new InvalidOperationException("Recipient must have exactly one identifier");
@@ -263,6 +263,20 @@ public class CreateNotificationOrderHandler(
                 RecipientOrganization = new RecipientOrganization
                 {
                     OrgNumber = recipient.OrganizationNumber,
+                    ResourceId = resourceIdWithPrefix,
+                    ChannelSchema = channel,
+                    EmailSettings = emailSettings,
+                    SmsSettings = smsSettings
+                }
+            };
+        }
+        else if (!string.IsNullOrEmpty(recipient.ExternalIdentity))
+        {
+            return new RecipientV2
+            {
+                RecipientExternalIdentity = new RecipientExternalIdentity
+                {
+                    ExternalIdentity = recipient.ExternalIdentity,
                     ResourceId = resourceIdWithPrefix,
                     ChannelSchema = channel,
                     EmailSettings = emailSettings,

@@ -32,6 +32,7 @@ namespace Altinn.Correspondence.Core.Models.Notifications
             var count = 0;
             if (recipient.RecipientOrganization != null) count++;
             if (recipient.RecipientPerson != null) count++;
+            if (recipient.RecipientExternalIdentity != null) count++;
             if (recipient.RecipientEmail != null) count++;
             if (recipient.RecipientSms != null) count++;
 
@@ -58,6 +59,9 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public RecipientPerson? RecipientPerson { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public RecipientExternalIdentity? RecipientExternalIdentity { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public RecipientEmail? RecipientEmail { get; set; }
@@ -93,6 +97,19 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IgnoreReservation { get; set; }
+    }
+
+    public class RecipientExternalIdentity
+    {
+        public string ResourceId { get; set; } = null!;
+
+        public string ExternalIdentity { get; set; } = null!;
+
+        public NotificationChannel ChannelSchema { get; set; }
+
+        public EmailSettings? EmailSettings { get; set; }
+
+        public SmsSettings? SmsSettings { get; set; }
     }
 
     public class RecipientEmail
