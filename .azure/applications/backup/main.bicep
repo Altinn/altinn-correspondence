@@ -168,7 +168,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
     principalId: backupIdentity.id
     replicaTimeout: 172800
     triggerType: 'Schedule'
-    cronExpression: '0 13 * * *'
+    cronExpression: '0 23 * * 5'
   }
 }
 
