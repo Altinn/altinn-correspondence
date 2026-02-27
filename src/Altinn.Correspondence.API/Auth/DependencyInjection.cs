@@ -123,7 +123,6 @@ namespace Altinn.Correspondence.API.Auth
                     options.Scope.Add("profile");
                     options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
                     options.SkipUnrecognizedRequests = true;
-                    options.ProtocolValidator.RequireNonce = true;
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>

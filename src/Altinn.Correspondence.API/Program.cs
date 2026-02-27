@@ -18,10 +18,12 @@ using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
 using Hangfire;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
+using StackExchange.Redis;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -136,6 +138,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.Configuration = generalSettings.RedisConnectionString;
         options.InstanceName = "redisCache";
     });
+    var dataProtectionRedisConnection = ConnectionMultiplexer.Connect(generalSettings.RedisConnectionString);
+    services.AddDataProtection()
+        .SetApplicationName("Altinn.Correspondence.API")
+        .PersistKeysToStackExchangeRedis(dataProtectionRedisConnection, "DataProtection-Keys");
 #pragma warning disable EXTEXP0018
     services.AddHybridCache(options => options.MaximumPayloadBytes = 1000 * 1000 * 10L);
 #pragma warning restore EXTEXP0018
