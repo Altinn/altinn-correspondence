@@ -29,6 +29,10 @@ inputs:
   AZURE_STORAGE_ACCOUNT_NAME:
     description: "Name of the storage account for migration files"
     required: true
+  STORAGE_ACCOUNT_SKU:
+    description: "Storage account SKU (e.g. Standard_ZRS)"
+    required: false
+    default: ""
   MAINTENANCE_AD_GROUP_ID:
     description: "AD Group principal id for the group that should have access"
     required: false
@@ -56,6 +60,48 @@ runs:
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
+    - name: Resolve storage account SKU
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -n "${{ inputs.STORAGE_ACCOUNT_SKU }}" ]; then
+          echo "STORAGE_ACCOUNT_SKU=${{ inputs.STORAGE_ACCOUNT_SKU }}" >> "$GITHUB_ENV"
+          exit 0
+        fi
+        RG="${{ inputs.AZURE_NAME_PREFIX }}-rg"
+        SA="${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}"
+        if az storage account show -g "$RG" -n "$SA" > /dev/null 2>&1; then
+          SKU=$(az storage account show -g "$RG" -n "$SA" --query sku.name -o tsv)
+          echo "STORAGE_ACCOUNT_SKU=$SKU" >> "$GITHUB_ENV"
+        else
+          echo "STORAGE_ACCOUNT_SKU=Standard_LRS" >> "$GITHUB_ENV"
+        fi
+
+    - name: Check Container Apps environment health
+      shell: bash
+      run: |
+        set -euo pipefail
+        RG="${{ inputs.AZURE_NAME_PREFIX }}-rg"
+        ENV_NAME="${{ inputs.AZURE_NAME_PREFIX }}-env"
+        if az resource show -g "$RG" -n "$ENV_NAME" --resource-type "Microsoft.App/managedEnvironments" > /dev/null 2>&1; then
+          for i in {1..20}; do
+            STATE=$(az resource show -g "$RG" -n "$ENV_NAME" --resource-type "Microsoft.App/managedEnvironments" --query "properties.provisioningState" -o tsv || true)
+            if [ "$STATE" = "Succeeded" ]; then
+              echo "Container Apps environment is ready: $ENV_NAME"
+              exit 0
+            fi
+            if [ -z "$STATE" ]; then
+              echo "Container Apps environment state unavailable. Retry $i/20..."
+            else
+              echo "Container Apps environment not ready (state=$STATE). Retry $i/20..."
+            fi
+            sleep 30
+          done
+          echo "Container Apps environment is not ready after retries: $ENV_NAME"
+          exit 1
+        else
+          echo "Container Apps environment not found yet, continuing."
+        fi
     - name: Get deployment service principal Object ID
       id: get-sp-object-id
       shell: bash
@@ -75,15 +121,16 @@ runs:
         NAME_PREFIX: ${{ inputs.AZURE_NAME_PREFIX }}
         KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
+        STORAGE_ACCOUNT_SKU: ${{ env.STORAGE_ACCOUNT_SKU }}
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
+        BACKUP_IMAGE_TAG: ${{ steps.get-version.outputs.imageTag }}
         DEPLOYMENT_PRINCIPAL_ID: ${{ steps.get-sp-object-id.outputs.objectId }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
         subscriptionId: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
-        deploymentMode: Incremental
         deploymentName: ${{ inputs.AZURE_NAME_PREFIX }}-${{ steps.get-version.outputs.imageTag }}
         region: ${{ inputs.region }}
         resourceGroupName: ${{ inputs.AZURE_NAME_PREFIX }}-rg

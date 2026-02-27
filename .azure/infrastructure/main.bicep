@@ -11,8 +11,13 @@ param environment string
 param namePrefix string
 @secure()
 param storageAccountName string
+param storageAccountSku string = 'Standard_LRS'
 @secure()
 param grafanaMonitoringPrincipalId string
+
+param backupImageTag string = 'latest'
+
+
 @secure()
 @description('Object ID (Principal ID) of the deployment service principal for storage account access')
 param deploymentPrincipalId string
@@ -67,7 +72,16 @@ module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerR
 // Create resources with dependencies to other resources
 // #####################################################
 
-
+module storageAccount '../modules/storageAccount/create.bicep' = {
+  scope: resourceGroup
+  name: storageAccountName
+  params: {
+    storageAccountName: storageAccountName
+    location: location
+    fileshare: 'migrations'
+    storageAccountSku: storageAccountSku
+  }
+}
 
 module containerAppEnv '../modules/containerAppEnvironment/main.bicep' = {
   scope: resourceGroup
@@ -125,16 +139,6 @@ module reddis '../modules/redis/main.bicep' = {
   }
 }
 
-module storageAccount '../modules/storageAccount/create.bicep' = {
-  scope: resourceGroup
-  name: storageAccountName
-  params: {
-    storageAccountName: storageAccountName
-    location: location
-    fileshare: 'migrations'
-  }
-}
-
 module grantDeploymentPrincipalStorageFileAccess '../modules/storageAccount/addFileDataPrivilegedContributorRole.bicep' = {
   scope: resourceGroup
   name: 'storage-file-privileged-contributor-deployment'
@@ -149,6 +153,18 @@ module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderR
   name: 'grafana-monitoring-reader'
   params: {
     grafanaPrincipalId: grafanaMonitoringPrincipalId
+  }
+}
+
+module backupJob '../applications/backup/main.bicep' = {
+  scope: resourceGroup
+  name: 'correspondence-backup-job'
+  params: {
+    namePrefix: namePrefix
+    location: location
+    tenantId: tenantId
+    storageAccountName: storageAccountName
+    backupImageTag: backupImageTag
   }
 }
 

@@ -3,6 +3,12 @@ name: Migrate database
 description: "Migrate the database to the version given by git ref"
 
 inputs:
+  region:
+    description: "Azure region to deploy to"
+    required: true
+  environment:
+    description: "Github environment to deploy from"
+    required: true
   AZURE_CLIENT_ID:
     description: "Client ID for the service principal"
     required: true

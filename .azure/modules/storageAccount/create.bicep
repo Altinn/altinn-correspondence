@@ -2,6 +2,7 @@
 param storageAccountName string
 param fileshare string
 param location string
+param storageAccountSku string = 'Standard_LRS'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: storageAccountName
@@ -9,12 +10,12 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   tags: resourceGroup().tags
   kind: 'StorageV2'
   sku: {
-    name: 'Standard_ZRS'
+    name: storageAccountSku
   }
   properties: {
     accessTier: 'Cool'
     minimumTlsVersion: 'TLS1_2'
-    allowSharedKeyAccess: false
+    allowSharedKeyAccess: true
   }
 }
 
