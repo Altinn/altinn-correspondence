@@ -41,7 +41,7 @@ jobs:
     
     - name: Checkout
       if: steps.check-enable.outputs.enabled == 'true'
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Run use case test (case_initialize_correspondence.js)
       id: usecase-test

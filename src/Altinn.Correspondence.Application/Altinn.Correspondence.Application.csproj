@@ -7,7 +7,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-      <PackageReference Include="Altinn.Authorization.ProblemDetails" Version="4.0.1" />
+      <PackageReference Include="Altinn.Authorization.ProblemDetails" Version="5.0.0" />
       <PackageReference Include="Hangfire.Core" Version="1.8.22" />
       <PackageReference Include="libphonenumber-csharp" Version="9.0.18" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
@@ -15,7 +15,7 @@
       <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
       <PackageReference Include="OneOf" Version="3.0.271" />
-      <PackageReference Include="Markdig" Version="0.43.0" />
+      <PackageReference Include="Markdig" Version="1.1.0" />
       <PackageReference Include="Polly" Version="8.6.4" />
       <PackageReference Include="ReverseMarkdown" Version="5.0.0" />
       <PackageReference Include="Slack.Webhooks" Version="1.1.5" />
