@@ -460,7 +460,7 @@ public class InitializeCorrespondencesHandler(
                 return createJobResult.AsT1;
             }
 
-            List<InitializedCorrespondencesNotifications>? notifications = new List<InitializedCorrespondencesNotifications>();
+            List<InitializedCorrespondencesNotifications>? notifications = null;
             if (request.Notification != null && !isReserved)
             {
                 notifications = new List<InitializedCorrespondencesNotifications>
