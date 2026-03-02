@@ -80,7 +80,10 @@ internal static class InitializeCorrespondencesMapper
                 {
                     OrderId = notification.OrderId,
                     IsReminder = notification.IsReminder,
-                    Status = (InitializedNotificationStatusExt)notification.Status
+                    Status = (InitializedNotificationStatusExt)notification.Status,
+                    NotificationChannels = new List<string> { notification.NotificationChannel.ToString() },
+                    NotificationTemplate = notification.NotificationTemplate,
+                    SendReminder = notification.SendReminder
                 }).ToList()
             }).ToList(),
             AttachmentIds = response.AttachmentIds
