@@ -1,4 +1,4 @@
-﻿namespace Altinn.Correspondence.API.Models.Enums
+namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
     /// Defines what kind of reference
@@ -38,5 +38,15 @@
         /// Specifies that the reference is a Dialogporten Transmission Type
         /// </summary>
         DialogportenTransmissionType = 6,
+
+        /// <summary>
+        /// Specifies that the reference is a Dialogporten Dialog Status
+        /// </summary>
+        DialogportenDialogStatus = 7,
+
+        /// <summary>
+        /// Specifies that the reference is a Dialogporten Dialog Extended Status
+        /// </summary>
+        DialogportenDialogExtendedStatus = 8,
     }
 }
