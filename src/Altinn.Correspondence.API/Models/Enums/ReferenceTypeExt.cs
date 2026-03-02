@@ -45,7 +45,8 @@ namespace Altinn.Correspondence.API.Models.Enums
         DialogportenDialogStatus = 7,
 
         /// <summary>
-        /// Specifies that the reference is a Dialogporten Dialog Extended Status
+        /// Specifies that the reference is a Dialogporten Dialog Extended Status.
+        /// The corresponding referenceValue must be 25 characters or fewer.
         /// </summary>
         DialogportenDialogExtendedStatus = 8,
     }
