@@ -561,7 +561,7 @@ public class InitializeCorrespondencesHandler(
 
             if (!string.IsNullOrEmpty(notificationJobId))
             {
-                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, cancellationToken));
+                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, CancellationToken.None));
             }
             else
             {
@@ -580,7 +580,7 @@ public class InitializeCorrespondencesHandler(
             {
                 if (!string.IsNullOrEmpty(notificationJobId))
                 {
-                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None));
                 }
                 else
                 {
@@ -597,7 +597,7 @@ public class InitializeCorrespondencesHandler(
         var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
         if (shouldScheduleDialogPatch)
         {
-            backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(transmissionJob, (handler) => handler.PatchDialogportenTransmissionDialogStatusAndExtendedStatus(correspondenceId, cancellationToken));
+            backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(transmissionJob, (handler) => handler.PatchDialogportenTransmissionDialogStatusAndExtendedStatus(correspondenceId, CancellationToken.None));
         }
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
