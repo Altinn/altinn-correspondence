@@ -28,8 +28,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
 
         public NotificationChannel? ReminderNotificationChannel { get; set; }
 
-        public DateTimeOffset? RequestedSendTime { get; set; }
-
         public List<Recipient>? CustomRecipients { get; set; }
 
         /// <summary>

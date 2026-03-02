@@ -34,7 +34,6 @@ internal static class InitializeCorrespondenceNotificationMapper
         {
             NotificationTemplate = templateCore,
             NotificationChannel = (NotificationChannel)correspondenceNotificationExt.NotificationChannel,
-            RequestedSendTime = correspondenceNotificationExt.RequestedSendTime ?? DateTimeOffset.UtcNow,
             Created = DateTimeOffset.UtcNow
         };
         return notification;
@@ -106,7 +105,6 @@ internal static class InitializeCorrespondenceNotificationMapper
         {
             NotificationTemplate = templateCore,
             NotificationChannel = (NotificationChannel)correspondenceNotificationExt.NotificationChannel,
-            RequestedSendTime = correspondenceNotificationExt.RequestedSendTime,
             EmailBody = correspondenceNotificationExt.EmailBody,
             EmailSubject = correspondenceNotificationExt.EmailSubject,
             EmailContentType = correspondenceNotificationExt.EmailContentType,
