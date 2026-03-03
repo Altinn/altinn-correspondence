@@ -103,10 +103,10 @@ public static class ServiceCollectionExtensions
         altinnAuthorizationService
             .Setup(x => x.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
                 It.IsAny<ClaimsPrincipal>(),
-                It.IsAny<string>(),
+                It.IsAny<Party>(),
                 It.IsAny<List<CorrespondenceEntity>>(),
                 It.IsAny<CancellationToken>()))
-            .Returns((ClaimsPrincipal? user, string ssn, List<CorrespondenceEntity> correspondences, CancellationToken token) =>
+            .Returns((ClaimsPrincipal? user, Party party, List<CorrespondenceEntity> correspondences, CancellationToken token) =>
             {
                 List<(string Recipient, string ResourceId)> recipientWithResources = correspondences
                     .Select(correspondence => (correspondence.Recipient, correspondence.ResourceId))
