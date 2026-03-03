@@ -20,21 +20,22 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<Guid> AddNotificationForSync(CorrespondenceNotificationEntity notification, CancellationToken cancellationToken)
         {
+            _context.CorrespondenceNotifications.Add(notification);
             try
             {
-                await _context.CorrespondenceNotifications.AddAsync(notification, cancellationToken);
                 await _context.SaveChangesAsync(cancellationToken);
                 return notification.Id;
             }
             catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
             {
+                // Just let duplicates fail silently in race conditions, the Empty GUID will be used by the caller to determine that the status was not added, and the log will contain the details of the existing status.
                 logger.LogInformation(
                     "Notification event already exists for correspondence {CorrespondenceId} during sync. Altinn2NotificationId: {Altinn2NotificationId}, NotificationSent: {NotificationSent}. Skipping duplicate.",
                     notification.CorrespondenceId,
                     notification.Altinn2NotificationId,
                     notification.NotificationSent);
-                
-                // Return empty Guid to indicate duplicate was skipped
+
+                _context.Entry(notification).State = EntityState.Detached;
                 return Guid.Empty;
             }
         }

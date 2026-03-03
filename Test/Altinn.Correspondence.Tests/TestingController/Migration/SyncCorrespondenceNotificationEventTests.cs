@@ -19,7 +19,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task SyncNotificationEvent_NewReminderNotificaiton_NewSaved()
+    public async Task SyncNotificationEvent_NewReminderNotifications_NewSaved()
     {
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
@@ -69,7 +69,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);      
         
-        Assert.Equal(2, getCorrespondenceDetails.Notifications.Count);
+        Assert.Equal(3, getCorrespondenceDetails.Notifications.Count);
         Assert.Contains(getCorrespondenceDetails.Notifications, n => n.IsReminder);
     }
 
@@ -116,6 +116,60 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
         Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
+
+    }
+
+    [Fact]
+    public async Task SyncNotificationEvent_OneExistingNotificationOneNew_NewSaved()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceNotificationEventRequestExt request = new SyncCorrespondenceNotificationEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceNotificationExt>
+        {
+            new MigrateCorrespondenceNotificationExt
+            {
+                NotificationAddress = "testemail@altinn.no",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 1, 7)),
+                Altinn2NotificationId = 1,
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt
+            {
+                NotificationAddress = "90112233",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(new DateTime(2024, 1, 8)),
+                Altinn2NotificationId = 2,
+                IsReminder = true
+            }
+        }
+        };
+
+        // Act
+        var response = await _migrationClient.PostAsJsonAsync(syncCorresponenceNotificationEventUrl, request);
+
+        // Assert
+        Assert.True(response.IsSuccessStatusCode, "Response was not successful with code (" + response.StatusCode + "): " + await response.Content.ReadAsStringAsync());
+
+        // Get updated details of the migrated correspondence
+        var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
+        Assert.Equal(2, getCorrespondenceDetails.Notifications.Count);
     }
 
     [Fact]

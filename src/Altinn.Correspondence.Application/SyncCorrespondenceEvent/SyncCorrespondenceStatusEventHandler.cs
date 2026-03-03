@@ -27,72 +27,60 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
             return request.CorrespondenceId;
         }
 
-        var txResult = await TransactionWithRetriesPolicy.Execute<OneOf<Guid, Error>>(async (cancellationToken) =>
+        var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
+            request.CorrespondenceId,
+            CorrespondenceSyncType.StatusEvents,
+            cancellationToken);
+
+        if (correspondence == null)
         {
-            // Fetch correspondence with fresh data within transaction
-            var correspondence = await correspondenceRepository.GetCorrespondenceByIdForSync(
-                request.CorrespondenceId,
-                CorrespondenceSyncType.StatusEvents,
-                cancellationToken);
+            logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
+            return CorrespondenceErrors.CorrespondenceNotFound;
+        }
 
-            if (correspondence == null)
+        var statusEventsToProcess = new List<CorrespondenceStatusEntity>();
+        var deletionEventsToProcess = new List<CorrespondenceDeleteEventEntity>();
+
+        if (numSyncedEvents > 0)
+        {
+            statusEventsToProcess = correspondenceMigrationEventHelper.FilterStatusEvents(request.CorrespondenceId, request.SyncedEvents, correspondence);
+            if (statusEventsToProcess.Count == 0)
             {
-                logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
-                return CorrespondenceErrors.CorrespondenceNotFound;
+                logger.LogWarning("None of the Status Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
             }
+        }
 
-            var statusEventsToProcess = new List<CorrespondenceStatusEntity>();
-            var deletionEventsToProcess = new List<CorrespondenceDeleteEventEntity>();
-
-            if (numSyncedEvents > 0)
+        if (numSyncedDeletes > 0)
+        {
+            deletionEventsToProcess = await correspondenceMigrationEventHelper.FilterDeleteEvents(request.CorrespondenceId, request.SyncedDeleteEvents, cancellationToken);
+            if (deletionEventsToProcess.Count == 0)
             {
-                statusEventsToProcess = correspondenceMigrationEventHelper.FilterStatusEvents(request.CorrespondenceId, request.SyncedEvents, correspondence);
-                if (statusEventsToProcess.Count == 0)
-                {
-                    logger.LogWarning("None of the Status Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
-                }
+                logger.LogWarning("None of the Delete Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
             }
+        }
 
-
-            if (numSyncedDeletes > 0)
-            {
-                deletionEventsToProcess = await correspondenceMigrationEventHelper.FilterDeleteEvents(request.CorrespondenceId, request.SyncedDeleteEvents, cancellationToken);
-                if (deletionEventsToProcess.Count == 0)
-                {
-                    logger.LogWarning("None of the Delete Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);
-                }
-            }
-
-            if (deletionEventsToProcess.Count == 0 && statusEventsToProcess.Count == 0)
-            {
-                logger.LogInformation("No unique Status or Delete Events to sync for Correspondence {CorrespondenceId}. Exiting sync process.", request.CorrespondenceId);
-                return request.CorrespondenceId;
-            }
-
-            // Process all events using the shared helper method
-            await correspondenceMigrationEventHelper.ProcessEventsInChronologicalOrder(
-                request.CorrespondenceId,
-                correspondence,
-                statusEventsToProcess,
-                deletionEventsToProcess,
-                MigrationOperationType.Sync,
-                cancellationToken);
-
+        if (deletionEventsToProcess.Count == 0 && statusEventsToProcess.Count == 0)
+        {
+            logger.LogInformation("No unique Status or Delete Events to sync for Correspondence {CorrespondenceId}. Exiting sync process.", request.CorrespondenceId);
             return request.CorrespondenceId;
-        }, logger, cancellationToken);
+        }
 
-        return txResult.Match<OneOf<Guid, Error>>(
-            success => 
-            {
-                logger.LogInformation("Successfully synced request for correspondence {CorrespondenceId} with {numSyncedEvents} status events and {numSyncedDeletes} delete events", 
-                    request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
-                return success;
-            },
-            error => 
-            {
-                logger.LogWarning("Failed to sync request for correspondence {CorrespondenceId}: {Error}", 
-                    request.CorrespondenceId, error);
-                return error;
-            });
+        // Process all events using the shared helper method
+        // Note: We don't use TransactionWithRetriesPolicy here because:
+        // 1. Each event save is already atomic via EF Core's implicit transaction
+        // 2. TransactionScope causes "operation in progress" errors with PostgreSQL
+        // 3. Partial success is acceptable for sync operations (events processed independently)
+        await correspondenceMigrationEventHelper.ProcessEventsInChronologicalOrder(
+            request.CorrespondenceId,
+            correspondence,
+            statusEventsToProcess,
+            deletionEventsToProcess,
+            MigrationOperationType.Sync,
+            cancellationToken);
+
+        logger.LogInformation("Successfully synced request for correspondence {CorrespondenceId} with {numSyncedEvents} status events and {numSyncedDeletes} delete events", 
+            request.CorrespondenceId, numSyncedEvents, numSyncedDeletes);
+
+        return request.CorrespondenceId;
     }
 }

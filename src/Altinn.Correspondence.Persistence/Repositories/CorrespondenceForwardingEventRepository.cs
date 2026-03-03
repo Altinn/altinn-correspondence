@@ -12,9 +12,10 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
 
     public async Task<Guid> AddForwardingEventForSync(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
     {
+        _context.CorrespondenceForwardingEvents.Add(forwardingEvent);
+
         try
-        {
-            await _context.CorrespondenceForwardingEvents.AddAsync(forwardingEvent, cancellationToken);
+        {            
             await _context.SaveChangesAsync(cancellationToken);
             return forwardingEvent.Id;
         }
@@ -26,6 +27,9 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
                 forwardingEvent.ForwardedOnDate,
                 forwardingEvent.ForwardedByPartyUuid);
 
+            // Just let duplicates fail silently in race conditions
+            _context.Entry(forwardingEvent).State = EntityState.Detached;
+            
             // Return empty ID to indicate duplicate
             return Guid.Empty;
         }

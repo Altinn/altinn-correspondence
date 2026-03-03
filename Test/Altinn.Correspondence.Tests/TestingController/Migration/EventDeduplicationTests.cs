@@ -13,13 +13,13 @@ using System.Net.Http.Json;
 namespace Altinn.Correspondence.Tests.TestingController.Migration;
 
 /// <summary>
-/// Integration tests that verify the database-level deduplication mechanisms.
+/// Integration tests that verify the database-level deduplication mechanisms for sync and re-migration scenarios.
 /// These tests exercise the unique indexes created by the AddUniqueIndexesForEventDeduplication migration.
 /// </summary>
 [Collection(nameof(CustomWebApplicationTestsCollection))]
-public class EventDeduplicationTests : MigrationTestBase
+public class SyncEventDeduplicationTests : MigrationTestBase
 {
-    public EventDeduplicationTests(CustomWebApplicationFactory factory) : base(factory)
+    public SyncEventDeduplicationTests(CustomWebApplicationFactory factory) : base(factory)
     {
     }
 

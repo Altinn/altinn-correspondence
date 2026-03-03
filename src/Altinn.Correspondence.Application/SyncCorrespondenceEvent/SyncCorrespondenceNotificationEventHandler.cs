@@ -38,14 +38,15 @@ public class SyncCorrespondenceNotificationEventHandler(
         }
 
         // Use common helper method to process and save notification events
-        await TransactionWithRetriesPolicy.Execute((cancellationToken) =>
-        {
-            return correspondenceMigrationEventHelper.ProcessNotificationEvents(
+        // Process, save, and enqueue background jobs for forwarding events
+        // Note: We don't use TransactionWithRetriesPolicy here because AddRangeAsync + SaveChangesAsync 
+        // within a TransactionScope causes "operation in progress" errors with PostgreSQL.
+        // EF Core's SaveChangesAsync() already provides transactional guarantees.
+        await correspondenceMigrationEventHelper.ProcessNotificationEvents(
                 request.CorrespondenceId,
                 notificationsToExecute,
                 MigrationOperationType.Sync,
                 cancellationToken);
-        }, logger, cancellationToken);
 
         return request.CorrespondenceId;
     }

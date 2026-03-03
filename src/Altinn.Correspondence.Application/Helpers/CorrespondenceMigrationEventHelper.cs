@@ -551,16 +551,11 @@ public class CorrespondenceMigrationEventHelper(
 
         foreach (var syncedEvent in syncedEvents)
         {
+            // Check for duplicates based on the database unique constraint: CorrespondenceId, ForwardedOnDate, ForwardedByPartyUuid
             bool isDuplicate = (correspondence.ForwardingEvents ?? Enumerable.Empty<CorrespondenceForwardingEventEntity>())
                 .Any(fe =>
                     fe.ForwardedOnDate.EqualsToSecond(syncedEvent.ForwardedOnDate)
-                    && fe.ForwardedByPartyUuid == syncedEvent.ForwardedByPartyUuid
-                    && fe.ForwardedByUserUuid == syncedEvent.ForwardedByUserUuid
-                    && fe.ForwardedToUserId == syncedEvent.ForwardedToUserId
-                    && fe.ForwardedToUserUuid == syncedEvent.ForwardedToUserUuid
-                    && fe.ForwardedToEmailAddress == syncedEvent.ForwardedToEmailAddress
-                    && fe.ForwardingText == syncedEvent.ForwardingText
-                    && fe.MailboxSupplier == syncedEvent.MailboxSupplier);
+                    && fe.ForwardedByPartyUuid == syncedEvent.ForwardedByPartyUuid);
 
             if (isDuplicate)
             {

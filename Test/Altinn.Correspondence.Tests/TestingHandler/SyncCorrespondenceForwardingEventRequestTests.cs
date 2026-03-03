@@ -423,6 +423,117 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
+        public async Task Process_OneDuplicateForwardingEventTwoNew_NewAdded()
+        {
+            // Arrange            
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithIsMigrating(true) // Not available in Altinn 3 APIs
+                .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>() { new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Copy sent to own email address
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
+                        ForwardedByPartyUuid = partyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                        ForwardedToEmailAddress = "user1@awesometestusers.com",
+                        ForwardingText = "Keep this as a backup in my email."
+                    }
+                })
+                .Build();
+            var correspondenceId = correspondence.Id;
+
+            var request = new SyncCorrespondenceForwardingEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = new List<CorrespondenceForwardingEventEntity>
+                {
+                    new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Copy sent to own email address
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
+                        ForwardedByPartyUuid = partyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                        ForwardedToEmailAddress = "user1@awesometestusers.com",
+                        ForwardingText = "Keep this as a backup in my email."
+                    },
+                    new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Copy sent to own digital mailbox
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0)),
+                        ForwardedByPartyUuid = partyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                        MailboxSupplier = "urn:altinn:organization:identifier-no:123456789"
+                    },
+                    new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Instance Delegation by User 1 to User2
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15, 0)),
+                        ForwardedByPartyUuid = partyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                        ForwardedToUserId = 456,
+                        ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
+                        ForwardingText = "User2, - look into this for me please. - User1.",
+                        ForwardedToEmailAddress  = "user2@awesometestusers.com"
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, It.IsAny<CorrespondenceSyncType>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondence);
+
+            _forwardingEventRepositoryMock
+                .Setup(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.ForwardingEvents, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            _forwardingEventRepositoryMock.Verify(
+                x => x.AddForwardingEventForSync(
+                    It.Is<CorrespondenceForwardingEventEntity>(f =>
+                        f.MailboxSupplier == "urn:altinn:organization:identifier-no:123456789" &&
+                        f.ForwardedByPartyUuid == partyUuid &&
+                        f.ForwardedByUserId == 123 &&
+                        f.ForwardedByUserUuid == new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E")),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+            );
+            _forwardingEventRepositoryMock.Verify(
+                x => x.AddForwardingEventForSync(
+                    It.Is<CorrespondenceForwardingEventEntity>(f =>
+                        f.ForwardedToUserId == 456 &&
+                        f.ForwardedToUserUuid == new Guid("1D5FD16E-2905-414A-AC97-844929975F17") &&
+                        f.ForwardingText == "User2, - look into this for me please. - User1." &&
+                        f.ForwardedToEmailAddress == "user2@awesometestusers.com" &&
+                        f.ForwardedByPartyUuid == partyUuid &&
+                        f.ForwardedByUserId == 123 &&
+                        f.ForwardedByUserUuid == new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E")),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+            );
+            _forwardingEventRepositoryMock.VerifyNoOtherCalls();
+
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task Process_DuplicateForwardingEvents_RealWorld_NoneAdded()
         {
             // Arrange            

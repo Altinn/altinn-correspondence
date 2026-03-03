@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -9,9 +8,9 @@ using System.Security.Claims;
 namespace Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 
 public class SyncCorrespondenceForwardingEventHandler(
-    ICorrespondenceRepository correspondenceRepository,
-    CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
-    ILogger<SyncCorrespondenceForwardingEventHandler> logger) : IHandler<SyncCorrespondenceForwardingEventRequest, Guid>
+ICorrespondenceRepository correspondenceRepository,
+CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
+ILogger<SyncCorrespondenceForwardingEventHandler> logger) : IHandler<SyncCorrespondenceForwardingEventRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(SyncCorrespondenceForwardingEventRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -38,16 +37,16 @@ public class SyncCorrespondenceForwardingEventHandler(
             return request.CorrespondenceId;
         }
 
-        // Use common helper method to process, save, and enqueue background jobs for forwarding events
-        await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
-        {
-            return correspondenceMigrationEventHelper.ProcessForwardingEvents(
-                request.CorrespondenceId,
-                correspondence,
-                forwardingEventsToExecute,
-                MigrationOperationType.Sync,
-                cancellationToken);
-        }, logger, cancellationToken);
+        // Process, save, and enqueue background jobs for forwarding events
+        // Note: We don't use TransactionWithRetriesPolicy here because AddRangeAsync + SaveChangesAsync 
+        // within a TransactionScope causes "operation in progress" errors with PostgreSQL.
+        // EF Core's SaveChangesAsync() already provides transactional guarantees.
+        await correspondenceMigrationEventHelper.ProcessForwardingEvents(
+            request.CorrespondenceId,
+            correspondence,
+            forwardingEventsToExecute,
+            MigrationOperationType.Sync,
+            cancellationToken);
 
         return request.CorrespondenceId;
     }

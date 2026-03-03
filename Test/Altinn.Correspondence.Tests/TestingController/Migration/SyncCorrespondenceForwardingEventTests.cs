@@ -186,6 +186,86 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
     }
 
     [Fact]
+    public async Task SyncForwardingEvent_NewForwardingEvents_OneDuplicateTwoNew_NewSaved()
+    {
+        // Arrange
+        Guid delegatedUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
+
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithForwardingEventHistory(new List<MigrateCorrespondenceForwardingEventExt>
+                {
+                    new MigrateCorrespondenceForwardingEventExt
+                    {
+                       // Example of Copy sent to own email address
+                       ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,0 ,0)),
+                       ForwardedByPartyUuid = delegatedUserPartyUuid,
+                       ForwardedByUserId = 123,
+                       ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                       ForwardedToEmail = "user1@awesometestusers.com",
+                       ForwardingText = "Keep this as a backup in my email."
+                    }
+                })
+            .Build();
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange sync call
+        SyncCorrespondenceForwardingEventRequestExt request = new SyncCorrespondenceForwardingEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceForwardingEventExt>
+            {
+                new MigrateCorrespondenceForwardingEventExt
+                {
+                   // Example of Copy sent to own email address
+                   ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,0 ,0)),
+                   ForwardedByPartyUuid = delegatedUserPartyUuid,
+                   ForwardedByUserId = 123,
+                   ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                   ForwardedToEmail = "user1@awesometestusers.com",
+                   ForwardingText = "Keep this as a backup in my email."
+                },
+                new MigrateCorrespondenceForwardingEventExt
+                {
+                   // Example of Copy sent to own digital mailbox
+                   ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,5 ,0)),
+                   ForwardedByPartyUuid = delegatedUserPartyUuid,
+                   ForwardedByUserId = 123,
+                   ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                   MailboxSupplier = "urn:altinn:organization:identifier-no:123456789"
+                },
+                new MigrateCorrespondenceForwardingEventExt
+                {
+                   // Example of Instance Delegation by User 1 to User2
+                   ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15 ,0)),
+                   ForwardedByPartyUuid = delegatedUserPartyUuid,
+                   ForwardedByUserId = 123,
+                   ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                   ForwardedToUserId = 456,
+                   ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
+                   ForwardingText = "User2, - look into this for me please. - User1.",
+                   ForwardedToEmail = "user2@awesometestusers.com"
+                }
+            }
+        };
+
+        // Act
+        var response = await _migrationClient.PostAsJsonAsync(syncCorrespondenceForwardingEventUrl, request);
+
+        // Assert
+        Assert.True(response.IsSuccessStatusCode);
+
+        // Get updated details of the migrated correspondence and check that forwarding events are saved
+        List<LegacyCorrespondenceHistoryExt>? legacyHistoryResponseContent = await GetLegacyHistory(correspondenceId, response);
+        var forwardingEvents = legacyHistoryResponseContent.Where(h => h.ForwardingEvent != null).ToList();
+        Assert.Equal(3, forwardingEvents.Count);
+    }
+
+    [Fact]
     public async Task SyncForwardingEvent_NoEventsSpecified_HttpBadRequest()
     {
         // Arrange
