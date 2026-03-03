@@ -118,21 +118,50 @@ public class CorrespondenceMigrationEventHelper(
     public async Task<bool> ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         logger.LogDebug("Process {OperationName} delete event {EventType} for {CorrespondenceId}", operationName, deletionEvent.EventType, correspondenceId);
-        switch (deletionEvent.EventType)
+        
+        using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
         {
-            case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
-            case CorrespondenceDeleteEventType.HardDeletedByRecipient:
-                if (ValidatePerformPurge(correspondence))
-                {
-                    return await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken);
-                }
-                return false;
-            case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
-            case CorrespondenceDeleteEventType.RestoredByRecipient:
-                return await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken);
-            default:
-                logger.LogWarning("Unknown Deletion Event Type {EventType} for Correspondence {CorrespondenceId}. The event will be ignored.", deletionEvent.EventType, correspondenceId);
-                return false;
+            IsolationLevel = IsolationLevel.ReadCommitted,
+            Timeout = TimeSpan.FromSeconds(30)
+        }, TransactionScopeAsyncFlowOption.Enabled);
+        
+        try
+        {
+            bool result;
+            switch (deletionEvent.EventType)
+            {
+                case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
+                case CorrespondenceDeleteEventType.HardDeletedByRecipient:
+                    if (ValidatePerformPurge(correspondence))
+                    {
+                        result = await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken);
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                    break;
+                case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
+                case CorrespondenceDeleteEventType.RestoredByRecipient:
+                    result = await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken);
+                    break;
+                default:
+                    logger.LogWarning("Unknown Deletion Event Type {EventType} for Correspondence {CorrespondenceId}. The event will be ignored.", deletionEvent.EventType, correspondenceId);
+                    return false;
+            }
+            
+            if (result)
+            {
+                transaction.Complete();
+            }
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to process {OperationName} delete event {EventType} for correspondence {CorrespondenceId}. Transaction will be rolled back.",
+                operationName, deletionEvent.EventType, correspondenceId);
+            throw;
         }
     }
 
@@ -604,21 +633,39 @@ public class CorrespondenceMigrationEventHelper(
             logger.LogInformation("Processing {OperationName} notification event for correspondence {CorrespondenceId} at {NotificationSent}",
                 operationName, correspondenceId, notification.NotificationSent);
 
-            notification.CorrespondenceId = correspondenceId;
-            notification.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
-            notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-            
-            var savedId = await correspondenceNotificationRepository.AddNotificationForSync(notification, cancellationToken);
-            
-            // Check if notification was actually saved (not a duplicate)
-            if (savedId != Guid.Empty)
+            // Wrap each notification save in its own transaction
+            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
             {
-                savedCount++;
-                logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30)
+            }, TransactionScopeAsyncFlowOption.Enabled);
+            
+            try
+            {
+                notification.CorrespondenceId = correspondenceId;
+                notification.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
+                notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
+                
+                var savedId = await correspondenceNotificationRepository.AddNotificationForSync(notification, cancellationToken);
+                
+                // Check if notification was actually saved (not a duplicate)
+                if (savedId != Guid.Empty)
+                {
+                    savedCount++;
+                    logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+                    transaction.Complete();
+                }
+                else
+                {
+                    logger.LogDebug("Notification event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
+                    // No transaction.Complete() - rollback (though nothing was saved)
+                }
             }
-            else
+            catch (Exception ex)
             {
-                logger.LogDebug("Notification event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
+                logger.LogError(ex, "Failed to process {OperationName} notification event for correspondence {CorrespondenceId}. Transaction will be rolled back.",
+                    operationName, correspondenceId);
+                throw;
             }
         }
 
@@ -642,27 +689,46 @@ public class CorrespondenceMigrationEventHelper(
             logger.LogInformation("Processing {OperationName} forwarding event for correspondence {CorrespondenceId} at {ForwardedOnDate}",
                 operationName, correspondenceId, forwardingEvent.ForwardedOnDate);
 
-            forwardingEvent.CorrespondenceId = correspondenceId;
-            forwardingEvent.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
-            forwardingEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-            
-            var savedId = await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, cancellationToken);
-            
-            // Check if forwarding event was actually saved (not a duplicate)
-            if (savedId != Guid.Empty)
+            // Wrap each forwarding event save and job enqueue in its own transaction
+            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
             {
-                savedCount++;
-                logger.LogDebug("Added new forwarding event {ForwardingEventId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30)
+            }, TransactionScopeAsyncFlowOption.Enabled);
+            
+            try
+            {
+                forwardingEvent.CorrespondenceId = correspondenceId;
+                forwardingEvent.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
+                forwardingEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
                 
-                // Enqueue Dialogporten background job only if not in migration mode
-                if (correspondence.IsMigrating == false)
+                var savedId = await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, cancellationToken);
+                
+                // Check if forwarding event was actually saved (not a duplicate)
+                if (savedId != Guid.Empty)
                 {
-                    backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(savedId, CancellationToken.None));
+                    savedCount++;
+                    logger.LogDebug("Added new forwarding event {ForwardingEventId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+                    
+                    // Enqueue Dialogporten background job only if not in migration mode
+                    if (correspondence.IsMigrating == false)
+                    {
+                        backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(savedId, CancellationToken.None));
+                    }
+                    
+                    transaction.Complete();
+                }
+                else
+                {
+                    logger.LogDebug("Forwarding event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
+                    // No transaction.Complete() - rollback (though nothing was saved)
                 }
             }
-            else
+            catch (Exception ex)
             {
-                logger.LogDebug("Forwarding event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
+                logger.LogError(ex, "Failed to process {OperationName} forwarding event for correspondence {CorrespondenceId}. Transaction will be rolled back.",
+                    operationName, correspondenceId);
+                throw;
             }
         }
 
