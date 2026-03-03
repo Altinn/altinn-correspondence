@@ -11,6 +11,7 @@ public class GeneralSettings
     public string ApplicationInsightsConnectionString { get; set; } = string.Empty;
     public bool DisableTelemetryForMigration { get; set; } = true;
     public bool DisableTelemetryForSync { get; set; } = false;
+    public string MalwareScanBypassWhiteList { get; set; } = string.Empty;
     public int MigrationWorkerCountPerReplica { get; set; } = 2;
     public int WorkerCountPerReplica { get; set; } = 50;
 }

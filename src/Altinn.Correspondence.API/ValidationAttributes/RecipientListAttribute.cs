@@ -36,10 +36,11 @@ internal class RecipientListAttribute : ValidationAttribute
             var orgRegex = new Regex($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
             var personRegex = new Regex($@"^(?:{UrnConstants.PersonIdAttribute}:)?\d{{11}}$");
             var emailUrnRegex = new Regex($@"^{Regex.Escape(UrnConstants.PersonIdPortenEmailAttribute)}:.+$");
+            var legacySelfIdentifiedUrnRegex = new Regex($@"^{Regex.Escape(UrnConstants.PersonLegacySelfIdentifiedAttribute)}:.+$");
             
-            if (!orgRegex.IsMatch(recipient) && !personRegex.IsMatch(recipient) && !emailUrnRegex.IsMatch(recipient))
+            if (!orgRegex.IsMatch(recipient) && !personRegex.IsMatch(recipient) && !emailUrnRegex.IsMatch(recipient) && !legacySelfIdentifiedUrnRegex.IsMatch(recipient))
             {
-                return new ValidationResult($"Recipient should be an organization number in the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614, a national identity number, or an idporten email URN in the format '{UrnConstants.PersonIdPortenEmailAttribute}:email'");
+                return new ValidationResult($"Recipient should be an organization number in the format '{UrnConstants.OrganizationNumberAttribute}:organizationnumber' or the format countrycode:organizationnumber, for instance 0192:910753614, a national identity number, an idporten email URN in the format '{UrnConstants.PersonIdPortenEmailAttribute}:email', or a legacy selfidentified URN in the format '{UrnConstants.PersonLegacySelfIdentifiedAttribute}:username'");
             }
             if (personRegex.IsMatch(recipient) && !recipient.IsSocialSecurityNumber())
             {

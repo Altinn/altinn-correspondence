@@ -271,11 +271,6 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
         {
             throw new InvalidOperationException($"Correspondence with id {correspondenceId} is purged and cannot be made available in Dialogporten or API");
         }
-        
-        if(!string.IsNullOrEmpty(correspondence.Recipient) && correspondence.Recipient.IsWithPartyUuidPrefix())
-        {
-            throw new InvalidOperationException($"Correspondence with id {correspondenceId} has a Self-Identifed user as recipient and cannot be made available in Dialogporten");
-        }
 
         // If the correspondence was soft deleted in Altinn 2, we need to pass this forward in order to set the system label correctly on the Dialog
         bool isSoftDeleted = await correspondenceMigrationEventHelper.IsCorrespondenceSoftDeleted(correspondence, cancellationToken);

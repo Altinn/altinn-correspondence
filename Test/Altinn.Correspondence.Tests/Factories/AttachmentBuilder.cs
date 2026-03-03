@@ -57,5 +57,11 @@ namespace Altinn.Correspondence.Tests.Factories
             _attachment.ExpirationInDays = expirationInDays;
             return this;
         }
+
+        public AttachmentBuilder WithResourceId(string resourceId)
+        {
+            _attachment.ResourceId = resourceId;
+            return this;
+        }
     }
 }

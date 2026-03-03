@@ -42,7 +42,7 @@ public class UploadAttachmentHandler(
         {
             logger.LogWarning("Invalid file size {ContentLength} for attachment {AttachmentId} - must be between 1 and {MaxSize} bytes",
                 request.ContentLength, request.AttachmentId, ApplicationConstants.MaxFileStreamUploadSize);
-            return AttachmentErrors.InvalidFileSize("5GB");
+            return AttachmentErrors.InvalidFileSize("50GB");
         }
         if (attachment.StatusHasBeen(AttachmentStatus.UploadProcessing))
         {
@@ -66,7 +66,7 @@ public class UploadAttachmentHandler(
         logger.LogInformation("Retrieved party UUID {PartyUuid} for caller {caller}", partyUuid, caller);
         try
         {
-            var uploadResponse = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, false, cancellationToken);
+            var uploadResponse = await attachmentHelper.UploadAttachment(request.UploadStream, request.AttachmentId, partyUuid, cancellationToken);
             if (!uploadResponse.TryPickT0(out var uploadAttachmentResponse, out var error))
             {
                 logger.LogError("Failed to upload attachment {AttachmentId}: {ErrorMessage}", request.AttachmentId, error.Message);

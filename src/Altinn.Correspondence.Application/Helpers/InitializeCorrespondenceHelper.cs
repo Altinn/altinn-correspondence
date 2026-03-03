@@ -306,16 +306,6 @@ namespace Altinn.Correspondence.Application.Helpers
                 });
             }
 
-            if (recipient.IsWithISO6523Prefix())
-            {
-                logger.LogInformation($"'0192:' prefix detected for recipient in creation of correspondence. Replacing prefix with {UrnConstants.OrganizationNumberAttribute}.");
-            }
-            else if (recipient.IsSocialSecurityNumberWithNoPrefix())
-            {
-                logger.LogInformation($"Social security number without urn prefix detected for recipient in creation of correspondece. Adding {UrnConstants.PersonIdAttribute} prefix to recipient.");
-            }
-            recipient = recipient.WithoutPrefix().WithUrnPrefix();
-
             var (sender, serviceOwnerId, serviceOwnerMigrationStatus) = await serviceOwnerHelper.GetSenderServiceOwnerIdAndMigrationStatusAsync(serviceOwnerOrgNumber, cancellationToken);
 
             var baseTimestamp = DateTimeOffset.UtcNow;
@@ -447,7 +437,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
-                    uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, forMigration: false, cancellationToken);
+                    uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
                 var error = uploadResponse.Match(
                     _ => { return null; },

@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.Application.MigrateCorrespondenceAttachment
                     //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
                 }
 
-                return serviceOwnerEntity?.GetStorageProvider(false);
+                return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan: true);
             });
 
             return storageProvider;

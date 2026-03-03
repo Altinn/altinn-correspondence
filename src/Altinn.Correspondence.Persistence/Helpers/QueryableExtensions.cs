@@ -103,12 +103,6 @@ namespace Altinn.Correspondence.Persistence.Helpers
                         s.Status == CorrespondenceStatus.PurgedByRecipient));
         }
 
-        public static IQueryable<CorrespondenceEntity> ExcludeSelfIdentifiedRecipients(this IQueryable<CorrespondenceEntity> query)
-        {
-            var prefix = UrnConstants.PartyUuid + ":";
-            return query.Where(cs => cs.Recipient == null || !cs.Recipient.StartsWith(prefix));
-        }
-
         public static IQueryable<CorrespondenceEntity> WhereCurrentStatusIn(
             this IQueryable<CorrespondenceEntity> query,
             params CorrespondenceStatus[] statuses)

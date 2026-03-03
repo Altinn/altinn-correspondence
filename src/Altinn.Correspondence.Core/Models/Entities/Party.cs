@@ -33,6 +33,11 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public string? SSN { get; set; }
 
         /// <summary>
+        /// Gets the external URN for this party when available.
+        /// </summary>
+        public string? ExternalUrn { get; set; }
+
+        /// <summary>
         /// Gets or sets the UnitType
         /// </summary>
         public string? UnitType { get; set; }

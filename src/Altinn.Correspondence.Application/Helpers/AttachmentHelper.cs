@@ -12,6 +12,8 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using Hangfire;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
+using Altinn.Correspondence.Core.Options;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -24,6 +26,7 @@ namespace Altinn.Correspondence.Application.Helpers
         IHostEnvironment hostEnvironment,
         IBackgroundJobClient backgroundJobClient,
         MalwareScanResultHandler malwareScanResultHandler,
+        IOptions<GeneralSettings> generalSettings,
         ILogger<AttachmentHelper> logger)
     {
 
@@ -37,7 +40,7 @@ namespace Altinn.Correspondence.Application.Helpers
         RegexOptions.IgnoreCase | RegexOptions.Compiled
         );
         
-        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, bool forMigration, CancellationToken cancellationToken)
+        public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
             var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
@@ -49,7 +52,8 @@ namespace Altinn.Correspondence.Application.Helpers
 
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, partyUuid, cancellationToken);
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
-            var storageProvider = await GetStorageProvider(attachment, forMigration, cancellationToken);
+            var bypassMalwareScan = ShouldBypassMalwareScan(attachment);
+            var storageProvider = await GetStorageProvider(attachment, bypassMalwareScan, cancellationToken);
             var uploadResult = await UploadBlob(attachment, file, storageProvider, partyUuid, cancellationToken);
             if (uploadResult.TryPickT1(out var uploadError, out var successResult))
             {
@@ -69,11 +73,15 @@ namespace Altinn.Correspondence.Application.Helpers
 
                 if (!isValidUpdate)
                 {
-                    await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
+                    currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
                     await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
                     return AttachmentErrors.UploadFailed;
                 }
-                if (hostEnvironment.IsDevelopment())
+                if (bypassMalwareScan)
+                {
+                    currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Published, partyUuid, cancellationToken, "Bypassed malware scan");
+                }
+                else if (hostEnvironment.IsDevelopment())
                 {
                     logger.LogInformation("Development mode detected. Enqueing simulated malware scan result for attachment {attachmentId}", attachmentId);
                     backgroundJobClient.Enqueue<AttachmentHelper>(helper => helper.SimulateMalwareScanResult(attachmentId));
@@ -91,30 +99,31 @@ namespace Altinn.Correspondence.Application.Helpers
             }, logger, cancellationToken);
         }
 
-        public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool forMigration, CancellationToken cancellationToken)
+        private bool ShouldBypassMalwareScan(AttachmentEntity attachment)
         {
-            ServiceOwnerEntity? serviceOwnerEntity = null;
-            if (forMigration)
+            if (string.IsNullOrWhiteSpace(generalSettings.Value.MalwareScanBypassWhiteList))
             {
-                var serviceOwnerShortHand = attachment.ResourceId.Split('-')[0];
-                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerShortHand.ToLower(), cancellationToken);
+                return false;
             }
-            else
+            var whiteList = generalSettings.Value.MalwareScanBypassWhiteList.Split(',').ToList();
+            return whiteList.Any(whiteListedResource => attachment.ResourceId == whiteListedResource);
+        }
+
+        public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool bypassMalwareScan, CancellationToken cancellationToken)
+        {
+            var serviceOwnerOrgCode = await resourceRegistryService.GetServiceOwnerOrgCode(attachment.ResourceId, cancellationToken);
+            if (serviceOwnerOrgCode is null)
             {
-                var serviceOwnerOrgCode = await resourceRegistryService.GetServiceOwnerOrgCode(attachment.ResourceId, cancellationToken);
-                if (serviceOwnerOrgCode is null)
-                {
-                    logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
-                    return null;
-                }
-                serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerOrgCode, cancellationToken);
+                logger.LogError("Could not find service owner for resource {resourceId}", attachment.ResourceId);
+                return null;
             }
-            if (serviceOwnerEntity == null)
+            var serviceOwnerEntity = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerOrgCode, cancellationToken);
+            if (serviceOwnerEntity is null)
             {
-                logger.LogError($"Could not find service owner entity for {attachment.ResourceId} in database");
+                logger.LogError("Could not find service owner entity for {resourceId} in database", attachment.ResourceId);
                 //return AttachmentErrors.ServiceOwnerNotFound; // Future PR will add service owner registry as requirement when we have ensured that existing service owners have been provisioned
             }
-            return serviceOwnerEntity?.GetStorageProvider(forMigration ? false : true);
+            return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan: bypassMalwareScan);
         }
 
         private async Task<OneOf<(string? locationUrl, string? hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)

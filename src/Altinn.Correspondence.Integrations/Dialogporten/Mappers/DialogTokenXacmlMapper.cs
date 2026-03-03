@@ -80,7 +80,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, identifier.WithoutPrefix(), DefaultType, claim.Issuer));
                     }
-                    else if (identifier.IsIdPortenEmailUrn())
+                    else if (identifier.IsIdPortenEmailUrn() || identifier.IsLegacySelfIdentifiedUrn())
                     {
                         var party = await altinnRegisterService.LookUpPartyById(identifier, cancellationToken);
                         if (party is not null && party.UserId is int userId && userId > 0)
