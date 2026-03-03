@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 namespace Altinn.Correspondence.Application.Helpers;
 
@@ -31,69 +32,87 @@ public class CorrespondenceMigrationEventHelper(
     {
         logger.LogDebug("Process {OperationName} status event {Status} for {CorrespondenceId}", operationName, eventToExecute.Status, correspondenceId);
         
-        // Save status to Correspondence Database first - this is the critical database operation that must succeed within the transaction
-        bool wasSaved = await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, operationName, cancellationToken);
-        
-        if (!wasSaved)
+        using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
         {
-            logger.LogDebug("Status event was a duplicate for correspondence {CorrespondenceId}, skipping background job processing", correspondenceId);
-            return false;
-        }
+            IsolationLevel = IsolationLevel.ReadCommitted,
+            Timeout = TimeSpan.FromSeconds(30)
+        }, TransactionScopeAsyncFlowOption.Enabled);
         
-        // Enqueue background jobs only if the event was actually saved (not a duplicate)
-        if (correspondence.IsMigrating == false)
+        try
         {
-            switch (eventToExecute.Status)
+            // 1 - Save status to Correspondence Database first
+            bool wasSaved = await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, operationName, cancellationToken);
+        
+            if (!wasSaved)
             {
-                case CorrespondenceStatus.Confirmed:
-                    {
-                        var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId, CancellationToken.None));
-                        if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
-                        {
-                            logger.LogWarning("Skipping updating dialog for Confirm for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
-                        }
-                        else
-                        {
-                            backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: patchJobId, queue: HangfireQueues.LiveMigration, methodCall: (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId), options: JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2
-                        }                        
-                        backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-                        break;
-                    }
-
-                case CorrespondenceStatus.Read:
-                    {
-                        
-                        if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
-                        {
-                            logger.LogWarning("Skipping updating dialog for Read for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
-                        }
-                        else
-                        {
-                            backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId));
-                        }
-                        backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-                        break;
-                    }
-
-                case CorrespondenceStatus.Archived:
-                    {
-                        if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
-                        {
-                            logger.LogWarning("Skipping updating dialog for Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
-                        }
-                        else
-                        {
-                            backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondence.Id, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
-                        }                        
-                        break;
-                    }
-                default:
-                    logger.LogWarning("Unsupported Status Event type {Status} for Correspondence {CorrespondenceId} at {StatusChanged}. The event will be ignored.", eventToExecute.Status, correspondenceId, eventToExecute.StatusChanged);
-                    break;
+                logger.LogDebug("Status event was a duplicate for correspondence {CorrespondenceId}, skipping background job processing.", correspondenceId);
+                // Transaction rolls back (duplicate is not an error, but no changes to commit)
+                return false;
             }
-        }
         
-        return true;
+            // 2 - Enqueue background jobs only if the event was actually saved (not a duplicate) and has been made available
+            if (correspondence.IsMigrating == false)
+            {
+                switch (eventToExecute.Status)
+                {
+                    case CorrespondenceStatus.Confirmed:
+                        {
+                            var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId, CancellationToken.None));
+                            if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
+                            {
+                                logger.LogWarning("Skipping updating dialog for Confirm for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                            }
+                            else
+                            {
+                                backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: patchJobId, queue: HangfireQueues.LiveMigration, methodCall: (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId), options: JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2                            
+                            }                        
+                            backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                            break;
+                        }
+
+                    case CorrespondenceStatus.Read:
+                        {
+                        
+                            if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
+                            {
+                                logger.LogWarning("Skipping updating dialog for Read for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                            }
+                            else
+                            {
+                                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId));
+                            }
+                            backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                            break;
+                        }
+
+                    case CorrespondenceStatus.Archived:
+                        {
+                            if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
+                            {
+                                logger.LogWarning("Skipping updating dialog for Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                            }
+                            else
+                            {
+                                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondence.Id, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                            }                        
+                            break;
+                        }
+                    default:
+                        logger.LogWarning("Unsupported Status Event type {Status} for Correspondence {CorrespondenceId} at {StatusChanged}. The event will be ignored.", eventToExecute.Status, correspondenceId, eventToExecute.StatusChanged);
+                        break;
+                }
+            }
+
+            // 3 - Only reached if both database save and job enqueuing succeeded
+            transaction.Complete();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to process {OperationName} status event {Status} for correspondence {CorrespondenceId}. Transaction will be rolled back.",
+                operationName, eventToExecute.Status, correspondenceId);
+            throw;
+        }
     }
 
     public async Task<bool> ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, MigrationOperationType operationName, CancellationToken cancellationToken)
