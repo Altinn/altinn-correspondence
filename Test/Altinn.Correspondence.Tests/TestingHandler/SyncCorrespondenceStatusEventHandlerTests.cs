@@ -873,7 +873,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondencePurged, sender);
             // Verify background jobs Dialogporten activities
             VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId,DialogportenActorType.Recipient, "mottaker", new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)));
-            VerifyDialogportenServiceSoftDeleteDialogEnqueued("dialog-id-123");
+            VerifyDialogportenServiceTrySoftDeleteDialogEnqueued("dialog-id-123");
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
             _dialogPortenServiceMock.VerifyNoOtherCalls();
@@ -1289,7 +1289,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Verify background jobs Dialogporten activities            
             VerifySoftDeleteUpdateForDialogportenEnqueued(correspondence.Id, _defaultUserPartyIdentifier, CorrespondenceDeleteEventType.SoftDeletedByRecipient);
             VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId, DialogportenActorType.Recipient, "mottaker", new DateTimeOffset(new DateTime(2025, 8, 15, 12, 0, 0)));
-            VerifyDialogportenServiceSoftDeleteDialogEnqueued("dialog-id-123");
+            VerifyDialogportenServiceTrySoftDeleteDialogEnqueued("dialog-id-123");
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
@@ -1557,7 +1557,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondencePurged, sender);
             // Verify background jobs Dialogporten activities
             VerifyDialogportenServiceCreatePurgedActivityEnqueued(correspondenceId, DialogportenActorType.Sender, "avsender", new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0)));
-            VerifyDialogportenServiceSoftDeleteDialogEnqueued("dialog-id-123");
+            VerifyDialogportenServiceTrySoftDeleteDialogEnqueued("dialog-id-123");
             // Verify actual deletion of blob scheduled
             VerifyStorageDeletionScheduled();
             // Should not trigger any additional Dialogporten changes or background jobs
@@ -2213,10 +2213,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 It.IsAny<EnqueuedState>()));
         }
 
-        private void VerifyDialogportenServiceSoftDeleteDialogEnqueued(string dialogId)
+        private void VerifyDialogportenServiceTrySoftDeleteDialogEnqueued(string dialogId)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.SoftDeleteDialog)),
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.TrySoftDeleteDialog)),
                 It.IsAny<IState>()), Times.Once);
         }
     }
