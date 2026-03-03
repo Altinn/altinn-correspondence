@@ -104,9 +104,9 @@ public class PurgeCorrespondenceHelper(
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogId is not null)
         {
+            await dialogportenService.SoftDeleteDialog(dialogId.ReferenceValue);
             await ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp, partyUrn);
             await ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp);
-            await dialogportenService.SoftDeleteDialog(dialogId.ReferenceValue);
         }
         return correspondence.Id;
     }
