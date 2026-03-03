@@ -622,8 +622,7 @@ public class CorrespondenceMigrationEventHelper(
         }
 
         int savedCount = 0;
-        var syncedTimestamp = DateTimeOffset.UtcNow;
-        
+
         foreach (var forwardingEvent in forwardingEvents)
         {
             logger.LogInformation("Processing {OperationName} forwarding event for correspondence {CorrespondenceId} at {ForwardedOnDate}",
@@ -631,19 +630,25 @@ public class CorrespondenceMigrationEventHelper(
 
             forwardingEvent.CorrespondenceId = correspondenceId;
             forwardingEvent.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
-            forwardingEvent.SyncedFromAltinn2 = syncedTimestamp;
-        }
-        
-        // Save all events in a single batch operation
-        var savedIds = await correspondenceForwardingEventRepository.AddForwardingEventsForSync(forwardingEvents, cancellationToken);
-        savedCount = savedIds.Count;
-        
-        // Enqueue Dialogporten background jobs only for saved events
-        if (correspondence.IsMigrating == false)
-        {
-            foreach (var savedId in savedIds)
+            forwardingEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
+            
+            var savedId = await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, cancellationToken);
+            
+            // Check if forwarding event was actually saved (not a duplicate)
+            if (savedId != Guid.Empty)
             {
-                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(savedId, CancellationToken.None));
+                savedCount++;
+                logger.LogDebug("Added new forwarding event {ForwardingEventId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+                
+                // Enqueue Dialogporten background job only if not in migration mode
+                if (correspondence.IsMigrating == false)
+                {
+                    backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(savedId, CancellationToken.None));
+                }
+            }
+            else
+            {
+                logger.LogDebug("Forwarding event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
             }
         }
 

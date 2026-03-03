@@ -34,7 +34,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     notification.Altinn2NotificationId,
                     notification.NotificationSent);
                 
-                _context.Entry(notification).State = EntityState.Detached;
+                // Return empty Guid to indicate duplicate was skipped
                 return Guid.Empty;
             }
         }
