@@ -39,4 +39,12 @@ public interface IResourceRegistryService
     /// <returns>The organization number of the service owner of the resource.</returns>
     Task<string?> GetServiceOwnerOrganizationNumber(string resourceId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Checks if the resource is confidential by looking up the resource rights for the resource and checking if it has the "post-til-virksomheten-med-taushetsbelagt-innhold" access package.
+    /// </summary>
+    /// <param name="resourceId">The id of the resource to check.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the resource is confidential, false otherwise.</returns>
+    Task<bool> IsResourceConfidential(string resourceId, CancellationToken cancellationToken = default);
+
 }
