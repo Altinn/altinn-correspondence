@@ -119,50 +119,20 @@ public class CorrespondenceMigrationEventHelper(
     {
         logger.LogDebug("Process {OperationName} delete event {EventType} for {CorrespondenceId}", operationName, deletionEvent.EventType, correspondenceId);
         
-        using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+        return deletionEvent.EventType switch
         {
-            IsolationLevel = IsolationLevel.ReadCommitted,
-            Timeout = TimeSpan.FromSeconds(30)
-        }, TransactionScopeAsyncFlowOption.Enabled);
-        
-        try
-        {
-            bool result;
-            switch (deletionEvent.EventType)
-            {
-                case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
-                case CorrespondenceDeleteEventType.HardDeletedByRecipient:
-                    if (ValidatePerformPurge(correspondence))
-                    {
-                        result = await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken);
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                    break;
-                case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
-                case CorrespondenceDeleteEventType.RestoredByRecipient:
-                    result = await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken);
-                    break;
-                default:
-                    logger.LogWarning("Unknown Deletion Event Type {EventType} for Correspondence {CorrespondenceId}. The event will be ignored.", deletionEvent.EventType, correspondenceId);
-                    return false;
-            }
+            CorrespondenceDeleteEventType.HardDeletedByServiceOwner or 
+            CorrespondenceDeleteEventType.HardDeletedByRecipient 
+                => ValidatePerformPurge(correspondence) 
+                    ? await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken)
+                    : false,
             
-            if (result)
-            {
-                transaction.Complete();
-            }
+            CorrespondenceDeleteEventType.SoftDeletedByRecipient or 
+            CorrespondenceDeleteEventType.RestoredByRecipient 
+                => await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken),
             
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to process {OperationName} delete event {EventType} for correspondence {CorrespondenceId}. Transaction will be rolled back.",
-                operationName, deletionEvent.EventType, correspondenceId);
-            throw;
-        }
+            _ => throw new ArgumentException($"Unknown Deletion Event Type {deletionEvent.EventType} for Correspondence {correspondenceId}")
+        };
     }
 
     public async Task<List<CorrespondenceDeleteEventEntity>> FilterDeleteEvents(Guid correspondenceId, List<CorrespondenceDeleteEventEntity>? syncedDeleteEvents, CancellationToken cancellationToken)
@@ -365,92 +335,118 @@ public class CorrespondenceMigrationEventHelper(
 
     public async Task<bool> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
-        var corrStatus = CorrespondenceStatus.PurgedByRecipient;
-        DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
-        switch (deleteEventToSync.EventType)
+        var corrStatus = deleteEventToSync.EventType switch
         {
-            case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
-                corrStatus = CorrespondenceStatus.PurgedByAltinn;
-                break;
-            case CorrespondenceDeleteEventType.HardDeletedByRecipient:
-                corrStatus = CorrespondenceStatus.PurgedByRecipient;
-                break;
-            default:
-                throw new ArgumentException($"Cannot perform PurgeCorrespondence for {deleteEventToSync.EventType}");
-        }
+            CorrespondenceDeleteEventType.HardDeletedByServiceOwner => CorrespondenceStatus.PurgedByAltinn,
+            CorrespondenceDeleteEventType.HardDeletedByRecipient => CorrespondenceStatus.PurgedByRecipient,
+            _ => throw new ArgumentException($"Cannot perform PurgeCorrespondence for {deleteEventToSync.EventType}")
+        };
 
-        // Save to Correspondence Database
-        bool statusSaved = await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, operationName, cancellationToken);
-        bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
-
-        // Only proceed with background jobs if events were actually saved (not duplicates)
-        if (!statusSaved || !eventSaved)
+        using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
         {
-            logger.LogDebug("Purge events were duplicates for correspondence {CorrespondenceId}, skipping background job processing", correspondence.Id);
-            return false;
-        }
-
-        if (correspondence.IsMigrating == false)
+            IsolationLevel = IsolationLevel.ReadCommitted,
+            Timeout = TimeSpan.FromSeconds(30)
+        }, TransactionScopeAsyncFlowOption.Enabled);
+        
+        try
         {
-            backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-        }
+            DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
 
-        await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, cancellationToken);
+            // Save to Correspondence Database
+            bool statusSaved = await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, operationName, cancellationToken);
+            bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
 
-        if (correspondence.IsMigrating == false)
-        {
-            var actorType = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
-            var actorName = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? "avsender" : "mottaker";
-            var purgedActivityJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
-
-            var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
-            if (dialogId is null)
+            // Only proceed with background jobs if events were actually saved (not duplicates)
+            if (!statusSaved || !eventSaved)
             {
-                throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
+                logger.LogDebug("Purge events were duplicates for correspondence {CorrespondenceId}, skipping background job processing", correspondence.Id);
+                return false;
             }
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: purgedActivityJobId, queue: HangfireQueues.LiveMigration, methodCall: service => service.SoftDeleteDialog(dialogId), options: JobContinuationOptions.OnlyOnSucceededState);
-        }
 
-        return true;
+            if (correspondence.IsMigrating == false)
+            {
+                backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            }
+
+            await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, cancellationToken);
+
+            if (correspondence.IsMigrating == false)
+            {
+                var actorType = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
+                var actorName = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? "avsender" : "mottaker";                
+
+                var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+                if (dialogId is null)
+                {
+                    throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
+                }
+
+                var purgedActivityJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
+                backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: purgedActivityJobId, queue: HangfireQueues.LiveMigration, methodCall: service => service.SoftDeleteDialog(dialogId), options: JobContinuationOptions.OnlyOnSucceededState);
+            }
+
+            transaction.Complete();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to purge correspondence {CorrespondenceId}. Transaction will be rolled back.", correspondence.Id);
+            throw;
+        }
     }
 
     public async Task<bool> SoftDeleteOrRestoreCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, Dictionary<Guid, string> enduserIdByPartyUuid, CancellationToken cancellationToken)
     {
-        DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
         if (CorrespondenceDeleteEventType.SoftDeletedByRecipient != deleteEventToSync.EventType && CorrespondenceDeleteEventType.RestoredByRecipient != deleteEventToSync.EventType)
         {
             throw new ArgumentException($"Cannot perform SoftDeleteOrRestoreCorrespondence for {deleteEventToSync.EventType}");
         }
 
-        // Save to Correspondence Database, no CorrrespondenceStatus for soft delete / restore
-        bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
-
-        // Only proceed with Dialogporten updates if event was actually saved (not a duplicate)
-        if (!eventSaved)
+        using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
         {
-            logger.LogDebug("Soft delete/restore event was a duplicate for correspondence {CorrespondenceId}, skipping Dialogporten update", correspondence.Id);
-            return false;
-        }
-
-        if (correspondence.IsMigrating == false)
-        {
-            if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn) || correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
-            {
-                logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to the Correspondence being purged.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
-            }
-            else if (!enduserIdByPartyUuid.TryGetValue(deleteEventToSync.PartyUuid, out var endUserId))
-            {
-                logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to missing Dialogporten enduserId for party {PartyUuid}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred, deleteEventToSync.PartyUuid);
-            }
-            else
-            {
-                // Enqueue SoftDelete or Restore in Dialogporten
-                bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
-                SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived);
-            }
-        }
+            IsolationLevel = IsolationLevel.ReadCommitted,
+            Timeout = TimeSpan.FromSeconds(30)
+        }, TransactionScopeAsyncFlowOption.Enabled);
         
-        return true;
+        try
+        {
+            DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
+            // Save to Correspondence Database, no CorrespondenceStatus for soft delete / restore
+            bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
+
+            // Only proceed with Dialogporten updates if event was actually saved (not a duplicate)
+            if (!eventSaved)
+            {
+                logger.LogDebug("Soft delete/restore event was a duplicate for correspondence {CorrespondenceId}, skipping Dialogporten update", correspondence.Id);
+                return false;
+            }
+
+            if (correspondence.IsMigrating == false)
+            {
+                if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn) || correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
+                {
+                    logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to the Correspondence being purged.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
+                }
+                else if (!enduserIdByPartyUuid.TryGetValue(deleteEventToSync.PartyUuid, out var endUserId))
+                {
+                    logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to missing Dialogporten enduserId for party {PartyUuid}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred, deleteEventToSync.PartyUuid);
+                }
+                else
+                {
+                    // Enqueue SoftDelete or Restore in Dialogporten
+                    bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
+                    SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived);
+                }
+            }
+            
+            transaction.Complete();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to soft delete/restore correspondence {CorrespondenceId}. Transaction will be rolled back.", correspondence.Id);
+            throw;
+        }
     }
 
     public async Task<bool> StoreStatusEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, DateTimeOffset syncedTimestamp, MigrationOperationType operationName, CancellationToken cancellationToken)
