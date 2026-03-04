@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 using Microsoft.AspNetCore.Cors;
+using Altinn.Correspondence.Application.Helpers;
 
 
 namespace Altinn.Correspondence.API.Controllers;
@@ -26,7 +27,7 @@ public class ConfidentialReminderController(ILogger<ConfidentialReminderControll
     /// <response code="401">Unauthorized</response>
     /// <response code="403">Forbidden</response>
     [HttpGet]
-    [Produces("application/json")]
+    [Produces("text/plain")]
     [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
     [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
     [ApiExplorerSettings(IgnoreApi = true)]
@@ -35,9 +36,9 @@ public class ConfidentialReminderController(ILogger<ConfidentialReminderControll
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting unread confidential correspondences");
-         var commandResult = await handler.Process(HttpContext.User, cancellationToken);
+        var commandResult = await handler.Process(HttpContext.User, cancellationToken);
         return commandResult.Match(
-            data => Ok(data),
+            data => Content(MessageBodyHelpers.ConvertMixedToMarkdown(data.Text)),
             Problem
         );
     }
