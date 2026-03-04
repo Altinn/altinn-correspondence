@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -55,13 +56,35 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Status = GetDialogStatusForCorrespondence(correspondence),
                 ExternalReference = correspondence.SendersReference,
                 Content = CreateCorrespondenceContent(correspondence, baseUrl),
-                SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
+                SearchTags = GetSearchTagsForCorrespondence(correspondence.PropertyList, logger),
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
                 Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
+            };
+        }
+
+        internal static CreateDialogRequest CreateConfidentialReminderDialog(ConfidentialReminderDialogDto correspondence, string baseUrl, ILogger? logger = null)
+        {
+            return new CreateDialogRequest
+            {
+                Id = Guid.CreateVersion7().ToString(), // Dialogporten requires time-stamped GUIDs
+                ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
+                Party = correspondence.Recipient,
+                CreatedAt = correspondence.Created,
+                UpdatedAt = correspondence.Created,
+                VisibleFrom = DateTimeOffset.UtcNow,
+                ExternalReference = correspondence.SendersReference,
+                Content = CreateConfidentialReminderContent(correspondence, baseUrl),
+                SearchTags = GetSearchTagsForCorrespondence(correspondence.PropertyList, logger),
+                ApiActions = new List<ApiAction>(),
+                GuiActions = new List<GuiAction>(),
+                Attachments = new List<Attachment>(),
+                Activities =  new List<Activity>(),
+                Transmissions = new List<Transmission>(),
+                SystemLabel = SystemLabel.Default
             };
         }
 
@@ -140,18 +163,76 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
         };
 
-        private static List<SearchTag> GetSearchTagsForCorrespondence(CorrespondenceEntity correspondence, ILogger? logger)
+        private static Content CreateConfidentialReminderContent(ConfidentialReminderDialogDto correspondence, string baseUrl)
+        {
+            var title = new ContentValue()
+            {
+                MediaType = "text/plain",
+                Value = new List<DialogValue> {
+                    new DialogValue()
+                    {
+                        Value =  "Dette er en hardkodet tittel om at du har ulest taushetsbelagt post",
+                        LanguageCode = "nb"
+                    }
+                }
+            };
+
+            var summary = new ContentValue()
+            {
+                MediaType = "text/plain",
+                Value = new List<DialogValue> {
+                    new DialogValue()
+                    {
+                        Value = "Dette er et hardkodet sammendrag som sier at du har ulest taushetsbelagt post",
+                        LanguageCode = "nb"
+                    }
+                }
+            };
+
+            var mainContentReference = new ContentValue()
+            {
+                MediaType = "application/vnd.dialogporten.frontchannelembed+json;type=markdown",
+                Value = new List<DialogValue> {
+                    new DialogValue()
+                    {
+                        LanguageCode = "nb",
+                        Value = $"{(baseUrl ?? "").TrimEnd('/')}/correspondence/api/v1/confidential-reminders"
+                    }
+                }
+            };
+
+            return new Content
+            {
+                Title = title,
+                Summary = summary,
+                SenderName = string.IsNullOrWhiteSpace(correspondence.MessageSender) ? null :
+                    new ContentValue()
+                    {
+                        MediaType = "text/plain",
+                        Value = new List<DialogValue> {
+                            new DialogValue()
+                            {
+                                Value = correspondence.MessageSender ?? correspondence.Sender,
+                                LanguageCode = "nb"
+                            }
+                        }
+                    },
+                MainContentReference = mainContentReference
+            };
+        }
+
+        private static List<SearchTag> GetSearchTagsForCorrespondence(Dictionary<string, string> propertyList, ILogger? logger)
         {
             var list = new List<SearchTag>();
-            foreach (var property in correspondence.PropertyList)
+            foreach (var property in propertyList)
             {
-                list = AddSearchTagIfValid(list, property.Value, correspondence, logger);    
+                list = AddSearchTagIfValid(list, property.Value, logger);    
             }
             list = list.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
             return list;
         }
 
-        private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag, CorrespondenceEntity correspondence, ILogger? logger)
+        private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag, ILogger? logger)
         {
             if (string.IsNullOrWhiteSpace(searchTag) || searchTag.Trim().Length < 3)
             {
@@ -160,12 +241,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var trimmed = searchTag.Trim();
             if (trimmed.Length > 63)
             {
-                logger?.LogWarning("Truncating Dialogporten search tag for correspondence {CorrespondenceId} from {OriginalLength} to 63 characters", correspondence.Id, trimmed.Length);
+                logger?.LogWarning("Truncating Dialogporten search tag for from {OriginalLength} to 63 characters", trimmed.Length);
                 trimmed = trimmed.Substring(0, 63);
             }
             list.Add(new SearchTag() { Value = trimmed });
             return list;
         }
+
 
         private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
         {
