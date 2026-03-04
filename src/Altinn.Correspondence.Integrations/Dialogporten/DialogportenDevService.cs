@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services;
@@ -139,5 +140,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
         {
             return Task.CompletedTask;
         }
+
+        public Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto correspondence)
+        {
+            return Task.FromResult(Guid.NewGuid().ToString());
+        }
+
     }
 }

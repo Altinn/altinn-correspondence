@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -32,4 +33,5 @@ public interface IDialogportenService
     Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default);
     Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences);
     Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken);
+    Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto correspondence);
 }
