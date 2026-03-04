@@ -26,6 +26,12 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
       tier: environment == 'production' ? 'P60' : prodLikeEnvironment ? 'P50' : 'P4'
     }
     backup: { backupRetentionDays: 35 }
+    maintenanceWindow: {
+      customWindow: 'Enabled'
+      dayOfWeek: 1
+      startHour: 3
+      startMinute: 0
+    }
     authConfig: {
       activeDirectoryAuth: 'Enabled'
       passwordAuth: 'Disabled'
