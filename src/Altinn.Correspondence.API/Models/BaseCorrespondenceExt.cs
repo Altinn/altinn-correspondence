@@ -170,6 +170,12 @@ namespace Altinn.Correspondence.API.Models
             var transmissionTypeRefs = externalReferences
                 .Where(er => er.ReferenceType == ReferenceTypeExt.DialogportenTransmissionType)
                 .ToList();
+            var dialogStatusRefs = externalReferences
+                .Where(er => er.ReferenceType == ReferenceTypeExt.DialogportenDialogStatus)
+                .ToList();
+            var dialogExtendedStatusRefs = externalReferences
+                .Where(er => er.ReferenceType == ReferenceTypeExt.DialogportenDialogExtendedStatus)
+                .ToList();
 
             if (transmissionTypeRefs.Count == 1)
             {
@@ -179,6 +185,30 @@ namespace Altinn.Correspondence.API.Models
                     !Enum.IsDefined(parsed))
                 {
                     return new ValidationResult("DialogportenTransmissionType referenceValue must be a valid transmission type");
+                }
+            }
+
+            if (dialogStatusRefs.Count == 1)
+            {
+                var referenceValue = dialogStatusRefs[0].ReferenceValue;
+
+                if (!Enum.TryParse<DialogportenDialogStatusExt>(referenceValue, ignoreCase: true, out var parsed) ||
+                    !Enum.IsDefined(parsed))
+                {
+                    return new ValidationResult("DialogportenDialogStatus referenceValue must be a valid dialog status");
+                }
+            }
+
+            if (dialogExtendedStatusRefs.Count == 1)
+            {
+                var referenceValue = dialogExtendedStatusRefs[0].ReferenceValue;
+                if (string.IsNullOrWhiteSpace(referenceValue))
+                {
+                    return new ValidationResult("DialogportenDialogExtendedStatus referenceValue must be a non-empty string");
+                }
+                if (referenceValue.Length > 25)
+                {
+                    return new ValidationResult("DialogportenDialogExtendedStatus referenceValue must be 25 characters or fewer");
                 }
             }
 
