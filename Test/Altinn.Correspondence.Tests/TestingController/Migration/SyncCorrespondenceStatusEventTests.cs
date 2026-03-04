@@ -29,7 +29,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
     public SyncCorrespondenceStatusEventTests(CustomWebApplicationFactory factory) : base(factory)
     {
-    }
+    }    
 
     [Fact]
     public async Task SyncCorrespondenceStatusEvent_ReadAndConfirmedByOtherUser__NewStatusesSaved()
@@ -239,25 +239,8 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
-        // Arrange - Create a custom factory with a failing Hangfire mock
-        var backgroundJobClientMock = new Mock<IBackgroundJobClient>();
-        // Mock the underlying Create method that Enqueue extension method calls internally
-        backgroundJobClientMock
-            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-            .Throws(new InvalidOperationException("Hangfire enqueue failed"));
-
-        var customFactory = new CustomWebApplicationFactory
-        {
-            CustomServices = services =>
-            {
-                // Replace IBackgroundJobClient with our failing mock
-                services.RemoveAll<IBackgroundJobClient>();
-                services.AddSingleton(backgroundJobClientMock.Object);
-            }
-        };
-
-        var customMigrationClient = customFactory.CreateClientWithAddedClaims(
-            ("scope", AuthorizationConstants.MigrateScope));
+        // Arrange - Create a custom client with a failing Hangfire mock
+        var customMigrationClient = CreateClientWithFailingHangfire();
 
         // Arrange sync call
         SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
@@ -288,7 +271,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task SyncCorrespondenceStatusEvent_SoftDeletedByRecipient_HangfireEnqueueFails_DatabaseRollback()
+    public async Task SyncCorrespondenceStatusEvent_SoftDeletedByRecipient_SoftDeletePerformed()
     {
         // Arrange
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
@@ -305,18 +288,17 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
-        // Arrange - Create a custom factory with a failing Hangfire mock
+        // Arrange - Create a custom factory with a Hangfire mock to verify job enqueueing
         var backgroundJobClientMock = new Mock<IBackgroundJobClient>();
-        // Mock the underlying Create method that Enqueue extension method calls internally
         backgroundJobClientMock
             .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-            .Throws(new InvalidOperationException("Hangfire enqueue failed"));
+            .Returns("fake-job-id");
 
-        var customFactory = new CustomWebApplicationFactory
+        using var customFactory = new CustomWebApplicationFactory
         {
             CustomServices = services =>
             {
-                // Replace IBackgroundJobClient with our failing mock
+                // Replace IBackgroundJobClient with our mock
                 services.RemoveAll<IBackgroundJobClient>();
                 services.AddSingleton(backgroundJobClientMock.Object);
             }
@@ -341,6 +323,62 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             }
         };
 
+        // Act
+        var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
+
+        // Assert 
+        Assert.True(response.IsSuccessStatusCode);        
+
+        // Assert that the Correspondence is still accessible
+        var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
+        
+        // Assert that Hangfire job was enqueued to update Dialogporten labels with Bin
+        backgroundJobClientMock.Verify(
+            x => x.Create(It.Is<Job>(job => 
+                job.Method.Name == "UpdateSystemLabelsOnDialog" &&
+                job.Type.Name == "IDialogportenService"),
+                It.IsAny<EnqueuedState>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncCorrespondenceStatusEvent_SoftDeletedByRecipient_HangfireEnqueueFails_DatabaseRollback()
+    {
+        // Arrange
+        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 5))
+            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
+            .WithCreatedAt(new DateTime(2024, 1, 1, 03, 09, 21))
+            .WithNotificationHistoryEvent(1, "testemail@altinn.no", NotificationChannelExt.Email, new DateTime(2024, 1, 7), false)
+            .WithRecipient("urn:altinn:person:identifier-no:29909898925")
+            .WithResourceId("skd-migratedcorrespondence-5229-1")
+            .Build();
+        migrateCorrespondenceExt.MakeAvailable = true;
+
+        // Setup initial Migrated Correspondence
+        var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
+
+        // Arrange - Create a custom client with a failing Hangfire mock
+        var customMigrationClient = CreateClientWithFailingHangfire();
+
+        // Arrange sync call
+        SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceStatusEventExt>
+            {
+                new MigrateCorrespondenceStatusEventExt
+                {
+                    Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient,
+                    StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 8)),
+                    EventUserPartyUuid = _defaultUserPartyUuid,
+                    EventUserUuid = _defaultUserUuid
+                }
+            }
+        };
+
         // Act - Sync with custom factory - should fail due to Hangfire exception
         var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
@@ -348,7 +386,8 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         Assert.False(response.IsSuccessStatusCode);
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
 
-        // Assert that the Correspondence did not get purged
+        // Assert that the Correspondence is still accessible (rollback means no changes persisted)
+        // NOT A TRUE verification of rollback but at least verifies that the correspondence is still avaialable
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
     }
@@ -559,25 +598,8 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
-        // Arrange - Create a custom factory with a failing Hangfire mock
-        var backgroundJobClientMock = new Mock<IBackgroundJobClient>();
-        // Mock the underlying Create method that Enqueue extension method calls internally
-        backgroundJobClientMock
-            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-            .Throws(new InvalidOperationException("Hangfire enqueue failed"));
-
-        var customFactory = new CustomWebApplicationFactory
-        {
-            CustomServices = services =>
-            {
-                // Replace IBackgroundJobClient with our failing mock
-                services.RemoveAll<IBackgroundJobClient>();
-                services.AddSingleton(backgroundJobClientMock.Object);
-            }
-        };
-
-        var customMigrationClient = customFactory.CreateClientWithAddedClaims(
-            ("scope", AuthorizationConstants.MigrateScope));        
+        // Arrange - Create a custom client with a failing Hangfire mock
+        var customMigrationClient = CreateClientWithFailingHangfire();
 
         // Arrange sync call
         SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
@@ -604,10 +626,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
 
         // Assert - The Archive status was NOT saved due to rollback
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
-        AssertStatusEventNotSet(request.SyncedEvents[0], getCorrespondenceDetails);        
-        
-        // Clean up custom factory
-        customFactory.Dispose();
+        AssertStatusEventNotSet(request.SyncedEvents[0], getCorrespondenceDetails);
     }
 
     [Fact]
@@ -753,5 +772,28 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             MigrateCorrespondenceStatusExt.PurgedByAltinn => CorrespondenceStatusExt.PurgedByAltinn,
             _ => throw new ArgumentOutOfRangeException(nameof(status), $"Not expected status value: {status}"),
         };
+    }
+
+    /// <summary>
+    /// Helper method to create a custom factory with a failing Hangfire mock for transaction rollback testing.
+    /// </summary>
+    private HttpClient CreateClientWithFailingHangfire()
+    {
+        var backgroundJobClientMock = new Mock<IBackgroundJobClient>();
+        backgroundJobClientMock
+            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+            .Throws(new InvalidOperationException("Hangfire enqueue failed"));
+
+        var customFactory = new CustomWebApplicationFactory
+        {
+            CustomServices = services =>
+            {
+                services.RemoveAll<IBackgroundJobClient>();
+                services.AddSingleton(backgroundJobClientMock.Object);
+            }
+        };
+
+        return customFactory.CreateClientWithAddedClaims(
+            ("scope", AuthorizationConstants.MigrateScope));
     }
 }
