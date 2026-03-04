@@ -30,7 +30,8 @@ public static class DependencyInjection
                     .AddMeter(
                         "Microsoft.AspNetCore.Hosting",
                         "Microsoft.AspNetCore.Server.Kestrel",
-                        "System.Net.Http")
+                        "System.Net.Http",
+                        "Altinn.Correspondence.Integrations.Hangfire")
                     .AddNpgsqlInstrumentation();
             })
             .WithTracing(tracing =>

@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Integrations.Slack;
 using Hangfire;
 using Hangfire.AspNetCore;
@@ -50,5 +50,7 @@ public static class DependencyInjection
                 options.Queues = [HangfireQueues.LiveMigration, HangfireQueues.Migration];
             });
         };
+
+        services.AddHostedService<HangfireQueueMetricsService>();
     }
 }
