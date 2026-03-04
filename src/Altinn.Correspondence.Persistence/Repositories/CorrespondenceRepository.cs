@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -590,6 +591,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Take(1000);
 
             return await query.ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetUnopenedConfidentialCorrespondencesForParty(string partyId, CancellationToken cancellationToken)
+        {
+            return await _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.Recipient == partyId)
+                .Where(c => c.IsConfidential)
+                .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
+                .ToListAsync(cancellationToken);
         }
     }
 }
