@@ -34,6 +34,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ServiceOwnerEntity> ServiceOwners { get; set; }
     public DbSet<StorageProviderEntity> StorageProviders { get; set; }
     public DbSet<CorrespondenceStatusFetchedEntity> CorrespondenceFetches { get; set; }
+    public DbSet<ConfidentialReminderEntity> ConfidentialReminders { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
