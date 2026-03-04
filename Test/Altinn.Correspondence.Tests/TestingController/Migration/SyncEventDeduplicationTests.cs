@@ -42,7 +42,7 @@ public class SyncEventDeduplicationTests : MigrationTestBase
         var partyUuid = Guid.NewGuid();
         var statusChanged = new DateTime(2024, 5, 15, 14, 30, 0, DateTimeKind.Utc);
         
-        var statusEvent = new CorrespondenceStatusEntity
+        var statusEvent1 = new CorrespondenceStatusEntity
         {
             CorrespondenceId = result.CorrespondenceId,
             Status = CorrespondenceStatus.Read,
@@ -51,10 +51,18 @@ public class SyncEventDeduplicationTests : MigrationTestBase
             StatusText = "Test status event"
         };
 
-        // Act - Add the same status twice
-        // Note: Reusing statusEvent - EF Core regenerates PK on second AddCorrespondenceStatusForSync, triggering unique index violation
-        var firstResult = await statusRepo.AddCorrespondenceStatusForSync(statusEvent, CancellationToken.None);
-        var secondResult = await statusRepo.AddCorrespondenceStatusForSync(statusEvent, CancellationToken.None);
+        var statusEvent2 = new CorrespondenceStatusEntity
+        {
+            CorrespondenceId = result.CorrespondenceId,
+            Status = CorrespondenceStatus.Read,
+            StatusChanged = statusChanged,
+            PartyUuid = partyUuid,
+            StatusText = "Test status event"
+        };
+
+        // Act - Add the same status twice with identical unique-key values but different instances
+        var firstResult = await statusRepo.AddCorrespondenceStatusForSync(statusEvent1, CancellationToken.None);
+        var secondResult = await statusRepo.AddCorrespondenceStatusForSync(statusEvent2, CancellationToken.None);
 
         // Assert - First should succeed, second should return Guid.Empty
         Assert.NotEqual(Guid.Empty, firstResult);
@@ -124,23 +132,36 @@ public class SyncEventDeduplicationTests : MigrationTestBase
         var notificationRepo = scope.ServiceProvider.GetRequiredService<ICorrespondenceNotificationRepository>();
 
         var notificationSent = new DateTimeOffset(new DateTime(2024, 5, 15, 10, 0, 0, DateTimeKind.Utc));
+        var created = DateTimeOffset.UtcNow;
+        var requestedSendTime = DateTimeOffset.UtcNow;
 
-        var notification = new CorrespondenceNotificationEntity
+        var notification1 = new CorrespondenceNotificationEntity
         {
             CorrespondenceId = result.CorrespondenceId,
             NotificationAddress = "test@example.com",
             NotificationChannel = NotificationChannel.Email,
             NotificationSent = notificationSent,
             NotificationTemplate = NotificationTemplate.CustomMessage,
-            Created = DateTimeOffset.UtcNow,
-            RequestedSendTime = DateTimeOffset.UtcNow,
+            Created = created,
+            RequestedSendTime = requestedSendTime,
             IsReminder = false
         };
 
-        // Act - Add the same notification twice
-        // Note: Reusing notification - EF Core regenerates PK on second AddNotificationForSync, triggering unique index violation
-        var firstResult = await notificationRepo.AddNotificationForSync(notification, CancellationToken.None);
-        var secondResult = await notificationRepo.AddNotificationForSync(notification, CancellationToken.None);
+        var notification2 = new CorrespondenceNotificationEntity
+        {
+            CorrespondenceId = result.CorrespondenceId,
+            NotificationAddress = "test@example.com",
+            NotificationChannel = NotificationChannel.Email,
+            NotificationSent = notificationSent,
+            NotificationTemplate = NotificationTemplate.CustomMessage,
+            Created = created,
+            RequestedSendTime = requestedSendTime,
+            IsReminder = false
+        };
+
+        // Act - Add the same notification twice with identical unique-key values but different instances
+        var firstResult = await notificationRepo.AddNotificationForSync(notification1, CancellationToken.None);
+        var secondResult = await notificationRepo.AddNotificationForSync(notification2, CancellationToken.None);
 
         // Assert
         Assert.NotEqual(Guid.Empty, firstResult);
@@ -217,21 +238,31 @@ public class SyncEventDeduplicationTests : MigrationTestBase
 
         var forwardedByPartyUuid = Guid.NewGuid();
         var forwardedOnDate = new DateTimeOffset(new DateTime(2024, 5, 15, 12, 0, 0, DateTimeKind.Utc));
+        var forwardedByUserUuid = Guid.NewGuid();
 
-        var forwardingEvent = new CorrespondenceForwardingEventEntity
+        var forwardingEvent1 = new CorrespondenceForwardingEventEntity
         {
             CorrespondenceId = result.CorrespondenceId,
             ForwardedOnDate = forwardedOnDate,
             ForwardedByPartyUuid = forwardedByPartyUuid,
             ForwardedByUserId = 123,
-            ForwardedByUserUuid = Guid.NewGuid(),
+            ForwardedByUserUuid = forwardedByUserUuid,
             ForwardedToEmailAddress = "forwarded@example.com"
         };
 
-        // Act - Add the same forwarding event twice
-        // Note: Reusing forwardingEvent - EF Core regenerates PK on second AddForwardingEventForSync, triggering unique index violation
-        var firstResult = await forwardingRepo.AddForwardingEventForSync(forwardingEvent, CancellationToken.None);
-        var secondResult = await forwardingRepo.AddForwardingEventForSync(forwardingEvent, CancellationToken.None);
+        var forwardingEvent2 = new CorrespondenceForwardingEventEntity
+        {
+            CorrespondenceId = result.CorrespondenceId,
+            ForwardedOnDate = forwardedOnDate,
+            ForwardedByPartyUuid = forwardedByPartyUuid,
+            ForwardedByUserId = 123,
+            ForwardedByUserUuid = forwardedByUserUuid,
+            ForwardedToEmailAddress = "forwarded@example.com"
+        };
+
+        // Act - Add the same forwarding event twice with identical unique-key values but different instances
+        var firstResult = await forwardingRepo.AddForwardingEventForSync(forwardingEvent1, CancellationToken.None);
+        var secondResult = await forwardingRepo.AddForwardingEventForSync(forwardingEvent2, CancellationToken.None);
 
         // Assert
         Assert.NotEqual(Guid.Empty, firstResult);
@@ -305,7 +336,7 @@ public class SyncEventDeduplicationTests : MigrationTestBase
         var partyUuid = Guid.NewGuid();
         var eventOccurred = new DateTimeOffset(new DateTime(2024, 5, 15, 15, 0, 0, DateTimeKind.Utc));
 
-        var deleteEvent = new CorrespondenceDeleteEventEntity
+        var deleteEvent1 = new CorrespondenceDeleteEventEntity
         {
             CorrespondenceId = result.CorrespondenceId,
             EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
@@ -313,10 +344,17 @@ public class SyncEventDeduplicationTests : MigrationTestBase
             PartyUuid = partyUuid
         };
 
-        // Act - Add the same delete event twice
-        // Note: Reusing deleteEvent - EF Core regenerates PK on second AddDeleteEventForSync, triggering unique index violation
-        var firstResult = await deleteEventRepo.AddDeleteEventForSync(deleteEvent, CancellationToken.None);
-        var secondResult = await deleteEventRepo.AddDeleteEventForSync(deleteEvent, CancellationToken.None);
+        var deleteEvent2 = new CorrespondenceDeleteEventEntity
+        {
+            CorrespondenceId = result.CorrespondenceId,
+            EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
+            EventOccurred = eventOccurred,
+            PartyUuid = partyUuid
+        };
+
+        // Act - Add the same delete event twice with identical unique-key values but different instances
+        var firstResult = await deleteEventRepo.AddDeleteEventForSync(deleteEvent1, CancellationToken.None);
+        var secondResult = await deleteEventRepo.AddDeleteEventForSync(deleteEvent2, CancellationToken.None);
 
         // Assert
         Assert.NotEqual(Guid.Empty, firstResult);

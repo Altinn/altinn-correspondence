@@ -184,6 +184,7 @@ public class CorrespondenceMigrationEventHelper(
 
         foreach (var deletionEventToSync in deletionEventsFilteredForRequestDuplicates)
         {
+            // Remove duplicate delete events that are already present in the database, based on the unique constraint on (CorrespondenceId, EventType, EventOccurred, PartyUuid). We compare EventOccurred to nearest second to allow for diff in Altinn 2 ServiceEngine/Archive timestamps
             bool isDuplicate = deletionEventsInDatabase.Any(
                 e => e.EventType == deletionEventToSync.EventType
                 && e.EventOccurred.EqualsToSecond(deletionEventToSync.EventOccurred)
@@ -238,7 +239,7 @@ public class CorrespondenceMigrationEventHelper(
 
         var filteredStatusEvents = new List<CorrespondenceStatusEntity>();
 
-        // Remove duplicate status events that are already present in the correspondence
+        // Remove duplicate status events that are already present in the correspondence in the database, based on the unique constraint on (CorrespondenceId, Status, StatusChanged, PartyUuid). We compare StatusChanged to nearest second to allow for diff in Altinn 2 ServiceEngine/Archive timestamps
         foreach (var syncedEvent in eventsFilteredForRequestDuplicates)
         {
             bool isDuplicate = correspondence.Statuses.Any(
@@ -566,6 +567,7 @@ public class CorrespondenceMigrationEventHelper(
 
         foreach (var syncedEvent in syncedEvents)
         {
+            // Remove duplicate Notifications events that are already present in the correspondence in the database. We compare NotificationSent to nearest second to allow for diff in Altinn 2 ServiceEngine/Archive timestamps
             bool isDuplicate = (correspondence.Notifications ?? Enumerable.Empty<CorrespondenceNotificationEntity>()).Any(
                 n => n.NotificationAddress == syncedEvent.NotificationAddress
                 && n.NotificationChannel == syncedEvent.NotificationChannel
@@ -599,7 +601,7 @@ public class CorrespondenceMigrationEventHelper(
 
         foreach (var syncedEvent in syncedEvents)
         {
-            // Check for duplicates based on the database unique constraint: CorrespondenceId, ForwardedOnDate, ForwardedByPartyUuid
+            // Check for duplicates in database based on the database unique constraint, but we compare ForwardedOnDate to nearest second to allow for diff in Altinn 2 ServiceEngine/Archive timestamps
             bool isDuplicate = (correspondence.ForwardingEvents ?? Enumerable.Empty<CorrespondenceForwardingEventEntity>())
                 .Any(fe =>
                     fe.ForwardedOnDate.EqualsToSecond(syncedEvent.ForwardedOnDate)
