@@ -595,13 +595,16 @@ public class InitializeCorrespondencesHandler(
     public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, DateTimeOffset requestedPublishTime, bool shouldScheduleDialogPatch, CancellationToken cancellationToken)
     {
         var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
+        var publishDependencyJob = transmissionJob;
         if (shouldScheduleDialogPatch)
         {
-            backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(transmissionJob, (handler) => handler.PatchDialogportenTransmissionDialogStatusAndExtendedStatus(correspondenceId, CancellationToken.None));
+            publishDependencyJob = backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(
+                transmissionJob,
+                (handler) => handler.PatchDialogportenTransmissionDialogStatusAndExtendedStatus(correspondenceId, CancellationToken.None));
         }
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
-            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
+            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, publishDependencyJob, cancellationToken);
         };
     }
 
