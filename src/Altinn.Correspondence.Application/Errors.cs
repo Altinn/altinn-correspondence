@@ -57,6 +57,7 @@ public static class CorrespondenceErrors
     public static Error DialogportenDialogIdNotFound = new Error(1054, "Dialogporten dialog with the given id was not found", HttpStatusCode.NotFound);
     public static Error ExistingAttachmentExpiringSoon(int hours) =>
         new Error(1055, $"Existing attachment is expiring within {hours} hour(s) and cannot be attached to a new correspondence", HttpStatusCode.BadRequest);
+    public static Error CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag = new Error(1056, "Confidential correspondences (resources with the access package post-til-virksomheten-med-taushetsbelagt-innhold) cannot be initialized without setting the 'IsConfidential' flag to true", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors

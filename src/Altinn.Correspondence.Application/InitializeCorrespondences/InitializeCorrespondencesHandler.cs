@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.CreateNotificationOrder;
+using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
@@ -84,6 +85,12 @@ public class InitializeCorrespondencesHandler(
             return AuthorizationErrors.IncorrectResourceType;
         }
 
+        var isResourceConfidential = await resourceRegistryService.IsResourceConfidential(request.Correspondence.ResourceId, cancellationToken);
+        if (isResourceConfidential && !request.Correspondence.IsConfidential)
+        {
+            logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
+            return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
+        }
         var caller = user?.GetCallerPartyUrn();
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
@@ -458,6 +465,12 @@ public class InitializeCorrespondencesHandler(
             if (createJobResult.IsT1)
             {
                 return createJobResult.AsT1;
+            }
+
+            if (correspondence.IsConfidential)
+            {
+                logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
+                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.RequestedPublishTime.AddSeconds(20));
             }
 
             initializedCorrespondences.Add(new InitializedCorrespondences()
