@@ -561,7 +561,7 @@ public class InitializeCorrespondencesHandler(
 
             if (!string.IsNullOrEmpty(notificationJobId))
             {
-                await ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken);
+                await ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, cancellationToken);
             }
         }
         else
