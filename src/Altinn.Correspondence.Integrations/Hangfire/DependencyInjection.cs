@@ -35,10 +35,9 @@ public static class DependencyInjection
 
         services.AddHangfireServer(options =>
         {
-            options.WorkerCount = generalSettings.WorkerCountPerReplica;
+            options.WorkerCount = 100;
             options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
             options.Queues = [ HangfireQueues.Default ];
-            options.WorkerCount = generalSettings.WorkerCountPerReplica;
         });
         
         if (generalSettings.MigrationWorkerCountPerReplica > 0)
@@ -46,7 +45,7 @@ public static class DependencyInjection
             services.AddHangfireServer(options =>
             {
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
-                options.WorkerCount = generalSettings.MigrationWorkerCountPerReplica;
+                options.WorkerCount = 10;
                 options.Queues = [HangfireQueues.LiveMigration, HangfireQueues.Migration];
             });
         };
