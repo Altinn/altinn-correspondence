@@ -490,6 +490,13 @@ public class InitializeCorrespondencesHandler(
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
     }
+
+    public async Task PatchDialogportenTransmissionDialogStatusAndExtendedStatus(Guid correspondenceId, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Patching Dialogporten dialog status/extendedStatus for transmission correspondence {CorrespondenceId}", correspondenceId);
+        await dialogportenService.PatchDialogStatusAndExtendedStatusForTransmission(correspondenceId, cancellationToken);
+        logger.LogInformation("Successfully patched Dialogporten dialog status/extendedStatus for transmission correspondence {CorrespondenceId}", correspondenceId);
+    }
     private async Task<OneOf<Task, Error>> ValidateTransmissionRequest(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
         if (request.Recipients.Count > 1)
@@ -548,6 +555,9 @@ public class InitializeCorrespondencesHandler(
             }
 
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
+            var shouldScheduleDialogPatch = correspondence.ExternalReferences.Any(er =>
+                er.ReferenceType == ReferenceType.DialogportenDialogStatus ||
+                er.ReferenceType == ReferenceType.DialogportenDialogExtendedStatus);
 
             if (!string.IsNullOrEmpty(notificationJobId))
             {
@@ -571,7 +581,7 @@ public class InitializeCorrespondencesHandler(
         return Task.CompletedTask;
     }
 
-    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
+    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, DateTimeOffset requestedPublishTime, bool shouldScheduleDialogPatch, CancellationToken cancellationToken)
     {
         backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))

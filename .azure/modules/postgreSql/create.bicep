@@ -26,20 +26,28 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
       tier: environment == 'production' ? 'P60' : prodLikeEnvironment ? 'P50' : 'P4'
     }
     backup: { backupRetentionDays: 35 }
+    maintenanceWindow: {
+      customWindow: 'Enabled'
+      dayOfWeek: 1
+      startHour: 3
+      startMinute: 0
+    }
     authConfig: {
       activeDirectoryAuth: 'Enabled'
       passwordAuth: 'Disabled'
       tenantId: tenantId
     }
-    highAvailability: environment == 'production' ? {
-      mode: 'ZoneRedundant'
-      standbyAvailabilityZone: '1'
-    } : null
+    highAvailability: null
   }
-  sku: prodLikeEnvironment
+  sku: environment == 'production'
     ? {
-        name: 'Standard_D32ads_v5'
-        tier: 'GeneralPurpose'
+        name: 'Standard_E16ads_v5'
+        tier: 'MemoryOptimized'
+      }
+    : prodLikeEnvironment 
+    ? {
+        name: 'Standard_E8ads_v5'
+        tier: 'MemoryOptimized'
       }
     : {
         name: 'Standard_B1ms'

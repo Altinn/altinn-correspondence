@@ -52,7 +52,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         => CheckUserAccess(
             user,
             resourceId,
-            sender.WithoutPrefix(),
+            sender,
             instance,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
             cancellationToken);
@@ -61,7 +61,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         CheckUserAccess(
             user,
             correspondence.ResourceId,
-            correspondence.Sender.WithoutPrefix(),
+            correspondence.Sender,
             correspondence.Id.ToString(),
             new List<ResourceAccessLevel> { ResourceAccessLevel.Write },
             cancellationToken);
@@ -70,7 +70,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         CheckUserAccess(
             user,
             correspondence.ResourceId,
-            correspondence.Recipient.WithoutPrefix(),
+            correspondence.Recipient,
             correspondence.Id.ToString(),
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             cancellationToken);
@@ -79,7 +79,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         CheckUserAccess(
             user,
             attachment.ResourceId,
-            correspondence.Recipient.WithoutPrefix(),
+            correspondence.Recipient,
             correspondence.Id.ToString(),
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             cancellationToken);
@@ -257,7 +257,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var issuer = user.Claims.FirstOrDefault(c => c.Type == "iss")?.Value;
 
         var resolvedParty = party;
-        if (resolvedParty.IsIdPortenEmailUrn() || resolvedParty.IsEmailAddress())
+        if (!party.IsPartyId())
         {
             var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedParty, cancellationToken);
             if (registerParty is not null && registerParty.PartyId > 0)

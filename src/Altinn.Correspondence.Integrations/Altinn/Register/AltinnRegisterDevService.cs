@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -47,6 +48,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _digdirPartyId,
                 OrgNumber = "",
                 SSN = "",
+                ExternalUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:{email}",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
@@ -62,6 +64,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _digdirPartyId,
                 OrgNumber = "991825827",
                 SSN = "",
+                ExternalUrn = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Organization,
                 UnitType = "Virksomhet",
@@ -82,6 +85,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _digdirPartyId,
                 OrgNumber = "991825827",
                 SSN = "",
+                ExternalUrn = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Organization,
                 UnitType = "Virksomhet",
@@ -96,6 +100,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _delegatedUserPartyid,
                 OrgNumber = "",
                 SSN = "01018045678",
+                ExternalUrn = $"{UrnConstants.PersonIdAttribute}:01018045678",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
@@ -116,6 +121,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _digdirPartyId,
                 OrgNumber = "991825827",
                 SSN = "",
+                ExternalUrn = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Organization,
                 UnitType = "Virksomhet",
@@ -130,6 +136,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _delegatedUserPartyid,
                 OrgNumber = "",
                 SSN = "01018045678",
+                ExternalUrn = $"{UrnConstants.PersonIdAttribute}:01018045678",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
@@ -144,6 +151,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = _secondUserPartyId,
                 OrgNumber = "",
                 SSN = "01027845678",
+                ExternalUrn = $"{UrnConstants.PersonIdAttribute}:01027845678",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
@@ -167,6 +175,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                     PartyId = _digdirPartyId,
                     OrgNumber = id,
                     SSN = id,
+                    ExternalUrn = id.WithUrnPrefix(),
                     Resources = new List<string>(),
                     PartyTypeName = PartyType.Organization,
                     UnitType = "Virksomhet",

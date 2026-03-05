@@ -30,8 +30,8 @@ var predefinedKeyvaultSecretEnvVars = [
   { name: 'MaskinportenSettings__ClientId', secretName: 'maskinporten-client-id' }
   { name: 'MaskinportenSettings__EncodedJwk', secretName: 'maskinporten-jwk' }
   { name: 'GeneralSettings__SlackUrl', secretName: 'slack-url' }
-  { name: 'IdportenSettings__ClientId', secretName: 'idporten-client-id' }
-  { name: 'IdportenSettings__ClientSecret', secretName: 'idporten-client-secret' }
+  { name: 'AltinnIdProviderSettings__ClientId', secretName: 'altinn-idprovider-client-id' }
+  { name: 'AltinnIdProviderSettings__ClientSecret', secretName: 'altinn-idprovider-client-secret' }
   { name: 'StatisticsApiKey', secretName: 'statistics-api-key' }
   { name: 'GeneralSettings__MalwareScanBypassWhiteList', secretName: 'malware-scan-bypass-white-list' }
 ]
