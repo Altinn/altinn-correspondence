@@ -31,7 +31,7 @@ public class InitializeCorrespondencesHandler(
     IDialogportenService dialogportenService,
     IContactReservationRegistryService contactReservationRegistryService,
     IHybridCacheWrapper hybridCacheWrapper,
-    HangfireScheduleHelper hangfireScheduleHelper,
+    PublishHelper hangfireScheduleHelper,
     IIdempotencyKeyRepository idempotencyKeyRepository,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
@@ -551,10 +551,6 @@ public class InitializeCorrespondencesHandler(
 
             if (!string.IsNullOrEmpty(notificationJobId))
             {
-                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
-            }
-            else
-            {
                 await ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken);
             }
         }
@@ -568,14 +564,7 @@ public class InitializeCorrespondencesHandler(
             });
             if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                if (!string.IsNullOrEmpty(notificationJobId))
-                {
-                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
-                }
-                else
-                {
-                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
-                }
+                await hangfireScheduleHelper.SetPublishAtPublishTime(correspondence.Id, cancellationToken);
             }
         }
 
@@ -584,10 +573,10 @@ public class InitializeCorrespondencesHandler(
 
     public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
     {
-        var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
+        backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
-            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
+            await hangfireScheduleHelper.SetPublishAtPublishTime(correspondenceId, cancellationToken);
         };
     }
 

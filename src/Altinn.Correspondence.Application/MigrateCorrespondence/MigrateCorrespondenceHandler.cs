@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
-using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -18,7 +17,7 @@ namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 public class MigrateCorrespondenceHandler(
 ICorrespondenceRepository correspondenceRepository,
 IDialogportenService dialogportenService,
-HangfireScheduleHelper hangfireScheduleHelper,
+PublishHelper hangfireScheduleHelper,
 IBackgroundJobClient backgroundJobClient,
 IHostEnvironment hostEnvironment,
 CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
@@ -70,8 +69,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                 }
                 else
                 {
-                    var dialogJobId = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
-                    hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, dialogJobId, CancellationToken.None);
+                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeAvailableInDialogportenAndPublishInCorrespondence(correspondence.Id));
 
                     var altinn2PublishStatus = correspondence.Statuses.FirstOrDefault(statusEvent => statusEvent.Status == CorrespondenceStatus.Published && statusEvent.StatusText == "Correspondence Published in Altinn 2");
                     if (altinn2PublishStatus != null)
@@ -141,6 +139,12 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
 
             throw;
         }
+    }
+
+    public async Task MakeAvailableInDialogportenAndPublishInCorrespondence(Guid correspondenceId)
+    {
+        await MakeCorrespondenceAvailableInDialogportenAndApi(correspondenceId, CancellationToken.None, null, true);
+        await hangfireScheduleHelper.SetPublishAtPublishTime(correspondenceId, CancellationToken.None);
     }
 
     public async Task<OneOf<MakeCorrespondenceAvailableResponse, Error>> MakeCorrespondenceAvailable(MakeCorrespondenceAvailableRequest request, CancellationToken cancellationToken)
