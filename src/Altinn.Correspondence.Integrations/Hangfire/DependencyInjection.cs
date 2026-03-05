@@ -38,7 +38,6 @@ public static class DependencyInjection
             options.WorkerCount = generalSettings.WorkerCountPerReplica;
             options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
             options.Queues = [ HangfireQueues.Default ];
-            options.WorkerCount = generalSettings.WorkerCountPerReplica;
         });
         
         if (generalSettings.MigrationWorkerCountPerReplica > 0)

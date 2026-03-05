@@ -31,7 +31,7 @@ public class InitializeCorrespondencesHandler(
     IDialogportenService dialogportenService,
     IContactReservationRegistryService contactReservationRegistryService,
     IHybridCacheWrapper hybridCacheWrapper,
-    HangfireScheduleHelper hangfireScheduleHelper,
+    PublishHelper hangfireScheduleHelper,
     IIdempotencyKeyRepository idempotencyKeyRepository,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
@@ -561,10 +561,6 @@ public class InitializeCorrespondencesHandler(
 
             if (!string.IsNullOrEmpty(notificationJobId))
             {
-                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, CancellationToken.None));
-            }
-            else
-            {
                 await ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, cancellationToken);
             }
         }
@@ -578,14 +574,7 @@ public class InitializeCorrespondencesHandler(
             });
             if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
             {
-                if (!string.IsNullOrEmpty(notificationJobId))
-                {
-                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None));
-                }
-                else
-                {
-                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
-                }
+                await hangfireScheduleHelper.SetPublishAtPublishTime(correspondence.Id, cancellationToken);
             }
         }
 
@@ -594,17 +583,10 @@ public class InitializeCorrespondencesHandler(
 
     public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, DateTimeOffset requestedPublishTime, bool shouldScheduleDialogPatch, CancellationToken cancellationToken)
     {
-        var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
-        var publishDependencyJob = transmissionJob;
-        if (shouldScheduleDialogPatch)
-        {
-            publishDependencyJob = backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(
-                transmissionJob,
-                (handler) => handler.PatchDialogportenTransmissionDialogStatusAndExtendedStatus(correspondenceId, CancellationToken.None));
-        }
+        backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
-            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, publishDependencyJob, cancellationToken);
+            await hangfireScheduleHelper.SetPublishAtPublishTime(correspondenceId, cancellationToken);
         };
     }
 

@@ -47,6 +47,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
             _correspondenceDeleteRepositoryMock = new Mock<ICorrespondenceDeleteEventRepository>();            
             _dialogportenServiceMock = new Mock<IDialogportenService>();
+            _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _hostEnvironmentMock = new Mock<IHostEnvironment>();
             _hostEnvironmentMock.Setup(x => x.EnvironmentName).Returns(Environments.Development);
@@ -86,7 +87,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
                 .Returns(() => Guid.NewGuid().ToString());
 
-            var hangfireScheduleHelper = new HangfireScheduleHelper(_backgroundJobClientMock.Object, mockCache.Object, _correspondenceRepositoryMock.Object, new NullLogger<HangfireScheduleHelper>());
+            var hangfireScheduleHelper = new PublishHelper(_correspondenceStatusRepositoryMock.Object, _altinnRegisterServiceMock.Object, _correspondenceRepositoryMock.Object, new NullLogger<PublishHelper>());
             _handler = new MigrateCorrespondenceHandler(
                 _correspondenceRepositoryMock.Object,
                 _dialogportenServiceMock.Object,

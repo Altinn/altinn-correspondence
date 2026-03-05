@@ -18,6 +18,11 @@ namespace Altinn.Correspondence.Persistence.Helpers
             };
         }
 
+        public static IEnumerable<CorrespondenceStatusEntity> ExceptFutureStatuses(this IEnumerable<CorrespondenceStatusEntity> list)
+        {
+            return list.Where(cs => cs.StatusChanged < DateTimeOffset.UtcNow);
+        }
+
         public static IQueryable<CorrespondenceEntity> FilterByStatus(this IQueryable<CorrespondenceEntity> query, CorrespondenceStatus? status, string orgNo, CorrespondencesRoleType role)
         {
             var blacklistSender = new List<CorrespondenceStatus?>
@@ -41,16 +46,16 @@ namespace Altinn.Correspondence.Persistence.Helpers
             {
                 return query.Where(c => (c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo)) &&
                     status.HasValue ?
-                    (!blacklistSender.Contains(status)) && c.Statuses.Any(statusEntity => statusEntity.Status == status) :
-                    (!blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
+                    (!blacklistSender.Contains(status)) && c.Statuses.ExceptFutureStatuses().Any(statusEntity => statusEntity.Status == status) :
+                    (!blacklistSender.Contains(c.Statuses.ExceptFutureStatuses().OrderBy(cs => cs.StatusChanged).Last().Status)));
             }
 
             IQueryable<CorrespondenceEntity> FilterForRecipient()
             {
                 return query.Where(c => c.Recipient.Contains(orgNo) &&
                     status.HasValue ?
-                    (!blacklistRecipient.Contains(status)) && c.Statuses.Any(statusEntity => statusEntity.Status == status) :
-                    (!blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).Last().Status)));
+                    (!blacklistRecipient.Contains(status)) && c.Statuses.ExceptFutureStatuses().Any(statusEntity => statusEntity.Status == status) :
+                    (!blacklistRecipient.Contains(c.Statuses.ExceptFutureStatuses().OrderBy(cs => cs.StatusChanged).Last().Status)));
             }
             return role switch
             {
@@ -90,6 +95,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             return query.Where(cs =>
                 cs.Statuses.Any() && statusesToFilter.Contains(
                     cs.Statuses
+                        .ExceptFutureStatuses()
                         .OrderBy(s => s.StatusChanged)
                         .ThenBy(s => s.Id)
                         .Last().Status));
@@ -98,7 +104,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
         public static IQueryable<CorrespondenceEntity> ExcludePurged(this IQueryable<CorrespondenceEntity> query)
         {
             return query.Where(cs =>
-                    !cs.Statuses.Any(s =>
+                    !cs.Statuses.ExceptFutureStatuses().Any(s =>
                         s.Status == CorrespondenceStatus.PurgedByAltinn ||
                         s.Status == CorrespondenceStatus.PurgedByRecipient));
         }
@@ -112,8 +118,9 @@ namespace Altinn.Correspondence.Persistence.Helpers
                 return query.Where(_ => false);
             }
 
-            return query.Where(c => c.Statuses.Any() &&statuses.Contains(
+            return query.Where(c => c.Statuses.Any() && statuses.Contains(
                 c.Statuses
+                    .ExceptFutureStatuses()
                     .OrderBy(s => s.StatusChanged)
                     .ThenBy(s => s.Id)
                     .Last().Status));
