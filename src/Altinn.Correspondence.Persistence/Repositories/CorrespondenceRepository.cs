@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (includeStatus)
             {
                 correspondences = correspondences
-                    .Include(c => c.Statuses)
+                    .Include(c => c.Statuses.ExceptFutureStatuses())
                     .Include(c => c.StatusFetched);
             }
             if (includeContent)
@@ -161,17 +161,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .AsQueryable();
 
-            correspondence = includeStatus ? correspondence.Include(c => c.Statuses) : correspondence;
+            correspondence = includeStatus ? correspondence.Include(c => c.Statuses.ExceptFutureStatuses()) : correspondence;
             return await correspondence.ToListAsync(cancellationToken);
         }
-
         public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondences = await _context.Correspondences
                 .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .Where(correspondence =>
                         correspondence.Content!.Attachments.Any(attachment => attachment.AttachmentId == attachmentId) // Correspondence has the given attachment
-                     && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published || status.Status == CorrespondenceStatus.ReadyForPublish  // Correspondence is not published
+                     && !correspondence.Statuses.ExceptFutureStatuses().Any(status => status.Status == CorrespondenceStatus.Published || status.Status == CorrespondenceStatus.ReadyForPublish  // Correspondence is not published
                                                            || status.Status == CorrespondenceStatus.Failed)
                      && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
                             correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
@@ -245,7 +244,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ExcludePurged() // Exclude purged correspondences
                 .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
                 .FilterMigrated(filterMigrated) // Filter all migrated correspondences no matter their IsMigrating status
-                .Include(c => c.Statuses)
+                .Include(c => c.Statuses.ExceptFutureStatuses())
                 .Include(c => c.Content)
                 .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
             // Default logic from A2 is to set 20 years into the past if no from is provided. Better performance to not apply filter in that case.
@@ -389,6 +388,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
                 .Where(c => currentStatuses.Contains(
                     c.Statuses
+                        .ExceptFutureStatuses()
                         .OrderByDescending(s => s.StatusChanged)
                         .ThenByDescending(s => s.Id)
                         .Select(s => s.Status)
@@ -476,6 +476,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.ExternalReferences.Any(er => er.ReferenceType == referenceType))
                 .Where(c => !excludedCurrentStatuses.Contains(
                     c.Statuses
+                        .ExceptFutureStatuses()
                         .OrderByDescending(s => s.StatusChanged)
                         .ThenByDescending(s => s.Id)
                         .Select(s => s.Status)
@@ -565,7 +566,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
                 .Include(c => c.Content)
                 .Include(c => c.ExternalReferences)
-                .Include(c => c.Statuses)
+                .Include(c => c.Statuses.ExceptFutureStatuses())
                 .ToListAsync(cancellationToken);
         }
 
@@ -586,7 +587,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
                 .Include(c => c.Content)
                 .Include(c => c.ExternalReferences)
-                .Include(c => c.Statuses)
+                .Include(c => c.Statuses.ExceptFutureStatuses())
                 .OrderByDescending(c => c.Id)
                 .Take(1000);
 
