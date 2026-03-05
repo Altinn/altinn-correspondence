@@ -24,15 +24,18 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         throw new Exception("Failed to retrieve unopened confidential correspondences");
     }
 
+    var defaultText = "Din virksomhet har mottatt taushetsbelagt post fra følgende virksomheter. For å se denne meldingen kreves tilgang til ressursene. Hovedadministrator må delegere denne tilgangen for at noen skal kunne se denne meldingen. Se mer informasjon på våre hjelpesider: https://info.altinn.no/nyheter/tilgang-til-taushetsbelagt-post/";
+
+    var lines = correspondences
+        .OrderBy(c => c.Created)
+        .Select((c, i) => $"{i + 1}. {c.Sender.WithoutPrefix()} datert {c.Created:dd.MM.yyyy}, denne krever tilgang til {c.ResourceId}")
+        .ToList();
+
+    var fullText = defaultText + "\n\n" + string.Join("\n\n", lines);
+
     var response = new GetUnreadConfidentialCorrespondencesResponse
     {
-        UnopenedConfidentialCorrespondences = correspondences.Select(c => new ConfidentialCorrespondenceResponse
-        {
-            Created = c.Created,
-            Sender = c.Sender.WithoutPrefix(),
-            corrId = c.Id,
-            ResourceId = c.ResourceId
-        }).ToList()
+        Text = fullText
     };
 
     return response;
