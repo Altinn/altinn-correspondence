@@ -2316,5 +2316,43 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var responseContent = await transmissionResponse.Content.ReadAsStringAsync();
             Assert.Contains(CorrespondenceErrors.DialogportenDialogIdNotFound.Message, responseContent);
         }
+
+        [Fact]
+        public async Task InitializeConfidentialCorrespondence_WithIsConfidentialFalse_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId("resource-with-confidential-post-activated")
+                .WithIsConfidential(false)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag.Message, body);
+        }
+
+        [Fact]
+        public async Task InitializeConfidentialCorrespondence_WithIsConfidentialTrue_ReturnsOk()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId("resource-with-confidential-post-activated")
+                .WithIsConfidential(true)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.DoesNotContain(CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag.Message, body);
+        }
     }
 }

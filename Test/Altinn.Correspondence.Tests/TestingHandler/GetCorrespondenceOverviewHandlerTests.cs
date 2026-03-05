@@ -18,6 +18,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
         private readonly Mock<ICorrespondenceStatusRepository> _correspondenceStatusRepositoryMock;
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
+        private readonly Mock<IDialogportenService> _dialogportenServiceMock;
+        private readonly Mock<IConfidentialReminderRepository> _confidentialReminderRepositoryMock;
         private readonly Mock<ILogger<GetCorrespondenceOverviewHandler>> _loggerMock;
         private readonly GetCorrespondenceOverviewHandler _handler;
 
@@ -28,14 +30,18 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
             _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
+            _dialogportenServiceMock = new Mock<IDialogportenService>();
+            _confidentialReminderRepositoryMock = new Mock<IConfidentialReminderRepository>();
             _loggerMock = new Mock<ILogger<GetCorrespondenceOverviewHandler>>();
 
             _handler = new GetCorrespondenceOverviewHandler(
                 _altinnAuthorizationServiceMock.Object,
                 _altinnRegisterServiceMock.Object,
+                _confidentialReminderRepositoryMock.Object,
                 _correspondenceRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
+                _dialogportenServiceMock.Object,
                 _loggerMock.Object);
         }
 
@@ -190,6 +196,198 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                         s.CorrespondenceId == correspondenceId && 
                         s.Status == CorrespondenceStatus.Read),
                     It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_WhenConfidentialCorrespondenceOpenedAndIsLastReminderForRecipient_RemovesReminderAndSoftDeletesDialog()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var reminderDialogId = Guid.NewGuid().ToString();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+            correspondence.IsConfidential = true;
+
+            var user = new ClaimsPrincipal();
+            var request = new GetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
+            };
+
+            // Mock authorization
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Mock party lookup
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            // Mock confidential reminder - correspondence has a reminder
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.CorrespondenceHasReminder(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(reminderDialogId);
+
+            // In the handler flow the removal of the reminder happens before the check and therefore it will return false since the recipient only had one reminder which is removed
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.RecipientHasConfidentialReminder(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Act
+            await _handler.Process(request, user, CancellationToken.None);
+
+            // Assert - reminder is removed
+            _confidentialReminderRepositoryMock.Verify(
+                x => x.RemoveConfidentialReminder(correspondenceId, It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            // Assert - dialog is soft deleted because recipient has no more confidential reminders
+            _dialogportenServiceMock.Verify(
+                x => x.TrySoftDeleteDialog(reminderDialogId),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_WhenConfidentialCorrespondenceOpenedAndRecipientHasOtherReminders_RemovesReminderButDoesNotSoftDeleteDialog()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var reminderDialogId = Guid.NewGuid().ToString();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+            correspondence.IsConfidential = true;
+
+            var user = new ClaimsPrincipal();
+            var request = new GetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
+            };
+
+            // Mock authorization
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Mock party lookup
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            // Mock confidential reminder - correspondence has a reminder
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.CorrespondenceHasReminder(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(reminderDialogId);
+
+            // Recipient still has other confidential reminders after removal
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.RecipientHasConfidentialReminder(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            // Act
+            await _handler.Process(request, user, CancellationToken.None);
+
+            // Assert - reminder is still removed for this correspondence
+            _confidentialReminderRepositoryMock.Verify(
+                x => x.RemoveConfidentialReminder(correspondenceId, It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            // Assert - dialog is NOT soft deleted because recipient still has other confidential reminders
+            _dialogportenServiceMock.Verify(
+                x => x.TrySoftDeleteDialog(It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_WhenNonConfidentialCorrespondenceOpened_DoesNotRunReminderLogic()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+            correspondence.IsConfidential = false;
+
+            var user = new ClaimsPrincipal();
+            var request = new GetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
+            };
+
+            // Mock authorization
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Mock party lookup
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            // Act
+            await _handler.Process(request, user, CancellationToken.None);
+
+            // Assert - reminder repository is never consulted for non-confidential correspondence
+            _confidentialReminderRepositoryMock.Verify(
+                x => x.CorrespondenceHasReminder(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+
+            _confidentialReminderRepositoryMock.Verify(
+                x => x.RemoveConfidentialReminder(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+
+            _dialogportenServiceMock.Verify(
+                x => x.TrySoftDeleteDialog(It.IsAny<string>()),
                 Times.Never);
         }
     }
