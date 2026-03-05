@@ -71,7 +71,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return new CreateDialogRequest
             {
                 Id = Guid.CreateVersion7().ToString(), // Dialogporten requires time-stamped GUIDs
-                ServiceResource = UrnConstants.Resource + ":" + correspondence.ResourceId,
+                ServiceResource = UrnConstants.Resource + ":" + "correspondence-attachment-test",
                 Party = correspondence.Recipient,
                 CreatedAt = correspondence.Created,
                 UpdatedAt = correspondence.Created,
@@ -163,7 +163,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
         };
 
-        private static Content CreateConfidentialReminderContent(ConfidentialReminderDialogDto correspondence, string baseUrl)
+        private static Content CreateConfidentialReminderContent(ConfidentialReminderDialogDto reminderDto, string baseUrl)
         {
             var title = new ContentValue()
             {
@@ -171,7 +171,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Value = new List<DialogValue> {
                     new DialogValue()
                     {
-                        Value =  "Dette er en hardkodet tittel om at du har ulest taushetsbelagt post",
+                        Value =  reminderDto.Title ?? "",
                         LanguageCode = "nb"
                     }
                 }
@@ -183,7 +183,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Value = new List<DialogValue> {
                     new DialogValue()
                     {
-                        Value = "Dette er et hardkodet sammendrag som sier at du har ulest taushetsbelagt post",
+                        Value = reminderDto.Summary ?? "",
                         LanguageCode = "nb"
                     }
                 }
@@ -205,14 +205,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 Title = title,
                 Summary = summary,
-                SenderName = string.IsNullOrWhiteSpace(correspondence.MessageSender) ? null :
+                SenderName = string.IsNullOrWhiteSpace(reminderDto.MessageSender) ? null :
                     new ContentValue()
                     {
                         MediaType = "text/plain",
                         Value = new List<DialogValue> {
                             new DialogValue()
                             {
-                                Value = correspondence.MessageSender ?? correspondence.Sender,
+                                Value = reminderDto.MessageSender ?? reminderDto.Sender,
                                 LanguageCode = "nb"
                             }
                         }
