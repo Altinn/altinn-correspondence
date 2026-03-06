@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.AspNetCore.Http;
@@ -171,21 +172,25 @@ public class ResourceRegistryService : IResourceRegistryService
         return altinnResourceRightsResponse;
     }
 
-    public async Task<bool> IsResourceConfidential(string resourceId, CancellationToken cancellationToken)
+    public async Task<ConfidentialTypeEnum> GetConfidentialLevel(string resourceId, CancellationToken cancellationToken = default)
     {
         var resourceRightsList = await GetResourceRights(resourceId, cancellationToken);
         if (resourceRightsList is null)
         {
-            return false;
+            return ConfidentialTypeEnum.NotConfidential;
         }
-        return resourceRightsList.Any(right =>
-        right.Subjects?.Any(subject =>
-            subject.SubjectAttributes?.Any(attr =>
-                attr.Type == "urn:altinn:accesspackage" &&
-                attr.Value == "post-til-virksomheten-med-taushetsbelagt-innhold"
-                ) == true
-            ) == true
-        );
+        var allAttributes = resourceRightsList
+            .SelectMany(right => right.Subjects ?? [])
+            .SelectMany(subject => subject.SubjectAttributes ?? [])
+            .Where(attr => attr.Type == "urn:altinn:accesspackage")
+            .Select(attr => attr.Value)
+            .ToHashSet();
+
+        if (allAttributes.Contains("post-til-virksomheten-med-taushetsbelagt-innhold"))
+            return ConfidentialTypeEnum.Confidential;
+        if (allAttributes.Contains("eksplisitt"))
+            return ConfidentialTypeEnum.ExplicitlyDelegated;
+        return ConfidentialTypeEnum.NotConfidential;
     }
 
 
