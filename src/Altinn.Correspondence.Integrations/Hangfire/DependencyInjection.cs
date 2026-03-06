@@ -35,7 +35,7 @@ public static class DependencyInjection
 
         services.AddHangfireServer(options =>
         {
-            options.WorkerCount = 10;
+            options.WorkerCount = 20;
             options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
             options.Queues = [ HangfireQueues.Default ];
         });
@@ -45,7 +45,7 @@ public static class DependencyInjection
             services.AddHangfireServer(options =>
             {
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(2);
-                options.WorkerCount = 20;
+                options.WorkerCount = 10;
                 options.Queues = [HangfireQueues.LiveMigration, HangfireQueues.Migration];
             });
         };
