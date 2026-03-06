@@ -20,6 +20,9 @@ public class InitializedCorrespondencesNotifications
     public Guid? OrderId { get; set; }
     public bool? IsReminder { get; set; }
     public InitializedNotificationStatus Status { get; set; }
+    public NotificationChannel NotificationChannel { get; set; }
+    public NotificationTemplate NotificationTemplate { get; set; }
+    public bool SendReminder { get; set; }
 }
 public enum InitializedNotificationStatus 
 {

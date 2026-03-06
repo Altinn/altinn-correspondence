@@ -1,4 +1,4 @@
-using Altinn.Common.PEP.Authorization;
+﻿using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
@@ -122,7 +122,7 @@ namespace Altinn.Correspondence.API.Auth
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
                     options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
-                    options.SkipUnrecognizedRequests = true;                    
+                    options.SkipUnrecognizedRequests = true;
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>

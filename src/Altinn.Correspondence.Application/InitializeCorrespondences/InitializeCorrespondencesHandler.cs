@@ -460,11 +460,26 @@ public class InitializeCorrespondencesHandler(
                 return createJobResult.AsT1;
             }
 
+            List<InitializedCorrespondencesNotifications>? notifications = null;
+            if (request.Notification != null && !isReserved)
+            {
+                notifications = new List<InitializedCorrespondencesNotifications>
+                {
+                    new InitializedCorrespondencesNotifications
+                    {
+                        SendReminder = request.Notification.SendReminder,
+                        NotificationChannel = request.Notification.NotificationChannel,
+                        NotificationTemplate = request.Notification.NotificationTemplate
+                    }
+                };
+            }
+
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
                 Status = correspondence.GetHighestStatus().Status,
-                Recipient = correspondence.Recipient
+                Recipient = correspondence.Recipient,
+                Notifications = notifications
             });
         }
 
@@ -489,6 +504,13 @@ public class InitializeCorrespondencesHandler(
         var transmissionId = await dialogportenService.CreateDialogTransmission(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
+    }
+
+    public async Task PatchDialogportenTransmissionDialogStatusAndExtendedStatus(Guid correspondenceId, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Patching Dialogporten dialog status/extendedStatus for transmission correspondence {CorrespondenceId}", correspondenceId);
+        await dialogportenService.PatchDialogStatusAndExtendedStatusForTransmission(correspondenceId, cancellationToken);
+        logger.LogInformation("Successfully patched Dialogporten dialog status/extendedStatus for transmission correspondence {CorrespondenceId}", correspondenceId);
     }
     private async Task<OneOf<Task, Error>> ValidateTransmissionRequest(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
@@ -548,14 +570,17 @@ public class InitializeCorrespondencesHandler(
             }
 
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
+            var shouldScheduleDialogPatch = correspondence.ExternalReferences.Any(er =>
+                er.ReferenceType == ReferenceType.DialogportenDialogStatus ||
+                er.ReferenceType == ReferenceType.DialogportenDialogExtendedStatus);
 
             if (!string.IsNullOrEmpty(notificationJobId))
             {
-                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
+                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, CancellationToken.None));
             }
             else
             {
-                await ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken);
+                await ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, cancellationToken);
             }
         }
         else
@@ -570,7 +595,7 @@ public class InitializeCorrespondencesHandler(
             {
                 if (!string.IsNullOrEmpty(notificationJobId))
                 {
-                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None));
                 }
                 else
                 {
@@ -582,12 +607,19 @@ public class InitializeCorrespondencesHandler(
         return Task.CompletedTask;
     }
 
-    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
+    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, DateTimeOffset requestedPublishTime, bool shouldScheduleDialogPatch, CancellationToken cancellationToken)
     {
         var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
+        var publishDependencyJob = transmissionJob;
+        if (shouldScheduleDialogPatch)
+        {
+            publishDependencyJob = backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(
+                transmissionJob,
+                (handler) => handler.PatchDialogportenTransmissionDialogStatusAndExtendedStatus(correspondenceId, CancellationToken.None));
+        }
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
-            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
+            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, publishDependencyJob, cancellationToken);
         };
     }
 
