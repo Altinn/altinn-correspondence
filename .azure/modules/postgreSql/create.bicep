@@ -41,8 +41,8 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   }
   sku: environment == 'production'
     ? {
-        name: 'Standard_E16ads_v5'
-        tier: 'MemoryOptimized'
+        name: 'Standard_D32ds_v5'
+        tier: 'GeneralPurpose'
       }
     : prodLikeEnvironment 
     ? {
@@ -199,7 +199,27 @@ resource autovacuumMaxWorkers 'Microsoft.DBforPostgreSQL/flexibleServers/configu
   parent: postgres
   dependsOn: [database, autovacuumNaptime]
   properties: {
-    value: '6'
+    value: '3'
+    source: 'user-override'
+  }
+}
+
+resource autovacuumCostLimit 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'autovacuum_vacuum_cost_limit'
+  parent: postgres
+  dependsOn: [database, autovacuumMaxWorkers]
+  properties: {
+    value: '400'
+    source: 'user-override'
+  }
+}
+
+resource autoVacuumCostDelay 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'autovacuum_vacuum_cost_delay'
+  parent: postgres
+  dependsOn: [database, autovacuumCostLimit]
+  properties: {
+    value: '10'
     source: 'user-override'
   }
 }
@@ -207,7 +227,7 @@ resource autovacuumMaxWorkers 'Microsoft.DBforPostgreSQL/flexibleServers/configu
 resource sessionReplicationRole 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   name: 'session_replication_role'
   parent: postgres
-  dependsOn: [database, autovacuumMaxWorkers]
+  dependsOn: [database, autoVacuumCostDelay]
   properties: {
     value: 'Origin'
     source: 'user-override'
