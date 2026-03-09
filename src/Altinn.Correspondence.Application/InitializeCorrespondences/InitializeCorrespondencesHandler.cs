@@ -111,7 +111,7 @@ public class InitializeCorrespondencesHandler(
             logger.LogWarning("Due date is required for correspondence requiring confirmation");
             return CorrespondenceErrors.DueDateRequired;
         }
-        var confidentialLevel = await resourceRegistryService.GetConfidentialLevel(request.Correspondence.ResourceId, cancellationToken);
+        var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
         if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
         {
             logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");

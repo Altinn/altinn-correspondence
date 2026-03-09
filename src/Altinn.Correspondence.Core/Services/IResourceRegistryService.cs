@@ -48,6 +48,5 @@ public interface IResourceRegistryService
     /// </summary>
     /// <param name="resourceId">The id of the resource to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task<ConfidentialTypeEnum> GetConfidentialLevel(string resourceId, CancellationToken cancellationToken = default);
-
+    Task<ConfidentialTypeEnum> GetConfidentialType(string resourceId, CancellationToken cancellationToken = default);
 }

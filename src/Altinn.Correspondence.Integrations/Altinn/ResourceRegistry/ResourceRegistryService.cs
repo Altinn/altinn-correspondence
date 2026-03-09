@@ -172,7 +172,7 @@ public class ResourceRegistryService : IResourceRegistryService
         return altinnResourceRightsResponse;
     }
 
-    public async Task<ConfidentialTypeEnum> GetConfidentialLevel(string resourceId, CancellationToken cancellationToken = default)
+    public async Task<ConfidentialTypeEnum> GetConfidentialType(string resourceId, CancellationToken cancellationToken = default)
     {
         var resourceRightsList = await GetResourceRights(resourceId, cancellationToken);
         if (resourceRightsList is null)
@@ -192,6 +192,4 @@ public class ResourceRegistryService : IResourceRegistryService
             return ConfidentialTypeEnum.ExplicitlyDelegated;
         return ConfidentialTypeEnum.NotConfidential;
     }
-
-
 }

@@ -117,8 +117,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("CorrespondenceService");
             resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
             resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
-            resourceRegistryService.Setup(x => x.GetConfidentialLevel("resource-with-confidential-post-activated", It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.Confidential);
-            resourceRegistryService.Setup(x => x.GetConfidentialLevel(It.Is<string>(id => id != "resource-with-confidential-post-activated"), It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.NotConfidential);
+            resourceRegistryService.Setup(x => x.GetConfidentialType("resource-with-confidential-post-activated", It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.Confidential);
+            resourceRegistryService.Setup(x => x.GetConfidentialType(It.Is<string>(id => id != "resource-with-confidential-post-activated"), It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.NotConfidential);
             services.AddScoped(_ => resourceRegistryService.Object);
         });
         if (CustomServices is not null)
