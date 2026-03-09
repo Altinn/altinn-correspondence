@@ -248,10 +248,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(reminderDialogId);
 
-            // In the handler flow the removal of the reminder happens before the check and therefore it will return false since the recipient only had one reminder which is removed
             _confidentialReminderRepositoryMock
-                .Setup(x => x.RecipientHasConfidentialReminder(correspondence.Recipient, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(false);
+                .Setup(x => x.NumberOfRemindersForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
 
             // Act
             await _handler.Process(request, user, CancellationToken.None);
@@ -318,8 +317,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Recipient still has other confidential reminders after removal
             _confidentialReminderRepositoryMock
-                .Setup(x => x.RecipientHasConfidentialReminder(correspondence.Recipient, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true);
+                .Setup(x => x.NumberOfRemindersForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(2);
 
             // Act
             await _handler.Process(request, user, CancellationToken.None);

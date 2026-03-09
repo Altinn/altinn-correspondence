@@ -29,11 +29,11 @@ public class ConfidentialReminderRepository(ApplicationDbContext context, ILogge
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<bool> RecipientHasConfidentialReminder(string recipient, CancellationToken cancellationToken)
+    public async Task<int> NumberOfRemindersForRecipient(string recipient, CancellationToken cancellationToken)
     {
-        var reminderExists = await _context.ConfidentialReminders.AnyAsync(r => r.Recipient == recipient, cancellationToken);
-        logger.LogDebug("Checked for confidential reminder for recipient {Recipient}, exists: {Exists}", recipient, reminderExists);
-        return reminderExists;
+        var numberOfRemindersForRecipient = await _context.ConfidentialReminders.CountAsync(r => r.Recipient == recipient, cancellationToken);
+        logger.LogDebug("Checked for confidential reminder for recipient {Recipient}, count: {Count}", recipient, numberOfRemindersForRecipient);
+        return numberOfRemindersForRecipient;
     }
 
     public async Task<bool> CorrespondenceHasReminder(Guid correspondenceId, CancellationToken cancellationToken)

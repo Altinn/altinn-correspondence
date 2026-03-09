@@ -2,11 +2,9 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
-using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Dialogporten;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -174,12 +172,12 @@ public class GetCorrespondenceOverviewHandler(
                 latestStatus.Status);
             if (correspondence.IsConfidential && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
             {
-                var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
-                await confidentialReminderRepository.RemoveConfidentialReminder(correspondence.Id, cancellationToken);
-                if (!await confidentialReminderRepository.RecipientHasConfidentialReminder(correspondence.Recipient, cancellationToken))
+                if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
                 {
+                    var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
                     await dialogportenService.TrySoftDeleteDialog(reminderDialogId);
                 }
+                await confidentialReminderRepository.RemoveConfidentialReminder(correspondence.Id, cancellationToken);
             }
             return response;
         }, logger, cancellationToken);
