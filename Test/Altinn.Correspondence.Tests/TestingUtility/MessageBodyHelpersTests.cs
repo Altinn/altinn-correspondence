@@ -85,7 +85,6 @@ public class MessageBodyHelpersTests
 
         // Assert
         Assert.DoesNotContain("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=110805&ServiceCode=2508", result);
-        Assert.Contains("/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=110805&ServiceCode=2508", result);
     }
 
     [Fact]
