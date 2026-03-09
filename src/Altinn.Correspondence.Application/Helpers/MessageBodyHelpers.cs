@@ -8,10 +8,13 @@ namespace Altinn.Correspondence.Application.Helpers;
 public static class MessageBodyHelpers
 {
     // Altinn 2 inbox rendered both html and markdown, hence we must do same
-    public static string ConvertMixedToMarkdown(string input)
+    public static string ConvertMixedToMarkdown(string input, bool isLegacy)
     {
         var html = TextValidation.ConvertToHtml(input); // Normalizes to html
-        html = MakeLinksAbsolute(html);
+        if (isLegacy)
+        {
+            html = MakeLinksAbsolute(html);
+        }
 
         var config = new Config
         {
