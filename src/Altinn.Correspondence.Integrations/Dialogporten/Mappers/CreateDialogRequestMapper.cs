@@ -66,19 +66,20 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             };
         }
 
-        internal static CreateDialogRequest CreateConfidentialReminderDialog(ConfidentialReminderDialogDto correspondence, string baseUrl, ILogger? logger = null)
+        internal static CreateDialogRequest CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder, string baseUrl, ILogger? logger = null)
         {
             return new CreateDialogRequest
             {
                 Id = Guid.CreateVersion7().ToString(), // Dialogporten requires time-stamped GUIDs
                 ServiceResource = UrnConstants.Resource + ":" + "correspondence-attachment-test",
-                Party = correspondence.Recipient,
-                CreatedAt = correspondence.Created,
-                UpdatedAt = correspondence.Created,
+                Party = reminder.Recipient,
+                CreatedAt = reminder.Created,
+                UpdatedAt = reminder.Created,
                 VisibleFrom = DateTimeOffset.UtcNow,
-                ExternalReference = correspondence.SendersReference,
-                Content = CreateConfidentialReminderContent(correspondence, baseUrl),
-                SearchTags = GetSearchTagsForCorrespondence(correspondence.PropertyList, logger),
+                ExternalReference = reminder.SendersReference,
+                Content = CreateConfidentialReminderContent(reminder, baseUrl),
+                SearchTags = GetSearchTagsForCorrespondence(reminder.PropertyList, logger),
+                Status = reminder.Status ?? "NotApplicable",
                 ApiActions = new List<ApiAction>(),
                 GuiActions = new List<GuiAction>(),
                 Attachments = new List<Attachment>(),
