@@ -85,5 +85,20 @@ public class MessageBodyHelpersTests
 
         // Assert
         Assert.DoesNotContain("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=110805&ServiceCode=2508", result);
+        Assert.Contains("/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=110805&ServiceCode=2508", result);
+    }
+
+    [Fact]
+    public void ConvertMixedToMarkdown_ShouldNotChangeHrefOnNonAnchorTags()
+    {
+        // Arrange
+        const string input =
+            "<p>Tekst før.</p><link href=\"/styles/site.css\" rel=\"stylesheet\" /><p>Tekst etter.</p>";
+
+        // Act
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
+
+        // Assert
+        Assert.DoesNotContain("https://altinn.no/styles/site.css", result);
     }
 }
