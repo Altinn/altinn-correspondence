@@ -9,13 +9,13 @@ public class MessageBodyHelpersTests
     {
         // Arrange
         const string input =
-            "<p>Vedlagt er et brev fra Skatteetaten. </p><p>Vårt <a style=\"display:inline;\" href=\"/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=110805&ServiceCode=2508\">svarskjema</a> kan brukes til å svare på brevet.</p><p>Klikk på lenken under for å lese brevet:</p>";
+            "<p>Vedlagt er et brev fra tjeneste-eier. </p><p>Vårt <a style=\"display:inline;\" href=\"/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234\">svarskjema</a> kan brukes til å svare på brevet.</p><p>Klikk på lenken under for å lese brevet:</p>";
 
         // Act
         var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
 
         // Assert
-        Assert.Contains("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=110805&ServiceCode=2508", result);
+        Assert.Contains("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234", result);
     }
 
     [Fact]
@@ -78,13 +78,13 @@ public class MessageBodyHelpersTests
     {
         // Arrange
         const string input =
-            "<p>Vedlagt er et brev fra Skatteetaten. </p><p>Vårt <a style=\"display:inline;\" href=\"/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=110805&ServiceCode=2508\">svarskjema</a> kan brukes til å svare på brevet.</p><p>Klikk på lenken under for å lese brevet:</p>";
+            "<p>Vedlagt er et brev fra tjeneste-eier. </p><p>Vårt <a style=\"display:inline;\" href=\"/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234\">svarskjema</a> kan brukes til å svare på brevet.</p><p>Klikk på lenken under for å lese brevet:</p>";
 
         // Act
         var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, false);
 
         // Assert
-        Assert.DoesNotContain("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=110805&ServiceCode=2508", result);
+        Assert.DoesNotContain("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234", result);
     }
 
     [Fact]
