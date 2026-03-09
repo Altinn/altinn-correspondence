@@ -859,9 +859,9 @@ public class DialogportenService(HttpClient _httpClient,
         return DialogPortenSystemLabel.Default;
     }
 
-    public async Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto correspondence)
+    public async Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder)
     {
-        var createDialogRequest = CreateDialogRequestMapper.CreateConfidentialReminderDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl);
+        var createDialogRequest = CreateDialogRequestMapper.CreateConfidentialReminderDialog(reminder, generalSettings.Value.CorrespondenceBaseUrl);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest);
         if (!response.IsSuccessStatusCode){
             var errorMessage = await response.Content.ReadAsStringAsync();

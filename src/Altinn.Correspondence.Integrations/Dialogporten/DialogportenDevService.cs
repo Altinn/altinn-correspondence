@@ -141,7 +141,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
-        public Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto correspondence)
+        public Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder)
         {
             return Task.FromResult(Guid.NewGuid().ToString());
         }
