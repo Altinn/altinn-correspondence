@@ -184,6 +184,7 @@ public class ResourceRegistryService : IResourceRegistryService
             .SelectMany(subject => subject.SubjectAttributes ?? [])
             .Where(attr => attr.Type == "urn:altinn:accesspackage")
             .Select(attr => attr.Value)
+            .OfType<string>()
             .ToHashSet();
 
         if (allAttributes.Contains("post-til-virksomheten-med-taushetsbelagt-innhold"))
