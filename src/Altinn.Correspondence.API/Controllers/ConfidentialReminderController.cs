@@ -1,13 +1,11 @@
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.UnreadConfidentialCorrespondenceReminder;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
+using Altinn.Correspondence.Application.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 using Microsoft.AspNetCore.Cors;
-using Altinn.Correspondence.Application.Helpers;
 
 
 namespace Altinn.Correspondence.API.Controllers;
@@ -21,16 +19,15 @@ public class ConfidentialReminderController(ILogger<ConfidentialReminderControll
     private readonly ILogger<ConfidentialReminderController> _logger = logger;
 
     /// <summary>
-    /// Enqueue generation of confidential reminders for correspondences
+    /// Get a list of unread correspondences with the IsConfidential flag set to true.
     /// </summary>
-    /// <response code="200">Returns the enqueued job id</response>
+    /// <response code="200">Returns the list of unread confidential correspondences</response>
     /// <response code="401">Unauthorized</response>
     /// <response code="403">Forbidden</response>
     [HttpGet]
     [Produces("text/plain")]
-    [Authorize(Policy = AuthorizationConstants.SenderOrRecipient)]
+    [Authorize(Policy = AuthorizationConstants.Recipient)]
     [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
-    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<ActionResult> GetUnreadConfidentialCorrespondences(
         [FromServices] GetUnreadConfidentialCorrespondencesHandler handler,
         CancellationToken cancellationToken)
