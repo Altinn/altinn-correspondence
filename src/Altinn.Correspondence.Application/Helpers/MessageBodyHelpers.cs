@@ -58,8 +58,13 @@ public static class MessageBodyHelpers
         }
 
         var baseUri = new Uri("https://altinn.no/");
-        // Only operate on anchor tags, not other elements like <link>
-        const string htmlHrefPattern = "<a\\b[^>]*?href\\s*=\\s*(\"|')(.*?)\\1";
+        // Only operate on href values inside anchor tags, not other elements like <link>
+        // Groups:
+        // 1: "<a ... href="
+        // 2: the quote character
+        // 3: the href value
+        // 4: the closing quote
+        const string htmlHrefPattern = "(<a\\b[^>]*?href\\s*=\\s*(\"|'))(.*?)(\\2)";
         const string markdownLinkPattern = "\\[(?<text>[^\\]]+)\\]\\((?<url>[^)]+)\\)";
 
         var htmlProcessed = Regex.Replace(
@@ -67,8 +72,10 @@ public static class MessageBodyHelpers
             htmlHrefPattern,
             match =>
             {
-                var quote = match.Groups[1].Value;
-                var href = match.Groups[2].Value;
+                var prefix = match.Groups[1].Value;   // "<a ... href="
+                var quote = match.Groups[2].Value;    // opening quote
+                var href = match.Groups[3].Value;     // current href value
+                var closingQuote = match.Groups[4].Value; // closing quote (same as opening)
 
                 if (string.IsNullOrWhiteSpace(href))
                 {
@@ -82,7 +89,7 @@ public static class MessageBodyHelpers
                 }
 
                 var absolute = new Uri(baseUri, href).ToString();
-                return $"href={quote}{absolute}{quote}";
+                return $"{prefix}{absolute}{closingQuote}";
             },
             RegexOptions.IgnoreCase);
 
