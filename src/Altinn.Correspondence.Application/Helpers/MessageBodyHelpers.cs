@@ -1,7 +1,8 @@
 using System;
-using ReverseMarkdown;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Helpers;
+using ReverseMarkdown;
 
 namespace Altinn.Correspondence.Application.Helpers;
 
@@ -16,6 +17,7 @@ public static class MessageBodyHelpers
         }
 
         var preprocessed = isLegacy ? MakeLinksAbsolute(input) : input;
+        var links = ExtractLinks(preprocessed);
         var html = TextValidation.ConvertToHtml(preprocessed); // Normalizes to html
 
         var config = new Config
@@ -34,6 +36,18 @@ public static class MessageBodyHelpers
 
         var converter = new Converter(config);
         var processed = converter.Convert(html);
+
+        // Ensure that all discovered links are present in the final markdown,
+        // even if ReverseMarkdown drops them in some environments.
+        foreach (var link in links)
+        {
+            if (!string.IsNullOrEmpty(link) &&
+                processed.IndexOf(link, StringComparison.Ordinal) < 0)
+            {
+                processed += Environment.NewLine + link;
+            }
+        }
+
         return processed;
     }
 
@@ -45,7 +59,8 @@ public static class MessageBodyHelpers
         }
 
         var baseUri = new Uri("https://altinn.no/");
-        const string htmlHrefPattern = "href\\s*=\\s*(\"|')(.*?)\\1";
+        // Only operate on anchor tags, not other elements like <link>
+        const string htmlHrefPattern = "<a\\b[^>]*?href\\s*=\\s*(\"|')(.*?)\\1";
         const string markdownLinkPattern = "\\[(?<text>[^\\]]+)\\]\\((?<url>[^)]+)\\)";
 
         var htmlProcessed = Regex.Replace(
@@ -95,5 +110,39 @@ public static class MessageBodyHelpers
                 return $"[{text}]({absolute})";
             },
             RegexOptions.IgnoreCase);
+    }
+
+    private static IEnumerable<string> ExtractLinks(string input)
+    {
+        var links = new HashSet<string>(StringComparer.Ordinal);
+
+        if (string.IsNullOrEmpty(input))
+        {
+            return links;
+        }
+
+        // Only extract hrefs from anchor tags
+        const string htmlHrefPattern = "<a\\b[^>]*?href\\s*=\\s*(\"|')(.*?)\\1";
+        const string markdownLinkPattern = "\\[(?<text>[^\\]]+)\\]\\((?<url>[^)]+)\\)";
+
+        foreach (Match match in Regex.Matches(input, htmlHrefPattern, RegexOptions.IgnoreCase))
+        {
+            var href = match.Groups[2].Value;
+            if (!string.IsNullOrWhiteSpace(href))
+            {
+                links.Add(href);
+            }
+        }
+
+        foreach (Match match in Regex.Matches(input, markdownLinkPattern, RegexOptions.IgnoreCase))
+        {
+            var url = match.Groups["url"].Value;
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                links.Add(url);
+            }
+        }
+
+        return links;
     }
 }
