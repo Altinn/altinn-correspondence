@@ -69,11 +69,7 @@ public class LegacyGetCorrespondencesHandler(
                     logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
                     continue;
                 }
-                if (!string.IsNullOrEmpty(mappedInstanceOwner.ExternalUrn))
-                {
-                    recipients.Add(mappedInstanceOwner.ExternalUrn);
-                }
-                else if (mappedInstanceOwner.OrgNumber != null)
+                if (mappedInstanceOwner.OrgNumber != null)
                 {
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
                 }
@@ -81,18 +77,25 @@ public class LegacyGetCorrespondencesHandler(
                 {
                     recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
                 }
+                else if (!string.IsNullOrEmpty(mappedInstanceOwner.ExternalUrn))
+                {
+                    recipients.Add(mappedInstanceOwner.ExternalUrn);
+                }
             }
         }
         else
         {
-            if (!string.IsNullOrEmpty(userParty.ExternalUrn))
+            if (!string.IsNullOrEmpty(userParty.SSN))
+            {
+                recipients.Add(GetPrefixedForPerson(userParty.SSN));
+            }
+            else if (!string.IsNullOrEmpty(userParty.OrgNumber))
+            {
+                recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
+            }
+            else if (!string.IsNullOrEmpty(userParty.ExternalUrn))
             {
                 recipients.Add(userParty.ExternalUrn);
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
-                if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
             }
         }
         if (recipients.Count == 0)
