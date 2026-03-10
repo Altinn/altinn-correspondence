@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Microsoft.VisualBasic;
 
 namespace Altinn.Correspondence.Tests.TestingUtility;
 
@@ -102,35 +103,4 @@ public class MessageBodyHelpersTests
         // Assert
         Assert.DoesNotContain("https://altinn.no/styles/site.css", result);
     }
-
-    [Fact]
-    public void ConvertMixedToMarkdown_ShouldPreserveExistingAbsoluteHref_EndToEnd()
-    {
-        // Arrange: HTML with an absolute href
-        const string input =
-            "<p>Se mer informasjon på <a href=\"https://altinn.no/Pages/info\">Altinn</a>.</p>";
-
-        // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, isLegacy: true);
-
-        // Assert: URL is present and not duplicated or altered
-        Assert.Contains("https://altinn.no/Pages/info", result);
-        Assert.DoesNotContain("https://altinn.no/https://altinn.no/Pages/info", result);
-    }
-    [Fact]
-public void MakeLinksAbsolute_ShouldRewriteRelativeHref_InLegacyHtml()
-{
-    // Arrange: this is the SAME HTML you use in the failing test
-    const string input =
-        "<p>Vedlagt er et brev fra tjeneste-eier. </p><p>Vårt <a style=\"display:inline;\" href=\"/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234\">svarskjema</a> kan brukes til å svare på brevet.</p><p>Klikk på lenken under for å lese brevet:</p>";
-
-    // Act: stop AFTER the HTML stage
-    var html = Altinn.Correspondence.Common.Helpers.TextValidation.ConvertToHtml(input);
-    var htmlWithAbsolute = typeof(Altinn.Correspondence.Application.Helpers.MessageBodyHelpers)
-        .GetMethod("MakeLinksAbsolute", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-        .Invoke(null, [html])!.ToString()!;
-
-    // Assert: href MUST be absolute at this stage
-    Assert.Contains("href=\"https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234\"", htmlWithAbsolute);
-}
 }

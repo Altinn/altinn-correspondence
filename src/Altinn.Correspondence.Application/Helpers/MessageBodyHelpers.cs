@@ -10,11 +10,13 @@ public static class MessageBodyHelpers
     // Altinn 2 inbox rendered both html and markdown, hence we must do same
     public static string ConvertMixedToMarkdown(string input, bool isLegacy)
     {
-        var html = TextValidation.ConvertToHtml(input); // Normalizes to html
-        if (isLegacy)
+        if (string.IsNullOrEmpty(input))
         {
-            html = MakeLinksAbsolute(html);
+            return string.Empty;
         }
+
+        var preprocessed = isLegacy ? MakeLinksAbsolute(input) : input;
+        var html = TextValidation.ConvertToHtml(preprocessed); // Normalizes to html
 
         var config = new Config
         {
@@ -33,19 +35,20 @@ public static class MessageBodyHelpers
         return processed;
     }
 
-    private static string MakeLinksAbsolute(string html)
+    private static string MakeLinksAbsolute(string input)
     {
-        if (string.IsNullOrEmpty(html))
+        if (string.IsNullOrEmpty(input))
         {
-            return html;
+            return input;
         }
 
         var baseUri = new Uri("https://altinn.no/");
-        const string pattern = "href\\s*=\\s*(\"|')(.*?)\\1";
+        const string htmlHrefPattern = "href\\s*=\\s*(\"|')(.*?)\\1";
+        const string markdownLinkPattern = "\\[(?<text>[^\\]]+)\\]\\((?<url>[^)]+)\\)";
 
-        return Regex.Replace(
-            html,
-            pattern,
+        var htmlProcessed = Regex.Replace(
+            input,
+            htmlHrefPattern,
             match =>
             {
                 var quote = match.Groups[1].Value;
@@ -64,6 +67,30 @@ public static class MessageBodyHelpers
 
                 var absolute = new Uri(baseUri, href).ToString();
                 return $"href={quote}{absolute}{quote}";
+            },
+            RegexOptions.IgnoreCase);
+
+        return Regex.Replace(
+            htmlProcessed,
+            markdownLinkPattern,
+            match =>
+            {
+                var text = match.Groups["text"].Value;
+                var url = match.Groups["url"].Value;
+
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    return match.Value;
+                }
+
+                if (url.StartsWith("#", StringComparison.Ordinal) ||
+                    Uri.TryCreate(url, UriKind.Absolute, out _))
+                {
+                    return match.Value;
+                }
+
+                var absolute = new Uri(baseUri, url).ToString();
+                return $"[{text}]({absolute})";
             },
             RegexOptions.IgnoreCase);
     }
