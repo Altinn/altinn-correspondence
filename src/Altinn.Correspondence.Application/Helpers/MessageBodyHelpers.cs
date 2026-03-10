@@ -125,12 +125,20 @@ public static class MessageBodyHelpers
         const string htmlHrefPattern = "<a\\b[^>]*?href\\s*=\\s*(\"|')(.*?)\\1";
         const string markdownLinkPattern = "\\[(?<text>[^\\]]+)\\]\\((?<url>[^)]+)\\)";
 
+        var baseUri = new Uri("https://altinn.no/");
+
         foreach (Match match in Regex.Matches(input, htmlHrefPattern, RegexOptions.IgnoreCase))
         {
             var href = match.Groups[2].Value;
             if (!string.IsNullOrWhiteSpace(href))
             {
-                links.Add(href);
+                // Normalize relative URLs to absolute
+                if (!Uri.TryCreate(href, UriKind.Absolute, out var absolute))
+                {
+                    absolute = new Uri(baseUri, href);
+                }
+
+                links.Add(absolute.ToString());
             }
         }
 
@@ -139,7 +147,13 @@ public static class MessageBodyHelpers
             var url = match.Groups["url"].Value;
             if (!string.IsNullOrWhiteSpace(url))
             {
-                links.Add(url);
+                // Normalize relative URLs to absolute
+                if (!Uri.TryCreate(url, UriKind.Absolute, out var absolute))
+                {
+                    absolute = new Uri(baseUri, url);
+                }
+
+                links.Add(absolute.ToString());
             }
         }
 
