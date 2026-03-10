@@ -163,7 +163,8 @@ public class GetCorrespondenceOverviewHandler(
                 IgnoreReservation = correspondence.IgnoreReservation ?? false,
                 Published = correspondence.Published,
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
-                IsConfidential = correspondence.IsConfidential
+                IsConfidential = correspondence.IsConfidential,
+                Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId
             };
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
                 request.CorrespondenceId, 

@@ -110,12 +110,6 @@ namespace Altinn.Correspondence.API.Models
         public string? SendersReference { get; set; }
 
         /// <summary>
-        /// The date and time for when the notification should be sent.
-        /// </summary>
-        [JsonPropertyName("requestedSendTime")]
-        public DateTimeOffset? RequestedSendTime { get; set; }
-
-        /// <summary>
         /// A list of additional recipients for the notification. These are processed in addition to the Correspondence recipient;
         /// if not set, only the Correspondence recipient receives the notification.
         /// </summary>

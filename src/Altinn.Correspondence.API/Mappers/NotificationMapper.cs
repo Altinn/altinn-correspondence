@@ -11,7 +11,6 @@ internal static class NotificationMapper
         var notificationExt = new NotificationExt
         {
             NotificationChannel = (NotificationChannelExt)notification.NotificationChannel,
-            RequestedSendTime = notification.RequestedSendTime,
             Created = notification.Created,
             Id = notification.Id,
             Creator = notification.Creator,
