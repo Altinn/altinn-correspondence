@@ -65,10 +65,29 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 correspondence.CorrespondenceId,
                 CorrespondenceStatusExt.Published);
 
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockRegisterService = new Mock<IAltinnRegisterService>();
+                mockRegisterService
+                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new Party
+                    {
+                        PartyId = 99999998,
+                        OrgNumber = string.Empty,
+                        SSN = string.Empty,
+                        ExternalUrn = idportenEmailRecipient
+                    });
+                services.AddSingleton(mockRegisterService.Object);
+            });
+
+            var siUserClient = factory.CreateClientWithAddedClaims(
+                ("scope", AuthorizationConstants.LegacyScope),
+                (_partyIdClaim, "99999998"));
+
             var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
             listPayload.InstanceOwnerPartyIdList = [];
 
-            var correspondenceList = await _legacyClient.PostAsJsonAsync("correspondence/api/v1/legacy/correspondence", listPayload);
+            var correspondenceList = await siUserClient.PostAsJsonAsync("correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
 
             Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
