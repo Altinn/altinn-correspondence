@@ -377,7 +377,7 @@ namespace Altinn.Correspondence.API.Controllers
             return commandResult.Match(
                 data =>
                 {
-                    return Ok(MessageBodyHelpers.ConvertMixedToMarkdown(data.Content!.MessageBody));
+                    return Ok(MessageBodyHelpers.ConvertMixedToMarkdown(data.Content!.MessageBody, data.Altinn2CorrespondenceId is not null && data.Altinn2CorrespondenceId > 0));
                 },
                 Problem
             );
