@@ -69,11 +69,11 @@ public class LegacyGetCorrespondencesHandler(
                     logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
                     continue;
                 }
-                if (mappedInstanceOwner.OrgNumber != null)
+                if (!string.IsNullOrEmpty(mappedInstanceOwner.OrgNumber))
                 {
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
                 }
-                else if (mappedInstanceOwner.SSN != null)
+                else if (!string.IsNullOrEmpty(mappedInstanceOwner.SSN))
                 {
                     recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
                 }
@@ -167,7 +167,14 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(user, userParty.SSN, correspondences, cancellationToken);
+        var subjectIdForAuth = !string.IsNullOrEmpty(userParty.SSN)
+            ? userParty.SSN
+            : userParty.ExternalUrn!;
+        Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
+            user,
+            subjectIdForAuth,
+            correspondences,
+            cancellationToken);
         foreach (var correspondence in correspondences)
         {
             authlevels.TryGetValue((correspondence.Recipient, correspondence.ResourceId), out int? authLevel);
