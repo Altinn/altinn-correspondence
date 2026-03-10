@@ -5,12 +5,12 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using System.Security.Claims;
 using System.Net;
@@ -67,38 +67,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 correspondence.CorrespondenceId,
                 CorrespondenceStatusExt.Published);
 
-            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
-            {
-                var mockRegisterService = new Mock<IAltinnRegisterService>();
-                mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party
-                    {
-                        PartyId = 99999998,
-                        OrgNumber = string.Empty,
-                        SSN = string.Empty,
-                        ExternalUrn = idportenEmailRecipient
-                    });
-                services.AddSingleton(mockRegisterService.Object);
-
-                var mockAuthService = new Mock<IAltinnAuthorizationService>();
-                mockAuthService
-                    .Setup(x => x.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
-                        It.IsAny<ClaimsPrincipal?>(),
-                        It.IsAny<string>(),
-                        It.IsAny<List<CorrespondenceEntity>>(),
-                        It.IsAny<CancellationToken>()))
-                    .ReturnsAsync((ClaimsPrincipal? _, string _, List<CorrespondenceEntity> correspondences, CancellationToken _) =>
-                        correspondences.ToDictionary(
-                            c => (c.Recipient, c.ResourceId),
-                            _ => (int?)3));
-                services.RemoveAll<IAltinnAuthorizationService>();
-                services.AddSingleton(mockAuthService.Object);
-            });
+            using var factory = new UnitWebApplicationFactory(_ => { });
 
             var siUserClient = factory.CreateClientWithAddedClaims(
                 ("scope", AuthorizationConstants.LegacyScope),
-                (_partyIdClaim, "99999998"));
+                (_partyIdClaim, AltinnRegisterDevService.SiUserPartyId.ToString()));
 
             var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
             listPayload.InstanceOwnerPartyIdList = [];
