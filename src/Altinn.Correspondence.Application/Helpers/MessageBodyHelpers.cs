@@ -25,12 +25,12 @@ public static class MessageBodyHelpers
             RemoveComments = true,
             SmartHrefHandling = false,
             DefaultCodeBlockLanguage = "",
-            CommonMark = true,
-            ConvertPreContentAsHtml = true
+            WhitelistUriSchemes = [
+                "mailto",
+                "http",
+                "https"
+                ]
         };
-        config.WhitelistUriSchemes.Add("mailto");
-        config.WhitelistUriSchemes.Add("http");
-        config.WhitelistUriSchemes.Add("https");
 
         var converter = new Converter(config);
         var processed = converter.Convert(html);
