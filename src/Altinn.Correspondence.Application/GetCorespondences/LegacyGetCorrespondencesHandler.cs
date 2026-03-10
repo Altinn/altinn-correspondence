@@ -49,7 +49,10 @@ public class LegacyGetCorrespondencesHandler(
             request.InstanceOwnerPartyIdList);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
+        if (userParty == null
+            || (string.IsNullOrEmpty(userParty.SSN)
+                && string.IsNullOrEmpty(userParty.OrgNumber)
+                && string.IsNullOrEmpty(userParty.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -66,16 +69,31 @@ public class LegacyGetCorrespondencesHandler(
                     logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
                     continue;
                 }
-                if (mappedInstanceOwner.OrgNumber != null)
+                if (!string.IsNullOrEmpty(mappedInstanceOwner.ExternalUrn))
+                {
+                    recipients.Add(mappedInstanceOwner.ExternalUrn);
+                }
+                else if (mappedInstanceOwner.OrgNumber != null)
+                {
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
+                }
                 else if (mappedInstanceOwner.SSN != null)
+                {
                     recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
+                }
             }
         }
         else
         {
-            if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
-            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
+            if (!string.IsNullOrEmpty(userParty.ExternalUrn))
+            {
+                recipients.Add(userParty.ExternalUrn);
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
+                if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
+            }
         }
         if (recipients.Count == 0)
         {
