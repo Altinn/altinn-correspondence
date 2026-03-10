@@ -10,6 +10,7 @@ using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using System.Security.Claims;
 using System.Net;
@@ -91,6 +92,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                         correspondences.ToDictionary(
                             c => (c.Recipient, c.ResourceId),
                             _ => (int?)3));
+                services.RemoveAll<IAltinnAuthorizationService>();
                 services.AddSingleton(mockAuthService.Object);
             });
 
