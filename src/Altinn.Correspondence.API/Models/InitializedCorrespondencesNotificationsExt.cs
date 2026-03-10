@@ -51,7 +51,7 @@ public enum InitializedNotificationStatusExt
     /// <summary>
     /// The recipient lookup was successful for at least one recipient and the notification order was successful
     /// </summary>
-    SuccessfullyOrdered,
+    Success,
     /// <summary>
     /// The recipient lookup failed for all recipients
     /// </summary>
