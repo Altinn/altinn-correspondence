@@ -76,7 +76,7 @@ public static class MessageBodyHelpers
                 }
 
                 if (href.StartsWith("#", StringComparison.Ordinal) ||
-                    Uri.TryCreate(href, UriKind.Absolute, out _))
+                    IsAbsoluteWebLikeUrl(href))
                 {
                     return match.Value;
                 }
@@ -100,7 +100,7 @@ public static class MessageBodyHelpers
                 }
 
                 if (url.StartsWith("#", StringComparison.Ordinal) ||
-                    Uri.TryCreate(url, UriKind.Absolute, out _))
+                    IsAbsoluteWebLikeUrl(url))
                 {
                     return match.Value;
                 }
@@ -124,7 +124,7 @@ public static class MessageBodyHelpers
         {
             if (string.IsNullOrWhiteSpace(url)) return;
 
-            if (isLegacy && !Uri.TryCreate(url, UriKind.Absolute, out var abs))
+            if (isLegacy && !IsAbsoluteWebLikeUrl(url))
             {
                 url = new Uri(baseUri, url).ToString();
             }
@@ -139,5 +139,12 @@ public static class MessageBodyHelpers
             AddUrl(m.Groups["url"].Value);
 
         return links;
+    }
+
+    private static bool IsAbsoluteWebLikeUrl(string url)
+    {
+        return url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+               || url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+               || url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase);
     }
 }
