@@ -15,7 +15,7 @@ public class MessageBodyHelpersTests
         var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
 
         // Assert
-        Console.WriteLine("Result: " + result);
+        Assert.True(1 == 2, result);
         Assert.Contains("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234", result);
     }
 
@@ -30,7 +30,7 @@ public class MessageBodyHelpersTests
         var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
 
         // Assert
-        Console.WriteLine("Result: " + result);
+        Assert.True(1 == 2, result);
         Assert.Contains("https://altinn.no/Pages/info", result);
         Assert.DoesNotContain("https://altinn.no/https://altinn.no/Pages/info", result);
     }
