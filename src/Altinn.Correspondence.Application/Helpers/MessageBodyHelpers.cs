@@ -15,9 +15,8 @@ public static class MessageBodyHelpers
         {
             return string.Empty;
         }
-
         var preprocessed = isLegacy ? MakeLinksAbsolute(input) : input;
-        var links = ExtractLinks(preprocessed);
+        var links = ExtractLinks(preprocessed, isLegacy);
         var html = TextValidation.ConvertToHtml(preprocessed); // Normalizes to html
 
         var config = new Config
@@ -112,50 +111,32 @@ public static class MessageBodyHelpers
             RegexOptions.IgnoreCase);
     }
 
-    private static IEnumerable<string> ExtractLinks(string input)
+    private static IEnumerable<string> ExtractLinks(string input, bool isLegacy)
     {
         var links = new HashSet<string>(StringComparer.Ordinal);
+        if (string.IsNullOrEmpty(input)) return links;
 
-        if (string.IsNullOrEmpty(input))
-        {
-            return links;
-        }
-
-        // Only extract hrefs from anchor tags
         const string htmlHrefPattern = "<a\\b[^>]*?href\\s*=\\s*(\"|')(.*?)\\1";
         const string markdownLinkPattern = "\\[(?<text>[^\\]]+)\\]\\((?<url>[^)]+)\\)";
-
         var baseUri = new Uri("https://altinn.no/");
 
-        foreach (Match match in Regex.Matches(input, htmlHrefPattern, RegexOptions.IgnoreCase))
+        void AddUrl(string url)
         {
-            var href = match.Groups[2].Value;
-            if (!string.IsNullOrWhiteSpace(href))
-            {
-                // Normalize relative URLs to absolute
-                if (!Uri.TryCreate(href, UriKind.Absolute, out var absolute))
-                {
-                    absolute = new Uri(baseUri, href);
-                }
+            if (string.IsNullOrWhiteSpace(url)) return;
 
-                links.Add(absolute.ToString());
+            if (isLegacy && !Uri.TryCreate(url, UriKind.Absolute, out var abs))
+            {
+                url = new Uri(baseUri, url).ToString();
             }
+
+            links.Add(url);
         }
 
-        foreach (Match match in Regex.Matches(input, markdownLinkPattern, RegexOptions.IgnoreCase))
-        {
-            var url = match.Groups["url"].Value;
-            if (!string.IsNullOrWhiteSpace(url))
-            {
-                // Normalize relative URLs to absolute
-                if (!Uri.TryCreate(url, UriKind.Absolute, out var absolute))
-                {
-                    absolute = new Uri(baseUri, url);
-                }
+        foreach (Match m in Regex.Matches(input, htmlHrefPattern, RegexOptions.IgnoreCase))
+            AddUrl(m.Groups[2].Value);
 
-                links.Add(absolute.ToString());
-            }
-        }
+        foreach (Match m in Regex.Matches(input, markdownLinkPattern, RegexOptions.IgnoreCase))
+            AddUrl(m.Groups["url"].Value);
 
         return links;
     }

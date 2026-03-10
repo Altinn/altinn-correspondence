@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Application.Helpers;
-using Microsoft.VisualBasic;
 
 namespace Altinn.Correspondence.Tests.TestingUtility;
 
