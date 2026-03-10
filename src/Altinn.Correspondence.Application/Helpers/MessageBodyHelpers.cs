@@ -21,7 +21,7 @@ public static class MessageBodyHelpers
             UnknownTags = Config.UnknownTagsOption.Bypass, 
             GithubFlavored = true, 
             RemoveComments = true,
-            SmartHrefHandling = false,
+            SmartHrefHandling = true,
             DefaultCodeBlockLanguage = ""
         };
         config.WhitelistUriSchemes.Add("mailto");

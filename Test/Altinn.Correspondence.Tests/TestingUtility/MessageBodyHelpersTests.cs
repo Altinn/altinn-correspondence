@@ -102,4 +102,19 @@ public class MessageBodyHelpersTests
         // Assert
         Assert.DoesNotContain("https://altinn.no/styles/site.css", result);
     }
+    
+    [Fact]
+    public void ConvertMixedToMarkdown_ShouldPreserveExistingAbsoluteHref_EndToEnd()
+    {
+        // Arrange: HTML with an absolute href
+        const string input =
+            "<p>Se mer informasjon på <a href=\"https://altinn.no/Pages/info\">Altinn</a>.</p>";
+
+        // Act
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, isLegacy: true);
+
+        // Assert: URL is present and not duplicated or altered
+        Assert.Contains("https://altinn.no/Pages/info", result);
+        Assert.DoesNotContain("https://altinn.no/https://altinn.no/Pages/info", result);
+    }
 }
