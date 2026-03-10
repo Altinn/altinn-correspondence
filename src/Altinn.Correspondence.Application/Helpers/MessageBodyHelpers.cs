@@ -25,7 +25,8 @@ public static class MessageBodyHelpers
             RemoveComments = true,
             SmartHrefHandling = false,
             DefaultCodeBlockLanguage = "",
-            CommonMark = true
+            CommonMark = true,
+            ConvertPreContentAsHtml = true
         };
         config.WhitelistUriSchemes.Add("mailto");
         config.WhitelistUriSchemes.Add("http");
