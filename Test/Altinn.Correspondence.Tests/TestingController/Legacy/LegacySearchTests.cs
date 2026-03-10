@@ -11,6 +11,7 @@ using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Security.Claims;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -78,6 +79,19 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                         ExternalUrn = idportenEmailRecipient
                     });
                 services.AddSingleton(mockRegisterService.Object);
+
+                var mockAuthService = new Mock<IAltinnAuthorizationService>();
+                mockAuthService
+                    .Setup(x => x.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
+                        It.IsAny<ClaimsPrincipal?>(),
+                        It.IsAny<string>(),
+                        It.IsAny<List<CorrespondenceEntity>>(),
+                        It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((ClaimsPrincipal? _, string _, List<CorrespondenceEntity> correspondences, CancellationToken _) =>
+                        correspondences.ToDictionary(
+                            c => (c.Recipient, c.ResourceId),
+                            _ => (int?)3));
+                services.AddSingleton(mockAuthService.Object);
             });
 
             var siUserClient = factory.CreateClientWithAddedClaims(
