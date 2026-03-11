@@ -604,7 +604,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.Recipient == partyId)
                 .Where(c => c.IsConfidential)
                 .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
-                .Where(c => c.Created < minAge)
+                .Where(c => c.Published < minAge)
                 .ToListAsync(cancellationToken);
         }
     }

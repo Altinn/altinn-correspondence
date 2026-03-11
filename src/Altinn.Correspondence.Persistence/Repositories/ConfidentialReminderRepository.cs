@@ -12,12 +12,19 @@ public class ConfidentialReminderRepository(ApplicationDbContext context, ILogge
     public async Task<Guid> AddConfidentialReminder(ConfidentialReminderEntity reminder, CancellationToken cancellationToken)
     {
         logger.LogDebug("Adding confidential reminder for correspondence {CorrespondenceId}", reminder.CorrespondenceId);
+        var existing = await _context.ConfidentialReminders
+            .FirstOrDefaultAsync(r => r.CorrespondenceId == reminder.CorrespondenceId, cancellationToken);
+        if (existing != null)
+        {
+            logger.LogWarning("Confidential reminder for correspondence {CorrespondenceId} already exists, skipping duplicate insert", reminder.CorrespondenceId);
+            return existing.Id;
+        }
         await _context.ConfidentialReminders.AddAsync(reminder, cancellationToken);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         return reminder.Id;
     }
 
-    public async Task RemoveConfidentialReminder(Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task RemoveConfidentialReminderByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
     {
         var reminder = await _context.ConfidentialReminders.FirstOrDefaultAsync(r => r.CorrespondenceId == correspondenceId, cancellationToken);
         if (reminder == null)
@@ -43,14 +50,14 @@ public class ConfidentialReminderRepository(ApplicationDbContext context, ILogge
         return reminderExists;
     }
 
-    public async Task<string> GetDialogIdOfReminderForRecipient(string recipient, CancellationToken cancellationToken)
+    public async Task<Guid?> GetDialogIdOfReminderForRecipient(string recipient, CancellationToken cancellationToken)
     {
         var reminder = await _context.ConfidentialReminders.FirstOrDefaultAsync(r => r.Recipient == recipient, cancellationToken);
         if (reminder == null)
         {
             logger.LogWarning("Attempted to get dialog id of confidential reminder for recipient {Recipient}, but no reminder was found", recipient);
-            return string.Empty;
+            return null;
         }
-        return reminder.DialogId.ToString();
+        return reminder.DialogId;
     }
 }

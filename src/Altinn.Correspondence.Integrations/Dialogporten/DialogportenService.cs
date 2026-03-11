@@ -864,8 +864,6 @@ public class DialogportenService(HttpClient _httpClient,
         var createDialogRequest = CreateDialogRequestMapper.CreateConfidentialReminderDialog(reminder, generalSettings.Value.CorrespondenceBaseUrl);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest);
         if (!response.IsSuccessStatusCode){
-            var errorMessage = await response.Content.ReadAsStringAsync();
-            logger.LogError(errorMessage);
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
         var dialogResponse = await response.Content.ReadFromJsonAsync<string>();

@@ -96,6 +96,17 @@ public class InitializeCorrespondencesHandler(
         }
         validatedData.PartyUuid = partyUuid;
 
+        var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
+        if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
+        {
+            logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
+            return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
+        }
+        if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
+        {
+            logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
+            return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
+        }
         var recipientValidation = await ValidateRecipientParty(request, cancellationToken);
         if (recipientValidation.IsT1)
         {
@@ -112,17 +123,6 @@ public class InitializeCorrespondencesHandler(
         {
             logger.LogWarning("Due date is required for correspondence requiring confirmation");
             return CorrespondenceErrors.DueDateRequired;
-        }
-        var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
-        if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
-        {
-            logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
-            return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
-        }
-        if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
-        {
-            logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
-            return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
         }
 
         var contactReservation = await HandleContactReservation(request);

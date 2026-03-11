@@ -48,8 +48,8 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     var defaultText = "Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tilgang som kreves. Hovedadministrator må delegere denne tilgangen for at noen i din virksomhet skal kunne se meldingene. Se mer informasjon på våre hjelpesider: https://info.altinn.no/nyheter/tilgang-til-taushetsbelagt-post/";
 
     var lines = correspondences
-        .OrderBy(c => c.Created)
-        .Select((c, i) => $"{i + 1}. Melding fra avsender {c.Sender.WithoutPrefix()} datert {c.Created:dd.MM.yyyy}, denne krever tilgang til {c.ResourceId}")
+        .OrderBy(c => c.Published)
+        .Select((c, i) => $"{i + 1}. Melding fra avsender {c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til {c.ResourceId}")
         .ToList();
 
     var ending = "NB! Dette varselet forsvinner når alle uleste taushetsbelagte meldinger er åpnet.";

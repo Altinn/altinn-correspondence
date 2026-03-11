@@ -170,14 +170,20 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
                 request.CorrespondenceId, 
                 latestStatus.Status);
-            if (correspondence.IsConfidential && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
+            if (correspondence.IsConfidential 
+                && hasAccessAsRecipient 
+                && !(user?.CallingAsSender() ?? false) 
+                && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
             {
                 if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
                 {
                     var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
-                    await dialogportenService.TrySoftDeleteDialog(reminderDialogId);
+                    if (reminderDialogId.HasValue)
+                    {
+                        await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
+                    }
                 }
-                await confidentialReminderRepository.RemoveConfidentialReminder(correspondence.Id, cancellationToken);
+                await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
             }
             return response;
         }, logger, cancellationToken);

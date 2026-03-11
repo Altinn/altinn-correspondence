@@ -151,10 +151,10 @@ public class ResourceRegistryService : IResourceRegistryService
         return altinnResourceResponse.HasCompetentAuthority?.Organization;
     }
 
-    private async Task<List<GetResourceRightsResponse>> GetResourceRights(string resourceId, CancellationToken cancellationToken)
+    private async Task<List<GetResourceRightsResponse>?> GetResourceRights(string resourceId, CancellationToken cancellationToken)
     {
         var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}/policy/rights", cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
+        if (response.StatusCode == HttpStatusCode.NoContent)
         {
             return null;
         }

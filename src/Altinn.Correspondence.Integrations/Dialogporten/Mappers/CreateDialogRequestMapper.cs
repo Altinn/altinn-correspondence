@@ -71,7 +71,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return new CreateDialogRequest
             {
                 Id = Guid.CreateVersion7().ToString(), // Dialogporten requires time-stamped GUIDs
-                ServiceResource = UrnConstants.Resource + ":" + "correspondence-attachment-test",
+                ServiceResource = UrnConstants.Resource + ":" + reminder.ResourceId,
                 Party = reminder.Recipient,
                 CreatedAt = reminder.Created,
                 UpdatedAt = reminder.Created,
@@ -206,14 +206,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 Title = title,
                 Summary = summary,
-                SenderName = string.IsNullOrWhiteSpace(reminderDto.MessageSender) ? null :
+                SenderName = string.IsNullOrWhiteSpace(reminderDto.Sender) ? null :
                     new ContentValue()
                     {
                         MediaType = "text/plain",
                         Value = new List<DialogValue> {
                             new DialogValue()
                             {
-                                Value = reminderDto.MessageSender ?? reminderDto.Sender,
+                                Value = reminderDto.Sender,
                                 LanguageCode = "nb"
                             }
                         }

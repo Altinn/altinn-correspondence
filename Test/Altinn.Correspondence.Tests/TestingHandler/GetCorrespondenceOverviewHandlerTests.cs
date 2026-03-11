@@ -205,7 +205,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange
             var correspondenceId = Guid.NewGuid();
             var partyUuid = Guid.NewGuid();
-            var reminderDialogId = Guid.NewGuid().ToString();
+            var reminderDialogId = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
@@ -246,7 +246,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             _confidentialReminderRepositoryMock
                 .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(reminderDialogId);
+                .ReturnsAsync((Guid?)reminderDialogId);
 
             _confidentialReminderRepositoryMock
                 .Setup(x => x.NumberOfRemindersForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
@@ -257,12 +257,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Assert - reminder is removed
             _confidentialReminderRepositoryMock.Verify(
-                x => x.RemoveConfidentialReminder(correspondenceId, It.IsAny<CancellationToken>()),
+                x => x.RemoveConfidentialReminderByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()),
                 Times.Once);
 
             // Assert - dialog is soft deleted because recipient has no more confidential reminders
             _dialogportenServiceMock.Verify(
-                x => x.TrySoftDeleteDialog(reminderDialogId),
+                x => x.TrySoftDeleteDialog(reminderDialogId.ToString()),
                 Times.Once);
         }
 
@@ -272,7 +272,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Arrange
             var correspondenceId = Guid.NewGuid();
             var partyUuid = Guid.NewGuid();
-            var reminderDialogId = Guid.NewGuid().ToString();
+            var reminderDialogId = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithStatus(CorrespondenceStatus.Published)
@@ -313,7 +313,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             _confidentialReminderRepositoryMock
                 .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(reminderDialogId);
+                .ReturnsAsync((Guid?)reminderDialogId);
 
             // Recipient still has other confidential reminders after removal
             _confidentialReminderRepositoryMock
@@ -325,7 +325,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Assert - reminder is still removed for this correspondence
             _confidentialReminderRepositoryMock.Verify(
-                x => x.RemoveConfidentialReminder(correspondenceId, It.IsAny<CancellationToken>()),
+                x => x.RemoveConfidentialReminderByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()),
                 Times.Once);
 
             // Assert - dialog is NOT soft deleted because recipient still has other confidential reminders
@@ -382,7 +382,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Times.Never);
 
             _confidentialReminderRepositoryMock.Verify(
-                x => x.RemoveConfidentialReminder(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+                x => x.RemoveConfidentialReminderByCorrespondenceId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
                 Times.Never);
 
             _dialogportenServiceMock.Verify(

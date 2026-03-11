@@ -46,6 +46,12 @@ public class ApplicationDbContext : DbContext
             .WithOne()
             .HasForeignKey(sp => sp.ServiceOwnerId)
             .HasPrincipalKey(so => so.Id);
+
+        modelBuilder.Entity<ConfidentialReminderEntity>()
+            .HasOne<CorrespondenceEntity>()
+            .WithMany()
+            .HasForeignKey(r => r.CorrespondenceId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

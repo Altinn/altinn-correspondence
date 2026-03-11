@@ -28,8 +28,16 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         column: x => x.CorrespondenceId,
                         principalSchema: "correspondence",
                         principalTable: "Correspondences",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ConfidentialReminders_CorrespondenceId",
+                schema: "correspondence",
+                table: "ConfidentialReminders",
+                column: "CorrespondenceId",
+                unique: true);
         }
 
         /// <inheritdoc />

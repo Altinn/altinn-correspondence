@@ -39,7 +39,7 @@ public class UnreadConfidentialCorrespondenceHandler(
             Title = "Din virksomhet har en uåpnet taushetsbelagt post",
             Summary = "Din virksomhet har mottatt ett eller flere brev som er taushetsbelagte og som ikke er åpnet. Dette varselet inneholder informasjon om hvordan du kan lese disse",
             Recipient = correspondence.Recipient,
-            ResourceId = correspondence.ResourceId,
+            ResourceId = "correspondence-attachment-test",
             SendersReference = "Digdir",
             Sender = "Digdir",
             Created = DateTimeOffset.UtcNow,
@@ -54,14 +54,15 @@ public class UnreadConfidentialCorrespondenceHandler(
         {
             logger.LogInformation("Recipient {recipient} already has a confidential reminder, skipping creation of new dialog", reminder.Recipient);
             var existingDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(reminder.Recipient, cancellationToken);
-            if (!string.IsNullOrEmpty(existingDialogId)){
-                logger.LogInformation("Existing confidential reminder dialog found with id {dialogId} for recipient {recipient}", existingDialogId, reminder.Recipient);
+            if (existingDialogId.HasValue)
+            {
+                logger.LogInformation("Existing confidential reminder dialog found with id {dialogId} for recipient {recipient}", existingDialogId.Value, reminder.Recipient);
                 await confidentialReminderRepository.AddConfidentialReminder(new ConfidentialReminderEntity
                 {
                     Id = reminder.Id,
                     CorrespondenceId = correspondenceId,
                     Recipient = reminder.Recipient,
-                    DialogId = Guid.Parse(existingDialogId)
+                    DialogId = existingDialogId.Value
                 }, cancellationToken);
                 return;
             }
@@ -70,6 +71,11 @@ public class UnreadConfidentialCorrespondenceHandler(
         logger.LogInformation("Creating confidential reminder dialog for correspondence with id {correspondenceId}", correspondenceId);
 
         var dialogId = await dialogportenService.CreateConfidentialReminderDialog(reminder);
+        if (string.IsNullOrEmpty(dialogId))
+        {
+            logger.LogError("Failed to create confidential reminder dialog for correspondence with id {correspondenceId}", correspondenceId);
+            return;
+        }
         await confidentialReminderRepository.AddConfidentialReminder(new ConfidentialReminderEntity
         {
             Id = reminder.Id,
@@ -77,5 +83,6 @@ public class UnreadConfidentialCorrespondenceHandler(
             Recipient = reminder.Recipient,
             DialogId = Guid.Parse(dialogId),
         }, cancellationToken);
+        return;
     }
 }
