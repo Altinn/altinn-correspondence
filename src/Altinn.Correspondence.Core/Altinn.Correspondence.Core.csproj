@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
+    <PackageReference Include="ReverseMarkdown" Version="4.7.1" />
   </ItemGroup>
 
   <ItemGroup>
