@@ -14,6 +14,7 @@ using Altinn.Correspondence.Application.ExpireAttachment;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -34,6 +35,7 @@ public class InitializeCorrespondencesHandler(
     IHybridCacheWrapper hybridCacheWrapper,
     HangfireScheduleHelper hangfireScheduleHelper,
     IIdempotencyKeyRepository idempotencyKeyRepository,
+    IHostEnvironment hostEnvironment,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private class ValidatedData
@@ -475,7 +477,10 @@ public class InitializeCorrespondencesHandler(
             if (correspondence.IsConfidential)
             {
                 logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
-                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.RequestedPublishTime.AddSeconds(20));
+                var unreadCheckDelay = hostEnvironment.IsProduction()
+                    ? correspondence.RequestedPublishTime.AddDays(7)
+                    : correspondence.RequestedPublishTime.AddSeconds(20);
+                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
             }
 
             initializedCorrespondences.Add(new InitializedCorrespondences()

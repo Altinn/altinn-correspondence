@@ -1,16 +1,17 @@
-using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger) : ICorrespondenceRepository
+    public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger, IHostEnvironment hostEnvironment) : ICorrespondenceRepository
     {
         private readonly ApplicationDbContext _context = context;
+        private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
 
         private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithStatuses =
             EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
@@ -595,11 +596,15 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<CorrespondenceEntity>> GetUnopenedConfidentialCorrespondencesForParty(string partyId, CancellationToken cancellationToken)
         {
+            var minAge = _hostEnvironment.IsProduction()
+                ? DateTimeOffset.UtcNow.AddDays(-7)
+                : DateTimeOffset.UtcNow.AddMinutes(-1);
             return await _context.Correspondences
                 .AsNoTracking()
                 .Where(c => c.Recipient == partyId)
                 .Where(c => c.IsConfidential)
                 .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
+                .Where(c => c.Created < minAge)
                 .ToListAsync(cancellationToken);
         }
     }
