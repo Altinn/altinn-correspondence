@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondenceReminder;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
+
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -9,36 +11,55 @@ namespace Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences
 
 public class GetUnreadConfidentialCorrespondencesHandler(
     ILogger<GetUnreadConfidentialCorrespondencesHandler> logger,
-    ICorrespondenceRepository correspondenceRepository)
+    ICorrespondenceRepository correspondenceRepository,
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IServiceOwnerRepository serviceOwnerRepository
+    )
 {
     public async Task<OneOf<GetUnreadConfidentialCorrespondencesResponse, Error>> Process(ClaimsPrincipal user, CancellationToken cancellationToken = default)
 {
+    var recipientOrg = user.GetCallerOrganizationId();
+    if (string.IsNullOrEmpty(recipientOrg))
+    {
+        logger.LogWarning("Access denied for user {caller} - user does not have an organization id claim", recipientOrg);
+        return AuthorizationErrors.CouldNotDetermineCaller;
+    }
+    var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
+            user,
+            "correspondence-attachment-test",
+            recipientOrg,
+            cancellationToken);
+
+    if (!hasAccess)
+    {
+        return AuthorizationErrors.NoAccessToResource;
+    }
     var correspondences = await correspondenceRepository.GetUnopenedConfidentialCorrespondencesForParty(
-        user.GetCallerOrganizationId().WithUrnPrefix(), 
+        recipientOrg.WithUrnPrefix(), 
         cancellationToken
     );
 
     if (correspondences == null)
     {
-        logger.LogError("Error getting unopened confidential correspondences for party {partyId}", user.GetCallerOrganizationId());
+        logger.LogError("Error getting unopened confidential correspondences for party {partyId}", recipientOrg);
         throw new Exception("Failed to retrieve unopened confidential correspondences");
     }
 
-    var defaultText = "Din virksomhet har mottatt taushetsbelagt post fra følgende virksomheter. For å se denne meldingen kreves tilgang til ressursene. Hovedadministrator må delegere denne tilgangen for at noen skal kunne se denne meldingen. Se mer informasjon på våre hjelpesider: https://info.altinn.no/nyheter/tilgang-til-taushetsbelagt-post/";
+    var defaultText = "Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tilgang som kreves. Hovedadministrator må delegere denne tilgangen for at noen i din virksomhet skal kunne se meldingene. Se mer informasjon på våre hjelpesider: https://info.altinn.no/nyheter/tilgang-til-taushetsbelagt-post/";
 
     var lines = correspondences
         .OrderBy(c => c.Created)
-        .Select((c, i) => $"{i + 1}. {c.Sender.WithoutPrefix()} datert {c.Created:dd.MM.yyyy}, denne krever tilgang til {c.ResourceId}")
+        .Select((c, i) => $"{i + 1}. Melding fra avsender {c.Sender.WithoutPrefix()} datert {c.Created:dd.MM.yyyy}, denne krever tilgang til {c.ResourceId}")
         .ToList();
 
-    var fullText = defaultText + "\n\n" + string.Join("\n\n", lines);
+    var ending = "NB! Dette varselet forsvinner når alle uleste taushetsbelagte meldinger er åpnet.";
+
+    var fullText = defaultText + "\n\n" + string.Join("\n\n", lines) + "\n\n" + ending;
 
     var response = new GetUnreadConfidentialCorrespondencesResponse
     {
         Text = fullText
     };
-
     return response;
 }
-
 }
