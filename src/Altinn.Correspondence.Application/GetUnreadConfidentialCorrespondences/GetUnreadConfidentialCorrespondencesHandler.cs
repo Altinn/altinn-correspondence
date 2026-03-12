@@ -38,8 +38,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
 
     if (correspondences == null)
     {
-        logger.LogError("Error getting unopened confidential correspondences for party {partyId}", recipientOrg);
-        throw new Exception("Failed to retrieve unopened confidential correspondences");
+        return CorrespondenceErrors.GettingUnreadConfidentialCorrespondencesFailed;
     }
 
     var defaultText = "Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tilgang som kreves. Hovedadministrator må delegere denne tilgangen for at noen i din virksomhet skal kunne se meldingene. Se mer informasjon på våre hjelpesider: https://info.altinn.no/nyheter/tilgang-til-taushetsbelagt-post/";

@@ -59,6 +59,7 @@ public static class CorrespondenceErrors
         new Error(1055, $"Existing attachment is expiring within {hours} hour(s) and cannot be attached to a new correspondence", HttpStatusCode.BadRequest);
     public static Error CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag = new Error(1056, "Confidential correspondences (resources with the access package post-til-virksomheten-med-taushetsbelagt-innhold) cannot be initialized without setting the 'IsConfidential' flag to true", HttpStatusCode.BadRequest);
     public static Error CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag = new Error(1057, "Correspondences cannot be initialized with 'IsConfidential' flag set to true if the resource is not confidential", HttpStatusCode.BadRequest);
+    public static Error GettingUnreadConfidentialCorrespondencesFailed = new Error(1058, "Error occurred while getting unread confidential correspondences", HttpStatusCode.InternalServerError);
 }
 
 public static class AttachmentErrors
