@@ -116,7 +116,7 @@ public class SyncEventDeduplicationTests : MigrationTestBase
     }
 
     [Fact]
-    public async Task CorrespondenceNotification_UniqueConstraint_PreventsDuplicates()
+    public async Task CorrespondenceNotification_SyncedUniqueConstraint_PreventsDuplicates()
     {
         // Arrange
         var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
@@ -138,32 +138,36 @@ public class SyncEventDeduplicationTests : MigrationTestBase
         var notification1 = new CorrespondenceNotificationEntity
         {
             CorrespondenceId = result.CorrespondenceId,
+            Altinn2NotificationId = 123,
             NotificationAddress = "test@example.com",
             NotificationChannel = NotificationChannel.Email,
             NotificationSent = notificationSent,
             NotificationTemplate = NotificationTemplate.CustomMessage,
             Created = created,
             RequestedSendTime = requestedSendTime,
-            IsReminder = false
+            IsReminder = false,
+            SyncedFromAltinn2 = DateTimeOffset.UtcNow
         };
 
         var notification2 = new CorrespondenceNotificationEntity
         {
             CorrespondenceId = result.CorrespondenceId,
+            Altinn2NotificationId = 123,
             NotificationAddress = "test@example.com",
             NotificationChannel = NotificationChannel.Email,
             NotificationSent = notificationSent,
             NotificationTemplate = NotificationTemplate.CustomMessage,
             Created = created,
             RequestedSendTime = requestedSendTime,
-            IsReminder = false
+            IsReminder = false,
+            SyncedFromAltinn2 = DateTimeOffset.UtcNow
         };
 
-        // Act - Add the same notification twice with identical unique-key values but different instances
+        // Act - Add the same synced notification twice with identical unique-key values
         var firstResult = await notificationRepo.AddNotificationForSync(notification1, CancellationToken.None);
         var secondResult = await notificationRepo.AddNotificationForSync(notification2, CancellationToken.None);
 
-        // Assert
+        // Assert - First should succeed, second should return Guid.Empty due to filtered unique index
         Assert.NotEqual(Guid.Empty, firstResult);
         Assert.Equal(Guid.Empty, secondResult);
     }

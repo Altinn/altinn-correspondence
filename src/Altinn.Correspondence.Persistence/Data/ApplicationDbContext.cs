@@ -77,14 +77,18 @@ public class ApplicationDbContext : DbContext
             .IsUnique()
             .HasDatabaseName("IX_CorrespondenceDeleteEvents_Unique");
 
-        // CorrespondenceNotificationEntity - unique on (CorrespondenceId, NotificationAddress, NotificationChannel, NotificationSent)
+        // CorrespondenceNotificationEntity - unique index for synced notifications only
+        // Prevents duplicate event syncing from Altinn2
+        // Regular notifications (via API) have no uniqueness constraint, allowing multiple notifications/reminders
         modelBuilder.Entity<CorrespondenceNotificationEntity>()
             .HasIndex(nameof(CorrespondenceNotificationEntity.CorrespondenceId),
+                     nameof(CorrespondenceNotificationEntity.Altinn2NotificationId),
                      nameof(CorrespondenceNotificationEntity.NotificationAddress),
                      nameof(CorrespondenceNotificationEntity.NotificationChannel),
                      nameof(CorrespondenceNotificationEntity.NotificationSent))
             .IsUnique()
-            .HasDatabaseName("IX_CorrespondenceNotifications_Unique");
+            .HasFilter("\"Altinn2NotificationId\" IS NOT NULL")
+            .HasDatabaseName("IX_CorrespondenceNotifications_Synced");
 
         // CorrespondenceForwardingEventEntity - unique on (CorrespondenceId, ForwardedOnDate, ForwardedByPartyUuid)
         modelBuilder.Entity<CorrespondenceForwardingEventEntity>()

@@ -45,7 +45,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
             // Drop the unique indexes (FK indexes remain)
             migrationBuilder.Sql(@"DROP INDEX IF EXISTS correspondence.""IX_CorrespondenceStatuses_Unique"";");
             migrationBuilder.Sql(@"DROP INDEX IF EXISTS correspondence.""IX_CorrespondenceDeleteEvents_Unique"";");
-            migrationBuilder.Sql(@"DROP INDEX IF EXISTS correspondence.""IX_CorrespondenceNotifications_Unique"";");
+            migrationBuilder.Sql(@"DROP INDEX IF EXISTS correspondence.""IX_CorrespondenceNotifications_Synced"";");
             migrationBuilder.Sql(@"DROP INDEX IF EXISTS correspondence.""IX_CorrespondenceForwardingEvents_Unique"";");
         }
     }
