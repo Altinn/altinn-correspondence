@@ -49,11 +49,13 @@ public class LegacyGetCorrespondencesHandler(
             request.InstanceOwnerPartyIdList);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
+        logger.LogInformation("ExternalURN: {ExternalURN} for party {PartyId}", userParty!.ExternalUrn, userParty.PartyId); //TODO: temp remove
         if (userParty == null
             || (string.IsNullOrEmpty(userParty.SSN)
                 && string.IsNullOrEmpty(userParty.OrgNumber)
                 && string.IsNullOrEmpty(userParty.ExternalUrn)))
         {
+            logger.LogInformation("User party not found or no org number or SSN or external URN for party {PartyId}", userParty?.PartyId);
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var recipients = new List<string>();
@@ -124,7 +126,7 @@ public class LegacyGetCorrespondencesHandler(
         if (userParty.PartyTypeName == PartyType.SelfIdentified) //TODO: temp remove if clause
         {
             var totalCorrespondences = correspondences.Count;
-            logger.LogInformation("User is a self-identified party, skipping Total correspondences: {TotalCorrespondences}", totalCorrespondences);
+            logger.LogInformation("User {partyId} is a self-identified party, Total correspondences found: {TotalCorrespondences}", userParty.PartyId, totalCorrespondences);
         }
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
