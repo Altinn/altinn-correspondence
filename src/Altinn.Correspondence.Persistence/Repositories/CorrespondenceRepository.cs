@@ -603,6 +603,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .AsNoTracking()
                 .Where(c => c.Recipient == partyId)
                 .Where(c => c.IsConfidential)
+                .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published))
                 .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
                 .Where(c => c.Published < minAge)
                 .ToListAsync(cancellationToken);
