@@ -44,10 +44,7 @@ public class UnreadConfidentialCorrespondenceHandler(
             Sender = "Digdir",
             Created = DateTimeOffset.UtcNow,
             Status = "RequiresAttention",
-            PropertyList = new Dictionary<string, string>
-            {
-                {"originalSender", correspondence.Sender.WithoutPrefix()}
-            }
+            PropertyList = new Dictionary<string, string>{}
         };
 
         if (await confidentialReminderRepository.NumberOfRemindersForRecipient(reminder.Recipient, cancellationToken) > 0)

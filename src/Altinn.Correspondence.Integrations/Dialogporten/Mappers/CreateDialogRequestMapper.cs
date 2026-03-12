@@ -56,7 +56,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Status = GetDialogStatusForCorrespondence(correspondence),
                 ExternalReference = correspondence.SendersReference,
                 Content = CreateCorrespondenceContent(correspondence, baseUrl),
-                SearchTags = GetSearchTagsForCorrespondence(correspondence.PropertyList, logger),
+                SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
@@ -78,7 +78,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 VisibleFrom = DateTimeOffset.UtcNow,
                 ExternalReference = reminder.SendersReference,
                 Content = CreateConfidentialReminderContent(reminder, baseUrl),
-                SearchTags = GetSearchTagsForCorrespondence(reminder.PropertyList, logger),
+                SearchTags = new List<SearchTag>(),
                 Status = reminder.Status ?? "NotApplicable",
                 ApiActions = new List<ApiAction>(),
                 GuiActions = new List<GuiAction>(),
@@ -222,18 +222,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             };
         }
 
-        private static List<SearchTag> GetSearchTagsForCorrespondence(Dictionary<string, string> propertyList, ILogger? logger)
+        private static List<SearchTag> GetSearchTagsForCorrespondence(CorrespondenceEntity correspondence, ILogger? logger)
         {
             var list = new List<SearchTag>();
-            foreach (var property in propertyList)
+            foreach (var property in correspondence.PropertyList)
             {
-                list = AddSearchTagIfValid(list, property.Value, logger);    
+                list = AddSearchTagIfValid(list, property.Value, correspondence, logger);    
             }
             list = list.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
             return list;
         }
 
-        private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag, ILogger? logger)
+        private static List<SearchTag> AddSearchTagIfValid(List<SearchTag> list, string? searchTag, CorrespondenceEntity correspondence, ILogger? logger)
         {
             if (string.IsNullOrWhiteSpace(searchTag) || searchTag.Trim().Length < 3)
             {
@@ -242,7 +242,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var trimmed = searchTag.Trim();
             if (trimmed.Length > 63)
             {
-                logger?.LogWarning("Truncating Dialogporten search tag for from {OriginalLength} to 63 characters", trimmed.Length);
+                logger?.LogWarning("Truncating Dialogporten search tag for correspondence {CorrespondenceId} from {OriginalLength} to 63 characters", correspondence.Id, trimmed.Length);
                 trimmed = trimmed.Substring(0, 63);
             }
             list.Add(new SearchTag() { Value = trimmed });

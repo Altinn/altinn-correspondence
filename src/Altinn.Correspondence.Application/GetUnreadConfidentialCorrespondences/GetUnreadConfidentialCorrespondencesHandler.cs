@@ -2,8 +2,6 @@ using System.Security.Claims;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondenceReminder;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
-
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -12,8 +10,7 @@ namespace Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences
 public class GetUnreadConfidentialCorrespondencesHandler(
     ILogger<GetUnreadConfidentialCorrespondencesHandler> logger,
     ICorrespondenceRepository correspondenceRepository,
-    IAltinnAuthorizationService altinnAuthorizationService,
-    IServiceOwnerRepository serviceOwnerRepository
+    IAltinnAuthorizationService altinnAuthorizationService
     )
 {
     public async Task<OneOf<GetUnreadConfidentialCorrespondencesResponse, Error>> Process(ClaimsPrincipal user, CancellationToken cancellationToken = default)
