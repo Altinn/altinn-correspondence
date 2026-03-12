@@ -45,48 +45,7 @@ public class AltinnRegisterService : IAltinnRegisterService
 
     public async Task<Party?> LookUpPartyByPartyId(int partyId, CancellationToken cancellationToken = default)
     {
-        string cacheKey = $"PartyByPartyId_{partyId}";
-        try 
-        {
-            var cachedParty = await CacheHelpers.GetObjectFromCacheAsync<Party>(cacheKey, _cache, cancellationToken);
-            if (cachedParty != null)
-            {
-                return cachedParty;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error retrieving Party from cache when looking up Party in Altinn Register Service.");
-        }
-
-        if (partyId <= 0)
-        {
-            _logger.LogError("partyId is not a valid number.");
-            return null;
-        }
-
-        var response = await _httpClient.GetAsync($"register/api/v1/parties/{partyId}", cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError("Error when looking up party in Altinn Register.Statuscode was: {statusCode}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync());
-            return null;
-        }
-        var party = await response.Content.ReadFromJsonAsync<Party>();
-        if (party is null)
-        {
-            _logger.LogError("Unexpected json response when looking up Party in Altinn Register");
-            return null;
-        }
-
-        try 
-        {
-            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, party, _cache, _cacheOptions, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error storing response content to cache when looking up Party in Altinn Register Service.");
-        }
-
+        var party = await LookUpPartyById(partyId.ToString(), cancellationToken);
         return party;
     }
 
