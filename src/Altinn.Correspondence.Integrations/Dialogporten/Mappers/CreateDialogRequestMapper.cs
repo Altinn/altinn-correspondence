@@ -206,14 +206,14 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             {
                 Title = title,
                 Summary = summary,
-                SenderName = string.IsNullOrWhiteSpace(reminderDto.Sender) ? null :
+                SenderName = string.IsNullOrWhiteSpace(reminderDto.MessageSender) ? null :
                     new ContentValue()
                     {
                         MediaType = "text/plain",
                         Value = new List<DialogValue> {
                             new DialogValue()
                             {
-                                Value = reminderDto.Sender,
+                                Value = reminderDto.MessageSender ?? "",
                                 LanguageCode = "nb"
                             }
                         }

@@ -38,10 +38,10 @@ public class UnreadConfidentialCorrespondenceHandler(
             Id = Guid.CreateVersion7(),
             Title = "Din virksomhet har en uåpnet taushetsbelagt post",
             Summary = "Din virksomhet har mottatt ett eller flere brev som er taushetsbelagte og som ikke er åpnet. Dette varselet inneholder informasjon om hvordan du kan lese disse",
-            Recipient = correspondence.Recipient,
+            Recipient = correspondence.Recipient.WithUrnPrefix(),
             ResourceId = "correspondence-attachment-test",
             SendersReference = "Digdir",
-            Sender = "Digdir",
+            MessageSender = "Digitaliseringsdirektoratet",
             Created = DateTimeOffset.UtcNow,
             Status = "RequiresAttention",
             PropertyList = new Dictionary<string, string>{}
@@ -49,16 +49,14 @@ public class UnreadConfidentialCorrespondenceHandler(
 
         if (await confidentialReminderRepository.NumberOfRemindersForRecipient(reminder.Recipient, cancellationToken) > 0)
         {
-            logger.LogInformation("Recipient {recipient} already has a confidential reminder, skipping creation of new dialog", reminder.Recipient);
             var existingDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(reminder.Recipient, cancellationToken);
             if (existingDialogId.HasValue)
             {
-                logger.LogInformation("Existing confidential reminder dialog found with id {dialogId} for recipient {recipient}", existingDialogId.Value, reminder.Recipient);
                 await confidentialReminderRepository.AddConfidentialReminder(new ConfidentialReminderEntity
                 {
                     Id = reminder.Id,
                     CorrespondenceId = correspondenceId,
-                    Recipient = reminder.Recipient,
+                    Recipient = reminder.Recipient.WithUrnPrefix(),
                     DialogId = existingDialogId.Value
                 }, cancellationToken);
                 return;
@@ -77,7 +75,7 @@ public class UnreadConfidentialCorrespondenceHandler(
         {
             Id = reminder.Id,
             CorrespondenceId = correspondenceId,
-            Recipient = reminder.Recipient,
+            Recipient = reminder.Recipient.WithUrnPrefix(),
             DialogId = Guid.Parse(dialogId),
         }, cancellationToken);
         return;

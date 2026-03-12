@@ -18,7 +18,6 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     var recipientOrg = user.GetCallerOrganizationId();
     if (string.IsNullOrEmpty(recipientOrg))
     {
-        logger.LogWarning("Access denied for user {caller} - user does not have an organization id claim", recipientOrg);
         return AuthorizationErrors.CouldNotDetermineCaller;
     }
     var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
