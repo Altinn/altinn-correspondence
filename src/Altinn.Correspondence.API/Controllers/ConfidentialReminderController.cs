@@ -35,7 +35,7 @@ public class ConfidentialReminderController(ILogger<ConfidentialReminderControll
         _logger.LogInformation("Getting unread confidential correspondences");
         var commandResult = await handler.Process(HttpContext.User, cancellationToken);
         return commandResult.Match(
-            data => Content(MessageBodyHelpers.ConvertMixedToMarkdown(data.Text)),
+            data => Content(MessageBodyHelpers.ConvertMixedToMarkdown(data.Text, false)),
             Problem
         );
     }
