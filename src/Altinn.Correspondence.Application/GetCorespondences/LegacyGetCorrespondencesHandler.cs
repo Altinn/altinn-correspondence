@@ -79,6 +79,7 @@ public class LegacyGetCorrespondencesHandler(
                 }
                 else if (!string.IsNullOrEmpty(mappedInstanceOwner.ExternalUrn))
                 {
+                    logger.LogInformation("Adding external URN {ExternalUrn} for party {PartyId} to recipients (mappedInstanceOwner)", mappedInstanceOwner.ExternalUrn, mappedInstanceOwner.PartyId); //TODO: temp remove if clause
                     recipients.Add(mappedInstanceOwner.ExternalUrn);
                 }
             }
@@ -95,6 +96,7 @@ public class LegacyGetCorrespondencesHandler(
             }
             else if (!string.IsNullOrEmpty(userParty.ExternalUrn))
             {
+                logger.LogInformation("Adding external URN {ExternalUrn} for party {PartyId} to recipients", userParty.ExternalUrn, userParty.PartyId); //TODO: temp remove if clause
                 recipients.Add(userParty.ExternalUrn);
             }
         }
@@ -118,6 +120,12 @@ public class LegacyGetCorrespondencesHandler(
                                                                                           searchString: request.SearchString,
                                                                                           cancellationToken: cancellationToken,
                                                                                           filterMigrated: request.FilterMigrated);
+
+        if (userParty.PartyTypeName == PartyType.SelfIdentified) //TODO: temp remove if clause
+        {
+            var totalCorrespondences = correspondences.Count;
+            logger.LogInformation("User is a self-identified party, skipping Total correspondences: {TotalCorrespondences}", totalCorrespondences);
+        }
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
