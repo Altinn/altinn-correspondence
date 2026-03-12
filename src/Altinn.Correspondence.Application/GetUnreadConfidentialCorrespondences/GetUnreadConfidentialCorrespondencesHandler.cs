@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondenceReminder;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 
@@ -10,7 +11,9 @@ namespace Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences
 public class GetUnreadConfidentialCorrespondencesHandler(
     ILogger<GetUnreadConfidentialCorrespondencesHandler> logger,
     ICorrespondenceRepository correspondenceRepository,
-    IAltinnAuthorizationService altinnAuthorizationService
+    IAltinnAuthorizationService altinnAuthorizationService,
+    IHostEnvironment hostEnvironment
+
     )
 {
     public async Task<OneOf<GetUnreadConfidentialCorrespondencesResponse, Error>> Process(ClaimsPrincipal user, CancellationToken cancellationToken = default)
@@ -30,8 +33,11 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     {
         return AuthorizationErrors.NoAccessToResource;
     }
+    var minAge = hostEnvironment.IsProduction()
+        ? TimeSpan.FromDays(7) : TimeSpan.FromMinutes(10);
     var correspondences = await correspondenceRepository.GetUnopenedConfidentialCorrespondencesForParty(
-        recipientOrg.WithUrnPrefix(), 
+        recipientOrg.WithUrnPrefix(),
+        minAge,
         cancellationToken
     );
 

@@ -8,10 +8,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger, IHostEnvironment hostEnvironment) : ICorrespondenceRepository
+    public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger) : ICorrespondenceRepository
     {
         private readonly ApplicationDbContext _context = context;
-        private readonly IHostEnvironment _hostEnvironment = hostEnvironment;
 
         private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithStatuses =
             EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
@@ -594,18 +593,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await query.ToListAsync(cancellationToken);
         }
 
-        public async Task<List<CorrespondenceEntity>> GetUnopenedConfidentialCorrespondencesForParty(string partyId, CancellationToken cancellationToken)
+        public async Task<List<CorrespondenceEntity>> GetUnopenedConfidentialCorrespondencesForParty(string partyId, TimeSpan minAge, CancellationToken cancellationToken)
         {
-            var minAge = _hostEnvironment.IsProduction()
-                ? DateTimeOffset.UtcNow.AddDays(-7)
-                : DateTimeOffset.UtcNow.AddMinutes(-1);
+            var cutoff = DateTimeOffset.UtcNow - minAge;
             return await _context.Correspondences
                 .AsNoTracking()
                 .Where(c => c.Recipient == partyId)
                 .Where(c => c.IsConfidential)
                 .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published))
                 .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
-                .Where(c => c.Published < minAge)
+                .Where(c => c.RequestedPublishTime < cutoff)
                 .ToListAsync(cancellationToken);
         }
     }
