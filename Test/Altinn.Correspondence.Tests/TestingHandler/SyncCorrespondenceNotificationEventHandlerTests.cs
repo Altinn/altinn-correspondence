@@ -26,6 +26,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IDialogportenService> _dialogportenServiceMock;
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
         private readonly Mock<ILogger<CorrespondenceMigrationEventHelper>> _eventHelperLoggerMock;
+        private readonly Mock<ILogger<PurgeCorrespondenceHelper>> _purgeLoggerMock;
+        private readonly Mock<IIdempotencyKeyRepository> _idempotencyKeyRepositoryMock;
         private readonly SyncCorrespondenceNotificationEventHandler _handler;
 
         public SyncCorrespondenceNotificationEventHandlerTests()
@@ -44,14 +46,18 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _dialogportenServiceMock = new Mock<IDialogportenService>();
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _eventHelperLoggerMock = new Mock<ILogger<CorrespondenceMigrationEventHelper>>();
-            
+            _purgeLoggerMock = new Mock<ILogger<PurgeCorrespondenceHelper>>();
+            _idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
+
             var purgeCorrespondenceHelper = new PurgeCorrespondenceHelper(
                 _attachmentRepositoryMock.Object,
                 _attachmentStatusRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 _dialogportenServiceMock.Object,
-                _correspondenceRepositoryMock.Object);
+                _correspondenceRepositoryMock.Object,
+                _idempotencyKeyRepositoryMock.Object,
+                _purgeLoggerMock.Object);
 
             var correspondenceMigrationEventHelper = new CorrespondenceMigrationEventHelper(
                 _correspondenceStatusRepositoryMock.Object,
@@ -60,6 +66,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _forwardingEventRepositoryMock.Object,
                 _altinnRegisterServiceMock.Object,
                 purgeCorrespondenceHelper,
+                _idempotencyKeyRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 _eventHelperLoggerMock.Object);
 

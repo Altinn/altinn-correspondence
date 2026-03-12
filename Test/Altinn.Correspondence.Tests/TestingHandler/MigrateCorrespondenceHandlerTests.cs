@@ -82,6 +82,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceForwardingEventRepositoryMock.Object,
                 _altinnRegisterServiceMock.Object,
                 purgeCorrespondenceHelper,
+                _idempotencyKeyRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 _eventHelperLoggerMock.Object);
 

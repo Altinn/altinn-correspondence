@@ -1,13 +1,18 @@
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence.Helpers;
+using Altinn.Correspondence.Persistence.Repositories;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Transactions;
 
@@ -23,6 +28,7 @@ public class CorrespondenceMigrationEventHelper(
     ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
     IAltinnRegisterService altinnRegisterService,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     IBackgroundJobClient backgroundJobClient,
     ILogger<CorrespondenceMigrationEventHelper> logger)
 {
@@ -118,21 +124,26 @@ public class CorrespondenceMigrationEventHelper(
     public async Task<bool> ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         logger.LogDebug("Process {OperationName} delete event {EventType} for {CorrespondenceId}", operationName, deletionEvent.EventType, correspondenceId);
-        
-        return deletionEvent.EventType switch
+
+        switch (deletionEvent.EventType)
         {
-            CorrespondenceDeleteEventType.HardDeletedByServiceOwner or 
-            CorrespondenceDeleteEventType.HardDeletedByRecipient 
-                => ValidatePerformPurge(correspondence) 
-                    ? await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken)
-                    : false,
-            
-            CorrespondenceDeleteEventType.SoftDeletedByRecipient or 
-            CorrespondenceDeleteEventType.RestoredByRecipient 
-                => await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken),
-            
-            _ => throw new ArgumentException($"Unknown Deletion Event Type {deletionEvent.EventType} for Correspondence {correspondenceId}")
-        };
+            case CorrespondenceDeleteEventType.HardDeletedByServiceOwner:
+            case CorrespondenceDeleteEventType.HardDeletedByRecipient:
+                if (ValidatePerformPurge(correspondence))
+                {
+                    enduserIdByPartyUuid.TryGetValue(deletionEvent.PartyUuid, out var endUserId);
+                    return await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken, endUserId);
+                }
+                else
+                {
+                    return true;
+                }
+            case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
+            case CorrespondenceDeleteEventType.RestoredByRecipient:
+                return await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken);                
+            default:
+                throw new ArgumentException($"Unknown Deletion Event Type {deletionEvent.EventType} for Correspondence {correspondenceId}");
+        }
     }
 
     public async Task<List<CorrespondenceDeleteEventEntity>> FilterDeleteEvents(Guid correspondenceId, List<CorrespondenceDeleteEventEntity>? syncedDeleteEvents, CancellationToken cancellationToken)
@@ -241,8 +252,7 @@ public class CorrespondenceMigrationEventHelper(
             .Distinct();
 
         partyUuidsToLookup = partyUuidsToLookup
-           .Concat((deletionEventsToExecute ?? Enumerable.Empty<CorrespondenceDeleteEventEntity>())
-               .Where(e => e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient || e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient) // Only SoftDelete and Restore events require Dialogporten enduserId
+           .Concat((deletionEventsToExecute ?? Enumerable.Empty<CorrespondenceDeleteEventEntity>())               
                .Select(e => e.PartyUuid))
            .Distinct(); // Handles all duplicates
         
@@ -333,7 +343,7 @@ public class CorrespondenceMigrationEventHelper(
         return true;
     }
 
-    public async Task<bool> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public async Task<bool> PurgeCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, MigrationOperationType operationName, CancellationToken cancellationToken, string? partyUrn)
     {
         var corrStatus = deleteEventToSync.EventType switch
         {
@@ -341,6 +351,25 @@ public class CorrespondenceMigrationEventHelper(
             CorrespondenceDeleteEventType.HardDeletedByRecipient => CorrespondenceStatus.PurgedByRecipient,
             _ => throw new ArgumentException($"Cannot perform PurgeCorrespondence for {deleteEventToSync.EventType}")
         };
+
+        var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
+        try
+        {
+            await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+            {
+                Id = purgeIdempotencyId,
+                CorrespondenceId = correspondence.Id,
+                AttachmentId = null,
+                PartyUrn = null,
+                StatusAction = null,
+                IdempotencyType = IdempotencyType.PurgeCorrespondence
+            }, cancellationToken);
+        }
+        catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+        {
+            logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
+            return true;
+        }
 
         using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
         {
@@ -370,15 +399,37 @@ public class CorrespondenceMigrationEventHelper(
 
             await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, cancellationToken);
 
-            if (correspondence.IsMigrating == false)
+            ////if (correspondence.IsMigrating == false)
+            ////{
+            ////    var actorType = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
+            ////    var actorName = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? "avsender" : "mottaker";                
+
+            ////    var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+
+            ////    var purgedActivityJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
+            ////    backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: purgedActivityJobId, queue: HangfireQueues.LiveMigration, methodCall: service => service.SoftDeleteDialog(dialogId), options: JobContinuationOptions.OnlyOnSucceededState);
+            ////}
+
+            var dialogReference = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
+            if (dialogReference is not null)
             {
-                var actorType = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? DialogportenActorType.Sender : DialogportenActorType.Recipient;
-                var actorName = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner ? "avsender" : "mottaker";                
+                var dialogId = dialogReference.ReferenceValue;
+                var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(service => service.TrySoftDeleteDialog(dialogId));
+                bool isSender = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner;
 
-                var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+                #pragma warning disable CS4014 // Intended: Hangfire will run these async methods as jobs
+                backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(                    
+                    parentId: trySoftDeleteJobId,
+                    queue: HangfireQueues.LiveMigration,
+                    methodCall: helper => helper.ReportActivityToDialogporten(isSender, correspondence.Id, deleteEventToSync.EventOccurred, partyUrn),
+                    options: JobContinuationOptions.OnlyOnSucceededState);
 
-                var purgedActivityJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.CreateCorrespondencePurgedActivity(correspondence.Id, actorType, actorName, deleteEventToSync.EventOccurred));
-                backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: purgedActivityJobId, queue: HangfireQueues.LiveMigration, methodCall: service => service.SoftDeleteDialog(dialogId), options: JobContinuationOptions.OnlyOnSucceededState);
+                backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
+                    parentId: trySoftDeleteJobId,
+                    queue: HangfireQueues.LiveMigration,
+                    methodCall: helper => helper.ReportNotificationCancelledToDialogporten(correspondence.Id, deleteEventToSync.EventOccurred),
+                    options: JobContinuationOptions.OnlyOnSucceededState);
+                #pragma warning restore CS4014
             }
 
             transaction.Complete();
