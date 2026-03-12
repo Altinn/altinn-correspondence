@@ -461,26 +461,11 @@ public class InitializeCorrespondencesHandler(
                 return createJobResult.AsT1;
             }
 
-            List<InitializedCorrespondencesNotifications>? notifications = null;
-            if (request.Notification != null && !isReserved)
-            {
-                notifications = new List<InitializedCorrespondencesNotifications>
-                {
-                    new InitializedCorrespondencesNotifications
-                    {
-                        SendReminder = request.Notification.SendReminder,
-                        NotificationChannel = request.Notification.NotificationChannel,
-                        NotificationTemplate = request.Notification.NotificationTemplate
-                    }
-                };
-            }
-
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
                 Status = correspondence.GetHighestStatus().Status,
-                Recipient = correspondence.Recipient,
-                Notifications = notifications
+                Recipient = correspondence.Recipient
             });
         }
 

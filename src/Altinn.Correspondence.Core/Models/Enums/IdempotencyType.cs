@@ -30,4 +30,9 @@ public enum IdempotencyType
     /// Indicates that this is an idempotency key for publishing a correspondence
     /// </summary>
     PublishCorrespondence = 4,
+
+    /// <summary>
+    /// Indicates that this is an idempotency key for purging a correspondence
+    /// </summary>
+    PurgeCorrespondence = 5,
 } 
