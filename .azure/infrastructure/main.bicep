@@ -159,6 +159,7 @@ module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderR
 module backupJob '../applications/backup/main.bicep' = {
   scope: resourceGroup
   name: 'correspondence-backup-job'
+  dependsOn: [containerAppEnv]
   params: {
     namePrefix: namePrefix
     location: location

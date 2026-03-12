@@ -54,13 +54,16 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _storageRepositoryMock = new Mock<IStorageRepository>();
             _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
             _dialogPortenServiceMock = new Mock<IDialogportenService>();
+            var idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
             _purgeHelper = new PurgeCorrespondenceHelper(
                 _attachmentRepositoryMock.Object,
                 _attachmentStatusRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 _dialogPortenServiceMock.Object,
-                _correspondenceRepositoryMock.Object);
+                _correspondenceRepositoryMock.Object,
+                idempotencyKeyRepositoryMock.Object,
+                new Mock<ILogger<PurgeCorrespondenceHelper>>().Object);
             var correspondenceEventHelper = new CorrespondenceMigrationEventHelper(
                 _correspondenceStatusRepositoryMock.Object,
                 _correspondenceDeleteEventRepositoryMock.Object,
@@ -2155,7 +2158,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateCorrespondencePurgedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (string)job.Args[2] == actorname && (DateTimeOffset)job.Args[3] == operationTimestamp),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<IState>()));
         }
 
         private void VerifyDialogportenServicePatchCorrespondenceDialogToConfirmedEnqueued(Guid correspondenceId)

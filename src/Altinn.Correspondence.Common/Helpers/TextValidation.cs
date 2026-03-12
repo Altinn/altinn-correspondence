@@ -35,9 +35,11 @@ public class TextValidation
     {
         var config = new ReverseMarkdown.Config
         {
-            CleanupUnnecessarySpaces = false
+            CleanupUnnecessarySpaces = false,
+            WhitelistUriSchemes = [
+                "br"
+            ],
         };
-        config.PassThroughTags.Add("br");
         var converter = new ReverseMarkdown.Converter(config);
         // change all codeblocks to <code> to keep html content in codeblocks
         var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);

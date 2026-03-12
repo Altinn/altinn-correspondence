@@ -1,10 +1,13 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
 public class PurgeCorrespondenceHelper(
@@ -13,7 +16,9 @@ public class PurgeCorrespondenceHelper(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
-    ICorrespondenceRepository correspondenceRepository)
+    ICorrespondenceRepository correspondenceRepository,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
+    ILogger<PurgeCorrespondenceHelper> logger)
 {
     public Error? ValidatePurgeRequestSender(CorrespondenceEntity correspondence)
     {
@@ -79,6 +84,25 @@ public class PurgeCorrespondenceHelper(
 
     public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, int partyId, DateTimeOffset operationTimestamp, CancellationToken cancellationToken, string? partyUrn)
     {
+        var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
+        try
+        {
+            await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+            {
+                Id = purgeIdempotencyId,
+                CorrespondenceId = correspondence.Id,
+                AttachmentId = null,
+                PartyUrn = null,
+                StatusAction = null,
+                IdempotencyType = IdempotencyType.PurgeCorrespondence
+            }, cancellationToken);
+        }
+        catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+        {
+            logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
+            return correspondence.Id;
+        }
+
         var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
         await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()
         {
@@ -99,14 +123,26 @@ public class PurgeCorrespondenceHelper(
                 SyncEventType.Delete,
                 CancellationToken.None));
         }
-        
+
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
-        var dialogId = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
-        if (dialogId is not null)
+
+        var dialogReference = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
+        if (dialogReference is not null)
         {
-            await ReportActivityToDialogporten(isSender: isSender, correspondence.Id, operationTimestamp, partyUrn);
-            await ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp);
-            await dialogportenService.SoftDeleteDialog(dialogId.ReferenceValue);
+            var dialogId = dialogReference.ReferenceValue;
+            var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(service => service.TrySoftDeleteDialog(dialogId));
+
+            #pragma warning disable CS4014 // Intended: Hangfire will run these async methods as jobs
+            backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
+                trySoftDeleteJobId,
+                helper => helper.ReportActivityToDialogporten(isSender, correspondence.Id, operationTimestamp, partyUrn),
+                JobContinuationOptions.OnlyOnSucceededState);
+
+            backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
+                trySoftDeleteJobId,
+                helper => helper.ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp),
+                JobContinuationOptions.OnlyOnSucceededState);
+            #pragma warning restore CS4014
         }
         return correspondence.Id;
     }
