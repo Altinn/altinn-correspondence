@@ -54,16 +54,12 @@ public class LegacyGetCorrespondencesHandler(
                 && string.IsNullOrEmpty(userParty.OrgNumber)
                 && string.IsNullOrEmpty(userParty.ExternalUrn)))
         {
-            logger.LogInformation("User party not found or no org number or SSN or external URN for party {PartyId}", userParty?.PartyId); //TODO: temp remove
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
-        logger.LogInformation("Userid: {UserId} for party {PartyId}", userClaimsHelper.GetUserId(), userParty.PartyId); //TODO: temp remove
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            logger.LogInformation("Getting authorized parties for party {PartyId}", userParty.PartyId); //TODO: temp remove
             var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, userClaimsHelper.GetUserId(), cancellationToken);
-            logger.LogInformation("Authorized parties: {AuthorizedParties} for party {PartyId}", authorizedParties.Count, userParty.PartyId); //TODO: temp remove
             authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
             var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
@@ -73,7 +69,7 @@ public class LegacyGetCorrespondencesHandler(
                     logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
                     continue;
                 }
-                logger.LogInformation("Does external Urn have value? {ExternalUrn}", !string.IsNullOrEmpty(mappedInstanceOwner.ExternalUrn)); //TODO: temp remove if clause
+                var mappedInstanceOwnerWithExternalUrn = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
                 if (!string.IsNullOrEmpty(mappedInstanceOwner.OrgNumber))
                 {
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
@@ -82,16 +78,14 @@ public class LegacyGetCorrespondencesHandler(
                 {
                     recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
                 }
-                else if (!string.IsNullOrEmpty(mappedInstanceOwner.ExternalUrn))
+                else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) && mappedInstanceOwnerWithExternalUrn.PartyTypeName == PartyType.SelfIdentified)
                 {
-                    logger.LogInformation("Adding external URN for party {PartyId} to recipients (mappedInstanceOwner)", mappedInstanceOwner.PartyId); //TODO: temp remove if clause
-                    recipients.Add(mappedInstanceOwner.ExternalUrn);
+                    recipients.Add(mappedInstanceOwnerWithExternalUrn.ExternalUrn);
                 }
             }
         }
         else
         {
-            logger.LogInformation("No instance owner party IDs provided, adding user party {PartyId} to recipients", userParty.PartyId); //TODO: temp remove if clause
             if (!string.IsNullOrEmpty(userParty.SSN))
             {
                 recipients.Add(GetPrefixedForPerson(userParty.SSN));
@@ -100,9 +94,8 @@ public class LegacyGetCorrespondencesHandler(
             {
                 recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
             }
-            else if (!string.IsNullOrEmpty(userParty.ExternalUrn))
+            else if (!string.IsNullOrEmpty(userParty.ExternalUrn) && userParty.PartyTypeName == PartyType.SelfIdentified)
             {
-                logger.LogInformation("Adding external URN {ExternalUrn} for party {PartyId} to recipients", userParty.ExternalUrn, userParty.PartyId); //TODO: temp remove if clause
                 recipients.Add(userParty.ExternalUrn);
             }
         }
@@ -126,12 +119,6 @@ public class LegacyGetCorrespondencesHandler(
                                                                                           searchString: request.SearchString,
                                                                                           cancellationToken: cancellationToken,
                                                                                           filterMigrated: request.FilterMigrated);
-
-        if (userParty.PartyTypeName == PartyType.SelfIdentified) //TODO: temp remove if clause
-        {
-            var totalCorrespondences = correspondences.Count;
-            logger.LogInformation("User {partyId} is a self-identified party, Total correspondences found: {TotalCorrespondences}", userParty.PartyId, totalCorrespondences);
-        }
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
