@@ -69,7 +69,7 @@ public class LegacyGetCorrespondencesHandler(
                     logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
                     continue;
                 }
-                var mappedInstanceOwnerWithExternalUrn = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
+                var mappedInstanceOwnerWithExternalUrn = await altinnRegisterService.LookUpPartyByPartyId(mappedInstanceOwner.PartyId, cancellationToken);
                 if (!string.IsNullOrEmpty(mappedInstanceOwner.OrgNumber))
                 {
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
