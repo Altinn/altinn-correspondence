@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -62,6 +63,29 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
+            };
+        }
+
+        internal static CreateDialogRequest CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder, string baseUrl, ILogger? logger = null)
+        {
+            return new CreateDialogRequest
+            {
+                Id = Guid.CreateVersion7().ToString(), // Dialogporten requires time-stamped GUIDs
+                ServiceResource = UrnConstants.Resource + ":" + reminder.ResourceId,
+                Party = reminder.Recipient,
+                CreatedAt = reminder.Created,
+                UpdatedAt = reminder.Created,
+                VisibleFrom = DateTimeOffset.UtcNow,
+                ExternalReference = reminder.SendersReference,
+                Content = CreateConfidentialReminderContent(reminder, baseUrl),
+                SearchTags = new List<SearchTag>(),
+                Status = reminder.Status ?? "NotApplicable",
+                ApiActions = new List<ApiAction>(),
+                GuiActions = new List<GuiAction>(),
+                Attachments = new List<Attachment>(),
+                Activities =  new List<Activity>(),
+                Transmissions = new List<Transmission>(),
+                SystemLabel = SystemLabel.Default
             };
         }
 
@@ -140,6 +164,64 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
         };
 
+        private static Content CreateConfidentialReminderContent(ConfidentialReminderDialogDto reminderDto, string baseUrl)
+        {
+            var title = new ContentValue()
+            {
+                MediaType = "text/plain",
+                Value = new List<DialogValue> {
+                    new DialogValue()
+                    {
+                        Value =  reminderDto.Title ?? "",
+                        LanguageCode = "nb"
+                    }
+                }
+            };
+
+            var summary = new ContentValue()
+            {
+                MediaType = "text/plain",
+                Value = new List<DialogValue> {
+                    new DialogValue()
+                    {
+                        Value = reminderDto.Summary ?? "",
+                        LanguageCode = "nb"
+                    }
+                }
+            };
+
+            var mainContentReference = new ContentValue()
+            {
+                MediaType = "application/vnd.dialogporten.frontchannelembed+json;type=markdown",
+                Value = new List<DialogValue> {
+                    new DialogValue()
+                    {
+                        LanguageCode = "nb",
+                        Value = $"{(baseUrl ?? "").TrimEnd('/')}/correspondence/api/v1/confidential-reminders"
+                    }
+                }
+            };
+
+            return new Content
+            {
+                Title = title,
+                Summary = summary,
+                SenderName = string.IsNullOrWhiteSpace(reminderDto.MessageSender) ? null :
+                    new ContentValue()
+                    {
+                        MediaType = "text/plain",
+                        Value = new List<DialogValue> {
+                            new DialogValue()
+                            {
+                                Value = reminderDto.MessageSender ?? "",
+                                LanguageCode = "nb"
+                            }
+                        }
+                    },
+                MainContentReference = mainContentReference
+            };
+        }
+
         private static List<SearchTag> GetSearchTagsForCorrespondence(CorrespondenceEntity correspondence, ILogger? logger)
         {
             var list = new List<SearchTag>();
@@ -166,6 +248,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             list.Add(new SearchTag() { Value = trimmed });
             return list;
         }
+
 
         private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null)
         {

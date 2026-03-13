@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
@@ -590,6 +591,19 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Take(1000);
 
             return await query.ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetUnopenedConfidentialCorrespondencesForParty(string partyId, TimeSpan minAge, CancellationToken cancellationToken)
+        {
+            var cutoff = DateTimeOffset.UtcNow - minAge;
+            return await _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.Recipient == partyId)
+                .Where(c => c.IsConfidential)
+                .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published))
+                .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
+                .Where(c => c.RequestedPublishTime < cutoff)
+                .ToListAsync(cancellationToken);
         }
     }
 }

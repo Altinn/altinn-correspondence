@@ -103,5 +103,6 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatusUsingCursor(
             Guid? cursorId,
             CancellationToken cancellationToken);
+        Task<List<CorrespondenceEntity>> GetUnopenedConfidentialCorrespondencesForParty(string partyId, TimeSpan minAge, CancellationToken cancellationToken);
     }
 }

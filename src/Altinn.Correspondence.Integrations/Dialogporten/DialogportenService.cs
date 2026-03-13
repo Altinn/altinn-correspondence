@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -906,6 +907,21 @@ public class DialogportenService(HttpClient _httpClient,
         }
 
         return DialogPortenSystemLabel.Default;
+    }
+
+    public async Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder)
+    {
+        var createDialogRequest = CreateDialogRequestMapper.CreateConfidentialReminderDialog(reminder, generalSettings.Value.CorrespondenceBaseUrl);
+        var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest);
+        if (!response.IsSuccessStatusCode){
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+        var dialogResponse = await response.Content.ReadFromJsonAsync<string>();
+        if (dialogResponse is null)
+        {
+            throw new Exception("Dialogporten did not return a dialogId");
+        }
+        return dialogResponse;
     }
 
 

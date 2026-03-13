@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +11,7 @@ using System.Net;
 using System.Net.Http.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
+
 public class ResourceRegistryService : IResourceRegistryService
 {
     private readonly HttpClient _client;
@@ -149,5 +151,46 @@ public class ResourceRegistryService : IResourceRegistryService
         return altinnResourceResponse.HasCompetentAuthority?.Organization;
     }
 
+    private async Task<List<GetResourceRightsResponse>?> GetResourceRights(string resourceId, CancellationToken cancellationToken)
+    {
+        var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}/policy/rights", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NoContent)
+        {
+            return null;
+        }
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            _logger.LogError("Failed to get resource rights from Altinn Resource Registry. Status code: {StatusCode}", response.StatusCode);
+            throw new BadHttpRequestException("Failed to get resource rights from Altinn Resource Registry");
+        }
+        var altinnResourceRightsResponse = await response.Content.ReadFromJsonAsync<List<GetResourceRightsResponse>>(cancellationToken: cancellationToken);
+        if (altinnResourceRightsResponse is null)
+        {
+            _logger.LogError("Failed to deserialize response from Altinn Resource Registry when getting resource rights");
+            throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry when getting resource rights");
+        }
+        return altinnResourceRightsResponse;
+    }
 
+    public async Task<ConfidentialTypeEnum> GetConfidentialType(string resourceId, CancellationToken cancellationToken = default)
+    {
+        var resourceRightsList = await GetResourceRights(resourceId, cancellationToken);
+        if (resourceRightsList is null)
+        {
+            return ConfidentialTypeEnum.NotConfidential;
+        }
+        var allAttributes = resourceRightsList
+            .SelectMany(right => right.Subjects ?? [])
+            .SelectMany(subject => subject.SubjectAttributes ?? [])
+            .Where(attr => attr.Type == "urn:altinn:accesspackage")
+            .Select(attr => attr.Value)
+            .OfType<string>()
+            .ToHashSet();
+
+        if (allAttributes.Contains("post-til-virksomheten-med-taushetsbelagt-innhold"))
+            return ConfidentialTypeEnum.Confidential;
+        if (allAttributes.Contains("eksplisitt"))
+            return ConfidentialTypeEnum.ExplicitlyDelegated;
+        return ConfidentialTypeEnum.NotConfidential;
+    }
 }
