@@ -79,7 +79,7 @@ public class LegacyGetCorrespondencesHandler(
                 {
                     recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
                 }
-                else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) && mappedInstanceOwnerWithExternalUrn.PartyTypeName == PartyType.SelfIdentified)
+                else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) && mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsLegacySelfIdentifiedUrn())
                 {
                     logger.LogInformation("Added recipient using external Urn for party {PartyId} and user {UserId}", mappedInstanceOwnerWithExternalUrn.PartyId, userClaimsHelper.GetUserId()); //TODO; temporary logg
                     recipients.Add(mappedInstanceOwnerWithExternalUrn.ExternalUrn);
@@ -96,7 +96,7 @@ public class LegacyGetCorrespondencesHandler(
             {
                 recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
             }
-            else if (!string.IsNullOrEmpty(userParty.ExternalUrn) && userParty.PartyTypeName == PartyType.SelfIdentified)
+            else if (!string.IsNullOrEmpty(userParty.ExternalUrn) && userParty.ExternalUrn.IsLegacySelfIdentifiedUrn())
             {
                 recipients.Add(userParty.ExternalUrn);
             }
