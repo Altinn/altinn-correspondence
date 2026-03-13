@@ -70,6 +70,7 @@ public class LegacyGetCorrespondencesHandler(
                     continue;
                 }
                 var mappedInstanceOwnerWithExternalUrn = await altinnRegisterService.LookUpPartyByPartyId(mappedInstanceOwner.PartyId, cancellationToken);
+                logger.LogInformation("Mapped instance owner for party {PartyId} and of party type {PartyTypeName}, externalUrn has value?: {ExternalUrn}", mappedInstanceOwnerWithExternalUrn?.PartyId, mappedInstanceOwnerWithExternalUrn?.PartyTypeName, !String.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn)); //TODO; temporary logg
                 if (!string.IsNullOrEmpty(mappedInstanceOwner.OrgNumber))
                 {
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
@@ -80,6 +81,7 @@ public class LegacyGetCorrespondencesHandler(
                 }
                 else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) && mappedInstanceOwnerWithExternalUrn.PartyTypeName == PartyType.SelfIdentified)
                 {
+                    logger.LogInformation("Added recipient using external Urn for party {PartyId} and user {UserId}", mappedInstanceOwnerWithExternalUrn.PartyId, userClaimsHelper.GetUserId()); //TODO; temporary logg
                     recipients.Add(mappedInstanceOwnerWithExternalUrn.ExternalUrn);
                 }
             }
@@ -101,7 +103,7 @@ public class LegacyGetCorrespondencesHandler(
         }
         if (recipients.Count == 0)
         {
-            logger.LogWarning("Caller did not have access to any inboxes");
+            logger.LogWarning("Caller with party {PartyId} did not have access to any inboxes", userParty.PartyId);
             return new LegacyGetCorrespondencesResponse()
             {
                 Items = []
@@ -119,6 +121,8 @@ public class LegacyGetCorrespondencesHandler(
                                                                                           searchString: request.SearchString,
                                                                                           cancellationToken: cancellationToken,
                                                                                           filterMigrated: request.FilterMigrated);
+
+        logger.LogInformation("Correspondences found: {CorrespondencesCount} for party {PartyId}", correspondences.Count, userParty.PartyId);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
