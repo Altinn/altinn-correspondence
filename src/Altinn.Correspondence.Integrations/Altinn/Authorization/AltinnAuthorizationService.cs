@@ -276,6 +276,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private async Task<XacmlJsonResponse> AuthorizeRequest(XacmlJsonRequestRoot jsonRequest, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("AuthorizeRequest called with request containing {attributeCount} categories", jsonRequest.Request?.Attributes?.Count ?? 0);
         var response = await _httpClient.PostAsJsonAsync("authorization/api/v1/authorize", jsonRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -384,6 +385,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private static string GetActionId(ResourceAccessLevel right)
     {
+        _logger.LogDebug("GetActionId called for right {right}", right);
         return right switch
         {
             ResourceAccessLevel.Read => "read",
