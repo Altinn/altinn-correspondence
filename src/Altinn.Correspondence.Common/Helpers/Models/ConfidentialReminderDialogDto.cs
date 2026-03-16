@@ -25,14 +25,14 @@ namespace Altinn.Correspondence.Common.Helpers.Models
 
         [StringLength(256, MinimumLength = 0)]
         public string? MessageSender { get; set; }
-
+        
         [Required]
         public required DateTimeOffset Created { get; set; }
 
         public string? Title { get; set; }
 
         public string? Summary { get; set; }
-        
+
         public string? Status { get; set; }
     }
 }

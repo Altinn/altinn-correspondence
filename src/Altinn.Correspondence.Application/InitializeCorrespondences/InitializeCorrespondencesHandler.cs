@@ -479,7 +479,7 @@ public class InitializeCorrespondencesHandler(
                 logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
                 var unreadCheckDelay = hostEnvironment.IsProduction()
                     ? correspondence.RequestedPublishTime.AddDays(7)
-                    : correspondence.RequestedPublishTime.AddSeconds(20);
+                    : correspondence.RequestedPublishTime.AddMinutes(1);
                 backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
             }
 

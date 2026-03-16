@@ -34,7 +34,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         return AuthorizationErrors.NoAccessToResource;
     }
     var minAge = hostEnvironment.IsProduction()
-        ? TimeSpan.FromDays(7) : TimeSpan.FromMinutes(10);
+        ? TimeSpan.FromDays(7) : TimeSpan.FromMinutes(1);
     var correspondences = await correspondenceRepository.GetUnopenedConfidentialCorrespondencesForParty(
         recipientOrg.WithUrnPrefix(),
         minAge,
