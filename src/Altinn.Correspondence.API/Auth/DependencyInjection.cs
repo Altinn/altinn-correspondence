@@ -120,7 +120,7 @@ namespace Altinn.Correspondence.API.Auth
                     options.SaveTokens = true;
                     if (!hostEnvironment.IsDevelopment())
                     {
-                        options.CorrelationCookie.Domain = ".altinn.no";
+                        options.CorrelationCookie.Domain = altinnIdProviderSettings.CookieDomain;
                     }
                     options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.CorrelationCookie.SameSite = SameSiteMode.None;
