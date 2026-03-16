@@ -61,9 +61,6 @@ public class UnreadConfidentialCorrespondenceHandler(
             SendReminder = false,
             EmailContentType = EmailContentType.Plain
         };
-        logger.LogInformation(
-            "Enqueueing notification for confidential reminder {ReminderId}, recipient {Recipient}, channel {Channel}, template {Template}",
-            reminder.Id, reminder.Recipient, notificationRequest.NotificationChannel, notificationRequest.NotificationTemplate);
 
         var notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderForConfidentialReminders()
                     {
@@ -79,7 +76,6 @@ public class UnreadConfidentialCorrespondenceHandler(
 
         if (await confidentialReminderRepository.NumberOfRemindersForRecipient(reminder.Recipient, cancellationToken) > 0)
         {
-            logger.LogInformation("Existing confidential reminder dialog found for recipient {Recipient}, skipping dialog creation and notification", reminder.Recipient);
             var existingDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(reminder.Recipient, cancellationToken);
             if (existingDialogId.HasValue)
             {
@@ -93,7 +89,6 @@ public class UnreadConfidentialCorrespondenceHandler(
                 }, cancellationToken);
                 return;
             }
-            logger.LogWarning("Existing reminders found for recipient {Recipient} but no dialog ID could be retrieved, proceeding with new dialog creation", reminder.Recipient);
         }
         logger.LogInformation("Creating confidential reminder dialog for correspondence with id {correspondenceId}", correspondenceId);
 
