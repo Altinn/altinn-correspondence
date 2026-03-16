@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
@@ -199,16 +199,24 @@ public class HangfireStorageCompatibilityTests
                 .ToList();
 
             Assert.Equal(defaultQueueJobs.Count + batchMigrationQueueJobs.Count + liveMigrationQueueJobs.Count, executionList.Count);
-            var maxDefaultIndex = defaultIndices?.Max() ?? 0;
-            var maxLiveMigrationIndex = liveMigrationIndices?.Max() ?? 0;
-            var minBatchMigrationIndex = batchMigrationIndices?.Min() ?? 0;
 
-            Assert.True(maxDefaultIndex < minBatchMigrationIndex,
-                $"Default queue jobs should execute before migration queue jobs. " +
-                $"Execution order: [{string.Join(", ", executionList)}]");
-            Assert.True(maxLiveMigrationIndex < minBatchMigrationIndex,
-                $"Live migration queue jobs should execute before batch migration queue jobs. " +
-                $"Execution order: [{string.Join(", ", executionList)}]");
+            var maxDefaultIndex = defaultIndices.Count > 0 ? defaultIndices.Max() : -1;
+            var maxLiveMigrationIndex = liveMigrationIndices.Count > 0 ? liveMigrationIndices.Max() : -1;
+            var minBatchMigrationIndex = batchMigrationIndices.Count > 0 ? batchMigrationIndices.Min() : int.MaxValue;
+
+            if (defaultIndices.Count > 0 && batchMigrationIndices.Count > 0)
+            {
+                Assert.True(maxDefaultIndex < minBatchMigrationIndex,
+                    $"Default queue jobs should execute before migration queue jobs. " +
+                    $"Execution order: [{string.Join(", ", executionList)}]");
+            }
+
+            if (liveMigrationIndices.Count > 0 && batchMigrationIndices.Count > 0)
+            {
+                Assert.True(maxLiveMigrationIndex < minBatchMigrationIndex,
+                    $"Live migration queue jobs should execute before batch migration queue jobs. " +
+                    $"Execution order: [{string.Join(", ", executionList)}]");
+            }
         }
         finally
         {
