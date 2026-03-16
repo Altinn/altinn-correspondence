@@ -198,6 +198,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
     private async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
     {
+        resourceId = resourceId.WithoutPrefix();
         _logger.LogDebug("CheckUserAccess called for party {party}, resourceId {resourceId}, correspondenceId {correspondenceId} and rights {@rights}", party.SanitizeForLogging(), resourceId.SanitizeForLogging(), correspondenceId.SanitizeForLogging(), rights);
         if (user is null)
         {
