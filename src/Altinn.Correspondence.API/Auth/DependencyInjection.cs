@@ -118,6 +118,13 @@ namespace Altinn.Correspondence.API.Auth
                     options.UsePkce = true;
                     options.CallbackPath = "/correspondence/api/v1/idporten-callback";
                     options.SaveTokens = true;
+                    if (!hostEnvironment.IsDevelopment())
+                    {
+                        options.CorrelationCookie.Domain = ".altinn.no";
+                    }
+                    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.CorrelationCookie.SameSite = SameSiteMode.None;
+                    options.CorrelationCookie.HttpOnly = true;
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
