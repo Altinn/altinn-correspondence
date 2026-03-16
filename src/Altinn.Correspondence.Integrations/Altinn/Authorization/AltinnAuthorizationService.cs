@@ -151,29 +151,68 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return new Dictionary<(string, string), int?>();
         }
 
-        List<(string Recipient, string ResourceId)> recipientWithResources = correspondences.Select(correspondence => (correspondence.Recipient, correspondence.ResourceId)).Distinct().ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, subjectPartyId, recipientWithResources);
+        // Build a distinct list of recipient/resource pairs, and resolve each recipient to a partyId
+        var distinctRecipientResources = correspondences
+            .Select(correspondence => (correspondence.Recipient, correspondence.ResourceId))
+            .Distinct()
+            .ToList();
+
+        var resolvedRecipientResources = new List<(string OriginalRecipient, string RecipientPartyId, string ResourceId)>();
+
+        foreach (var (recipient, resourceId) in distinctRecipientResources)
+        {
+            var resolvedRecipient = recipient;
+
+            if (!resolvedRecipient.IsPartyId())
+            {
+                try
+                {
+                    var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedRecipient, cancellationToken);
+                    if (registerParty is not null && registerParty.PartyId > 0)
+                    {
+                        resolvedRecipient = registerParty.PartyId.ToString();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(
+                        ex,
+                        "Failed to resolve recipient party for recipient {Recipient} and resource {ResourceId}",
+                        recipient.SanitizeForLogging(),
+                        resourceId.SanitizeForLogging());
+                }
+            }
+
+            resolvedRecipientResources.Add((recipient, resolvedRecipient, resourceId));
+        }
+
+        var recipientWithResourcesForPdp = resolvedRecipientResources
+            .Select(rr => (rr.RecipientPartyId, rr.ResourceId))
+            .Distinct()
+            .ToList();
+
+        XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, subjectPartyId, recipientWithResourcesForPdp);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
-        if (responseContent.Response.Count != recipientWithResources.Count)
+        if (responseContent.Response.Count != recipientWithResourcesForPdp.Count)
         {
             _logger.LogError("Authorization response count mismatch. Expected: {Expected}, Received: {Received}",
-                recipientWithResources.Count, responseContent.Response.Count);
-            throw new InvalidOperationException($"Authorization service returned {responseContent.Response.Count} decisions but {recipientWithResources.Count} were requested");
+                recipientWithResourcesForPdp.Count, responseContent.Response.Count);
+            throw new InvalidOperationException($"Authorization service returned {responseContent.Response.Count} decisions but {recipientWithResourcesForPdp.Count} were requested");
         }
         var results = new Dictionary<(string, string), int?>();
         for (int i = 0; i < responseContent.Response.Count; i++)
         {
             var authorizationResponse = responseContent.Response[i];
-            var recipientWithResource = recipientWithResources[i];
+            var recipientWithResource = resolvedRecipientResources[i];
             if (authorizationResponse.Decision == "Permit")
             {
                 var obligation = GetObligation("urn:altinn:minimum-authenticationlevel", authorizationResponse.Obligations);
                 int? authLevel = obligation is not null ? int.Parse(obligation.Value) : null;
-                results.Add((recipientWithResource.Recipient, recipientWithResource.ResourceId), authLevel);
+                results.Add((recipientWithResource.OriginalRecipient, recipientWithResource.ResourceId), authLevel);
             }
             else
             {
-                results.Add((recipientWithResource.Recipient, recipientWithResource.ResourceId), null);
+                results.Add((recipientWithResource.OriginalRecipient, recipientWithResource.ResourceId), null);
             }
         }
         return results;
