@@ -107,7 +107,7 @@ public class ResourceRegistryService : IResourceRegistryService
             _logger.LogWarning(ex, "Error retrieving resource from cache.");
         }
         _logger.LogDebug("GetResource performing HTTP GET for resourceId {resourceId}", resourceId.SanitizeForLogging());
-        var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}", cancellationToken);
+        var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId.WithoutPrefix()}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
         {
             _logger.LogDebug("GetResource received {StatusCode} from Resource Registry for resourceId {resourceId}", response.StatusCode, resourceId.SanitizeForLogging());
