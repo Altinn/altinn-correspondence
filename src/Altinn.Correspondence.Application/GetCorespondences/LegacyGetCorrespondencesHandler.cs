@@ -49,7 +49,7 @@ public class LegacyGetCorrespondencesHandler(
             request.InstanceOwnerPartyIdList);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
+        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber) && string.IsNullOrEmpty(userParty.Name)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -70,12 +70,17 @@ public class LegacyGetCorrespondencesHandler(
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
                 else if (mappedInstanceOwner.SSN != null)
                     recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
+                else if (mappedInstanceOwner.PartyUuid != null)
+                    recipients.Add(GetPrefixedForPartyUuid(mappedInstanceOwner.PartyUuid.ToString()));
+                 else
+                    logger.LogWarning("Mapped instance owner {instanceOwnerPartyId} did not have either OrgNumber, SSN or PartyUuid", instanceOwnerPartyId);
             }
         }
         else
         {
             if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
             if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
+            if (!string.IsNullOrEmpty(userParty.PartyUuid?.ToString())) recipients.Add(GetPrefixedForPartyUuid(userParty.PartyUuid.ToString()));
         }
         if (recipients.Count == 0)
         {
@@ -146,7 +151,7 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(user, userParty.SSN, correspondences, cancellationToken);
+        Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(user, userParty, correspondences, cancellationToken);
         foreach (var correspondence in correspondences)
         {
             authlevels.TryGetValue((correspondence.Recipient, correspondence.ResourceId), out int? authLevel);
@@ -193,5 +198,10 @@ public class LegacyGetCorrespondencesHandler(
     private static string GetPrefixedForOrg(string orgnr)
     {
         return $"{UrnConstants.OrganizationNumberAttribute}:{orgnr}";
+    }
+
+    private static string GetPrefixedForPartyUuid(string partyUuid)
+    {
+        return $"{UrnConstants.PartyUuid}:{partyUuid}";
     }
 }

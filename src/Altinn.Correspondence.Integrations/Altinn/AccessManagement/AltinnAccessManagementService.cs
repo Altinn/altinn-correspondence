@@ -155,6 +155,11 @@ public class AltinnAccessManagementService : IAltinnAccessManagementService
                 Type = UrnConstants.UserId;
                 Value = userId;
             }
+            else if (party.PartyUuid != null && string.IsNullOrWhiteSpace(party.SSN) && string.IsNullOrWhiteSpace(party.OrgNumber))
+            {
+                Type = UrnConstants.PartyUuid;
+                Value = party.PartyUuid?.ToString();
+            }
             else if (party.PartyTypeName == PartyType.Person)
             {
                 Type = UrnConstants.PersonIdAttribute;

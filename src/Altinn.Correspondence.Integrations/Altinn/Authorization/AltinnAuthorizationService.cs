@@ -130,7 +130,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
         return null;
     }
-    public async Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, string ssn, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, Party party, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default)
     {
         if (user is null)
         {
@@ -142,7 +142,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
 
         List<(string Recipient, string ResourceId)> recipientWithResources = correspondences.Select(correspondence => (correspondence.Recipient, correspondence.ResourceId)).Distinct().ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, ssn, recipientWithResources);
+        XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, party, recipientWithResources);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent.Response.Count != recipientWithResources.Count)
         {
@@ -288,12 +288,12 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         throw new SecurityTokenInvalidIssuerException();
     }
 
-    private XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<(string Recipient, string ResourceId)> recipientParties)
+    private XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, Party party, List<(string Recipient, string ResourceId)> recipientParties)
     {
         var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
-            return AltinnTokenXacmlMapper.CreateMultiDecisionRequestForLegacy(user, ssn, recipientParties);
+            return AltinnTokenXacmlMapper.CreateMultiDecisionRequestForLegacy(user, party, recipientParties);
         }
         throw new SecurityTokenInvalidIssuerException();
     }
