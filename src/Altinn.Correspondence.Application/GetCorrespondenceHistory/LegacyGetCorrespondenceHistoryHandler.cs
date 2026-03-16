@@ -35,7 +35,13 @@ public class LegacyGetCorrespondenceHistoryHandler(
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, recipientParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
+            user,
+            recipientParty.PartyId.ToString(),
+            correspondence.ResourceId,
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
+            correspondence.Recipient,
+            cancellationToken);
         if (minimumAuthLevel is null)
         {
             return AuthorizationErrors.LegacyNoAccessToCorrespondence;

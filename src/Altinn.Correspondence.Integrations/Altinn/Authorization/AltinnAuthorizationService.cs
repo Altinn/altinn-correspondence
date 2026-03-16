@@ -94,7 +94,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             cancellationToken);
 
 
-    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string ssn, string resourceId, List<ResourceAccessLevel> rights, string onBehalfOf, CancellationToken cancellationToken = default)
+    public async Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string subjectPartyId, string resourceId, List<ResourceAccessLevel> rights, string recipient, CancellationToken cancellationToken = default)
     {
         if (user is null)
         {
@@ -106,7 +106,17 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return bypassDecision.Value ? 3 : null;
         }
         var actionIds = rights.Select(GetActionId).ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, ssn, actionIds, resourceId, onBehalfOf);
+        var resolvedRecipient = recipient;
+        if (!resolvedRecipient.IsPartyId())
+        {
+            var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedRecipient, cancellationToken);
+            if (registerParty is not null && registerParty.PartyId > 0)
+            {
+                resolvedRecipient = registerParty.PartyId.ToString();
+            }
+        }
+
+        XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, subjectPartyId, actionIds, resourceId, resolvedRecipient);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
         if (!validationResult)
@@ -130,7 +140,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
         return null;
     }
-    public async Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, string ssn, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, string subjectPartyId, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default)
     {
         if (user is null)
         {
@@ -142,7 +152,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         }
 
         List<(string Recipient, string ResourceId)> recipientWithResources = correspondences.Select(correspondence => (correspondence.Recipient, correspondence.ResourceId)).Distinct().ToList();
-        XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, ssn, recipientWithResources);
+        XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, subjectPartyId, recipientWithResources);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         if (responseContent.Response.Count != recipientWithResources.Count)
         {
@@ -278,22 +288,22 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, resolvedParty, instanceId);
     }
 
-    private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string onBehalfOf)
+    private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string subjectPartyId, List<string> actionTypes, string resourceId, string onBehalfOfPartyId)
     {
         var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
-            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, ssn, actionTypes, resourceId, onBehalfOf);
+            return AltinnTokenXacmlMapper.CreateAltinnDecisionRequestForLegacy(user, subjectPartyId, actionTypes, resourceId, onBehalfOfPartyId);
         }
         throw new SecurityTokenInvalidIssuerException();
     }
 
-    private XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<(string Recipient, string ResourceId)> recipientParties)
+    private XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, string subjectPartyId, List<(string RecipientPartyId, string ResourceId)> recipientParties)
     {
         var personIdClaim = GetPersonIdClaim(user);
         if (personIdClaim is null || personIdClaim.Issuer == $"{_altinnOptions.PlatformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/")
         {
-            return AltinnTokenXacmlMapper.CreateMultiDecisionRequestForLegacy(user, ssn, recipientParties);
+            return AltinnTokenXacmlMapper.CreateMultiDecisionRequestForLegacy(user, subjectPartyId, recipientParties);
         }
         throw new SecurityTokenInvalidIssuerException();
     }

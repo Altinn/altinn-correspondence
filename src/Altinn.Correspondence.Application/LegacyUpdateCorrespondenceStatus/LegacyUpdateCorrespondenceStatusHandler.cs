@@ -38,7 +38,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
             user,
-            party.SSN,
+            party.PartyId.ToString(),
             correspondence.ResourceId,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             correspondence.Recipient,

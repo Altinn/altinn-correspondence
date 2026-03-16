@@ -172,9 +172,7 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        var subjectIdForAuth = !string.IsNullOrEmpty(userParty.SSN)
-            ? userParty.SSN
-            : userParty.ExternalUrn!;
+        var subjectIdForAuth = userParty.PartyId.ToString();
         Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
             user,
             subjectIdForAuth,

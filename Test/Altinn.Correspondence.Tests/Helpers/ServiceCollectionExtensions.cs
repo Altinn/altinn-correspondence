@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.AspNetCore.Authentication;
@@ -95,7 +95,7 @@ public static class ServiceCollectionExtensions
                 It.IsAny<List<ResourceAccessLevel>>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .Returns((ClaimsPrincipal? user, string ssn, string resourceId, List<ResourceAccessLevel> rights, string recipientOrgNo, CancellationToken token) =>
+            .Returns((ClaimsPrincipal? user, string subjectPartyId, string resourceId, List<ResourceAccessLevel> rights, string recipient, CancellationToken token) =>
             {
                 return Task.FromResult<int?>(3);
             });
@@ -106,7 +106,7 @@ public static class ServiceCollectionExtensions
                 It.IsAny<string>(),
                 It.IsAny<List<CorrespondenceEntity>>(),
                 It.IsAny<CancellationToken>()))
-            .Returns((ClaimsPrincipal? user, string ssn, List<CorrespondenceEntity> correspondences, CancellationToken token) =>
+            .Returns((ClaimsPrincipal? user, string subjectPartyId, List<CorrespondenceEntity> correspondences, CancellationToken token) =>
             {
                 List<(string Recipient, string ResourceId)> recipientWithResources = correspondences
                     .Select(correspondence => (correspondence.Recipient, correspondence.ResourceId))

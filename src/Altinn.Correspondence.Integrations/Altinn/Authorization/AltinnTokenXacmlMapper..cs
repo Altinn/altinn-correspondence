@@ -3,6 +3,7 @@ using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
@@ -26,30 +27,30 @@ public static class AltinnTokenXacmlMapper
 
         return jsonRequest;
     }
-    public static XacmlJsonRequestRoot CreateAltinnDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<string> actionTypes, string resourceId, string onBehalfOf)
+    public static XacmlJsonRequestRoot CreateAltinnDecisionRequestForLegacy(ClaimsPrincipal user, string subjectPartyId, List<string> actionTypes, string resourceId, string onBehalfOfPartyId)
     {
         XacmlJsonRequest request = new XacmlJsonRequest();
         request.AccessSubject = new List<XacmlJsonCategory>();
         request.Action = new List<XacmlJsonCategory>();
         request.Resource = new List<XacmlJsonCategory>();
 
-        request.AccessSubject.Add(CreateSubjectCategoryForLegacy(user, ssn));
+        request.AccessSubject.Add(CreateSubjectCategoryForLegacy(user, subjectPartyId));
         request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
-        request.Resource.Add(XacmlRequestFactory.CreateResourceCategory(resourceId, onBehalfOf, null, DefaultIssuer));
+        request.Resource.Add(XacmlRequestFactory.CreateResourceCategory(resourceId, onBehalfOfPartyId, null, DefaultIssuer));
     
         XacmlJsonRequestRoot jsonRequest = new() { Request = request };
 
         return jsonRequest;
     }
 
-    public static XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, string ssn, List<(string Recipient, string ResourceId)> recipientParties)
+    public static XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, string subjectPartyId, List<(string RecipientPartyId, string ResourceId)> recipientParties)
     {
         XacmlJsonRequest request = new XacmlJsonRequest();
         request.AccessSubject = new List<XacmlJsonCategory>();
         request.Action = new List<XacmlJsonCategory>();
         request.Resource = new List<XacmlJsonCategory>();
 
-        var subjectCategory = CreateSubjectCategoryForLegacy(user, ssn);
+        var subjectCategory = CreateSubjectCategoryForLegacy(user, subjectPartyId);
         subjectCategory.Id = "s1";
         request.AccessSubject.Add(subjectCategory);
         var actionCategory = DecisionHelper.CreateActionCategory("read");
@@ -61,8 +62,8 @@ public static class AltinnTokenXacmlMapper
         };
         foreach (var recipientParty in recipientParties)
         {
-            var resourceCategory = XacmlRequestFactory.CreateResourceCategory(recipientParty.ResourceId, recipientParty.Recipient, null, DefaultIssuer);
-            resourceCategory.Id = recipientParty.Recipient + "::" + recipientParty.ResourceId;
+            var resourceCategory = XacmlRequestFactory.CreateResourceCategory(recipientParty.ResourceId, recipientParty.RecipientPartyId, null, DefaultIssuer);
+            resourceCategory.Id = recipientParty.RecipientPartyId + "::" + recipientParty.ResourceId;
             request.Resource.Add(resourceCategory);
             request.MultiRequests.RequestReference.Add(new XacmlJsonRequestReference(){
                 ReferenceId = [subjectCategory.Id, actionCategory.Id, resourceCategory.Id]
@@ -80,14 +81,14 @@ public static class AltinnTokenXacmlMapper
         return subjectCategory;
     }
 
-    private static XacmlJsonCategory CreateSubjectCategoryForLegacy(ClaimsPrincipal user, string ssn)
+    private static XacmlJsonCategory CreateSubjectCategoryForLegacy(ClaimsPrincipal user, string subjectPartyId)
     {
         XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
         List<XacmlJsonAttribute> list = new List<XacmlJsonAttribute>();
         var claim = user.Claims.FirstOrDefault(claim => IsScopeClaim(claim.Type));
         if (claim is not null)
         {
-            list.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, ssn, DefaultType, claim.Issuer));
+            list.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.Party, subjectPartyId, DefaultType, claim.Issuer));
             list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.Scope, claim.Value, DefaultType, claim.Issuer));
         }
         xacmlJsonCategory.Attribute = list;
