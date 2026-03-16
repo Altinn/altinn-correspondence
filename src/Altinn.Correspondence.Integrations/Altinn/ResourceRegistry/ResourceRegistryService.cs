@@ -33,49 +33,72 @@ public class ResourceRegistryService : IResourceRegistryService
 
     public async Task<string?> GetResourceType(string resourceId, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("GetResourceType called for resourceId {resourceId}", resourceId.SanitizeForLogging());
         var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
+        if (altinnResourceResponse is null)
+        {
+            _logger.LogDebug("GetResourceType found no resource for resourceId {resourceId}", resourceId.SanitizeForLogging());
+        }
+        else
+        {
+            _logger.LogDebug("GetResourceType resolved resource type {resourceType} for resourceId {resourceId}", altinnResourceResponse.ResourceType, resourceId.SanitizeForLogging());
+        }
         return altinnResourceResponse?.ResourceType;
     }
 
     public async Task<string?> GetServiceOwnerNameOfResource(string resourceId, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("GetServiceOwnerNameOfResource called for resourceId {resourceId}", resourceId.SanitizeForLogging());
         var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
         if (altinnResourceResponse is null)
         {
+            _logger.LogDebug("GetServiceOwnerNameOfResource found no resource for resourceId {resourceId}", resourceId.SanitizeForLogging());
             return null;
         }
-        return GetNameOfResourceResponse(altinnResourceResponse);
+        var name = GetNameOfResourceResponse(altinnResourceResponse);
+        _logger.LogDebug("GetServiceOwnerNameOfResource resolved name {name} for resourceId {resourceId}", name.SanitizeForLogging(), resourceId.SanitizeForLogging());
+        return name;
     }
 
     public async Task<string?> GetResourceTitle(string resourceId, string? language = null, CancellationToken cancellationToken = default)
     {
+        _logger.LogDebug("GetResourceTitle called for resourceId {resourceId} and language {language}", resourceId.SanitizeForLogging(), language);
         var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
         if (altinnResourceResponse is null)
         {
+            _logger.LogDebug("GetResourceTitle found no resource for resourceId {resourceId}", resourceId.SanitizeForLogging());
             return null;
         }
 
-        return GetTitleOfResourceResponse(altinnResourceResponse, language);
+        var title = GetTitleOfResourceResponse(altinnResourceResponse, language);
+        _logger.LogDebug("GetResourceTitle resolved title {title} for resourceId {resourceId} and language {language}", title.SanitizeForLogging(), resourceId.SanitizeForLogging(), language);
+        return title;
     }
 
     public async Task<string?> GetServiceOwnerOrgCode(string resourceId, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("GetServiceOwnerOrgCode called for resourceId {resourceId}", resourceId.SanitizeForLogging());
         var altinnResourceResponse = await GetResource(resourceId, cancellationToken);
         if (altinnResourceResponse is null)
         {
+            _logger.LogDebug("GetServiceOwnerOrgCode found no resource for resourceId {resourceId}", resourceId.SanitizeForLogging());
             return null;
         }
-        return altinnResourceResponse.HasCompetentAuthority?.Orgcode ?? string.Empty;
+        var orgCode = altinnResourceResponse.HasCompetentAuthority?.Orgcode ?? string.Empty;
+        _logger.LogDebug("GetServiceOwnerOrgCode resolved org code {orgCode} for resourceId {resourceId}", orgCode.SanitizeForLogging(), resourceId.SanitizeForLogging());
+        return orgCode;
     }
 
     private async Task<GetResourceResponse?> GetResource(string resourceId, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("GetResource called for resourceId {resourceId}", resourceId.SanitizeForLogging());
         string cacheKey = CacheKey(resourceId);
         try
         {
             var cachedResource = await CacheHelpers.GetObjectFromCacheAsync<GetResourceResponse>(cacheKey, _cache, cancellationToken);
             if (cachedResource != null)
             {
+                _logger.LogDebug("GetResource returned cached resource for resourceId {resourceId}", resourceId.SanitizeForLogging());
                 return cachedResource;
             }
         }
@@ -83,9 +106,11 @@ public class ResourceRegistryService : IResourceRegistryService
         {
             _logger.LogWarning(ex, "Error retrieving resource from cache.");
         }
+        _logger.LogDebug("GetResource performing HTTP GET for resourceId {resourceId}", resourceId.SanitizeForLogging());
         var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
         {
+            _logger.LogDebug("GetResource received {StatusCode} from Resource Registry for resourceId {resourceId}", response.StatusCode, resourceId.SanitizeForLogging());
             return null;
         }
         if (response.StatusCode != HttpStatusCode.OK)
