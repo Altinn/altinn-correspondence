@@ -18,11 +18,12 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_CorrespondenceNotifications_Unique",
+                name: "IX_CorrespondenceNotifications_Synced",
                 schema: "correspondence",
                 table: "CorrespondenceNotifications",
-                columns: new[] { "CorrespondenceId", "NotificationAddress", "NotificationChannel", "NotificationSent" },
-                unique: true);
+                columns: new[] { "CorrespondenceId", "Altinn2NotificationId", "NotificationAddress", "NotificationChannel", "NotificationSent" },
+                unique: true,
+                filter: "\"Altinn2NotificationId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CorrespondenceForwardingEvents_Unique",

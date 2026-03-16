@@ -424,9 +424,10 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId");
 
-                    b.HasIndex("CorrespondenceId", "NotificationAddress", "NotificationChannel", "NotificationSent")
+                    b.HasIndex("CorrespondenceId", "Altinn2NotificationId", "NotificationAddress", "NotificationChannel", "NotificationSent")
                         .IsUnique()
-                        .HasDatabaseName("IX_CorrespondenceNotifications_Unique");
+                        .HasFilter("\"Altinn2NotificationId\" IS NOT NULL")
+                        .HasDatabaseName("IX_CorrespondenceNotifications_Synced");
 
                     b.ToTable("CorrespondenceNotifications", "correspondence");
                 });
