@@ -118,10 +118,6 @@ namespace Altinn.Correspondence.API.Auth
                     options.UsePkce = true;
                     options.CallbackPath = "/correspondence/api/v1/idporten-callback";
                     options.SaveTokens = true;
-                    if (!hostEnvironment.IsDevelopment())
-                    {
-                        options.CorrelationCookie.Domain = altinnIdProviderSettings.CookieDomain;
-                    }
                     options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.CorrelationCookie.SameSite = SameSiteMode.None;
                     options.CorrelationCookie.HttpOnly = true;
@@ -146,6 +142,14 @@ namespace Altinn.Correspondence.API.Auth
                                 context.Request.Host.Value,
                                 context.Request.Path.Value,
                                 context.ProtocolMessage.RedirectUri);
+                            logger.LogInformation(
+                                "Setting OIDC correlation cookie: Name={Name}, Domain={Domain}, Path={Path}, SameSite={SameSite}, Secure={Secure}, HttpOnly={HttpOnly}",
+                                options.CorrelationCookie.Name,
+                                options.CorrelationCookie.Domain ?? "<host-only>",
+                                options.CorrelationCookie.Path ?? "<default>",
+                                options.CorrelationCookie.SameSite,
+                                options.CorrelationCookie.SecurePolicy,
+                                options.CorrelationCookie.HttpOnly);
 
                             context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
                             context.ProtocolMessage.AcrValues = "selfregistered-email idporten-loa-substantial";
