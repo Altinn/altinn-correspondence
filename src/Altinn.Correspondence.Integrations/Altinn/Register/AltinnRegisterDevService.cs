@@ -22,14 +22,9 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     
     public Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
-        if (identificationId.IsIdPortenEmailUrn())
+        if (identificationId.IsIdPortenEmailUrn() || identificationId.IsLegacySelfIdentifiedUrn())
         {
             return Task.FromResult<int?>(SiUserPartyId);
-        }
-
-        if (identificationId.IsLegacySelfIdentifiedUrn())
-        {
-            return Task.FromResult<int?>(_digdirPartyId);
         }
 
         if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
@@ -52,7 +47,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     {
         var cleanId = identificationId.WithoutPrefix();
         
-        // Check for email URN
+        // Check for IdPorten email SI user URN
         if (identificationId.IsIdPortenEmailUrn())
         {
             var email = cleanId;
@@ -66,6 +61,24 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
                 Name = $"SI user with email {email}",
+                PartyUuid = SiUserPartyUuid,
+            });
+        }
+
+        // Check for legacy self-identified SI user URN
+        if (identificationId.IsLegacySelfIdentifiedUrn())
+        {
+            var username = cleanId;
+            return Task.FromResult<Party?>(new Party
+            {
+                PartyId = SiUserPartyId,
+                OrgNumber = "",
+                SSN = "",
+                ExternalUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{username}",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = $"Legacy SI user {username}",
                 PartyUuid = SiUserPartyUuid,
             });
         }
@@ -128,7 +141,9 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = SiUserPartyId,
                 OrgNumber = "",
                 SSN = "",
-                ExternalUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com",
+                // Treat SI test user as both IdPorten-email and legacy self-identified capable.
+                // For legacy flows we primarily care that ExternalUrn is a valid legacy SI URN.
+                ExternalUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:si-user",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
