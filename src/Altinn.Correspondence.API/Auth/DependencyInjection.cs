@@ -1,4 +1,4 @@
-﻿using Altinn.Common.PEP.Authorization;
+using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
@@ -135,8 +135,38 @@ namespace Altinn.Correspondence.API.Auth
                     {
                         OnRedirectToIdentityProvider = context =>
                         {
+                            var logger = context.HttpContext.RequestServices
+                                .GetRequiredService<ILoggerFactory>()
+                                .CreateLogger("OidcRedirect");
+
+                            logger.LogInformation(
+                                "OIDC Redirect: Scheme={Scheme}, Host={Host}, Path={Path}, RedirectUri={RedirectUri}",
+                                context.Scheme.Name,
+                                context.Request.Host.Value,
+                                context.Request.Path.Value,
+                                context.ProtocolMessage.RedirectUri);
+
                             context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
                             context.ProtocolMessage.AcrValues = "selfregistered-email idporten-loa-substantial";
+                            return Task.CompletedTask;
+                        },
+                        OnMessageReceived = context =>
+                        {
+                            var logger = context.HttpContext.RequestServices
+                                .GetRequiredService<ILoggerFactory>()
+                                .CreateLogger("OidcCallback");
+
+                            var cookies = string.Join(
+                                "; ",
+                                context.Request.Cookies.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+
+                            logger.LogInformation(
+                                "OIDC Callback: Host={Host}, Path={Path}, Query={Query}, Cookies={Cookies}",
+                                context.Request.Host.Value,
+                                context.Request.Path.Value,
+                                context.Request.QueryString.Value,
+                                cookies);
+
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>
@@ -147,7 +177,7 @@ namespace Altinn.Correspondence.API.Auth
                                 return;
                             }
                             await _cache.SetAsync(
-                                sessionId, 
+                                sessionId,
                                 context.TokenEndpointResponse.AccessToken,
                                 new HybridCacheEntryOptions
                                 {
@@ -156,14 +186,29 @@ namespace Altinn.Correspondence.API.Auth
                             var redirectUrl = context.Properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
                             redirectUrl = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
                             context.Properties.RedirectUri = redirectUrl;
-                        },                        
+                        },
+                        OnAuthenticationFailed = context =>
+                        {
+                            var logger = context.HttpContext.RequestServices
+                                .GetRequiredService<ILoggerFactory>()
+                                .CreateLogger("OidcAuthFailed");
+
+                            logger.LogError(context.Exception,
+                                "OIDC authentication failed: {Message}",
+                                context.Exception.Message);
+
+                            return Task.CompletedTask;
+                        },
                         OnRemoteFailure = context =>
                         {
-                            // log full failure
                             var logger = context.HttpContext.RequestServices
                                 .GetRequiredService<ILoggerFactory>()
                                 .CreateLogger("OpenIdConnectRemoteFailure");
-                            logger.LogError(context.Failure, "OIDC remote failure: {Message}", context.Failure?.Message);
+
+                            logger.LogError(context.Failure,
+                                "OIDC remote failure: {Message}",
+                                context.Failure?.Message);
+
                             return Task.CompletedTask;
                         },
                     };
