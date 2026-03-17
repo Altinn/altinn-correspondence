@@ -53,12 +53,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
-        public async Task GetCorrespondences_AsIdportenEmailSiUser_ReturnsOwnCorrespondences()
+        public async Task GetCorrespondences_AsLegacySiUser_ReturnsOwnCorrespondences()
         {
-            var idportenEmailRecipient = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com";
+            var legacySiUserRecipient = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:si-user";
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients([idportenEmailRecipient])
+                .WithRecipients([legacySiUserRecipient])
                 .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
@@ -269,12 +269,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         }
 
         [Fact]
-        public async Task GetCorrespondences_AsDifferentIdportenEmailSiUser_DoesNotSeeOthersCorrespondences()
+        public async Task GetCorrespondences_AsDifferentLegacySiUser_DoesNotSeeOthersCorrespondences()
         {
-            var idportenEmailRecipient = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com";
+            var legacySiUserRecipient = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:si-user";
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithRecipients([idportenEmailRecipient])
+                .WithRecipients([legacySiUserRecipient])
                 .Build();
             var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
