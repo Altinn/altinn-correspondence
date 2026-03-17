@@ -67,7 +67,6 @@ public class LegacyGetCorrespondencesHandler(
                     continue;
                 }
                 var mappedInstanceOwnerWithExternalUrn = await altinnRegisterService.LookUpPartyByPartyId(mappedInstanceOwner.PartyId, cancellationToken);
-                logger.LogInformation("Mapped instance owner for party {PartyId} and of party type {PartyTypeName}, externalUrn has value?: {ExternalUrn}", mappedInstanceOwnerWithExternalUrn?.PartyId, mappedInstanceOwnerWithExternalUrn?.PartyTypeName, !String.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn)); //TODO; temporary logg
                 if (!string.IsNullOrEmpty(mappedInstanceOwner.OrgNumber))
                 {
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
@@ -78,7 +77,6 @@ public class LegacyGetCorrespondencesHandler(
                 }
                 else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) && mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsLegacySelfIdentifiedUrn())
                 {
-                    logger.LogInformation("Added recipient using external Urn for party {PartyId} and user {UserId}", mappedInstanceOwnerWithExternalUrn.PartyId, userClaimsHelper.GetUserId()); //TODO; temporary logg
                     recipients.Add(mappedInstanceOwnerWithExternalUrn.ExternalUrn);
                 }
             }
@@ -118,8 +116,6 @@ public class LegacyGetCorrespondencesHandler(
                                                                                           searchString: request.SearchString,
                                                                                           cancellationToken: cancellationToken,
                                                                                           filterMigrated: request.FilterMigrated);
-
-        logger.LogInformation("Correspondences found: {CorrespondencesCount} for party {PartyId}", correspondences.Count, userParty.PartyId);
 
         var resourceIds = correspondences.Select(c => c.ResourceId).Distinct().ToList();
         var authorizedCorrespondences = new List<CorrespondenceEntity>();
@@ -169,37 +165,16 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        var subjectIdForAuth = userParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString();
-        logger.LogInformation(
-            "Authorizing {CorrespondenceCount} legacy correspondences for subjectUserId {SubjectUserId}",
-            correspondences.Count,
-            subjectIdForAuth); //TODO; temporary logg
         Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
             user,
-            subjectIdForAuth,
+            userParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
             correspondences,
             cancellationToken);
         foreach (var correspondence in correspondences)
         {
             authlevels.TryGetValue((correspondence.Recipient, correspondence.ResourceId), out int? authLevel);
-            if (authLevel == null)
+            if (authLevel == null|| minAuthLevel < authLevel)
             {
-                logger.LogInformation(
-                    "Legacy correspondence {CorrespondenceId} filtered out: no Permit decision from PDP for recipient {Recipient} and resource {ResourceId}",
-                    correspondence.Id,
-                    correspondence.Recipient,
-                    correspondence.ResourceId); //TODO; temporary logg
-                continue;
-            }
-            if (minAuthLevel < authLevel)
-            {
-                logger.LogInformation(
-                    "Legacy correspondence {CorrespondenceId} filtered out: user min auth level {UserMinAuthLevel} lower than required {RequiredAuthLevel} for recipient {Recipient} and resource {ResourceId}",
-                    correspondence.Id,
-                    minAuthLevel,
-                    authLevel,
-                    correspondence.Recipient,
-                    correspondence.ResourceId); //TODO; temporary logg
                 continue;
             }
             var purgedStatus = correspondence.GetPurgedStatus();
