@@ -2,6 +2,7 @@
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -154,7 +155,7 @@ namespace Altinn.Correspondence.API.Auth
                             endpoint ?? "<none>",
                             context.Request.Host.Value,
                             context.Request.Path.Value,
-                            context.Request.QueryString.Value);
+                            context.Request.QueryString.Value?.SanitizeForLogging());
                         context.Response.Redirect(restartUrl);
                         context.HandleResponse(); 
                     }
@@ -162,9 +163,6 @@ namespace Altinn.Correspondence.API.Auth
                     {
                         OnRedirectToIdentityProvider = context =>
                         {
-                            var logger = context.HttpContext.RequestServices
-                                .GetRequiredService<ILoggerFactory>()
-                                .CreateLogger("OidcRedirect");
                             context.ProtocolMessage.RedirectUri =
                                 $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
                             context.ProtocolMessage.AcrValues = "selfregistered-email idporten-loa-substantial";
@@ -182,7 +180,7 @@ namespace Altinn.Correspondence.API.Auth
                                 context.TokenEndpointResponse.AccessToken,
                                 new HybridCacheEntryOptions
                                 {
-                                    Expiration = TimeSpan.FromMinutes(5)
+                                    Expiration = TimeSpan.FromMinutes(30)
                                 });
                             var redirectUrl = context.Properties?.Items["endpoint"]
                                             ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
@@ -190,16 +188,6 @@ namespace Altinn.Correspondence.API.Auth
                                 $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}",
                                 sessionId);
                             context.Properties.RedirectUri = redirectUrl;
-                        },
-                        OnAuthenticationFailed = context =>
-                        {
-                            var logger = context.HttpContext.RequestServices
-                                .GetRequiredService<ILoggerFactory>()
-                                .CreateLogger("OidcAuthFailed");
-                            logger.LogError(context.Exception,
-                                "OIDC authentication failed: {Message}",
-                                context.Exception.Message);
-                            return Task.CompletedTask;
                         },
                         OnRemoteFailure = context =>
                         {
