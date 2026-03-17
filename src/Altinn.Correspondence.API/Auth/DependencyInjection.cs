@@ -222,6 +222,38 @@ namespace Altinn.Correspondence.API.Auth
                                 "OIDC remote failure: {Message}",
                                 context.Failure?.Message);
 
+                            if (context.Failure is OpenIdConnectProtocolException ex &&
+                                ex.Message.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Try to get the original endpoint (contains correspondenceId/attachmentId)
+                                string? endpoint = null;
+                                if (context.Properties?.Items != null &&
+                                    context.Properties.Items.TryGetValue("endpoint", out var ep) &&
+                                    !string.IsNullOrEmpty(ep))
+                                {
+                                    endpoint = ep;
+                                }
+                                // Compute the URL we *would* restart at
+                                string restartUrl;
+                                if (!string.IsNullOrEmpty(endpoint))
+                                {
+                                    restartUrl = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}";
+                                }
+                                else
+                                {
+                                    restartUrl = "https://altinn.no";
+                                }
+                                logger.LogWarning(
+                                    "OIDC invalid_grant encountered. " +
+                                    "Would restart OIDC flow at '{RestartUrl}'. " +
+                                    "Endpoint='{Endpoint}', Host={Host}, Path={Path}, Query={Query}",
+                                    restartUrl,
+                                    endpoint ?? "<none>",
+                                    context.Request.Host.Value,
+                                    context.Request.Path.Value,
+                                    context.Request.QueryString.Value);
+                            }
+
                             return Task.CompletedTask;
                         },
                     };
