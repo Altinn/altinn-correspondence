@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Common.Caching;
@@ -35,6 +35,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IAttachmentRepository> _attachmentRepositoryMock;
         private readonly Mock<IAttachmentStatusRepository> _attachmentStatusRepositoryMock;
         private readonly Mock<IDialogportenService> _dialogportenServiceForHelperMock;
+        private readonly Mock<IIdempotencyKeyRepository> _idempotencyKeyRepositoryMock;
         private readonly Mock<ILogger<CorrespondenceMigrationEventHelper>> _eventHelperLoggerMock;
         private readonly MigrateCorrespondenceHandler _handler;
 
@@ -61,6 +62,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _attachmentRepositoryMock = new Mock<IAttachmentRepository>();
             _attachmentStatusRepositoryMock = new Mock<IAttachmentStatusRepository>();            
             _dialogportenServiceForHelperMock = new Mock<IDialogportenService>();
+            _idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
             _eventHelperLoggerMock = new Mock<ILogger<CorrespondenceMigrationEventHelper>>();
             
             var purgeCorrespondenceHelper = new PurgeCorrespondenceHelper(
@@ -69,7 +71,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 _dialogportenServiceForHelperMock.Object,
-                _correspondenceRepositoryMock.Object);
+                _correspondenceRepositoryMock.Object,
+                _idempotencyKeyRepositoryMock.Object,
+                new Mock<ILogger<PurgeCorrespondenceHelper>>().Object);
 
             var correspondenceEventHelper = new CorrespondenceMigrationEventHelper(
                 _correspondenceStatusRepositoryMock.Object,

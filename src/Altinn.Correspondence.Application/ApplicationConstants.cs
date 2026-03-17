@@ -3,7 +3,7 @@ namespace Altinn.Correspondence.Application.Settings;
 public static class ApplicationConstants
 {
     public const long MaxFormDataFileUploadSize = 2L * 1000 * 1000 * 1000;
-    public const long MaxFileStreamUploadSize = 5L * 1000 * 1000 * 1000;
+    public const long MaxFileStreamUploadSize = 50L * 1000 * 1000 * 1000;
     public static readonly List<string> AllowedFileTypes =
     [
         ".doc",

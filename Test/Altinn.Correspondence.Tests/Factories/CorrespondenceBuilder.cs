@@ -139,6 +139,28 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithExternalReferencesDialogStatus(string dialogStatusValue)
+        {
+            _correspondence.Correspondence.ExternalReferences ??= new List<ExternalReferenceExt>();
+            _correspondence.Correspondence.ExternalReferences.Add(new ExternalReferenceExt
+            {
+                ReferenceType = ReferenceTypeExt.DialogportenDialogStatus,
+                ReferenceValue = dialogStatusValue
+            });
+            return this;
+        }
+
+        public CorrespondenceBuilder WithExternalReferencesDialogExtendedStatus(string dialogExtendedStatusValue)
+        {
+            _correspondence.Correspondence.ExternalReferences ??= new List<ExternalReferenceExt>();
+            _correspondence.Correspondence.ExternalReferences.Add(new ExternalReferenceExt
+            {
+                ReferenceType = ReferenceTypeExt.DialogportenDialogExtendedStatus,
+                ReferenceValue = dialogExtendedStatusValue
+            });
+            return this;
+        }
+
         public CorrespondenceBuilder WithExternalReferencesTransmissionId()
         {
             _correspondence.Correspondence.ExternalReferences = new List<ExternalReferenceExt>(){

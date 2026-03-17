@@ -42,7 +42,7 @@ public class UploadAttachmentHandler(
         {
             logger.LogWarning("Invalid file size {ContentLength} for attachment {AttachmentId} - must be between 1 and {MaxSize} bytes",
                 request.ContentLength, request.AttachmentId, ApplicationConstants.MaxFileStreamUploadSize);
-            return AttachmentErrors.InvalidFileSize("5GB");
+            return AttachmentErrors.InvalidFileSize("50GB");
         }
         if (attachment.StatusHasBeen(AttachmentStatus.UploadProcessing))
         {
