@@ -24,7 +24,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     }
     var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
-            "correspondence-attachment-test",
+            "ttd-reminder-unopened-confidential-correspondences",
             recipientOrg,
             cancellationToken);
 

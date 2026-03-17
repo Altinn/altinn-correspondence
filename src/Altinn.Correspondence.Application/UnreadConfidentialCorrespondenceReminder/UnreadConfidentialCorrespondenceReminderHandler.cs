@@ -43,7 +43,7 @@ public class UnreadConfidentialCorrespondenceHandler(
             Title = "Din virksomhet har en uåpnet taushetsbelagt post",
             Summary = "Din virksomhet har mottatt ett eller flere brev som er taushetsbelagte og som ikke er åpnet. Dette varselet inneholder informasjon om hvordan du kan lese disse",
             Recipient = correspondence.Recipient.WithUrnPrefix(),
-            ResourceId = "correspondence-attachment-test",
+            ResourceId = "ttd-reminder-unopened-confidential-correspondences",
             SendersReference = "Digdir",
             MessageSender = "Digitaliseringsdirektoratet",
             Created = DateTimeOffset.UtcNow,
