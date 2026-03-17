@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260224134006_AddRecipientTypeToCorrespondence")]
+    [Migration("20260317082550_AddRecipientTypeToCorrespondence ")]
     partial class AddRecipientTypeToCorrespondence
     {
         /// <inheritdoc />
@@ -601,6 +601,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.Property<string>("Language")
                         .HasColumnType("text");
+
+                    b.Property<int?>("RecipientType")
+                        .HasColumnType("integer");
 
                     b.Property<string>("ReminderEmailBody")
                         .IsRequired()
