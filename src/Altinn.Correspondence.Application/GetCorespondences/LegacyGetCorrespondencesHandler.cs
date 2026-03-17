@@ -173,7 +173,7 @@ public class LegacyGetCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             authlevels.TryGetValue((correspondence.Recipient, correspondence.ResourceId), out int? authLevel);
-            if (authLevel == null|| minAuthLevel < authLevel)
+            if (authLevel == null || minAuthLevel < authLevel)
             {
                 continue;
             }
