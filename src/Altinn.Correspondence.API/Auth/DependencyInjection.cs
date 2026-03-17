@@ -1,4 +1,4 @@
-using Altinn.Common.PEP.Authorization;
+﻿using Altinn.Common.PEP.Authorization;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
@@ -160,11 +160,22 @@ namespace Altinn.Correspondence.API.Auth
                                 "; ",
                                 context.Request.Cookies.Select(kvp => $"{kvp.Key}={kvp.Value}"));
 
+                            // Correlation cookie prefix the handler will use
+                            var correlationCookiePrefix = context.Options.CorrelationCookie.Name;
+
+                            // All cookies that look like correlation cookies for this request
+                            var correlationCookies = context.Request.Cookies
+                                .Where(kvp => kvp.Key.StartsWith(correlationCookiePrefix, StringComparison.OrdinalIgnoreCase))
+                                .Select(kvp => kvp.Key)
+                                .ToArray();
+
                             logger.LogInformation(
-                                "OIDC Callback: Host={Host}, Path={Path}, Query={Query}, Cookies={Cookies}",
+                                "OIDC Callback: Host={Host}, Path={Path}, Query={Query}, CorrelationCookieName={CorrelationCookieName}, CorrelationCookiesFound=[{CorrelationCookiesFound}], Cookies={Cookies}",
                                 context.Request.Host.Value,
                                 context.Request.Path.Value,
                                 context.Request.QueryString.Value,
+                                correlationCookiePrefix,
+                                string.Join(", ", correlationCookies),
                                 cookies);
 
                             return Task.CompletedTask;
