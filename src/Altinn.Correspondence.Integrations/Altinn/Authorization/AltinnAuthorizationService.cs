@@ -151,11 +151,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             return new Dictionary<(string, string), int?>();
         }
 
-        _logger.LogInformation(
-            "Starting legacy multirequest authorization for subjectUserId {SubjectUserId} with {CorrespondenceCount} correspondences",
-            subjectUserId,
-            correspondences.Count); //TODO; temporary logg
-
         // Build a distinct list of recipient/resource pairs, and resolve each recipient to a partyId
         var distinctRecipientResources = correspondences
             .Select(correspondence => (correspondence.Recipient, correspondence.ResourceId))
@@ -170,33 +165,10 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
 
             if (!resolvedRecipient.IsPartyId())
             {
-                try
+                var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedRecipient, cancellationToken);
+                if (registerParty is not null && registerParty.PartyId > 0)
                 {
-                    var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedRecipient, cancellationToken);
-                    if (registerParty is not null && registerParty.PartyId > 0)
-                    {
-                        resolvedRecipient = registerParty.PartyId.ToString();
-                        _logger.LogInformation(
-                            "Resolved recipient {OriginalRecipient} to partyId {PartyId} for resource {ResourceId}",
-                            recipient.SanitizeForLogging(),
-                            resolvedRecipient,
-                            resourceId.SanitizeForLogging()); //TODO; temporary logg
-                    }
-                    else
-                    {
-                        _logger.LogWarning(
-                            "Could not resolve recipient identifier {OriginalRecipient} to a partyId for resource {ResourceId}",
-                            recipient.SanitizeForLogging(),
-                            resourceId.SanitizeForLogging()); //TODO; temporary logg
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(
-                        ex,
-                        "Failed to resolve recipient party for recipient {Recipient} and resource {ResourceId}",
-                        recipient.SanitizeForLogging(),
-                        resourceId.SanitizeForLogging());
+                    resolvedRecipient = registerParty.PartyId.ToString();
                 }
             }
 
@@ -207,11 +179,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             .Select(rr => (rr.RecipientPartyId, rr.ResourceId))
             .Distinct()
             .ToList();
-
-        _logger.LogInformation(
-            "Calling PDP with {DistinctRecipientResourceCount} distinct (recipientPartyId, resourceId) pairs for subjectUserId {SubjectUserId}",
-            recipientWithResourcesForPdp.Count,
-            subjectUserId); //TODO; temporary logg
 
         XacmlJsonRequestRoot jsonRequest = CreateMultiDecisionRequestForLegacy(user, subjectUserId, recipientWithResourcesForPdp);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
