@@ -121,11 +121,12 @@ namespace Altinn.Correspondence.API.Auth
                     if (!hostEnvironment.IsDevelopment())
                     {
                         options.CorrelationCookie.Domain = altinnIdProviderSettings.CookieDomain;
-                        options.CorrelationCookie.Path = "/"; 
                     }
                     options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.CorrelationCookie.SameSite = SameSiteMode.None;
                     options.CorrelationCookie.HttpOnly = true;
+                    options.CorrelationCookie.Name = ".AspNetCore.Correlation.Correspondence";
+                    options.CorrelationCookie.Path = options.CallbackPath.Value;
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
@@ -148,6 +149,7 @@ namespace Altinn.Correspondence.API.Auth
 
                             context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
                             context.ProtocolMessage.AcrValues = "selfregistered-email idporten-loa-substantial";
+                            logger.LogInformation("Redirect uri: {redirectUri}", context.ProtocolMessage.RedirectUri);
                             return Task.CompletedTask;
                         },
                         OnMessageReceived = context =>
