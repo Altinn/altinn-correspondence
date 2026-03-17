@@ -155,7 +155,7 @@ namespace Altinn.Correspondence.API.Auth
                             var redirectUrl = context.Properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
                             redirectUrl = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
                             context.Properties.RedirectUri = redirectUrl;
-                        }                        
+                        },                        
                         OnRemoteFailure = context =>
                         {
                             // log full failure
