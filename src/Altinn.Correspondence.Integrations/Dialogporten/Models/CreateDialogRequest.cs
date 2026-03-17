@@ -66,6 +66,9 @@ public class CreateDialogRequest
 
     [JsonPropertyName("activities")]
     public List<Activity> Activities { get; set; }
+
+    [JsonPropertyName("serviceOwnerContext")]
+    public ServiceOwnerContext ServiceOwnerContext { get; set; }
 }
 
 public class Activity
@@ -343,4 +346,16 @@ public class DialogValue
 
     [JsonPropertyName("languageCode")]
     public string LanguageCode { get; set; }
+}
+
+public class ServiceOwnerContext
+{
+    [JsonPropertyName("serviceOwnerLabels")]
+    public List<ServiceOwnerLabel> ServiceOwnerLabels { get; set; }
+}
+
+public class ServiceOwnerLabel
+{
+    [JsonPropertyName("value")]
+    public string Value { get; set; }
 }

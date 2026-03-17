@@ -61,7 +61,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
                 Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
-                SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted)
+                SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted),
+                ServiceOwnerContext = GetServiceOwnerContextForCorrespondence(correspondence)
             };
         }
 
@@ -469,5 +470,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 return attachment;
             }).ToList() ?? new List<Attachment>();
         }
+
+        private static ServiceOwnerContext GetServiceOwnerContextForCorrespondence(CorrespondenceEntity correspondence)
+        {
+            var corrUrn = $"urn:altinn:correspondence-id:{correspondence.Id}";
+            return new ServiceOwnerContext
+            {
+                ServiceOwnerLabels = new List<ServiceOwnerLabel>
+                {
+                    new ServiceOwnerLabel { Value = corrUrn }
+                }
+            };
     }
+}
 }
