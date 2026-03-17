@@ -128,6 +128,36 @@ namespace Altinn.Correspondence.API.Auth
                     options.Scope.Add("profile");
                     options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
                     options.SkipUnrecognizedRequests = true;
+                    
+                    static void RestartLogin(
+                        RemoteFailureContext context,
+                        ILogger logger,
+                        GeneralSettings generalSettings)
+                    {
+                        // Try to get original endpoint (contains correspondenceId/attachmentId)
+                        string? endpoint = null;
+                        if (context.Properties?.Items != null &&
+                            context.Properties.Items.TryGetValue("endpoint", out var ep) &&
+                            !string.IsNullOrEmpty(ep))
+                        {
+                            endpoint = ep;
+                        }
+                        // Where to restart the flow
+                        string restartUrl = !string.IsNullOrEmpty(endpoint)
+                            ? $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}"
+                            : "https://altinn.no";
+                        logger.LogWarning(
+                            "Restarting OIDC flow after failure ({FailureType}). " +
+                            "Redirecting to '{RestartUrl}'. Endpoint='{Endpoint}', Host={Host}, Path={Path}, Query={Query}",
+                            context.Failure?.GetType().Name ?? "<unknown>",
+                            restartUrl,
+                            endpoint ?? "<none>",
+                            context.Request.Host.Value,
+                            context.Request.Path.Value,
+                            context.Request.QueryString.Value);
+                        context.Response.Redirect(restartUrl);
+                        context.HandleResponse(); 
+                    }
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
@@ -135,55 +165,9 @@ namespace Altinn.Correspondence.API.Auth
                             var logger = context.HttpContext.RequestServices
                                 .GetRequiredService<ILoggerFactory>()
                                 .CreateLogger("OidcRedirect");
-
-                            logger.LogInformation(
-                                "OIDC Redirect: Scheme={Scheme}, Host={Host}, Path={Path}, RedirectUri={RedirectUri}",
-                                context.Scheme.Name,
-                                context.Request.Host.Value,
-                                context.Request.Path.Value,
-                                context.ProtocolMessage.RedirectUri);
-                            logger.LogInformation(
-                                "Setting OIDC correlation cookie: Name={Name}, Domain={Domain}, Path={Path}, SameSite={SameSite}, Secure={Secure}, HttpOnly={HttpOnly}",
-                                options.CorrelationCookie.Name,
-                                options.CorrelationCookie.Domain ?? "<host-only>",
-                                options.CorrelationCookie.Path ?? "<default>",
-                                options.CorrelationCookie.SameSite,
-                                options.CorrelationCookie.SecurePolicy,
-                                options.CorrelationCookie.HttpOnly);
-
-                            context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
+                            context.ProtocolMessage.RedirectUri =
+                                $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
                             context.ProtocolMessage.AcrValues = "selfregistered-email idporten-loa-substantial";
-                            logger.LogInformation("Redirect uri: {redirectUri}", context.ProtocolMessage.RedirectUri);
-                            return Task.CompletedTask;
-                        },
-                        OnMessageReceived = context =>
-                        {
-                            var logger = context.HttpContext.RequestServices
-                                .GetRequiredService<ILoggerFactory>()
-                                .CreateLogger("OidcCallback");
-
-                            var cookies = string.Join(
-                                "; ",
-                                context.Request.Cookies.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-
-                            // Correlation cookie prefix the handler will use
-                            var correlationCookiePrefix = context.Options.CorrelationCookie.Name;
-
-                            // All cookies that look like correlation cookies for this request
-                            var correlationCookies = context.Request.Cookies
-                                .Where(kvp => kvp.Key.StartsWith(correlationCookiePrefix, StringComparison.OrdinalIgnoreCase))
-                                .Select(kvp => kvp.Key)
-                                .ToArray();
-
-                            logger.LogInformation(
-                                "OIDC Callback: Host={Host}, Path={Path}, Query={Query}, CorrelationCookieName={CorrelationCookieName}, CorrelationCookiesFound=[{CorrelationCookiesFound}], Cookies={Cookies}",
-                                context.Request.Host.Value,
-                                context.Request.Path.Value,
-                                context.Request.QueryString.Value,
-                                correlationCookiePrefix,
-                                string.Join(", ", correlationCookies),
-                                cookies);
-
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = async context =>
@@ -200,8 +184,11 @@ namespace Altinn.Correspondence.API.Auth
                                 {
                                     Expiration = TimeSpan.FromMinutes(5)
                                 });
-                            var redirectUrl = context.Properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
-                            redirectUrl = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
+                            var redirectUrl = context.Properties?.Items["endpoint"]
+                                            ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
+                            redirectUrl = CascadeAuthenticationHandler.AppendSessionToUrl(
+                                $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}",
+                                sessionId);
                             context.Properties.RedirectUri = redirectUrl;
                         },
                         OnAuthenticationFailed = context =>
@@ -209,11 +196,9 @@ namespace Altinn.Correspondence.API.Auth
                             var logger = context.HttpContext.RequestServices
                                 .GetRequiredService<ILoggerFactory>()
                                 .CreateLogger("OidcAuthFailed");
-
                             logger.LogError(context.Exception,
                                 "OIDC authentication failed: {Message}",
                                 context.Exception.Message);
-
                             return Task.CompletedTask;
                         },
                         OnRemoteFailure = context =>
@@ -221,43 +206,19 @@ namespace Altinn.Correspondence.API.Auth
                             var logger = context.HttpContext.RequestServices
                                 .GetRequiredService<ILoggerFactory>()
                                 .CreateLogger("OpenIdConnectRemoteFailure");
-
                             logger.LogError(context.Failure,
                                 "OIDC remote failure: {Message}",
                                 context.Failure?.Message);
-
                             if (context.Failure is OpenIdConnectProtocolException ex &&
                                 ex.Message.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase))
                             {
-                                // Try to get the original endpoint (contains correspondenceId/attachmentId)
-                                string? endpoint = null;
-                                if (context.Properties?.Items != null &&
-                                    context.Properties.Items.TryGetValue("endpoint", out var ep) &&
-                                    !string.IsNullOrEmpty(ep))
-                                {
-                                    endpoint = ep;
-                                }
-                                // Compute the URL we *would* restart at
-                                string restartUrl;
-                                if (!string.IsNullOrEmpty(endpoint))
-                                {
-                                    restartUrl = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}";
-                                }
-                                else
-                                {
-                                    restartUrl = "https://altinn.no";
-                                }
-                                logger.LogWarning(
-                                    "OIDC invalid_grant encountered. " +
-                                    "Would restart OIDC flow at '{RestartUrl}'. " +
-                                    "Endpoint='{Endpoint}', Host={Host}, Path={Path}, Query={Query}",
-                                    restartUrl,
-                                    endpoint ?? "<none>",
-                                    context.Request.Host.Value,
-                                    context.Request.Path.Value,
-                                    context.Request.QueryString.Value);
+                                RestartLogin(context, logger, generalSettings);
                             }
-
+                            else if (context.Failure is OpenIdConnectProtocolException corrEx &&
+                                    corrEx.Message.Contains("correlation", StringComparison.OrdinalIgnoreCase))
+                            {
+                                RestartLogin(context, logger, generalSettings);
+                            }
                             return Task.CompletedTask;
                         },
                     };
