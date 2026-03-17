@@ -9,7 +9,6 @@ using OneOf;
 namespace Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 
 public class GetUnreadConfidentialCorrespondencesHandler(
-    ILogger<GetUnreadConfidentialCorrespondencesHandler> logger,
     ICorrespondenceRepository correspondenceRepository,
     IAltinnAuthorizationService altinnAuthorizationService,
     IHostEnvironment hostEnvironment
@@ -41,9 +40,9 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         cancellationToken
     );
 
-    if (correspondences == null)
+    if (correspondences.Count == 0)
     {
-        return CorrespondenceErrors.GettingUnreadConfidentialCorrespondencesFailed;
+        return CorrespondenceErrors.UnreadConfidentialCorrespondencesNotFound;
     }
 
     var defaultText = "Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tilgang som kreves. Hovedadministrator må delegere denne tilgangen for at noen i din virksomhet skal kunne se meldingene. Se mer informasjon på våre hjelpesider: https://info.altinn.no/nyheter/tilgang-til-taushetsbelagt-post/";
