@@ -10,13 +10,21 @@ namespace Altinn.Correspondence.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-
+            migrationBuilder.AddColumn<string>(
+                name: "RecipientType",
+                schema: "correspondence",
+                table: "Correspondences",
+                type: "text",
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-
+            migrationBuilder.DropColumn(
+                name: "RecipientType",
+                schema: "correspondence",
+                table: "Correspondences");
         }
     }
 }

@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260317082550_AddRecipientTypeToCorrespondence ")]
+    [Migration("20260317083948_AddRecipientTypeToCorrespondence ")]
     partial class AddRecipientTypeToCorrespondence
     {
         /// <inheritdoc />
@@ -272,7 +272,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("RecipientType")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("RequestedPublishTime")

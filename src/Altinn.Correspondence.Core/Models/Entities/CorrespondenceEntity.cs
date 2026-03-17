@@ -27,14 +27,9 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public required string ResourceId { get; set; }
 
         [Required]
-        public required string Recipient { get; set
-            {
-                RecipientType = ComputeRecipientType(value);
-                field = value;
-            }
-        }
+        public required string Recipient { get; set; }
 
-        public string RecipientType { get; set; }
+        public string? RecipientType { get; set; }
 
         [Required]
         [RegularExpression($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}):\d{{9}}$", ErrorMessage = "Organization numbers should be on the format countrycode:organizationnumber, for instance 0192:910753614")]
@@ -111,7 +106,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
             Statuses = new List<CorrespondenceStatusEntity>();
         }   
 
-        public string ComputeRecipientType(string? recipient) => 
+        public static string ComputeRecipientType(string? recipient) => 
             string.IsNullOrWhiteSpace(recipient)
           ? ""
           : recipient.Contains(':')

@@ -507,6 +507,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     ResourceId = c.ResourceId,
                     Created = c.Created,
                     Recipient = c.Recipient,
+                    RecipientType = c.RecipientType,
                     SendersReference = c.SendersReference,
                     RequestedPublishTime = c.RequestedPublishTime,
                     ServiceOwnerId = c.ServiceOwnerId,
