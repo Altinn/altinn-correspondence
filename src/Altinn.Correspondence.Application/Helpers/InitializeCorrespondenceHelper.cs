@@ -346,8 +346,9 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 ResourceId = request.Correspondence.ResourceId,
                 Recipient = recipient,
+                RecipientType = CorrespondenceEntity.ComputeRecipientType(recipient),
                 Sender = sender,
-                ServiceOwnerId = serviceOwnerId,
+                ServiceOwnerId = sender.WithoutPrefix(),
                 ServiceOwnerMigrationStatus = serviceOwnerMigrationStatus,
                 SendersReference = request.Correspondence.SendersReference,
                 MessageSender = request.Correspondence.MessageSender,
