@@ -24,7 +24,7 @@ public class LegacyPurgeCorrespondenceHandler(
             return AuthorizationErrors.InvalidPartyId;
         }
         var party = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber)))
+        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber) && string.IsNullOrEmpty(party.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }

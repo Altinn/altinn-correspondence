@@ -49,10 +49,7 @@ public class LegacyGetCorrespondencesHandler(
             request.InstanceOwnerPartyIdList);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (userParty == null
-            || (string.IsNullOrEmpty(userParty.SSN)
-                && string.IsNullOrEmpty(userParty.OrgNumber)
-                && string.IsNullOrEmpty(userParty.ExternalUrn)))
+        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber) && string.IsNullOrEmpty(userParty.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }

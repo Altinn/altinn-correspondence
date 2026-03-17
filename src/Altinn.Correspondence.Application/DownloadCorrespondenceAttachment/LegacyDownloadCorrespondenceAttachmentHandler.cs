@@ -28,7 +28,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
             return AuthorizationErrors.InvalidPartyId;
         }
         var party = await altinnRegisterService.LookUpPartyByPartyId(partyId.Value, cancellationToken);
-        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber)))
+        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber) && string.IsNullOrEmpty(party.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }

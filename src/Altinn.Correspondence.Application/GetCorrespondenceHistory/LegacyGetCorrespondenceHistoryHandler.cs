@@ -26,7 +26,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             return AuthorizationErrors.InvalidPartyId;
         }
         var recipientParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber)))
+        if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber) && string.IsNullOrEmpty(recipientParty.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
