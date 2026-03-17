@@ -43,7 +43,7 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
 
         if (numSyncedEvents > 0)
         {
-            statusEventsToProcess = correspondenceMigrationEventHelper.FilterStatusEvents(request.CorrespondenceId, request.SyncedEvents, correspondence);
+            statusEventsToProcess = correspondenceMigrationEventHelper.FilterStatusEvents(request.CorrespondenceId, request.SyncedEvents, correspondence, MigrationOperationType.Sync);
             if (statusEventsToProcess.Count == 0)
             {
                 logger.LogWarning("None of the Status Events for {CorrespondenceId} were unique, and no sync will be performed.", request.CorrespondenceId);

@@ -32,7 +32,7 @@ public class CorrespondenceMigrationEventHelper(
     IBackgroundJobClient backgroundJobClient,
     ILogger<CorrespondenceMigrationEventHelper> logger)
 {
-    private static readonly CorrespondenceStatus[] _validSyncStatuses = { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };
+    private static readonly CorrespondenceStatus[] _validSyncStatuses = { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };    
 
     public async Task<bool> ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
@@ -104,7 +104,7 @@ public class CorrespondenceMigrationEventHelper(
                             break;
                         }
                     default:
-                        logger.LogWarning("Unsupported Status Event type {Status} for Correspondence {CorrespondenceId} at {StatusChanged}. The event will be ignored.", eventToExecute.Status, correspondenceId, eventToExecute.StatusChanged);
+                        logger.LogInformation("Status Event type {Status} for Correspondence {CorrespondenceId} at {StatusChanged} has updates against Dialogporten. The event will be ignored.", eventToExecute.Status, correspondenceId, eventToExecute.StatusChanged);
                         break;
                 }
             }
@@ -185,7 +185,7 @@ public class CorrespondenceMigrationEventHelper(
         return deletionEventsToExecute;
     }
 
-    public List<CorrespondenceStatusEntity> FilterStatusEvents(Guid correspondenceId, List<CorrespondenceStatusEntity>? syncedEvents, CorrespondenceEntity correspondence)
+    public List<CorrespondenceStatusEntity> FilterStatusEvents(Guid correspondenceId, List<CorrespondenceStatusEntity>? syncedEvents, CorrespondenceEntity correspondence, MigrationOperationType operationName)
     {
         var eventsFilteredForCorrectStatus = new List<CorrespondenceStatusEntity>();
 
@@ -197,7 +197,7 @@ public class CorrespondenceMigrationEventHelper(
         foreach (var statusEventToSync in syncedEvents)
         {
             // Validate if the status event is valid for this handler / sync operation (unlikely, but possible)
-            if (ValidateStatusUpdate(statusEventToSync))
+            if (ValidateStatusUpdate(statusEventToSync, operationName))
             {
                 eventsFilteredForCorrectStatus.Add(statusEventToSync);
             }
@@ -246,8 +246,7 @@ public class CorrespondenceMigrationEventHelper(
     {
         var enduserIdByPartyUuid = new Dictionary<Guid, string>();
         
-        var partyUuidsToLookup = (statusEventsToExecute ?? Enumerable.Empty<CorrespondenceStatusEntity>())
-            .Where(e => e.Status == CorrespondenceStatus.Read || e.Status == CorrespondenceStatus.Confirmed || e.Status == CorrespondenceStatus.Archived) // Only Read, Confirm, Archived status events require Dialogporten enduserId/urn
+        var partyUuidsToLookup = (statusEventsToExecute ?? Enumerable.Empty<CorrespondenceStatusEntity>())            
             .Select(e => e.PartyUuid)
             .Distinct();
 
@@ -328,8 +327,14 @@ public class CorrespondenceMigrationEventHelper(
     /// </summary>
     /// <param name="statusEntity">The status event to validate.</param>
     /// <returns></returns>
-    public bool ValidateStatusUpdate(CorrespondenceStatusEntity statusEntity)
+    public bool ValidateStatusUpdate(CorrespondenceStatusEntity statusEntity, MigrationOperationType operationName)
     {
+        if (operationName == MigrationOperationType.Remigrate)
+        {
+            // For remigration, we want to allow all status events to be re-processed in order to ensure that the correspondence in the database is fully up to date after remigration, and to allow for re-processing of previously failed events.
+            return true;
+        }
+
         return _validSyncStatuses.Contains(statusEntity.Status);
     }
 
@@ -862,7 +867,7 @@ public class CorrespondenceMigrationEventHelper(
     /// <param name="deleteEvents">List of delete events to process (will be filtered)</param>
     /// <param name="notificationEvents">List of notification events to process (will be filtered)</param>
     /// <param name="forwardingEvents">List of forwarding events to process (will be filtered)</param>
-    /// <param name="operationName">Name of the operation for logging (e.g., "sync", "remigrate")</param>
+    /// <param name="operationType">Name of the operation for logging (e.g., "sync", "remigrate")</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Total number of events processed across all types</returns>
     public async Task<int> ProcessAllEventsForCorrespondence(
@@ -880,7 +885,7 @@ public class CorrespondenceMigrationEventHelper(
         // Process status and delete events together (chronologically ordered as they interact with each other)
         if ((statusEvents != null && statusEvents.Count > 0) || (deleteEvents != null && deleteEvents.Count > 0))
         {
-            var filteredStatusEvents = statusEvents != null ? FilterStatusEvents(correspondenceId, statusEvents, correspondence) : new List<CorrespondenceStatusEntity>();
+            var filteredStatusEvents = statusEvents != null ? FilterStatusEvents(correspondenceId, statusEvents, correspondence, operationName) : new List<CorrespondenceStatusEntity>();
             var filteredDeleteEvents = deleteEvents != null ? await FilterDeleteEvents(correspondenceId, deleteEvents, cancellationToken) : new List<CorrespondenceDeleteEventEntity>();
             
             if (filteredStatusEvents.Count > 0 || filteredDeleteEvents.Count > 0)

@@ -768,8 +768,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithDialogId("dialog-id-123")
                     .WithId(correspondenceId)
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                    .WithStatus(CorrespondenceStatus.Published)
-                    .WithStatus(CorrespondenceStatus.Read)
+                    .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 12, 10, 09, 59, 00))
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00))
+                    .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)                    
                     .Build();
 
             var correspondenceExistingObject = new CorrespondenceEntityBuilder()
@@ -778,9 +779,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithDialogId("dialog-id-123")
                     .WithId(correspondenceId)
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                    .WithStatus(CorrespondenceStatus.Published)
-                    .WithStatus(CorrespondenceStatus.Read)
-                    .WithStatus(CorrespondenceStatus.Confirmed)
+                    .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 12, 10, 09, 59, 00))
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00))
+                    .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Confirmed, new DateTime(2025, 12, 10, 10, 05, 10), _defaultUserPartyUuid)
                     .Build();
 
             var request = new MigrateCorrespondenceRequest
@@ -831,6 +833,95 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
+
+        [Fact]
+        public async Task Remigrate_NoStatusesInDb_AllAdded()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 12345;
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithRecipient(_defaultUserPartyIdentifier)
+                    .WithDialogId("dialog-id-123")
+                    .WithId(correspondenceId)
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 12, 10, 09, 59, 00))
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00))
+                    .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)                    
+                    .Build();
+
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                MakeAvailable = true
+            };
+
+            _correspondenceRepositoryMock.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .Throws(new DbUpdateException("An error occurred while updating the entries.",
+                    new Npgsql.PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505")));
+            _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CorrespondenceEntity
+                {
+                    Id = correspondenceId,
+                    ResourceId = correspondenceRequestObject.ResourceId,
+                    Recipient = correspondenceRequestObject.Recipient,
+                    Sender = correspondenceRequestObject.Sender,
+                    SendersReference = correspondenceRequestObject.SendersReference,
+                    RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
+                    Statuses = new List<CorrespondenceStatusEntity>(),
+                    ExternalReferences = correspondenceRequestObject.ExternalReferences,
+                    Created = correspondenceRequestObject.Created,
+                    Altinn2CorrespondenceId = correspondenceRequestObject.Altinn2CorrespondenceId
+                });
+            _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+
+            _correspondenceRepositoryMock.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId &&
+                c.Statuses.Count == 3
+            ), It.IsAny<CancellationToken>()), Times.Once);
+
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatusForSync(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Initialized &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatusForSync(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Published &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatusForSync(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.Read &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceForwardingEventRepositoryMock.VerifyNoOtherCalls();
+            _dialogportenServiceMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+        }
+
         [Fact]
         public async Task Remigrate_AllDuplicates_NothingAdded()
         {
@@ -843,8 +934,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithDialogId("dialog-id-123")
                     .WithId(correspondenceId)
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                    .WithStatus(CorrespondenceStatus.Published)
-                    .WithStatus(CorrespondenceStatus.Read)
+                    .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 12, 10, 09, 59, 00))
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00))
+                    .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
                     .Build();
 
             var request = new MigrateCorrespondenceRequest
@@ -906,7 +998,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithRecipient(_defaultUserPartyIdentifier)
                     .WithDialogId("dialog-id-123")
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 12, 10, 09, 59, 00))
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00))
                     .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
                     .WithStatus(CorrespondenceStatus.Confirmed, new DateTime(2025, 12, 10, 10, 05, 10), _defaultUserPartyUuid)
                     .Build();
@@ -918,7 +1011,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithDialogId("dialog-id-123")
                     .WithId(correspondenceId)
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 12, 10, 09, 59, 00))
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00))
                     .Build();
 
             var request = new MigrateCorrespondenceRequest
@@ -1121,7 +1215,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithRecipient(_defaultUserPartyIdentifier)
                     .WithDialogId("dialog-id-123")
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 12, 10, 09, 59, 00))
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00))
                     .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
                     .WithStatus(CorrespondenceStatus.Confirmed, new DateTime(2025, 12, 10, 10, 05, 10), _defaultUserPartyUuid)
                     .WithStatus(CorrespondenceStatus.Archived, new DateTime(2025, 12, 10, 10, 10, 10), _defaultUserPartyUuid)
@@ -1168,7 +1263,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithDialogId("dialog-id-123")
                     .WithId(correspondenceId)
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00), _defaultUserPartyUuid)
+                    .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 12, 10, 09, 59, 00))
+                    .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 10, 10, 00, 00))
                     .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 10, 10, 05, 00), _defaultUserPartyUuid)
                     .WithStatus(CorrespondenceStatus.Confirmed, new DateTime(2025, 12, 10, 10, 05, 10), _defaultUserPartyUuid)
                     .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>
