@@ -11,6 +11,6 @@ public interface IAltinnAuthorizationService
     Task<bool> CheckAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default);
     Task<bool> CheckAttachmentAccessAsRecipient(ClaimsPrincipal? user, CorrespondenceEntity correspondence, AttachmentEntity attachment, CancellationToken cancellationToken = default);
     Task<bool> CheckAccessAsAny(ClaimsPrincipal? user, string resource, string party, CancellationToken cancellationToken);
-    Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string subjectPartyId, string resourceId, List<ResourceAccessLevel> rights, string recipient, CancellationToken cancellationToken = default);
-    Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, string subjectPartyId, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default);
+    Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string subjectUserId, string resourceId, List<ResourceAccessLevel> rights, string recipient, CancellationToken cancellationToken = default);
+    Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, string subjectUserId, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default);
 }

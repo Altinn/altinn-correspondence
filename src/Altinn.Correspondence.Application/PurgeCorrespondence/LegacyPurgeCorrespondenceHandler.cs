@@ -35,7 +35,7 @@ public class LegacyPurgeCorrespondenceHandler(
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
             user,
-            party.PartyId.ToString(),
+            party.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
             correspondence.ResourceId,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             correspondence.Recipient,

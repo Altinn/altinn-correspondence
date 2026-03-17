@@ -172,7 +172,11 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        var subjectIdForAuth = userParty.PartyId.ToString();
+        var subjectIdForAuth = userParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString();
+        logger.LogInformation(
+            "Authorizing {CorrespondenceCount} legacy correspondences for subjectUserId {SubjectUserId}",
+            correspondences.Count,
+            subjectIdForAuth); //TODO; temporary logg
         Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
             user,
             subjectIdForAuth,
@@ -181,8 +185,24 @@ public class LegacyGetCorrespondencesHandler(
         foreach (var correspondence in correspondences)
         {
             authlevels.TryGetValue((correspondence.Recipient, correspondence.ResourceId), out int? authLevel);
-            if (authLevel == null || minAuthLevel < authLevel)
+            if (authLevel == null)
             {
+                logger.LogInformation(
+                    "Legacy correspondence {CorrespondenceId} filtered out: no Permit decision from PDP for recipient {Recipient} and resource {ResourceId}",
+                    correspondence.Id,
+                    correspondence.Recipient,
+                    correspondence.ResourceId); //TODO; temporary logg
+                continue;
+            }
+            if (minAuthLevel < authLevel)
+            {
+                logger.LogInformation(
+                    "Legacy correspondence {CorrespondenceId} filtered out: user min auth level {UserMinAuthLevel} lower than required {RequiredAuthLevel} for recipient {Recipient} and resource {ResourceId}",
+                    correspondence.Id,
+                    minAuthLevel,
+                    authLevel,
+                    correspondence.Recipient,
+                    correspondence.ResourceId); //TODO; temporary logg
                 continue;
             }
             var purgedStatus = correspondence.GetPurgedStatus();
