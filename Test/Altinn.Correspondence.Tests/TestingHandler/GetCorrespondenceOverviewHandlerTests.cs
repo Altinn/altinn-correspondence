@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -385,6 +386,165 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.RemoveConfidentialReminderByCorrespondenceId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
                 Times.Never);
 
+            _dialogportenServiceMock.Verify(
+                x => x.TrySoftDeleteDialog(It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_CorrespondenceNotFound_ReturnsNotFoundError()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var request = new GetCorrespondenceOverviewRequest { CorrespondenceId = correspondenceId };
+
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync((CorrespondenceEntity?)null);
+
+            // Act
+            var result = await _handler.Process(request, new ClaimsPrincipal(), CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT1);
+            Assert.Equal(CorrespondenceErrors.CorrespondenceNotFound.ErrorCode, result.AsT1.ErrorCode);
+            _altinnAuthorizationServiceMock.Verify(
+                x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_NeitherRecipientNorSenderAccess_ReturnsNoAccessError()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+
+            var request = new GetCorrespondenceOverviewRequest { CorrespondenceId = correspondenceId };
+
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _handler.Process(request, new ClaimsPrincipal(), CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT1);
+            Assert.Equal(AuthorizationErrors.NoAccessToResource.ErrorCode, result.AsT1.ErrorCode);
+        }
+
+        [Fact]
+        public async Task Process_WhenConfidentialCorrespondenceHasNoReminder_SkipsReminderCleanup()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+            correspondence.IsConfidential = true;
+
+            var user = new ClaimsPrincipal();
+            var request = new GetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
+            };
+
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.CorrespondenceHasReminder(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Act
+            await _handler.Process(request, user, CancellationToken.None);
+
+            // Assert
+            _confidentialReminderRepositoryMock.Verify(
+                x => x.RemoveConfidentialReminderByCorrespondenceId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _dialogportenServiceMock.Verify(
+                x => x.TrySoftDeleteDialog(It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_WhenConfidentialCorrespondenceOpenedAndIsLastReminderButNoDialogId_RemovesReminderWithoutSoftDelete()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+            correspondence.IsConfidential = true;
+
+            var user = new ClaimsPrincipal();
+            var request = new GetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
+            };
+
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.CorrespondenceHasReminder(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.NumberOfRemindersForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
+            // Dialog ID is missing
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Guid?)null);
+
+            // Act
+            await _handler.Process(request, user, CancellationToken.None);
+
+            // Assert - reminder is removed even without a dialog ID
+            _confidentialReminderRepositoryMock.Verify(
+                x => x.RemoveConfidentialReminderByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            // Assert - dialog is NOT soft-deleted because there was no dialog ID to delete
             _dialogportenServiceMock.Verify(
                 x => x.TrySoftDeleteDialog(It.IsAny<string>()),
                 Times.Never);
