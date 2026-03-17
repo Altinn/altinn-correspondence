@@ -198,18 +198,12 @@ namespace Altinn.Correspondence.API.Auth
                                 "OIDC remote failure: {Message}",
                                 context.Failure?.Message);
 
-                            Exception failure = context.Failure ?? new Exception("Unknown failure");
-                            if (failure is AuthenticationFailureException afe &&
-                                afe.InnerException != null)
-                            {
-                                failure = afe.InnerException;
-                            }
                             if (context.Failure is OpenIdConnectProtocolException ex &&
                                 ex.Message.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase))
                             {
                                 RestartLogin(context, logger, generalSettings);
                             }
-                            else if (context.Failure is OpenIdConnectProtocolException corrEx &&
+                            else if (context.Failure is AuthenticationFailureException corrEx &&
                                     corrEx.Message.Contains("correlation", StringComparison.OrdinalIgnoreCase))
                             {
                                 RestartLogin(context, logger, generalSettings);
