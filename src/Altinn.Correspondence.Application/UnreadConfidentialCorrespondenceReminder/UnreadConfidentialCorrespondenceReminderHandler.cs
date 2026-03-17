@@ -51,52 +51,27 @@ public class UnreadConfidentialCorrespondenceHandler(
             PropertyList = new Dictionary<string, string>{}
         };
 
+        Guid? dialogId = null;
 
-        var notificationRequest = new NotificationRequest
+        var existingDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(reminder.Recipient, cancellationToken);
+        if (existingDialogId.HasValue)
         {
-            NotificationTemplate = NotificationTemplate.CustomMessage,
-            EmailSubject = $"Din virksomhet $recipientName$ har uåpnet taushetsbelagt post." ,
-            EmailBody = "Dette er et automatisk varsel om at din virksomhet har mottatt taushetsbelagt post som ikke er åpnet. \n\n Logg inn i Altinn for å se hvilke meldinger det gjelder og hvordan du kan åpne dem.",
-            NotificationChannel = NotificationChannel.Email,
-            SendReminder = false,
-            EmailContentType = EmailContentType.Plain
-        };
-
-        var notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderForConfidentialReminders()
-                    {
-                        Reminder = reminder,
-                        CorrespondenceId = correspondenceId,
-                        NotificationRequest = notificationRequest,
-                        Language = "nb",
-                    }, cancellationToken));
-        logger.LogInformation("Notification job enqueued with id {NotificationJobId} for confidential reminder {ReminderId}", notificationJobId, reminder.Id);
-
-        backgroundJobClient.ContinueJobWith<SendNotificationOrderHandler>(notificationJobId, (handler) => handler.Process(correspondenceId, CancellationToken.None));
-        logger.LogInformation("Send notification job scheduled as continuation of {NotificationJobId} for correspondence {CorrespondenceId}", notificationJobId, correspondenceId);
-
-        if (await confidentialReminderRepository.NumberOfRemindersForRecipient(reminder.Recipient, cancellationToken) > 0)
-        {
-            var existingDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(reminder.Recipient, cancellationToken);
-            if (existingDialogId.HasValue)
-            {
-                logger.LogInformation("Linking correspondence {correspondenceId} to existing dialog {DialogId}", correspondenceId, existingDialogId.Value);
-                await confidentialReminderRepository.AddConfidentialReminder(new ConfidentialReminderEntity
-                {
-                    Id = reminder.Id,
-                    CorrespondenceId = correspondenceId,
-                    Recipient = reminder.Recipient.WithUrnPrefix(),
-                    DialogId = existingDialogId.Value
-                }, cancellationToken);
-                return;
-            }
+            logger.LogInformation("Reusing existing dialog {DialogId}", existingDialogId.Value);
+            dialogId = existingDialogId.Value;
         }
-        logger.LogInformation("Creating confidential reminder dialog for correspondence with id {correspondenceId}", correspondenceId);
-
-        var dialogId = await dialogportenService.CreateConfidentialReminderDialog(reminder);
-        if (string.IsNullOrEmpty(dialogId))
+        else
         {
-            logger.LogError("Failed to create confidential reminder dialog for correspondence with id {correspondenceId}", correspondenceId);
-            return;
+            logger.LogInformation("Creating confidential reminder dialog for correspondence with id {correspondenceId}", correspondenceId);
+            var createdDialogId = await dialogportenService.CreateConfidentialReminderDialog(reminder);
+            if (string.IsNullOrEmpty(createdDialogId))
+            {
+                logger.LogError("Failed to create confidential reminder dialog for correspondence {correspondenceId} — persisting reminder without dialog ID", correspondenceId);
+            }
+            else
+            {
+                dialogId = Guid.Parse(createdDialogId);
+                logger.LogInformation("Confidential reminder dialog created with id {DialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
+            }
         }
 
         await confidentialReminderRepository.AddConfidentialReminder(new ConfidentialReminderEntity
@@ -104,9 +79,30 @@ public class UnreadConfidentialCorrespondenceHandler(
             Id = reminder.Id,
             CorrespondenceId = correspondenceId,
             Recipient = reminder.Recipient.WithUrnPrefix(),
-            DialogId = Guid.Parse(dialogId),
+            DialogId = dialogId,
         }, cancellationToken);
-        logger.LogInformation("Confidential reminder {ReminderId} persisted for correspondence {correspondenceId}", reminder.Id, correspondenceId);
-        return;
+        logger.LogInformation("Confidential reminder {ReminderId} persisted for correspondence {correspondenceId} with dialog {DialogId}", reminder.Id, correspondenceId, dialogId?.ToString() ?? "none");
+
+        var notificationRequest = new NotificationRequest
+        {
+            NotificationTemplate = NotificationTemplate.CustomMessage,
+            EmailSubject = $"Din virksomhet $recipientName$ har uåpnet taushetsbelagt post.",
+            EmailBody = "Dette er et automatisk varsel om at din virksomhet har mottatt taushetsbelagt post som ikke er åpnet. \n\n Logg inn i Altinn for å se hvilke meldinger det gjelder og hvordan du kan åpne dem.",
+            NotificationChannel = NotificationChannel.Email,
+            SendReminder = false,
+            EmailContentType = EmailContentType.Plain
+        };
+
+        var notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderForConfidentialReminders()
+        {
+            Reminder = reminder,
+            CorrespondenceId = correspondenceId,
+            NotificationRequest = notificationRequest,
+            Language = "nb",
+        }, cancellationToken));
+        logger.LogInformation("Notification job enqueued with id {NotificationJobId} for confidential reminder {ReminderId}", notificationJobId, reminder.Id);
+
+        backgroundJobClient.ContinueJobWith<SendNotificationOrderHandler>(notificationJobId, (handler) => handler.Process(correspondenceId, CancellationToken.None));
+        logger.LogInformation("Send notification job scheduled as continuation of {NotificationJobId} for correspondence {CorrespondenceId}", notificationJobId, correspondenceId);
     }
 }
