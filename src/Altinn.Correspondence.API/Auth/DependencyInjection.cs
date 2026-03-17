@@ -121,6 +121,7 @@ namespace Altinn.Correspondence.API.Auth
                     if (!hostEnvironment.IsDevelopment())
                     {
                         options.CorrelationCookie.Domain = altinnIdProviderSettings.CookieDomain;
+                        options.CorrelationCookie.Path = "/"; 
                     }
                     options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.CorrelationCookie.SameSite = SameSiteMode.None;
