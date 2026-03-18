@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Recipient = table.Column<string>(type: "text", nullable: false),
                     CorrespondenceId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DialogId = table.Column<Guid>(type: "uuid", nullable: false)
+                    DialogId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {

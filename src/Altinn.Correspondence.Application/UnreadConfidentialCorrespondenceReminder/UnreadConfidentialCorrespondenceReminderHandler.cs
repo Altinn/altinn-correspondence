@@ -62,15 +62,15 @@ public class UnreadConfidentialCorrespondenceHandler(
         else
         {
             logger.LogInformation("Creating confidential reminder dialog for correspondence with id {correspondenceId}", correspondenceId);
-            var createdDialogId = await dialogportenService.CreateConfidentialReminderDialog(reminder);
-            if (string.IsNullOrEmpty(createdDialogId))
+            try
             {
-                logger.LogError("Failed to create confidential reminder dialog for correspondence {correspondenceId} — persisting reminder without dialog ID", correspondenceId);
-            }
-            else
-            {
-                dialogId = Guid.Parse(createdDialogId);
+                var createdDialogId = await dialogportenService.CreateConfidentialReminderDialog(reminder);
+                dialogId = Guid.TryParse(createdDialogId, out var parsedDialogId) ? parsedDialogId : (Guid?)null;
                 logger.LogInformation("Confidential reminder dialog created with id {DialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to create confidential reminder dialog for correspondence {correspondenceId} — persisting reminder without dialog ID", correspondenceId);
             }
         }
 
