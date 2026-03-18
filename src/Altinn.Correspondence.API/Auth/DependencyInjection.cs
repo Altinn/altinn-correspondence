@@ -143,8 +143,62 @@ namespace Altinn.Correspondence.API.Auth
                         {
                             endpoint = ep;
                         }
+
+                        // Avoid infinite loops: only attempt one restart
+                        const string retryKey = "oidcRetry";
+                        const string retryMarker = "oidcRetry=1";
+
+                        var alreadyRetried =
+                            context.Request.Query.ContainsKey(retryKey) ||
+                            (context.Request.QueryString.HasValue &&
+                             context.Request.QueryString.Value!.Contains(retryMarker, StringComparison.OrdinalIgnoreCase));
+
+                        static void ExpireCookie(HttpResponse response, string name, string path)
+                        {
+                            response.Cookies.Append(
+                                name,
+                                string.Empty,
+                                new CookieOptions
+                                {
+                                    Expires = DateTimeOffset.UnixEpoch,
+                                    Path = path,
+                                    Secure = true,
+                                    SameSite = SameSiteMode.None,
+                                    HttpOnly = true
+                                });
+                        }
+
+                        // Clear correlation + nonce cookies best-effort (helps avoid "stuck" retries)
+                        var correlationPrefix = context.Options.CorrelationCookie.Name;
+                        // Nonce cookie isn't always exposed on context.Options; use well-known prefix.
+                        const string noncePrefix = ".AspNetCore.OpenIdConnect.Nonce.";
+                        var callbackPath = context.Options.CallbackPath.Value ?? "/correspondence/api/v1/idporten-callback";
+
+                        foreach (var cookieName in context.Request.Cookies.Keys)
+                        {
+                            if (cookieName.StartsWith(correlationPrefix, StringComparison.OrdinalIgnoreCase) ||
+                                cookieName.StartsWith(noncePrefix, StringComparison.OrdinalIgnoreCase))
+                            {
+                                ExpireCookie(context.Response, cookieName, "/");
+                                ExpireCookie(context.Response, cookieName, callbackPath);
+                            }
+                        }
+
                         // Where to restart the flow
-                        string restartUrl = "https://af.altinn.no";
+                        string restartUrl;
+                        if (alreadyRetried)
+                        {
+                            restartUrl = "https://af.altinn.no";
+                        }
+                        else if (!string.IsNullOrEmpty(endpoint))
+                        {
+                            var separator = endpoint.Contains('?', StringComparison.Ordinal) ? "&" : "?";
+                            restartUrl = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}{separator}{retryMarker}";
+                        }
+                        else
+                        {
+                            restartUrl = "https://af.altinn.no";
+                        }
                         logger.LogWarning(
                             "Restarting OIDC flow after failure ({FailureType}). " +
                             "Redirecting to '{RestartUrl}'. Endpoint='{Endpoint}', Host={Host}, Path={Path}, Query={Query}",
@@ -195,17 +249,7 @@ namespace Altinn.Correspondence.API.Auth
                             logger.LogError(context.Failure,
                                 "OIDC remote failure: {Message}",
                                 context.Failure?.Message);
-
-                            if (context.Failure is OpenIdConnectProtocolException ex &&
-                                ex.Message.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase))
-                            {
-                                RestartLogin(context, logger, generalSettings);
-                            }
-                            else if (context.Failure is AuthenticationFailureException corrEx &&
-                                    corrEx.Message.Contains("correlation", StringComparison.OrdinalIgnoreCase))
-                            {
-                                RestartLogin(context, logger, generalSettings);
-                            }
+                            RestartLogin(context, logger, generalSettings);
                             return Task.CompletedTask;
                         },
                     };
