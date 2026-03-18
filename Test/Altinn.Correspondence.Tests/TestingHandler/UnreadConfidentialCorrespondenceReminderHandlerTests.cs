@@ -133,7 +133,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
     }
 
     [Fact]
-    public async Task Process_DialogCreationFails_StillPersistsReminder()
+    public async Task Process_DialogCreationThrows_StillPersistsReminderWithoutDialogId()
     {
         // Arrange
         var correspondenceId = Guid.NewGuid();
@@ -146,14 +146,18 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
             .ReturnsAsync(0);
         _dialogportenServiceMock
             .Setup(x => x.CreateConfidentialReminderDialog(It.IsAny<ConfidentialReminderDialogDto>()))
-            .ReturnsAsync(string.Empty);
+            .ThrowsAsync(new Exception("Response from Dialogporten was not successful"));
 
         // Act
         await _handler.Process(correspondenceId, CancellationToken.None);
 
         // Assert
         _confidentialReminderRepositoryMock.Verify(
-            x => x.AddConfidentialReminder(It.IsAny<ConfidentialReminderEntity>(), It.IsAny<CancellationToken>()),
+            x => x.AddConfidentialReminder(
+                It.Is<ConfidentialReminderEntity>(r =>
+                    r.CorrespondenceId == correspondenceId &&
+                    r.DialogId == null),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
