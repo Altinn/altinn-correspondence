@@ -144,7 +144,7 @@ namespace Altinn.Correspondence.API.Auth
                             endpoint = ep;
                         }
                         // Where to restart the flow
-                        string restartUrl = "https://altinn.no";
+                        string restartUrl = "https://af.altinn.no";
                         logger.LogWarning(
                             "Restarting OIDC flow after failure ({FailureType}). " +
                             "Redirecting to '{RestartUrl}'. Endpoint='{Endpoint}', Host={Host}, Path={Path}, Query={Query}",
