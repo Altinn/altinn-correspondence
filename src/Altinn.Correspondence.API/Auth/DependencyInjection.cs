@@ -232,7 +232,7 @@ namespace Altinn.Correspondence.API.Auth
                                 context.TokenEndpointResponse.AccessToken,
                                 new HybridCacheEntryOptions
                                 {
-                                    Expiration = TimeSpan.FromMinutes(30)
+                                    Expiration = TimeSpan.FromMinutes(5)
                                 });
                             var redirectUrl = context.Properties?.Items["endpoint"]
                                             ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
