@@ -148,10 +148,13 @@ namespace Altinn.Correspondence.API.Auth
                         const string retryKey = "oidcRetry";
                         const string retryMarker = "oidcRetry=1";
 
-                        var alreadyRetried =
-                            context.Request.Query.ContainsKey(retryKey) ||
-                            (context.Request.QueryString.HasValue &&
-                             context.Request.QueryString.Value!.Contains(retryMarker, StringComparison.OrdinalIgnoreCase));
+                        static bool HasRetryMarker(string? value)
+                        {
+                            if (string.IsNullOrEmpty(value)) return false;
+                            return value.Contains(retryMarker, StringComparison.OrdinalIgnoreCase);
+                        }
+
+                        var alreadyRetried = HasRetryMarker(endpoint);
 
                         static void ExpireCookie(HttpResponse response, string name, string path)
                         {
@@ -193,7 +196,8 @@ namespace Altinn.Correspondence.API.Auth
                         else if (!string.IsNullOrEmpty(endpoint))
                         {
                             var separator = endpoint.Contains('?', StringComparison.Ordinal) ? "&" : "?";
-                            restartUrl = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}{separator}{retryMarker}";
+                            restartUrl =
+                                $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}{separator}{retryMarker}";
                         }
                         else
                         {
