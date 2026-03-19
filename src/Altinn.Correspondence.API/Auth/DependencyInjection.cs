@@ -189,19 +189,18 @@ namespace Altinn.Correspondence.API.Auth
 
                         // Where to restart the flow
                         string restartUrl;
-                        if (alreadyRetried)
+                        if (alreadyRetried || string.IsNullOrWhiteSpace(endpoint))
                         {
                             restartUrl = generalSettings.ArbeidsflateBaseUrl;
-                        }
-                        else if (!string.IsNullOrEmpty(endpoint))
-                        {
-                            var separator = endpoint.Contains('?', StringComparison.Ordinal) ? "&" : "?";
-                            restartUrl =
-                                $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}{separator}{retryMarker}";
                         }
                         else
                         {
-                            restartUrl = generalSettings.ArbeidsflateBaseUrl;
+                            // Add the marker so we can detect and stop a second failure.
+                            var separator = endpoint?.Contains('?', StringComparison.Ordinal) ?? false
+                                ? "&"
+                                : "?";
+                            restartUrl =
+                                $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}{separator}{retryMarker}";
                         }
                         logger.LogWarning(
                             "Restarting OIDC flow after failure ({FailureType}). " +
