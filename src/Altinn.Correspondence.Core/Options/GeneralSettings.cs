@@ -14,4 +14,5 @@ public class GeneralSettings
     public string MalwareScanBypassWhiteList { get; set; } = string.Empty;
     public int MigrationWorkerCountPerReplica { get; set; } = 2;
     public int WorkerCountPerReplica { get; set; } = 50;
+    public string ArbeidsflateBaseUrl { get; set; } = string.Empty;
 }

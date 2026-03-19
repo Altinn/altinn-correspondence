@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
@@ -108,24 +108,31 @@ public class HangfireStorageCompatibilityTests
             var liveMigrationJobs = new List<string>();
             for (int i = 1; i <= jobsCount; i++)
             {
-                int schedule = randomGen.Next(3);
+                // Ensure at least one job is enqueued for each queue to make the ordering assertions deterministic
+                int schedule = i switch
+                {
+                    1 => 0, // First job always goes to migration queue
+                    2 => 1, // Second job always goes to default queue
+                    3 => 2, // Third job always goes to live migration queue
+                    _ => randomGen.Next(3)
+                };
                 switch (schedule)
                 {
                     case 0:
                         {
-                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.Migration, (testJobTracker) => testJobTracker.ExecuteJob("migration-job-" + i));
+                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.Migration, (testJobTracker) => testJobTracker.ExecuteJob($"{HangfireQueues.Migration}-job-{i}"));
                             batchMigrationJobs.Add(i.ToString());
                             break;
                         }
                     case 1:
                         {
-                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.Default, (testJobTracker) => testJobTracker.ExecuteJob("default-job-" + i));
+                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.Default, (testJobTracker) => testJobTracker.ExecuteJob($"{HangfireQueues.Default}-job-{i}"));
                             defaultJobs.Add(i.ToString());
                             break;
                         }
                     case 2:
                         {
-                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.LiveMigration, (testJobTracker) => testJobTracker.ExecuteJob("live-migration-job-" + i));
+                            backgroundJobClient.Enqueue<TestJobTracker>(HangfireQueues.LiveMigration, (testJobTracker) => testJobTracker.ExecuteJob($"{HangfireQueues.LiveMigration}-job-{i}"));
                             liveMigrationJobs.Add(i.ToString());
                             break;
                         }
