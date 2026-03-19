@@ -188,7 +188,7 @@ namespace Altinn.Correspondence.API.Auth
                         string restartUrl;
                         if (alreadyRetried)
                         {
-                            restartUrl = "https://af.altinn.no";
+                            restartUrl = generalSettings.ArbeidsflateBaseUrl;
                         }
                         else if (!string.IsNullOrEmpty(endpoint))
                         {
@@ -197,7 +197,7 @@ namespace Altinn.Correspondence.API.Auth
                         }
                         else
                         {
-                            restartUrl = "https://af.altinn.no";
+                            restartUrl = generalSettings.ArbeidsflateBaseUrl;
                         }
                         logger.LogWarning(
                             "Restarting OIDC flow after failure ({FailureType}). " +
