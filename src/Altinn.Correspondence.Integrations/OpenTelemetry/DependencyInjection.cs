@@ -48,8 +48,7 @@ public static class DependencyInjection
                             }
                             var path = httpContext.Request.Path.Value?.ToLowerInvariant();
                             return path != null &&
-                                   !path.Contains("/health") &&
-                                   !path.Contains("/migration");
+                                   !path.Contains("/health");
                         };
                     })
                     .AddHttpClientInstrumentation(options =>

@@ -45,6 +45,58 @@ public class ApplicationDbContext : DbContext
             .WithOne()
             .HasForeignKey(sp => sp.ServiceOwnerId)
             .HasPrincipalKey(so => so.Id);
+
+        // Ensure simple FK indexes exist for query performance (these are separate from the unique expression indexes)
+        modelBuilder.Entity<CorrespondenceDeleteEventEntity>()
+            .HasIndex(e => e.CorrespondenceId);
+            
+        modelBuilder.Entity<CorrespondenceNotificationEntity>()
+            .HasIndex(e => e.CorrespondenceId);
+            
+        modelBuilder.Entity<CorrespondenceForwardingEventEntity>()
+            .HasIndex(e => e.CorrespondenceId);
+
+        // Configure unique indexes for event deduplication
+        // These indexes enforce uniqueness at full timestamp precision
+        
+        // CorrespondenceStatusEntity - unique on (CorrespondenceId, Status, StatusChanged, PartyUuid)
+        modelBuilder.Entity<CorrespondenceStatusEntity>()
+            .HasIndex(nameof(CorrespondenceStatusEntity.CorrespondenceId), 
+                     nameof(CorrespondenceStatusEntity.Status), 
+                     nameof(CorrespondenceStatusEntity.StatusChanged), 
+                     nameof(CorrespondenceStatusEntity.PartyUuid))
+            .IsUnique()
+            .HasDatabaseName("IX_CorrespondenceStatuses_Unique");
+
+        // CorrespondenceDeleteEventEntity - unique on (CorrespondenceId, EventType, EventOccurred, PartyUuid)
+        modelBuilder.Entity<CorrespondenceDeleteEventEntity>()
+            .HasIndex(nameof(CorrespondenceDeleteEventEntity.CorrespondenceId),
+                     nameof(CorrespondenceDeleteEventEntity.EventType),
+                     nameof(CorrespondenceDeleteEventEntity.EventOccurred),
+                     nameof(CorrespondenceDeleteEventEntity.PartyUuid))
+            .IsUnique()
+            .HasDatabaseName("IX_CorrespondenceDeleteEvents_Unique");
+
+        // CorrespondenceNotificationEntity - unique index for synced notifications only
+        // Prevents duplicate event syncing from Altinn2
+        // Regular notifications (via API) have no uniqueness constraint, allowing multiple notifications/reminders
+        modelBuilder.Entity<CorrespondenceNotificationEntity>()
+            .HasIndex(nameof(CorrespondenceNotificationEntity.CorrespondenceId),
+                     nameof(CorrespondenceNotificationEntity.Altinn2NotificationId),
+                     nameof(CorrespondenceNotificationEntity.NotificationAddress),
+                     nameof(CorrespondenceNotificationEntity.NotificationChannel),
+                     nameof(CorrespondenceNotificationEntity.NotificationSent))
+            .IsUnique()
+            .HasFilter("\"Altinn2NotificationId\" IS NOT NULL")
+            .HasDatabaseName("IX_CorrespondenceNotifications_Synced");
+
+        // CorrespondenceForwardingEventEntity - unique on (CorrespondenceId, ForwardedOnDate, ForwardedByPartyUuid)
+        modelBuilder.Entity<CorrespondenceForwardingEventEntity>()
+            .HasIndex(nameof(CorrespondenceForwardingEventEntity.CorrespondenceId),
+                     nameof(CorrespondenceForwardingEventEntity.ForwardedOnDate),
+                     nameof(CorrespondenceForwardingEventEntity.ForwardedByPartyUuid))
+            .IsUnique()
+            .HasDatabaseName("IX_CorrespondenceForwardingEvents_Unique");
     }
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

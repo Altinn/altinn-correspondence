@@ -1,8 +1,12 @@
+using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -13,6 +17,17 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
         private readonly Mock<ICorrespondenceNotificationRepository> _correspondenceNotificationRepositoryMock;
         private readonly Mock<ILogger<SyncCorrespondenceNotificationEventHandler>> _loggerMock;
+        private readonly Mock<ICorrespondenceStatusRepository> _correspondenceStatusRepositoryMock;
+        private readonly Mock<ICorrespondenceDeleteEventRepository> _correspondenceDeleteRepositoryMock;
+        private readonly Mock<ICorrespondenceForwardingEventRepository> _forwardingEventRepositoryMock;
+        private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
+        private readonly Mock<IAttachmentRepository> _attachmentRepositoryMock;
+        private readonly Mock<IAttachmentStatusRepository> _attachmentStatusRepositoryMock;
+        private readonly Mock<IDialogportenService> _dialogportenServiceMock;
+        private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
+        private readonly Mock<ILogger<CorrespondenceMigrationEventHelper>> _eventHelperLoggerMock;
+        private readonly Mock<ILogger<PurgeCorrespondenceHelper>> _purgeLoggerMock;
+        private readonly Mock<IIdempotencyKeyRepository> _idempotencyKeyRepositoryMock;
         private readonly SyncCorrespondenceNotificationEventHandler _handler;
 
         public SyncCorrespondenceNotificationEventHandlerTests()
@@ -20,10 +35,44 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
             _correspondenceNotificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();
             _loggerMock = new Mock<ILogger<SyncCorrespondenceNotificationEventHandler>>();
+            
+            // Setup mocks for CorrespondenceMigrationEventHelper dependencies
+            _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
+            _correspondenceDeleteRepositoryMock = new Mock<ICorrespondenceDeleteEventRepository>();
+            _forwardingEventRepositoryMock = new Mock<ICorrespondenceForwardingEventRepository>();
+            _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
+            _attachmentRepositoryMock = new Mock<IAttachmentRepository>();
+            _attachmentStatusRepositoryMock = new Mock<IAttachmentStatusRepository>();
+            _dialogportenServiceMock = new Mock<IDialogportenService>();
+            _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
+            _eventHelperLoggerMock = new Mock<ILogger<CorrespondenceMigrationEventHelper>>();
+            _purgeLoggerMock = new Mock<ILogger<PurgeCorrespondenceHelper>>();
+            _idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
+
+            var purgeCorrespondenceHelper = new PurgeCorrespondenceHelper(
+                _attachmentRepositoryMock.Object,
+                _attachmentStatusRepositoryMock.Object,
+                _correspondenceStatusRepositoryMock.Object,
+                _backgroundJobClientMock.Object,
+                _dialogportenServiceMock.Object,
+                _correspondenceRepositoryMock.Object,
+                _idempotencyKeyRepositoryMock.Object,
+                _purgeLoggerMock.Object);
+
+            var correspondenceMigrationEventHelper = new CorrespondenceMigrationEventHelper(
+                _correspondenceStatusRepositoryMock.Object,
+                _correspondenceDeleteRepositoryMock.Object,
+                _correspondenceNotificationRepositoryMock.Object,
+                _forwardingEventRepositoryMock.Object,
+                _altinnRegisterServiceMock.Object,
+                purgeCorrespondenceHelper,
+                _idempotencyKeyRepositoryMock.Object,
+                _backgroundJobClientMock.Object,
+                _eventHelperLoggerMock.Object);
 
             _handler = new SyncCorrespondenceNotificationEventHandler(
                 _correspondenceRepositoryMock.Object,
-                _correspondenceNotificationRepositoryMock.Object,
+                correspondenceMigrationEventHelper,
                 _loggerMock.Object);
         }
 
@@ -64,7 +113,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
-                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.AddNotificationForSync(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondenceId);
 
             // Act
@@ -78,7 +127,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
-            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n => 
+            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotificationForSync(It.Is<CorrespondenceNotificationEntity>(n => 
                 n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
         }
@@ -122,7 +171,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
-                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.AddNotificationForSync(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondenceId);
 
             // Act
@@ -136,7 +185,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
-            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
+            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotificationForSync(It.Is<CorrespondenceNotificationEntity>(n =>
                 n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
         }
@@ -189,7 +238,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
-                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.AddNotificationForSync(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondenceId);
 
             // Act
@@ -203,9 +252,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
 
-            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
+            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotificationForSync(It.Is<CorrespondenceNotificationEntity>(n =>
                 n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
-            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotification(It.Is<CorrespondenceNotificationEntity>(n =>
+            _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotificationForSync(It.Is<CorrespondenceNotificationEntity>(n =>
                 n.Altinn2NotificationId == 3 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
         }
@@ -248,7 +297,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
-                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.AddNotificationForSync(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondenceId);
 
             // Act
@@ -303,7 +352,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _correspondenceNotificationRepositoryMock
-                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.AddNotificationForSync(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondenceId);
 
             // Act
