@@ -47,7 +47,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             return AuthorizationErrors.LegacyNoAccessToCorrespondence;
         }
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
-        if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber)))
+        if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber) && string.IsNullOrEmpty(senderParty.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }

@@ -19,12 +19,19 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     private readonly Guid _secondUserPartyUuid = new Guid("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
     public const int SiUserPartyId = 300;
     public static readonly Guid SiUserPartyUuid = new Guid("11111111-2222-3333-4444-555555555555");
+    public const int LegacySiUserPartyId = 301;
+    public static readonly Guid LegacySiUserPartyUuid = new Guid("22222222-3333-4444-5555-666666666666");
     
     public Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken)
     {
-        if (identificationId.IsIdPortenEmailUrn() || identificationId.IsLegacySelfIdentifiedUrn())
+        if (identificationId.IsIdPortenEmailUrn())
         {
             return Task.FromResult<int?>(SiUserPartyId);
+        }
+
+        if (identificationId.IsLegacySelfIdentifiedUrn())
+        {
+            return Task.FromResult<int?>(LegacySiUserPartyId);
         }
 
         if (IdentificationIDRegex.IsMatch(identificationId.WithoutPrefix()))
@@ -71,7 +78,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             var username = cleanId;
             return Task.FromResult<Party?>(new Party
             {
-                PartyId = SiUserPartyId,
+                PartyId = LegacySiUserPartyId,
                 OrgNumber = "",
                 SSN = "",
                 ExternalUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{username}",
@@ -79,7 +86,7 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
                 Name = $"Legacy SI user {username}",
-                PartyUuid = SiUserPartyUuid,
+                PartyUuid = LegacySiUserPartyUuid,
             });
         }
         
@@ -141,14 +148,27 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 PartyId = SiUserPartyId,
                 OrgNumber = "",
                 SSN = "",
-                // Treat SI test user as both IdPorten-email and legacy self-identified capable.
-                // For legacy flows we primarily care that ExternalUrn is a valid legacy SI URN.
-                ExternalUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:si-user",
+                ExternalUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com",
                 Resources = new List<string>(),
                 PartyTypeName = PartyType.Person,
                 UnitType = "Person",
                 Name = "SI test user",
                 PartyUuid = SiUserPartyUuid,
+            };
+        }
+        else if (partyId == LegacySiUserPartyId)
+        {
+            party = new Party
+            {
+                PartyId = LegacySiUserPartyId,
+                OrgNumber = "",
+                SSN = "",
+                ExternalUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:si-user",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = "Legacy SI test user",
+                PartyUuid = LegacySiUserPartyUuid,
             };
         }
         return Task.FromResult<Party?>(party);
@@ -200,6 +220,36 @@ public class AltinnRegisterDevService : IAltinnRegisterService
                 UnitType = "Person",
                 Name = "Annen test bruker",
                 PartyUuid = _secondUserPartyUuid,
+            };
+        }
+        else if (partyUuid == SiUserPartyUuid)
+        {
+            party = new Party
+            {
+                PartyId = SiUserPartyId,
+                OrgNumber = "",
+                SSN = "",
+                ExternalUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = "SI test user",
+                PartyUuid = SiUserPartyUuid,
+            };
+        }
+        else if (partyUuid == LegacySiUserPartyUuid)
+        {
+            party = new Party
+            {
+                PartyId = LegacySiUserPartyId,
+                OrgNumber = "",
+                SSN = "",
+                ExternalUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:si-user",
+                Resources = new List<string>(),
+                PartyTypeName = PartyType.Person,
+                UnitType = "Person",
+                Name = "Legacy SI test user",
+                PartyUuid = LegacySiUserPartyUuid,
             };
         }
 

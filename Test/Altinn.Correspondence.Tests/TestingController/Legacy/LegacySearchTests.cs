@@ -71,6 +71,38 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             var siUserClient = factory.CreateClientWithAddedClaims(
                 ("scope", AuthorizationConstants.LegacyScope),
+                (_partyIdClaim, AltinnRegisterDevService.LegacySiUserPartyId.ToString()));
+
+            var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
+            listPayload.InstanceOwnerPartyIdList = [];
+
+            var correspondenceList = await siUserClient.PostAsJsonAsync("correspondence/api/v1/legacy/correspondence", listPayload);
+            var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
+
+            Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
+            Assert.NotNull(response);
+            Assert.Contains(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+        }
+
+        [Fact]
+        public async Task GetCorrespondences_AsIdportenEmailSiUser_ReturnsOwnCorrespondences()
+        {
+            var idportenEmailRecipient = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com";
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([idportenEmailRecipient])
+                .Build();
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
+                _senderClient,
+                _serializerOptions,
+                correspondence.CorrespondenceId,
+                CorrespondenceStatusExt.Published);
+
+            using var factory = new UnitWebApplicationFactory(_ => { });
+
+            var siUserClient = factory.CreateClientWithAddedClaims(
+                ("scope", AuthorizationConstants.LegacyScope),
                 (_partyIdClaim, AltinnRegisterDevService.SiUserPartyId.ToString()));
 
             var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
@@ -82,6 +114,49 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
             Assert.NotNull(response);
             Assert.Contains(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+        }
+
+        [Fact]
+        public async Task GetCorrespondences_AsDifferentIdportenEmailSiUser_DoesNotSeeOthersCorrespondences()
+        {
+            var idportenEmailRecipient = $"{UrnConstants.PersonIdPortenEmailAttribute}:si-user@example.com";
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([idportenEmailRecipient])
+                .Build();
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _serializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
+                _senderClient,
+                _serializerOptions,
+                correspondence.CorrespondenceId,
+                CorrespondenceStatusExt.Published);
+
+            using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockRegisterService = new Mock<IAltinnRegisterService>();
+                mockRegisterService
+                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new Party
+                    {
+                        PartyId = 99999999,
+                        ExternalUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:other-user@example.com",
+                    });
+                services.AddSingleton(mockRegisterService.Object);
+            });
+
+            var otherSiUserClient = factory.CreateClientWithAddedClaims(
+                ("scope", AuthorizationConstants.LegacyScope),
+                (_partyIdClaim, "99999999"));
+
+            var listPayload = GetBasicLegacyGetCorrespondenceRequestExt();
+            listPayload.InstanceOwnerPartyIdList = [];
+
+            var correspondenceList = await otherSiUserClient.PostAsJsonAsync("correspondence/api/v1/legacy/correspondence", listPayload);
+            var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
+
+            Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
+            Assert.NotNull(response);
+            Assert.DoesNotContain(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
         }
 
         [Fact]
@@ -291,7 +366,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                     .ReturnsAsync(new Party
                     {
                         PartyId = 99999999,
-                        ExternalUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:other-user@example.com",
+                        ExternalUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:other-user",
                     });
                 services.AddSingleton(mockRegisterService.Object);
             });

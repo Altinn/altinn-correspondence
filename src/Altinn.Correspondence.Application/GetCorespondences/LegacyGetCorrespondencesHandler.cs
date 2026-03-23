@@ -75,7 +75,9 @@ public class LegacyGetCorrespondencesHandler(
                 {
                     recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
                 }
-                else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) && mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsLegacySelfIdentifiedUrn())
+                else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) &&
+                         (mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsLegacySelfIdentifiedUrn() ||
+                          mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsIdPortenEmailUrn()))
                 {
                     recipients.Add(mappedInstanceOwnerWithExternalUrn.ExternalUrn);
                 }
@@ -91,7 +93,8 @@ public class LegacyGetCorrespondencesHandler(
             {
                 recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
             }
-            else if (!string.IsNullOrEmpty(userParty.ExternalUrn) && userParty.ExternalUrn.IsLegacySelfIdentifiedUrn())
+            else if (!string.IsNullOrEmpty(userParty.ExternalUrn) &&
+                     (userParty.ExternalUrn.IsLegacySelfIdentifiedUrn() || userParty.ExternalUrn.IsIdPortenEmailUrn()))
             {
                 recipients.Add(userParty.ExternalUrn);
             }
