@@ -24,7 +24,7 @@ public class InitializeAttachmentHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var sanitizedResourceId = request.Attachment.ResourceId.SanitizeForLogging();
+        var sanitizedResourceId = request.Attachment.ResourceId.SanitizeForLogging().WithoutPrefix();
         logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", sanitizedResourceId);
         
         var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Attachment.ResourceId, cancellationToken);

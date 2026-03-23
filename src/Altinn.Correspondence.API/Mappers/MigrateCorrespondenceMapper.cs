@@ -22,6 +22,7 @@ internal static class MigrateCorrespondenceMapper
             ForwardingEvents = [.. migrateCorrespondenceExt.ForwardingHistory.Select(MapForwardingEventToInternal)],
             SendersReference = migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference,
             Recipient = migrateCorrespondenceExt.CorrespondenceData.Recipients.First().ToLowerInvariant(),
+            RecipientType = CorrespondenceEntity.ComputeRecipientType(migrateCorrespondenceExt.CorrespondenceData.Recipients.First()),
             ResourceId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId,
             Sender = migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender,
             ServiceOwnerId = await serviceOwnerHelper.GetSafeServiceOwnerIdAsync(migrateCorrespondenceExt.CorrespondenceData.Correspondence.Sender, cancellationToken),

@@ -2,6 +2,7 @@
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -118,16 +119,107 @@ namespace Altinn.Correspondence.API.Auth
                     options.UsePkce = true;
                     options.CallbackPath = "/correspondence/api/v1/idporten-callback";
                     options.SaveTokens = true;
+                    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.CorrelationCookie.SameSite = SameSiteMode.None;
+                    options.CorrelationCookie.HttpOnly = true;
+                    options.CorrelationCookie.Name = ".AspNetCore.Correlation.Correspondence";
+                    options.CorrelationCookie.Path = options.CallbackPath.Value;
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
                     options.StateDataFormat = new DistributedCacheStateDataFormat(_cache, "OpenIdConnectState");
                     options.SkipUnrecognizedRequests = true;
+                    
+                    static void RestartLogin(
+                        RemoteFailureContext context,
+                        ILogger logger,
+                        GeneralSettings generalSettings)
+                    {
+                        // Try to get original endpoint (contains correspondenceId/attachmentId)
+                        string? endpoint = null;
+                        if (context.Properties?.Items != null &&
+                            context.Properties.Items.TryGetValue("endpoint", out var ep) &&
+                            !string.IsNullOrEmpty(ep))
+                        {
+                            endpoint = ep;
+                        }
+
+                        // Avoid infinite loops: only attempt one restart
+                        const string retryKey = "oidcRetry";
+                        const string retryMarker = "oidcRetry=1";
+
+                        static bool HasRetryMarker(string? value)
+                        {
+                            if (string.IsNullOrEmpty(value)) return false;
+                            return value.Contains(retryMarker, StringComparison.OrdinalIgnoreCase);
+                        }
+
+                        var alreadyRetried = HasRetryMarker(endpoint);
+
+                        static void ExpireCookie(HttpResponse response, string name, string path)
+                        {
+                            response.Cookies.Append(
+                                name,
+                                string.Empty,
+                                new CookieOptions
+                                {
+                                    Expires = DateTimeOffset.UnixEpoch,
+                                    Path = path,
+                                    Secure = true,
+                                    SameSite = SameSiteMode.None,
+                                    HttpOnly = true
+                                });
+                        }
+
+                        // Clear correlation + nonce cookies best-effort (helps avoid "stuck" retries)
+                        var correlationPrefix = context.Options.CorrelationCookie.Name;
+                        // Nonce cookie isn't always exposed on context.Options; use well-known prefix.
+                        const string noncePrefix = ".AspNetCore.OpenIdConnect.Nonce.";
+                        var callbackPath = context.Options.CallbackPath.Value ?? "/correspondence/api/v1/idporten-callback";
+
+                        foreach (var cookieName in context.Request.Cookies.Keys)
+                        {
+                            if (cookieName.StartsWith(correlationPrefix, StringComparison.OrdinalIgnoreCase) ||
+                                cookieName.StartsWith(noncePrefix, StringComparison.OrdinalIgnoreCase))
+                            {
+                                ExpireCookie(context.Response, cookieName, "/");
+                                ExpireCookie(context.Response, cookieName, callbackPath);
+                            }
+                        }
+
+                        // Where to restart the flow
+                        string restartUrl;
+                        if (alreadyRetried || string.IsNullOrWhiteSpace(endpoint))
+                        {
+                            restartUrl = generalSettings.ArbeidsflateBaseUrl;
+                        }
+                        else
+                        {
+                            // Add the marker so we can detect and stop a second failure.
+                            var separator = endpoint?.Contains('?', StringComparison.Ordinal) ?? false
+                                ? "&"
+                                : "?";
+                            restartUrl =
+                                $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{endpoint}{separator}{retryMarker}";
+                        }
+                        logger.LogWarning(
+                            "Restarting OIDC flow after failure ({FailureType}). " +
+                            "Redirecting to '{RestartUrl}'. Endpoint='{Endpoint}', Host={Host}, Path={Path}, Query={Query}",
+                            context.Failure?.GetType().Name ?? "<unknown>",
+                            restartUrl,
+                            endpoint ?? "<none>",
+                            context.Request.Host.Value,
+                            context.Request.Path.Value,
+                            context.Request.QueryString.Value?.SanitizeForLogging());
+                        context.Response.Redirect(restartUrl);
+                        context.HandleResponse(); 
+                    }
                     options.Events = new OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
                         {
-                            context.ProtocolMessage.RedirectUri = $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
+                            context.ProtocolMessage.RedirectUri =
+                                $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{options.CallbackPath}";
                             context.ProtocolMessage.AcrValues = "selfregistered-email idporten-loa-substantial";
                             return Task.CompletedTask;
                         },
@@ -139,16 +231,30 @@ namespace Altinn.Correspondence.API.Auth
                                 return;
                             }
                             await _cache.SetAsync(
-                                sessionId, 
+                                sessionId,
                                 context.TokenEndpointResponse.AccessToken,
                                 new HybridCacheEntryOptions
                                 {
                                     Expiration = TimeSpan.FromMinutes(5)
                                 });
-                            var redirectUrl = context.Properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
-                            redirectUrl = CascadeAuthenticationHandler.AppendSessionToUrl($"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
+                            var redirectUrl = context.Properties?.Items["endpoint"]
+                                            ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
+                            redirectUrl = CascadeAuthenticationHandler.AppendSessionToUrl(
+                                $"{generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}",
+                                sessionId);
                             context.Properties.RedirectUri = redirectUrl;
-                        }
+                        },
+                        OnRemoteFailure = context =>
+                        {
+                            var logger = context.HttpContext.RequestServices
+                                .GetRequiredService<ILoggerFactory>()
+                                .CreateLogger("OpenIdConnectRemoteFailure");
+                            logger.LogError(context.Failure,
+                                "OIDC remote failure: {Message}",
+                                context.Failure?.Message);
+                            RestartLogin(context, logger, generalSettings);
+                            return Task.CompletedTask;
+                        },
                     };
                 });
         }
