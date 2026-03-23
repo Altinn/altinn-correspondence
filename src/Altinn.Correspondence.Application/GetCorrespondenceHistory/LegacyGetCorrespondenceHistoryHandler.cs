@@ -26,7 +26,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             return AuthorizationErrors.InvalidPartyId;
         }
         var recipientParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber)))
+        if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber) && string.IsNullOrEmpty(recipientParty.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -35,13 +35,19 @@ public class LegacyGetCorrespondenceHistoryHandler(
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, recipientParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
+            user,
+            recipientParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
+            correspondence.ResourceId,
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
+            correspondence.Recipient,
+            cancellationToken);
         if (minimumAuthLevel is null)
         {
             return AuthorizationErrors.LegacyNoAccessToCorrespondence;
         }
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
-        if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber)))
+        if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber) && string.IsNullOrEmpty(senderParty.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
