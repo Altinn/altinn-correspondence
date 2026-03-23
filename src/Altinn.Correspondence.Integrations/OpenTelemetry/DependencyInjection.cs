@@ -31,7 +31,8 @@ public static class DependencyInjection
                         "Microsoft.AspNetCore.Hosting",
                         "Microsoft.AspNetCore.Server.Kestrel",
                         "System.Net.Http",
-                        "Altinn.Correspondence.Integrations.Hangfire")
+                        "Altinn.Correspondence.Integrations.Hangfire",
+                        "Altinn.Correspondence.Integrations.Postgres")
                     .AddNpgsqlInstrumentation();
             })
             .WithTracing(tracing =>
