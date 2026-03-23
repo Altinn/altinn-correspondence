@@ -559,21 +559,27 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
 
             // Get service owner names in bulk
-            var serviceOwnerIds = groupedData.Select(g => g.ServiceOwnerId).Distinct().ToList();
+            var serviceOwnerIds = groupedData
+                .Select(g => g.ServiceOwnerId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
             var serviceOwners = await _context.ServiceOwners
                 .Where(so => serviceOwnerIds.Contains(so.Id))
                 .ToDictionaryAsync(so => so.Id, so => so.Name, cancellationToken);
 
             // Map to DailySummaryDataDto
             var aggregatedData = groupedData
+                // Exclude groups that can't be resolved to a service owner in the ServiceOwners table (old legacy test data)
+                .Where(g => !string.IsNullOrEmpty(g.ServiceOwnerId) && serviceOwners.ContainsKey(g.ServiceOwnerId))
                 .Select(g => new DailySummaryDataDto
                 {
                     Date = g.Date,
                     Year = g.Date.Year,
                     Month = g.Date.Month,
                     Day = g.Date.Day,
-                    ServiceOwnerId = g.ServiceOwnerId,
-                    ServiceOwnerName = serviceOwners.GetValueOrDefault(g.ServiceOwnerId),
+                    ServiceOwnerId = g.ServiceOwnerId!,
+                    ServiceOwnerName = serviceOwners[g.ServiceOwnerId!],
                     MessageSender = g.MessageSender,
                     ResourceId = g.ResourceId,
                     RecipientType = g.RecipientType switch

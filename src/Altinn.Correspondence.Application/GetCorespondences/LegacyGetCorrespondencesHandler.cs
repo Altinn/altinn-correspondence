@@ -49,7 +49,7 @@ public class LegacyGetCorrespondencesHandler(
             request.InstanceOwnerPartyIdList);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
+        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber) && string.IsNullOrEmpty(userParty.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -66,20 +66,42 @@ public class LegacyGetCorrespondencesHandler(
                     logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
                     continue;
                 }
-                if (mappedInstanceOwner.OrgNumber != null)
+                var mappedInstanceOwnerWithExternalUrn = await altinnRegisterService.LookUpPartyByPartyId(mappedInstanceOwner.PartyId, cancellationToken);
+                if (!string.IsNullOrEmpty(mappedInstanceOwner.OrgNumber))
+                {
                     recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
-                else if (mappedInstanceOwner.SSN != null)
+                }
+                else if (!string.IsNullOrEmpty(mappedInstanceOwner.SSN))
+                {
                     recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
+                }
+                else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) &&
+                         (mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsLegacySelfIdentifiedUrn() ||
+                          mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsIdPortenEmailUrn()))
+                {
+                    recipients.Add(mappedInstanceOwnerWithExternalUrn.ExternalUrn);
+                }
             }
         }
         else
         {
-            if (!string.IsNullOrEmpty(userParty.SSN)) recipients.Add(GetPrefixedForPerson(userParty.SSN));
-            if (!string.IsNullOrEmpty(userParty.OrgNumber)) recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
+            if (!string.IsNullOrEmpty(userParty.SSN))
+            {
+                recipients.Add(GetPrefixedForPerson(userParty.SSN));
+            }
+            else if (!string.IsNullOrEmpty(userParty.OrgNumber))
+            {
+                recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
+            }
+            else if (!string.IsNullOrEmpty(userParty.ExternalUrn) &&
+                     (userParty.ExternalUrn.IsLegacySelfIdentifiedUrn() || userParty.ExternalUrn.IsIdPortenEmailUrn()))
+            {
+                recipients.Add(userParty.ExternalUrn);
+            }
         }
         if (recipients.Count == 0)
         {
-            logger.LogWarning("Caller did not have access to any inboxes");
+            logger.LogWarning("Caller with party {PartyId} did not have access to any inboxes", userParty.PartyId);
             return new LegacyGetCorrespondencesResponse()
             {
                 Items = []
@@ -146,7 +168,11 @@ public class LegacyGetCorrespondencesHandler(
             }
         }
 
-        Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(user, userParty.SSN, correspondences, cancellationToken);
+        Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
+            user,
+            userParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
+            correspondences,
+            cancellationToken);
         foreach (var correspondence in correspondences)
         {
             authlevels.TryGetValue((correspondence.Recipient, correspondence.ResourceId), out int? authLevel);

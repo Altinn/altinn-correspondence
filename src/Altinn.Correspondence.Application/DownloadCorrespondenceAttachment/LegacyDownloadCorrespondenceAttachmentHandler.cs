@@ -28,7 +28,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
             return AuthorizationErrors.InvalidPartyId;
         }
         var party = await altinnRegisterService.LookUpPartyByPartyId(partyId.Value, cancellationToken);
-        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber)))
+        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber) && string.IsNullOrEmpty(party.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -60,7 +60,7 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
             caller = party.OrgNumber;
         }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateDownloadStartedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, operationTimestamp, caller, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateDownloadStartedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, operationTimestamp, party.ExternalUrn ?? caller, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
         return new DownloadCorrespondenceAttachmentResponse()
         {
             FileName = attachment.FileName,
