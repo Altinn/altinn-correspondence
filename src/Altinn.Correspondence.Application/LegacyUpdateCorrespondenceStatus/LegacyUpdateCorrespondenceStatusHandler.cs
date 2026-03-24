@@ -27,7 +27,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
             return AuthorizationErrors.InvalidPartyId;
         }
         var party = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber)))
+        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber) && string.IsNullOrEmpty(party.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -38,7 +38,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
             user,
-            party.SSN,
+            party.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
             correspondence.ResourceId,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             correspondence.Recipient,

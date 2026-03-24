@@ -85,7 +85,7 @@ public class ResourceRegistryService : IResourceRegistryService
         {
             _logger.LogWarning(ex, "Error retrieving resource from cache.");
         }
-        var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}", cancellationToken);
+        var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId.WithoutPrefix()}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.NoContent)
         {
             return null;

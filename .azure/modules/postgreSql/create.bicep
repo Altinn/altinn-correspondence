@@ -346,12 +346,32 @@ resource pgmsWaitSamplingQueryCaptureMode 'Microsoft.DBforPostgreSQL/flexibleSer
   }
 }
 
+resource metricsCollectorDatabaseActivity 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'metrics.collector_database_activity'
+  parent: postgres
+  dependsOn: [database, pgmsWaitSamplingQueryCaptureMode]
+  properties: {
+    value: 'on'
+    source: 'user-override'
+  }
+}
+
+resource metricsAutovacuumDiagnostics 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  name: 'metrics.autovacuum_diagnostics'
+  parent: postgres
+  dependsOn: [database, metricsCollectorDatabaseActivity]
+  properties: {
+    value: 'on'
+    source: 'user-override'
+  }
+}
+
 
 
 resource allowAzureAccess 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   name: 'azure-access'
   parent: postgres
-  dependsOn: [database, pgmsWaitSamplingQueryCaptureMode] // Needs to depend on database to avoid updating at the same time
+  dependsOn: [database, metricsAutovacuumDiagnostics] // Needs to depend on database to avoid updating at the same time
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
