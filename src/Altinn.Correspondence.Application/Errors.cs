@@ -89,6 +89,7 @@ public static class AttachmentErrors
     public static Error CannotDownloadPurgedAttachment = new Error(2019, "The attachment has been purged and cannot be downloaded", HttpStatusCode.BadRequest);
     public static Error CannotDownloadExpiredAttachment = new Error(2020, "The attachment has expired and cannot be downloaded", HttpStatusCode.BadRequest);
     public static Error FilenameCannotBeAReservedWindowsFilename = new Error(2021, "The filename uses a Windows reserved name. Files cannot be named CON, PRN, AUX, NUL, COM1-COM9, or LPT1-LPT9 (e.g., 'CON.txt' is not allowed, but 'CONSOLE.txt' is).", HttpStatusCode.BadRequest);
+    public static Error UploadTimedOut = new Error(2022, "Upload request timed out due to data arriving too slowly", HttpStatusCode.RequestTimeout);
 }
 public static class NotificationErrors
 {
