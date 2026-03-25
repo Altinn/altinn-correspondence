@@ -47,9 +47,16 @@ public static class DependencyInjection
                                 return false;
                             }
                             var path = httpContext.Request.Path.Value?.ToLowerInvariant();
-                            return path != null &&
-                                   !path.Contains("/health") &&
-                                   !path.Contains("/migration");
+                            var isHealthCheck = path != null && path.Contains("/health");
+                            var isMigrationCall = path != null && path.Contains("/migration");
+                            if (generalSettings.DisableTelemetryForMigration)
+                            {
+                                return !isHealthCheck && !isMigrationCall;
+                            }
+                            else
+                            {
+                                return !isHealthCheck;
+                            }
                         };
                     })
                     .AddHttpClientInstrumentation(options =>

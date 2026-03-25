@@ -83,6 +83,7 @@ public sealed class EnqueueMissingNotificationSentChecksHandler(
 
             var last = candidates[^1];
             afterNotificationId = last.NotificationId;
+            logger.LogInformation("Batch {Batch} processed: Total candidates: {TotalCandidates}, Total enqueued: {Enqueued}, Total skipped because already has activity: {SkippedHasActivity}", batches, totalCandidates, totalEnqueued, totalSkippedHasActivity);
         }
 
         logger.LogInformation(
