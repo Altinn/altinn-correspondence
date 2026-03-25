@@ -49,7 +49,7 @@ public static class DependencyInjection
                             var path = httpContext.Request.Path.Value?.ToLowerInvariant();
                             var isHealthCheck = path != null && path.Contains("/health");
                             var isMigrationCall = path != null && path.Contains("/migration");
-                            if (generalSettings.DisableTelemetryForSync)
+                            if (generalSettings.DisableTelemetryForMigration)
                             {
                                 return !isHealthCheck && !isMigrationCall;
                             }
