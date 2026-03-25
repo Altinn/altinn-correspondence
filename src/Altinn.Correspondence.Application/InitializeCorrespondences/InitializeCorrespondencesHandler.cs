@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.CreateNotificationOrder;
+using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
@@ -13,6 +14,7 @@ using Altinn.Correspondence.Application.ExpireAttachment;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -33,6 +35,7 @@ public class InitializeCorrespondencesHandler(
     IHybridCacheWrapper hybridCacheWrapper,
     HangfireScheduleHelper hangfireScheduleHelper,
     IIdempotencyKeyRepository idempotencyKeyRepository,
+    IHostEnvironment hostEnvironment,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private class ValidatedData
@@ -93,6 +96,17 @@ public class InitializeCorrespondencesHandler(
         }
         validatedData.PartyUuid = partyUuid;
 
+        var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
+        if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
+        {
+            logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
+            return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
+        }
+        if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
+        {
+            logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
+            return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
+        }
         var recipientValidation = await ValidateRecipientParty(request, cancellationToken);
         if (recipientValidation.IsT1)
         {
@@ -458,6 +472,15 @@ public class InitializeCorrespondencesHandler(
             if (createJobResult.IsT1)
             {
                 return createJobResult.AsT1;
+            }
+
+            if (correspondence.IsConfidential)
+            {
+                logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
+                var unreadCheckDelay = hostEnvironment.IsProduction()
+                    ? correspondence.RequestedPublishTime.AddDays(7)
+                    : correspondence.RequestedPublishTime.AddMinutes(1);
+                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
             }
 
             initializedCorrespondences.Add(new InitializedCorrespondences()

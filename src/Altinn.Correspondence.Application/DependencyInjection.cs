@@ -33,6 +33,8 @@ using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 using Altinn.Correspondence.Application.SendSlackNotification;
 using Altinn.Correspondence.Application.RepairNotificationDelivery;
+using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
+using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 
 namespace Altinn.Correspondence.Application;
 
@@ -111,5 +113,8 @@ public static class DependencyInjection
         services.AddScoped<SyncCorrespondenceStatusEventHandler>();
         services.AddScoped<SyncCorrespondenceNotificationEventHandler>();
         services.AddScoped<SyncCorrespondenceForwardingEventHandler>();
+
+        services.AddScoped<UnreadConfidentialCorrespondenceHandler>();
+        services.AddScoped<GetUnreadConfidentialCorrespondencesHandler>();
     }
 }

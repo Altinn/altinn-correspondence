@@ -1,3 +1,5 @@
+using Altinn.Correspondence.Core.Models.Enums;
+
 namespace Altinn.Correspondence.Core.Services;
 
 public interface IResourceRegistryService
@@ -39,4 +41,12 @@ public interface IResourceRegistryService
     /// <returns>The organization number of the service owner of the resource.</returns>
     Task<string?> GetServiceOwnerOrganizationNumber(string resourceId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Checks the confidential level of the resource by looking up the resource rights and checking access packages.
+    /// Returns <see cref="ConfidentialTypeEnum.Confidential"/> if the resource has the "post-til-virksomheten-med-taushetsbelagt-innhold" access package,
+    /// <see cref="ConfidentialTypeEnum.ExplicitlyDelegated"/> if it has the "eksplisitt" access package, or <see cref="ConfidentialTypeEnum.NotConfidential"/> otherwise.
+    /// </summary>
+    /// <param name="resourceId">The id of the resource to check.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task<ConfidentialTypeEnum> GetConfidentialType(string resourceId, CancellationToken cancellationToken = default);
 }

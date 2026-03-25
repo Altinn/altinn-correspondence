@@ -34,6 +34,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ServiceOwnerEntity> ServiceOwners { get; set; }
     public DbSet<StorageProviderEntity> StorageProviders { get; set; }
     public DbSet<CorrespondenceStatusFetchedEntity> CorrespondenceFetches { get; set; }
+    public DbSet<ConfidentialReminderEntity> ConfidentialReminders { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +46,12 @@ public class ApplicationDbContext : DbContext
             .WithOne()
             .HasForeignKey(sp => sp.ServiceOwnerId)
             .HasPrincipalKey(so => so.Id);
+
+        modelBuilder.Entity<ConfidentialReminderEntity>()
+            .HasOne<CorrespondenceEntity>()
+            .WithMany()
+            .HasForeignKey(r => r.CorrespondenceId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
