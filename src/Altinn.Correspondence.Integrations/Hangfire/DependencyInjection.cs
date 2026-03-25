@@ -19,7 +19,11 @@ public static class DependencyInjection
         services.AddHangfire((provider, config) =>
         {
             config.UsePostgreSqlStorage(
-                c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>())
+                c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>()),
+                new PostgreSqlStorageOptions
+                {
+                    UseSlidingInvisibilityTimeout = true
+                }
             );
             config.UseLogProvider(new AspNetCoreLogProvider(provider.GetRequiredService<ILoggerFactory>()));
             config.UseFilter(new HangfireAppRequestFilter());
