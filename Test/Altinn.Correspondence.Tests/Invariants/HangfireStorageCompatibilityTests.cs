@@ -2,6 +2,7 @@ using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
+using Hangfire.AspNetCore;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -177,17 +178,28 @@ public class HangfireStorageCompatibilityTests
                 SchedulePollingInterval = TimeSpan.FromSeconds(1)
             };
 
-            using var server = new BackgroundJobServer(serverOptions, jobStorage);
+            // BackgroundJobServer uses the global JobActivator.Current. Make it deterministic by
+            // wiring it to the test host's DI container, otherwise activation may fail in CI depending on test order.
+            var previousActivator = JobActivator.Current;
+            JobActivator.Current = new AspNetCoreJobActivator(testFactory.Services.GetRequiredService<IServiceScopeFactory>());
+            try
+            {
+                using var server = new BackgroundJobServer(serverOptions, jobStorage);
 
-            // Wait for all jobs to complete
-            var allCompleted = testJobTracker.Countdown.Wait(overallTimeout);
+                // Wait for all jobs to complete
+                var allCompleted = testJobTracker.Countdown.Wait(overallTimeout);
 
-            Assert.True(allCompleted,
-                $"Not all jobs completed. Executed: {testJobTracker.GetExecutionCount()}/{jobsCount}. " +
-                $"Remaining enqueued jobs - Default: {monitoringApi.EnqueuedJobs(HangfireQueues.Default, 0, jobsCount).Count}, " +
-                $"LiveMigration: {monitoringApi.EnqueuedJobs(HangfireQueues.LiveMigration, 0, jobsCount).Count}, " +
-                $"Migration: {monitoringApi.EnqueuedJobs(HangfireQueues.Migration, 0, jobsCount).Count}. " +
-                $"Order: [{string.Join(", ", testJobTracker.GetExecutionOrder())}]");
+                Assert.True(allCompleted,
+                    $"Not all jobs completed. Executed: {testJobTracker.GetExecutionCount()}/{jobsCount}. " +
+                    $"Remaining enqueued jobs - Default: {monitoringApi.EnqueuedJobs(HangfireQueues.Default, 0, jobsCount).Count}, " +
+                    $"LiveMigration: {monitoringApi.EnqueuedJobs(HangfireQueues.LiveMigration, 0, jobsCount).Count}, " +
+                    $"Migration: {monitoringApi.EnqueuedJobs(HangfireQueues.Migration, 0, jobsCount).Count}. " +
+                    $"Order: [{string.Join(", ", testJobTracker.GetExecutionOrder())}]");
+            }
+            finally
+            {
+                JobActivator.Current = previousActivator;
+            }
 
             // Verify execution order
             var executionList = testJobTracker.GetExecutionOrder();
