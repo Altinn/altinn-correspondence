@@ -1,7 +1,6 @@
 ﻿using Altinn.AccessManagement.Core.Models;
 using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using OpenTelemetry;
 using System.Collections.Frozen;
@@ -62,9 +61,9 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestFilterProcessor"/> class.
     /// </summary>
-    public RequestFilterProcessor(IOptions<GeneralSettings> generalSettings, IHttpContextAccessor httpContextAccessor = null) : base()
+    public RequestFilterProcessor(GeneralSettings generalSettings, IHttpContextAccessor httpContextAccessor = null) : base()
     {
-        _generalSettings = generalSettings.Value;
+        _generalSettings = generalSettings;
         _httpContextAccessor = httpContextAccessor;
     }
 
