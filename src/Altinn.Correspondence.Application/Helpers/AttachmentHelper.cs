@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Services;
 using Azure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using OneOf;
 using Hangfire;
 using System.Text.RegularExpressions;
@@ -39,6 +40,8 @@ namespace Altinn.Correspondence.Application.Helpers
         @"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled
         );
+
+        private static readonly TimeSpan UploadCanceledCleanupTimeout = TimeSpan.FromSeconds(30);
         
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
         {
@@ -134,6 +137,13 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogInformation("Uploaded {attachmentId} to Azure Storage", attachment.Id);
                 return (dataLocationUrl, checksum, size);
             }
+            catch (OperationCanceledException ex)
+            {
+                logger.LogWarning(ex, "Upload to storage cancelled for attachment {AttachmentId}. Marking as failed.", attachment.Id);
+                using var cleanupCts = new CancellationTokenSource(UploadCanceledCleanupTimeout);
+                await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cleanupCts.Token, AttachmentStatusText.UploadInterrupted);
+                return AttachmentErrors.UploadFailed;
+            }
             catch (DataLocationUrlException)
             {
                 await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
@@ -148,6 +158,13 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
                 return AttachmentErrors.UploadFailed;
+            }
+            catch (BadHttpRequestException ex) when (ex.Message.Contains("Reading the request body timed out due to data arriving too slowly", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning(ex, "Upload request failed for attachment {AttachmentId} due to data arriving too slowly. Marking as failed.", attachment.Id);
+                using var cleanupCts = new CancellationTokenSource(UploadCanceledCleanupTimeout);
+                await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cleanupCts.Token, AttachmentStatusText.UploadTimedOut);
+                return AttachmentErrors.UploadTimedOut;
             }
         }
 

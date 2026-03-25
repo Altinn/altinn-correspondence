@@ -228,6 +228,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// </ul></response>
+        /// <response code="408"><ul>
+        /// <li>2022: Upload request timed out due to data arriving too slowly</li>
+        /// </ul></response>
         /// <response code="409"><ul>
         /// <li>1034: A correspondence with the same idempotent key already exists</li>
         /// </ul></response>
@@ -246,6 +249,7 @@ namespace Altinn.Correspondence.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status408RequestTimeout)]
         [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         [Authorize(Policy = AuthorizationConstants.Sender)]
