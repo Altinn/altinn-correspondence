@@ -49,10 +49,25 @@ public class GetUnreadConfidentialCorrespondencesHandler(
 
     var sortedCorrespondences = correspondences.OrderBy(c => c.Published).ToList();
     var senderNames = await Task.WhenAll(
-        sortedCorrespondences.Select(c =>
-            !string.IsNullOrWhiteSpace(c.MessageSender)
-                ? Task.FromResult<string?>(c.MessageSender)
-                : altinnRegisterService.LookUpName(c.Sender.WithoutPrefix(), cancellationToken))
+        sortedCorrespondences.Select(async c =>
+        {
+            if (!string.IsNullOrWhiteSpace(c.MessageSender))
+            {
+                return c.MessageSender;
+            }
+            try
+            {
+                return await altinnRegisterService.LookUpName(c.Sender.WithoutPrefix(), cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return null;
+            }
+        })
     );
 
     var lines = sortedCorrespondences
