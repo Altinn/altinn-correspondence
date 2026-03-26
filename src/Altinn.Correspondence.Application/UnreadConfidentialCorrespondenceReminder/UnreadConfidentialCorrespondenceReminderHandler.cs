@@ -45,7 +45,6 @@ public class UnreadConfidentialCorrespondenceHandler(
             Recipient = correspondence.Recipient.WithUrnPrefix(),
             ResourceId = "ttd-reminder-unopened-confidential-correspondences",
             SendersReference = "Digdir",
-            MessageSender = "Digitaliseringsdirektoratet",
             Created = DateTimeOffset.UtcNow,
             Status = "RequiresAttention",
             PropertyList = new Dictionary<string, string>{}
