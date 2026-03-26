@@ -2,9 +2,9 @@ using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 
@@ -14,6 +14,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
 {
     private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
     private readonly Mock<IAltinnAuthorizationService> _altinnAuthorizationServiceMock;
+    private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
     private readonly Mock<IHostEnvironment> _hostEnvironmentMock;
     private readonly GetUnreadConfidentialCorrespondencesHandler _handler;
 
@@ -21,12 +22,14 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     {
         _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
         _altinnAuthorizationServiceMock = new Mock<IAltinnAuthorizationService>();
+        _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
         _hostEnvironmentMock = new Mock<IHostEnvironment>();
         _hostEnvironmentMock.Setup(x => x.EnvironmentName).Returns("Development");
 
         _handler = new GetUnreadConfidentialCorrespondencesHandler(
             _correspondenceRepositoryMock.Object,
             _altinnAuthorizationServiceMock.Object,
+            _altinnRegisterServiceMock.Object,
             _hostEnvironmentMock.Object);
     }
 
