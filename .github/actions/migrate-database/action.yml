@@ -48,7 +48,7 @@ runs:
       uses: ./.github/actions/get-current-version
 
     - name: OIDC Login to Azure Public Cloud
-      uses: azure/login@v2
+      uses: azure/login@v3
       with:
         client-id: ${{ inputs.AZURE_CLIENT_ID }}
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
@@ -87,7 +87,7 @@ runs:
         dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --force
 
     - name: Upload Migration Files to Azure File Share
-      uses: azure/CLI@v2
+      uses: azure/CLI@v3
       with:
         azcliversion: 2.72.0
         inlineScript: |
@@ -99,14 +99,14 @@ runs:
             --auth-mode login --enable-file-backup-request-intent
 
     - name: Start migration job
-      uses: azure/CLI@v2
+      uses: azure/CLI@v3
       with:
         azcliversion: 2.72.0
         inlineScript: |
           az containerapp job start -n ${{ steps.migration-job.outputs.name }} -g ${{ inputs.AZURE_NAME_PREFIX }}-rg
 
     - name: Verify migration
-      uses: azure/CLI@v2
+      uses: azure/CLI@v3
       id: verify-migration
       with:
         azcliversion: 2.72.0
