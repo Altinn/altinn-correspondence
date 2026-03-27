@@ -44,6 +44,32 @@ namespace Altinn.Correspondence.Tests.TestingUtility
         }
 
         [Fact]
+        public void IsEmailAddress_ReturnsTrue_For_Valid_IdPortenEmailUrn()
+        {
+            // Arrange
+            string emailUrn = "urn:altinn:person:idporten-email:test@example.com";
+
+            // Act
+            bool isValid = emailUrn.IsEmailAddress();
+
+            // Assert
+            Assert.True(isValid);
+        }
+
+        [Fact]
+        public void IsEmailAddress_ReturnsFalse_For_IdPortenEmailUrn_With_ExtraColon()
+        {
+            // Arrange
+            string emailUrn = "urn:altinn:person:idporten-email:epost:test@example.com";
+
+            // Act
+            bool isValid = emailUrn.IsEmailAddress();
+
+            // Assert
+            Assert.False(isValid);
+        }
+
+        [Fact]
         public void SanitizeForLogging_ReturnsEmpty_WhenInputIsEmpty()
         {
             // Arrange
