@@ -304,7 +304,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(correspondenceId) && !correspondenceId.StartsWith("urn:altinn:correspondence-id:"))
+        if (!string.IsNullOrWhiteSpace(correspondenceId) && !correspondenceId.StartsWith("urn:altinn:correspondence-id:", StringComparison.Ordinal))
         {
             correspondenceId = "urn:altinn:correspondence-id:" + correspondenceId;
         }
