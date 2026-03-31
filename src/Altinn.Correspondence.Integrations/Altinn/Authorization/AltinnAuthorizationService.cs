@@ -290,7 +290,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return responseContent;
     }
 
-    private async Task<XacmlJsonRequestRoot> CreateDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? instanceId, List<string> actionTypes, CancellationToken cancellationToken)
+    private async Task<XacmlJsonRequestRoot> CreateDecisionRequest(ClaimsPrincipal user, string resourceId, string party, string? correspondenceId, List<string> actionTypes, CancellationToken cancellationToken)
     {
         var issuer = user.Claims.FirstOrDefault(c => c.Type == "iss")?.Value;
 
@@ -304,16 +304,21 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(correspondenceId) && !correspondenceId.StartsWith("urn:altinn:correspondence-id:", StringComparison.Ordinal))
+        {
+            correspondenceId = "urn:altinn:correspondence-id:" + correspondenceId;
+        }
+
         if (issuer == _dialogportenSettings.Issuer)
         {
-            return await DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, _altinnRegisterService, resourceId, resolvedParty, instanceId, cancellationToken);
+            return await DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, _altinnRegisterService, resourceId, resolvedParty, correspondenceId, cancellationToken);
         }
         if (issuer == _idPortenSettings.Issuer)
         {
-            return await IdportenXacmlMapper.CreateIdPortenDecisionRequest(user, _altinnRegisterService, actionTypes, resourceId, resolvedParty, instanceId, cancellationToken);
+            return await IdportenXacmlMapper.CreateIdPortenDecisionRequest(user, _altinnRegisterService, actionTypes, resourceId, resolvedParty, correspondenceId, cancellationToken);
         }
 
-        return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, resolvedParty, instanceId);
+        return AltinnTokenXacmlMapper.CreateAltinnDecisionRequest(user, actionTypes, resourceId, resolvedParty, correspondenceId);
     }
 
     private XacmlJsonRequestRoot CreateDecisionRequestForLegacy(ClaimsPrincipal user, string subjectUserId, List<string> actionTypes, string resourceId, string onBehalfOfPartyId)
