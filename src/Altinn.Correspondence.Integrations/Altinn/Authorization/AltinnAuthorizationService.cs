@@ -304,6 +304,11 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             }
         }
 
+        if (instanceId is not null && !instanceId.StartsWith("urn:altinn:correspondence-id:"))
+        {
+            instanceId = "urn:altinn:correspondence-id:" + instanceId;
+        }
+
         if (issuer == _dialogportenSettings.Issuer)
         {
             return await DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(user, _altinnRegisterService, resourceId, resolvedParty, instanceId, cancellationToken);
