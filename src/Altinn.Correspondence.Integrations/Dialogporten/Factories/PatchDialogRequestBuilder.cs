@@ -70,29 +70,5 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             );
             return this;
         }
-
-        internal DialogPatchRequestBuilder WithReplaceExtendedStatusOperation(string newExtendedStatus, string languageCode)
-        {
-            _PatchDialogRequest.Add(
-                new
-                {
-                    op = "add",
-                    path = "/content/extendedStatus",
-                    value = new
-                    {
-                        value = new[]
-                        {
-                            new
-                            {
-                                value = newExtendedStatus,
-                                languageCode = languageCode
-                            }
-                        },
-                        mediaType = "text/plain"
-                    }
-                }
-            );
-            return this;
-        }
     }
 }

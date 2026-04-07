@@ -261,12 +261,6 @@ namespace Altinn.Correspondence.Application.Helpers
             var transmissionTypeRefs = externalReferences
                 .Where(er => er.ReferenceType == ReferenceType.DialogportenTransmissionType)
                 .ToList();
-            var dialogStatusRefs = externalReferences
-                .Where(er => er.ReferenceType == ReferenceType.DialogportenDialogStatus)
-                .ToList();
-            var dialogExtendedStatusRefs = externalReferences
-                .Where(er => er.ReferenceType == ReferenceType.DialogportenDialogExtendedStatus)
-                .ToList();
 
             if (transmissionTypeRefs.Count > 1)
             {
@@ -278,30 +272,6 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 logger.LogWarning("DialogportenTransmissionType external reference provided without a DialogportenDialogId external reference");
                 return CorrespondenceErrors.DialogportenTransmissionTypeRequiresDialogId;
-            }
-
-            if (dialogStatusRefs.Count > 1)
-            {
-                logger.LogWarning("Multiple DialogportenDialogStatus external references found");
-                return CorrespondenceErrors.MultipleDialogportenDialogStatusExternalReferences;
-            }
-
-            if (dialogStatusRefs.Count == 1 && !hasDialogId)
-            {
-                logger.LogWarning("DialogportenDialogStatus external reference provided without a DialogportenDialogId external reference");
-                return CorrespondenceErrors.DialogportenDialogStatusRequiresDialogId;
-            }
-
-            if (dialogExtendedStatusRefs.Count > 1)
-            {
-                logger.LogWarning("Multiple DialogportenDialogExtendedStatus external references found");
-                return CorrespondenceErrors.MultipleDialogportenDialogExtendedStatusExternalReferences;
-            }
-
-            if (dialogExtendedStatusRefs.Count == 1 && !hasDialogId)
-            {
-                logger.LogWarning("DialogportenDialogExtendedStatus external reference provided without a DialogportenDialogId external reference");
-                return CorrespondenceErrors.DialogportenDialogExtendedStatusRequiresDialogId;
             }
 
             return null;
