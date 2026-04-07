@@ -91,11 +91,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(Guid.NewGuid().ToString());
         }
 
-        public Task PatchDialogStatusAndExtendedStatusForTransmission(Guid correspondenceId, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
         public Task<bool> TryRemoveMarkdownAndHtmlFromSummary(string dialogId, string newSummary, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(true);
