@@ -922,6 +922,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
             _correspondenceForwardingEventRepositoryMock.VerifyNoOtherCalls();
             _dialogportenServiceMock.VerifyNoOtherCalls();
+            // Verify background job for Altinn Events
+            VerifyAltinnEventEnqueued(correspondenceId, AltinnEventType.CorrespondenceReceiverRead, correspondenceRequestObject.Sender);
             _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
