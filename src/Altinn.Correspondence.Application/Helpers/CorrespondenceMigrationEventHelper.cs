@@ -134,7 +134,7 @@ public class CorrespondenceMigrationEventHelper(
                 }
                 else
                 {
-                    return true;
+                    return false;
                 }
             case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
             case CorrespondenceDeleteEventType.RestoredByRecipient:
@@ -380,7 +380,7 @@ public class CorrespondenceMigrationEventHelper(
             catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
             {
                 logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
-                return true;
+                return false;
             }
 
             DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;

@@ -1412,6 +1412,248 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
+        [Fact]
+        public async Task Remigrate_DuplicatePurgeEvent_ShouldNotIncrementSavedCount()
+        {
+            // Arrange - This test verifies the fix for the bug where skipped purge operations 
+            // were incorrectly returning true and incrementing savedCount.
+            // This test specifically checks the case where a purge event is filtered out as a duplicate.
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 99999;
+            var purgeEventDate = new DateTime(2025, 12, 5, 10, 0, 0);
+            
+            // Create a correspondence that has already been purged (PurgedByRecipient status)
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                .WithResourceId("TTD-migratedCorrespondence-purge-test")
+                .WithRecipient(_defaultUserPartyIdentifier)
+                .WithDialogId("dialog-id-purge-123")
+                .WithId(correspondenceId)
+                .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 1, 10, 0, 0))
+                .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 1, 10, 5, 0), _defaultUserPartyUuid)
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, purgeEventDate, _defaultUserPartyUuid)
+                .Build();
+
+            // Existing correspondence in database already has purge status
+            var correspondenceExistingObject = new CorrespondenceEntityBuilder()
+                .WithResourceId("TTD-migratedCorrespondence-purge-test")
+                .WithRecipient(_defaultUserPartyIdentifier)
+                .WithDialogId("dialog-id-purge-123")
+                .WithId(correspondenceId)
+                .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 1, 10, 0, 0))
+                .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 1, 10, 5, 0), _defaultUserPartyUuid)
+                .WithStatus(CorrespondenceStatus.PurgedByRecipient, purgeEventDate, _defaultUserPartyUuid)
+                .Build();
+
+            // First purge event that was already processed
+            var existingPurgeEvent = new CorrespondenceDeleteEventEntity
+            {
+                Id = Guid.NewGuid(),
+                CorrespondenceId = correspondenceId,
+                EventOccurred = purgeEventDate,
+                EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
+                PartyUuid = _defaultUserPartyUuid,
+                SyncedFromAltinn2 = new DateTime(2025, 12, 5, 10, 1, 0)
+            };
+
+            // Attempting to remigrate with same purge event (same timestamp, same type, same party)
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                DeleteEventEntities = new List<CorrespondenceDeleteEventEntity>
+                {
+                    // This should be filtered out as duplicate by FilterDeleteEvents
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventOccurred = purgeEventDate,
+                        EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
+                        PartyUuid = _defaultUserPartyUuid
+                    }
+                },
+                MakeAvailable = false
+            };
+
+            // Setup mocks
+            _correspondenceRepositoryMock.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .Throws(new DbUpdateException("An error occurred while updating the entries.",
+                    new Npgsql.PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505")));
+            
+            _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondenceExistingObject);
+
+            _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
+
+            // Return the existing purge event when querying delete events during filtering
+            _correspondenceDeleteRepositoryMock.Setup(x => x.GetDeleteEventsForCorrespondenceId(
+                correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CorrespondenceDeleteEventEntity> { existingPurgeEvent });
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+            var response = result.AsT0;
+            Assert.NotNull(response);
+            Assert.Equal(correspondenceId, response.CorrespondenceId);
+
+            _correspondenceRepositoryMock.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId
+            ), It.IsAny<CancellationToken>()), Times.Once);
+
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()), Times.Once);
+
+            // CRITICAL ASSERTION: Verify that no purge-related status was saved
+            // Because the purge event was filtered out as a duplicate, we should never
+            // attempt to save a purge status
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatusForSync(
+                It.Is<CorrespondenceStatusEntity>(s => 
+                    s.Status == CorrespondenceStatus.PurgedByRecipient || 
+                    s.Status == CorrespondenceStatus.PurgedByAltinn), 
+                It.IsAny<CancellationToken>()), 
+                Times.Never, 
+                "Purge status should not be saved when duplicate purge event is filtered out");
+
+            // Verify that the delete events were queried (filtering happened)
+            _correspondenceDeleteRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(
+                correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
+
+            _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceDeleteRepositoryMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Remigrate_AlreadyPurgedCorrespondence_ValidatePerformPurge_ReturnsZeroSavedCount()
+        {
+            // Arrange - Test the specific case where ValidatePerformPurge returns false.
+            // This test verifies that when a correspondence is already purged and a new purge 
+            // event comes in, the ValidatePerformPurge check prevents any processing.
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 88888;
+            var firstPurgeDate = new DateTime(2025, 12, 5, 10, 0, 0);
+            var secondPurgeDate = new DateTime(2025, 12, 7, 10, 0, 0);
+            
+            // Create a correspondence request with the new purge event
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                .WithResourceId("TTD-test-purged-validate")
+                .WithRecipient(_defaultUserPartyIdentifier)
+                .WithDialogId("dialog-id-purged-456")
+                .WithId(correspondenceId)
+                .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 1, 10, 0, 0))
+                .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 1, 10, 5, 0), _defaultUserPartyUuid)
+                .WithStatus(CorrespondenceStatus.PurgedByAltinn, firstPurgeDate, _defaultUserPartyUuid)
+                .Build();
+
+            // Existing correspondence in database is already purged
+            var correspondenceExistingObject = new CorrespondenceEntityBuilder()
+                .WithResourceId("TTD-test-purged-validate")
+                .WithRecipient(_defaultUserPartyIdentifier)
+                .WithDialogId("dialog-id-purged-456")
+                .WithId(correspondenceId)
+                .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 12, 1, 10, 0, 0))
+                .WithStatus(CorrespondenceStatus.Read, new DateTime(2025, 12, 1, 10, 5, 0), _defaultUserPartyUuid)
+                .WithStatus(CorrespondenceStatus.PurgedByAltinn, firstPurgeDate, _defaultUserPartyUuid)
+                .Build();
+
+            // First purge event that already exists
+            var existingPurgeEvent = new CorrespondenceDeleteEventEntity
+            {
+                Id = Guid.NewGuid(),
+                CorrespondenceId = correspondenceId,
+                EventOccurred = firstPurgeDate,
+                EventType = CorrespondenceDeleteEventType.HardDeletedByServiceOwner,
+                PartyUuid = _defaultUserPartyUuid,
+                SyncedFromAltinn2 = new DateTime(2025, 12, 5, 10, 1, 0)
+            };
+
+            // Attempt to remigrate with a NEW purge event (different timestamp)
+            // This should NOT be filtered as a duplicate, but should fail ValidatePerformPurge
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                DeleteEventEntities = new List<CorrespondenceDeleteEventEntity>
+                {
+                    // Different timestamp - won't be filtered as duplicate, but ValidatePerformPurge should return false
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventOccurred = secondPurgeDate,
+                        EventType = CorrespondenceDeleteEventType.HardDeletedByServiceOwner,
+                        PartyUuid = _defaultUserPartyUuid
+                    }
+                },
+                MakeAvailable = false
+            };
+
+            // Setup mocks
+            _correspondenceRepositoryMock.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .Throws(new DbUpdateException("An error occurred while updating the entries.",
+                    new Npgsql.PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505")));
+
+            _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondenceExistingObject);
+
+            _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
+
+            // Return the existing purge event - the new one has a different timestamp so won't be filtered
+            _correspondenceDeleteRepositoryMock.Setup(x => x.GetDeleteEventsForCorrespondenceId(
+                correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CorrespondenceDeleteEventEntity> { existingPurgeEvent });
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+            var response = result.AsT0;
+            Assert.NotNull(response);
+
+            _correspondenceRepositoryMock.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId
+            ), It.IsAny<CancellationToken>()), Times.Once);
+
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByAltinn2Id(
+                altinn2CorrespondenceId, It.IsAny<CancellationToken>()), Times.Once);
+
+            // CRITICAL ASSERTION: The Purge should have been skipped entirely (ValidatePerformPurge returns false)
+            // No attempt should be made to save a purge status because the correspondence is already purged
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatusForSync(
+                It.Is<CorrespondenceStatusEntity>(s => 
+                    s.Status == CorrespondenceStatus.PurgedByAltinn || 
+                    s.Status == CorrespondenceStatus.PurgedByRecipient), 
+                It.IsAny<CancellationToken>()), 
+                Times.Never,
+                "Purge status should never be attempted when correspondence is already purged");
+
+            // Verify the warning was logged - the correspondence entity has the purge status,
+            // so ValidatePerformPurge should detect it and log a warning
+            _eventHelperLoggerMock.Verify(
+                x => x.Log(
+                    It.Is<LogLevel>(l => l == LogLevel.Warning),
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("has already been purged")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once,
+                "Warning should be logged when attempting to purge an already purged correspondence");
+
+            _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceDeleteRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(
+                correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteRepositoryMock.VerifyNoOtherCalls();
+        }
+
         private static CorrespondenceEntity CreateMockCorrespondence(Guid id)
         {
             return new CorrespondenceEntity
