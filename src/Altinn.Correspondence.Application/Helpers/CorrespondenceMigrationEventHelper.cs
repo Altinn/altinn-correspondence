@@ -355,25 +355,6 @@ public class CorrespondenceMigrationEventHelper(
             _ => throw new ArgumentException($"Cannot perform PurgeCorrespondence for {deleteEventToSync.EventType}")
         };
 
-        var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
-        try
-        {
-            await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
-            {
-                Id = purgeIdempotencyId,
-                CorrespondenceId = correspondence.Id,
-                AttachmentId = null,
-                PartyUrn = null,
-                StatusAction = null,
-                IdempotencyType = IdempotencyType.PurgeCorrespondence
-            }, cancellationToken);
-        }
-        catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
-        {
-            logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
-            return true;
-        }
-
         using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
         {
             IsolationLevel = IsolationLevel.ReadCommitted,
@@ -382,6 +363,26 @@ public class CorrespondenceMigrationEventHelper(
         
         try
         {
+            // Create idempotency key inside transaction so it rolls back with other writes if transaction fails
+            var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
+            try
+            {
+                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                {
+                    Id = purgeIdempotencyId,
+                    CorrespondenceId = correspondence.Id,
+                    AttachmentId = null,
+                    PartyUrn = null,
+                    StatusAction = null,
+                    IdempotencyType = IdempotencyType.PurgeCorrespondence
+                }, cancellationToken);
+            }
+            catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+            {
+                logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
+                return true;
+            }
+
             DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
 
             // Save to Correspondence Database
@@ -405,8 +406,8 @@ public class CorrespondenceMigrationEventHelper(
             var dialogReference = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
             if (dialogReference is not null)
             {
-                var dialogId = dialogReference.ReferenceValue;
-                var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(service => service.TrySoftDeleteDialog(dialogId));
+                var dialogId = dialogReference.ReferenceValue;                
+                var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.TrySoftDeleteDialog(dialogId));
                 bool isSender = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner;
 
                 #pragma warning disable CS4014 // Intended: Hangfire will run these async methods as jobs

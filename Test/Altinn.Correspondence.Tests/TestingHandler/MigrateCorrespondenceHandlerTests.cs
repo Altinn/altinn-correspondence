@@ -877,6 +877,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     Altinn2CorrespondenceId = correspondenceRequestObject.Altinn2CorrespondenceId
                 });
             _correspondenceRepositoryMock.Setup(x => x.ClearChangeTracker());
+            _correspondenceStatusRepositoryMock.Setup(x => x.AddCorrespondenceStatusForSync(
+                It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);

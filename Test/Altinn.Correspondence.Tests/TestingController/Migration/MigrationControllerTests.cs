@@ -627,6 +627,9 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, initializeCorrespondenceResult2);
         var resultObject2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
 
+        // Assert that remigration returns the same correspondence ID (no new correspondence created)
+        Assert.Equal(correspondenceId, resultObject2.CorrespondenceId);
+
         var getCorrespondenceDetailsResponse2 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse2.StatusCode);
         var getCorrespondenceDetailsResponseObject2 = await getCorrespondenceDetailsResponse2.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
@@ -722,6 +725,10 @@ public class MigrationControllerTests : MigrationTestBase
         var initializeCorrespondenceResponse2 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt2);
         string result2 = await initializeCorrespondenceResponse2.Content.ReadAsStringAsync();
         Assert.True(initializeCorrespondenceResponse2.IsSuccessStatusCode, result2);
+        var initializeCorrespondenceResponseObject2 = await initializeCorrespondenceResponse2.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+
+        // Assert that remigration returns the same correspondence ID (no new correspondence created)
+        Assert.Equal(correspondenceId, initializeCorrespondenceResponseObject2.CorrespondenceId);
 
         var getCorrespondenceDetailsResponse2 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse2.StatusCode);
