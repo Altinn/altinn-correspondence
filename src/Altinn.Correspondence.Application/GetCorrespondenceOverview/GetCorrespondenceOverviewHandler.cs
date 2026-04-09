@@ -15,9 +15,11 @@ namespace Altinn.Correspondence.Application.GetCorrespondenceOverview;
 public class GetCorrespondenceOverviewHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
+    IConfidentialReminderRepository confidentialReminderRepository,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
+    IDialogportenService dialogportenService,
     ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -169,6 +171,21 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
                 request.CorrespondenceId, 
                 latestStatus.Status);
+            if (correspondence.IsConfidential 
+                && hasAccessAsRecipient 
+                && !(user?.CallingAsSender() ?? false) 
+                && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
+            {
+                if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
+                {
+                    var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
+                    if (reminderDialogId.HasValue)
+                    {
+                        await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
+                    }
+                }
+                await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
+            }
             return response;
         }, logger, cancellationToken);
     }

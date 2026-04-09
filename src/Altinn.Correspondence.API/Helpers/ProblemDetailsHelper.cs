@@ -15,6 +15,7 @@ public static class ProblemDetailsHelper
     private static readonly Dictionary<HttpStatusCode, (string Type, string Title)> StatusCodeMappings = new()
     {
         { HttpStatusCode.BadRequest, ("https://tools.ietf.org/html/rfc9110#section-15.5.1", "Bad Request") },
+        { HttpStatusCode.RequestTimeout, ("https://tools.ietf.org/html/rfc9110#section-15.5.9", "Request Timeout") },
         { HttpStatusCode.Unauthorized, ("https://tools.ietf.org/html/rfc9110#section-15.5.2", "Unauthorized") },
         { HttpStatusCode.Forbidden, ("https://tools.ietf.org/html/rfc9110#section-15.5.4", "Forbidden") },
         { HttpStatusCode.NotFound, ("https://tools.ietf.org/html/rfc9110#section-15.5.5", "Not Found") },

@@ -80,10 +80,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
         /// <li>1054: Dialogporten dialog with the given id was not found</li>
         /// <li>1055: Existing attachment is expiring within 6 hour(s) and cannot be attached to a new correspondence</li>
-        /// <li>1056: Only one DialogportenDialogStatus external reference is allowed</li>
-        /// <li>1057: DialogportenDialogStatus external reference requires a DialogportenDialogId external reference</li>
-        /// <li>1058: Only one DialogportenDialogExtendedStatus external reference is allowed</li>
-        /// <li>1059: DialogportenDialogExtendedStatus external reference requires a DialogportenDialogId external reference</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// <li>3002: Email body and subject must be provided when sending email notifications</li>
         /// <li>3003: Reminder email body and subject must be provided when sending reminder email notifications</li>
@@ -190,10 +186,6 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1053: DialogportenTransmissionType external reference requires a DialogportenDialogId external reference</li>
         /// <li>1054: Dialogporten dialog with the given id was not found</li>
         /// <li>1055: Existing attachment is expiring within 6 hour(s) and cannot be attached to a new correspondence</li>
-        /// <li>1056: Only one DialogportenDialogStatus external reference is allowed</li>
-        /// <li>1057: DialogportenDialogStatus external reference requires a DialogportenDialogId external reference</li>
-        /// <li>1058: Only one DialogportenDialogExtendedStatus external reference is allowed</li>
-        /// <li>1059: DialogportenDialogExtendedStatus external reference requires a DialogportenDialogId external reference</li>
         /// <li>2001: The requested attachment was not found</li>
         /// <li>2004: File must have content and has a max file size of 2GB</li>
         /// <li>2008: Checksum mismatch</li>
@@ -228,6 +220,9 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>1029: Could not find partyId for the following recipients: {recipients}</li>
         /// <li>3001: The requested notification template with the given language was not found</li>
         /// </ul></response>
+        /// <response code="408"><ul>
+        /// <li>2022: Upload request timed out due to data arriving too slowly</li>
+        /// </ul></response>
         /// <response code="409"><ul>
         /// <li>1034: A correspondence with the same idempotent key already exists</li>
         /// </ul></response>
@@ -246,6 +241,7 @@ namespace Altinn.Correspondence.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status408RequestTimeout)]
         [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         [Authorize(Policy = AuthorizationConstants.Sender)]

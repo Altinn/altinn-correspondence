@@ -22,8 +22,17 @@ public sealed class EnqueueMissingNotificationSentChecksHandler(
         ClaimsPrincipal? user,
         CancellationToken cancellationToken)
     {
+        var olderThan = DateTimeOffset.UtcNow.AddDays(-request.OlderThanDays);
         var jobId = backgroundJobClient.Enqueue(() =>
-            ExecuteInBackground(request.BatchSize, request.OlderThanDays, CancellationToken.None));
+            ExecuteBatchInBackground(
+                request.BatchSize,
+                olderThan,
+                null,
+                1,
+                0,
+                0,
+                0,
+                CancellationToken.None));
 
         return Task.FromResult<OneOf<EnqueueMissingNotificationSentChecksResponse, Error>>(new EnqueueMissingNotificationSentChecksResponse
         {
@@ -34,63 +43,97 @@ public sealed class EnqueueMissingNotificationSentChecksHandler(
 
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 1800)]
-    public async Task ExecuteInBackground(
+    public async Task ExecuteBatchInBackground(
         int batchSize,
-        int olderThanDays,
+        DateTimeOffset olderThan,
+        Guid? afterNotificationId,
+        int batchNumber,
+        int totalCandidates,
+        int totalEnqueued,
+        int totalSkippedHasActivity,
         CancellationToken cancellationToken)
     {
-        var olderThan = DateTimeOffset.UtcNow.AddDays(-olderThanDays);
         logger.LogInformation(
-            "Starting notification sent repair enqueue (batchSize={batchSize}, olderThan={olderThan})",
+            "Starting notification sent repair enqueue batch {BatchNumber} (batchSize={batchSize}, olderThan={olderThan}, afterNotificationId={afterNotificationId})",
+            batchNumber,
             batchSize,
-            olderThan);
+            olderThan,
+            afterNotificationId);
 
-        Guid? afterNotificationId = null;
+        var candidates = await correspondenceNotificationRepository.GetAltinn3NotificationDeliveryRepairCandidates(
+            olderThan,
+            afterNotificationId,
+            batchSize,
+            cancellationToken);
 
-        var totalCandidates = 0;
-        var totalEnqueued = 0;
-        var totalSkippedHasActivity = 0;
-        var batches = 0;
-
-        while (true)
+        if (candidates.Count == 0)
         {
-            var candidates = await correspondenceNotificationRepository.GetAltinn3NotificationDeliveryRepairCandidates(
-                olderThan,
-                afterNotificationId,
-                batchSize,
-                cancellationToken);
-
-            if (candidates.Count == 0)
-            {
-                break;
-            }
-
-            batches++;
-            totalCandidates += candidates.Count;
-
-            foreach (var candidate in candidates)
-            {
-                var didEnqueue = await EnqueueDeliveryCheckIfMissingActivity(candidate, cancellationToken);
-                if (didEnqueue)
-                {
-                    totalEnqueued++;
-                }
-                else
-                {
-                    totalSkippedHasActivity++;
-                }
-            }
-
-            var last = candidates[^1];
-            afterNotificationId = last.NotificationId;
+            logger.LogInformation(
+                "Repair enqueue done. Batches={batches}, Candidates={candidates}, Enqueued={enqueued}, SkippedHasActivity={skippedHasActivity}",
+                batchNumber - 1,
+                totalCandidates,
+                totalEnqueued,
+                totalSkippedHasActivity);
+            return;
         }
 
+        var batchEnqueued = 0;
+        var batchSkippedHasActivity = 0;
+
+        foreach (var candidate in candidates)
+        {
+            var didEnqueue = await EnqueueDeliveryCheckIfMissingActivity(candidate, cancellationToken);
+            if (didEnqueue)
+            {
+                batchEnqueued++;
+            }
+            else
+            {
+                batchSkippedHasActivity++;
+            }
+        }
+
+        totalCandidates += candidates.Count;
+        totalEnqueued += batchEnqueued;
+        totalSkippedHasActivity += batchSkippedHasActivity;
+
+        var last = candidates[^1];
         logger.LogInformation(
-            "Repair enqueue done. Batches={batches}, Candidates={candidates}, Enqueued={enqueued}, SkippedHasActivity={skippedHasActivity}",
-            batches,
+            "Batch {Batch} processed: Batch candidates={BatchCandidates}, Batch enqueued={BatchEnqueued}, Batch skipped={BatchSkippedHasActivity}, Total candidates={TotalCandidates}, Total enqueued={Enqueued}, Total skipped because already has activity={SkippedHasActivity}",
+            batchNumber,
+            candidates.Count,
+            batchEnqueued,
+            batchSkippedHasActivity,
             totalCandidates,
             totalEnqueued,
             totalSkippedHasActivity);
+
+        if (candidates.Count < batchSize)
+        {
+            logger.LogInformation(
+                "Repair enqueue done. Batches={batches}, Candidates={candidates}, Enqueued={enqueued}, SkippedHasActivity={skippedHasActivity}",
+                batchNumber,
+                totalCandidates,
+                totalEnqueued,
+                totalSkippedHasActivity);
+            return;
+        }
+
+        var nextJobId = backgroundJobClient.Enqueue(() =>
+            ExecuteBatchInBackground(
+                batchSize,
+                olderThan,
+                last.NotificationId,
+                batchNumber + 1,
+                totalCandidates,
+                totalEnqueued,
+                totalSkippedHasActivity,
+                CancellationToken.None));
+
+        logger.LogInformation(
+            "Scheduled next repair enqueue batch {NextBatch} as Hangfire job {JobId}",
+            batchNumber + 1,
+            nextJobId);
     }
 
     public async Task<bool> EnqueueDeliveryCheckIfMissingActivity(

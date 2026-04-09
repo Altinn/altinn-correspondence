@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -9,7 +10,6 @@ public interface IDialogportenService
     Task<string> CreateCorrespondenceDialogForMigratedCorrespondence(Guid correspondenceId, CorrespondenceEntity? correspondence, bool enableEvents = false, bool isSoftDeleted = false);
     Task<string> CreateCorrespondenceDialog(Guid correspondenceId);
     Task<string> CreateDialogTransmission(Guid correspondenceId);
-    Task PatchDialogStatusAndExtendedStatusForTransmission(Guid correspondenceId, CancellationToken cancellationToken = default);
     Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default);
     Task<bool> VerifyCorrespondenceDialogPatchedToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default);
     Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, DateTimeOffset activityTimestamp, params string[] tokens);
@@ -33,4 +33,5 @@ public interface IDialogportenService
     Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default);
     Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences);
     Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken);
+    Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder);
 }

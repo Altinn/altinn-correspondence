@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Auth;
+using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
@@ -146,9 +146,12 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        var redirectUrl = _httpContextAccessor.HttpContext.Request.Path;
+        var httpContext = _httpContextAccessor.HttpContext;
+        var request = httpContext.Request;
+        var redirectUrl = request.Path + request.QueryString.Value;
+
         properties.RedirectUri = redirectUrl;
-        properties.Items.Add("endpoint", redirectUrl);
+        properties.Items["endpoint"] = redirectUrl;
         if(_httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().StartsWith("Bearer")) 
         {
             _logger.LogInformation("Challenging with JwtBearer scheme");

@@ -1,6 +1,6 @@
 using Altinn.Correspondence.Application.CorrespondenceDueDate;
 using Altinn.Correspondence.Application.CreateNotificationOrder;
-using Altinn.Correspondence.Application.ExpireAttachment;
+using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
@@ -14,9 +14,11 @@ using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
+using Altinn.Correspondence.Application.ExpireAttachment;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -34,6 +36,7 @@ public class InitializeCorrespondencesHandler(
     IHybridCacheWrapper hybridCacheWrapper,
     HangfireScheduleHelper hangfireScheduleHelper,
     IIdempotencyKeyRepository idempotencyKeyRepository,
+    IHostEnvironment hostEnvironment,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
     private class ValidatedData
@@ -94,6 +97,17 @@ public class InitializeCorrespondencesHandler(
         }
         validatedData.PartyUuid = partyUuid;
 
+        var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
+        if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
+        {
+            logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
+            return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
+        }
+        if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
+        {
+            logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
+            return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
+        }
         var recipientValidation = await ValidateRecipientParty(request, cancellationToken);
         if (recipientValidation.IsT1)
         {
@@ -461,6 +475,15 @@ public class InitializeCorrespondencesHandler(
                 return createJobResult.AsT1;
             }
 
+            if (correspondence.IsConfidential)
+            {
+                logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
+                var unreadCheckDelay = hostEnvironment.IsProduction()
+                    ? correspondence.RequestedPublishTime.AddDays(7)
+                    : correspondence.RequestedPublishTime.AddMinutes(1);
+                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
+            }
+
             initializedCorrespondences.Add(new InitializedCorrespondences()
             {
                 CorrespondenceId = correspondence.Id,
@@ -490,13 +513,6 @@ public class InitializeCorrespondencesHandler(
         var transmissionId = await dialogportenService.CreateDialogTransmission(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
-    }
-
-    public async Task PatchDialogportenTransmissionDialogStatusAndExtendedStatus(Guid correspondenceId, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Patching Dialogporten dialog status/extendedStatus for transmission correspondence {CorrespondenceId}", correspondenceId);
-        await dialogportenService.PatchDialogStatusAndExtendedStatusForTransmission(correspondenceId, cancellationToken);
-        logger.LogInformation("Successfully patched Dialogporten dialog status/extendedStatus for transmission correspondence {CorrespondenceId}", correspondenceId);
     }
     private async Task<OneOf<Task, Error>> ValidateTransmissionRequest(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, CancellationToken cancellationToken)
     {
@@ -556,17 +572,14 @@ public class InitializeCorrespondencesHandler(
             }
 
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
-            var shouldScheduleDialogPatch = correspondence.ExternalReferences.Any(er =>
-                er.ReferenceType == ReferenceType.DialogportenDialogStatus ||
-                er.ReferenceType == ReferenceType.DialogportenDialogExtendedStatus);
 
             if (!string.IsNullOrEmpty(notificationJobId))
             {
-                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, CancellationToken.None));
+                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
             }
             else
             {
-                await ScheduleTransmissionAndPublishJobs(correspondence.Id, correspondence.RequestedPublishTime, shouldScheduleDialogPatch, cancellationToken);
+                await ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken);
             }
         }
         else
@@ -581,7 +594,7 @@ public class InitializeCorrespondencesHandler(
             {
                 if (!string.IsNullOrEmpty(notificationJobId))
                 {
-                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None));
+                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
                 }
                 else
                 {
@@ -593,19 +606,12 @@ public class InitializeCorrespondencesHandler(
         return Task.CompletedTask;
     }
 
-    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, DateTimeOffset requestedPublishTime, bool shouldScheduleDialogPatch, CancellationToken cancellationToken)
+    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
     {
         var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
-        var publishDependencyJob = transmissionJob;
-        if (shouldScheduleDialogPatch)
-        {
-            publishDependencyJob = backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(
-                transmissionJob,
-                (handler) => handler.PatchDialogportenTransmissionDialogStatusAndExtendedStatus(correspondenceId, CancellationToken.None));
-        }
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
-            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, publishDependencyJob, cancellationToken);
+            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
         };
     }
 

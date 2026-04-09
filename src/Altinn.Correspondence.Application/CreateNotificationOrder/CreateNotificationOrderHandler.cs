@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -36,31 +37,7 @@ public class CreateNotificationOrderHandler(
         var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, false, true, false, cancellationToken) ?? throw new Exception($"Correspondence with id {request.CorrespondenceId} not found when creating notification order");
         try
         {
-            // Get notification templates
-            logger.LogInformation("Fetching notification templates for template {NotificationTemplate}", request.NotificationRequest.NotificationTemplate);
-            var templates = await notificationTemplateRepository.GetNotificationTemplates(
-                request.NotificationRequest.NotificationTemplate,
-                cancellationToken,
-                request.Language);
-
-            if (templates.Count == 0)
-            {
-                logger.LogError("No notification templates found for template {NotificationTemplate}", request.NotificationRequest.NotificationTemplate);
-                throw new Exception($"No notification templates found for template {request.NotificationRequest.NotificationTemplate}");
-            }
-            logger.LogInformation("Found {TemplateCount} notification templates", templates.Count);
-
-            // Get notification content
-            logger.LogInformation("Getting notification content for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            var notificationContents = await GetNotificationContent(
-                request.NotificationRequest,
-                templates,
-                correspondence,
-                cancellationToken,
-                request.Language);
-            
-            // Persist notification order requests
-            await PersistNotificationOrderRequests(request.NotificationRequest, correspondence, notificationContents, cancellationToken);
+            await ProcessInternal(request.NotificationRequest, NotificationContext.FromCorrespondence(correspondence), request.Language, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -69,23 +46,61 @@ public class CreateNotificationOrderHandler(
         }
     }
 
-    private async Task<List<NotificationContent>> GetNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, CorrespondenceEntity correspondence, CancellationToken cancellationToken, string? language = null)
+    public async Task Process(CreateNotificationOrderForConfidentialReminders request, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Starting notification order creation for confidential reminder {ReminderId}", request.Reminder.Id);
+        try
+        {
+            await ProcessInternal(request.NotificationRequest, NotificationContext.FromConfidentialReminder(request.Reminder, request.CorrespondenceId), request.Language, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to create notification order for confidential reminder {ReminderId}", request.Reminder.Id);
+            throw;
+        }
+    }
+
+    private async Task ProcessInternal(NotificationRequest notificationRequest, NotificationContext context, string? language, CancellationToken cancellationToken)
+    {
+        // Get notification templates
+        logger.LogInformation("Fetching notification templates for template {NotificationTemplate}", notificationRequest.NotificationTemplate);
+        var templates = await notificationTemplateRepository.GetNotificationTemplates(
+            notificationRequest.NotificationTemplate,
+            cancellationToken,
+            language);
+
+        if (templates.Count == 0)
+        {
+            logger.LogError("No notification templates found for template {NotificationTemplate}", notificationRequest.NotificationTemplate);
+            throw new Exception($"No notification templates found for template {notificationRequest.NotificationTemplate}");
+        }
+        logger.LogInformation("Found {TemplateCount} notification templates", templates.Count);
+
+        // Get notification content
+        logger.LogInformation("Getting notification content for {NotificationId}", context.Id);
+        var notificationContents = await GetNotificationContent(notificationRequest, templates, context, cancellationToken, language);
+
+        // Persist notification order requests
+        await PersistNotificationOrderRequests(notificationRequest, context, notificationContents, cancellationToken);
+    }
+
+    private async Task<List<NotificationContent>> GetNotificationContent(NotificationRequest request, List<NotificationTemplateEntity> templates, NotificationContext context, CancellationToken cancellationToken, string? language = null)
     {
         var content = new List<NotificationContent>();
-        var sendersName = correspondence.MessageSender;
+        var sendersName = context.MessageSender;
         if (string.IsNullOrEmpty(sendersName))
         {
-            logger.LogInformation("Looking up sender name for correspondence {CorrespondenceId}", correspondence.Id);
-            sendersName = await altinnRegisterService.LookUpName(correspondence.Sender, cancellationToken);
+            logger.LogInformation("Looking up sender name for {NotificationId}", context.Id);
+            sendersName = await altinnRegisterService.LookUpName(context.SenderUrn!, cancellationToken);
         }
-        logger.LogInformation("Looking up recipient name for correspondence {CorrespondenceId}", correspondence.Id);
-        var recipientName = await altinnRegisterService.LookUpName(correspondence.Recipient, cancellationToken);
-        var messageTitle = correspondence.Content?.MessageTitle ?? string.Empty;
-        
+        logger.LogInformation("Looking up recipient name for {NotificationId}", context.Id);
+        var recipientName = await altinnRegisterService.LookUpName(context.Recipient, cancellationToken);
+        var messageTitle = context.MessageTitle ?? string.Empty;
+
         foreach (var template in templates)
         {
             logger.LogInformation("Processing template {TemplateId} with language {Language}", template.Id, template.Language);
-            var resourceName = await resourceRegistryService.GetResourceTitle(correspondence.ResourceId, template.Language ?? language, cancellationToken) ?? correspondence.ResourceId;
+            var resourceName = await resourceRegistryService.GetResourceTitle(context.ResourceId, template.Language ?? language, cancellationToken) ?? context.ResourceId;
 
             content.Add(new NotificationContent()
             {
@@ -131,17 +146,17 @@ public class CreateNotificationOrderHandler(
         return message.Replace("{textToken}", token + " ").Trim();
     }
 
-    private List<NotificationOrderRequestV2> CreateNotificationOrderRequestsV2(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> contents, CancellationToken cancellationToken)
-    { 
-        logger.LogInformation("Creating notification order request V2 for correspondence {CorrespondenceId}", correspondence.Id);
-        
+    private List<NotificationOrderRequestV2> CreateNotificationOrderRequestsV2(NotificationRequest notificationRequest, NotificationContext context, List<NotificationContent> contents)
+    {
+        logger.LogInformation("Creating notification order request V2 for {NotificationId}", context.Id);
+
         // Determine recipients to process - behavior depends on OverrideRegisteredContactInformation flag
         List<Recipient> recipientsToProcess = new List<Recipient>();
-        
+
         // If OverrideRegisteredContactInformation is false (default), add the default correspondence recipient
         if (!notificationRequest.OverrideRegisteredContactInformation)
         {
-            string recipient = correspondence.Recipient;
+            string recipient = context.Recipient;
             string recipientWithoutPrefix = recipient.WithoutPrefix();
             bool isExternalIdentity =
                 recipient.StartsWith($"{UrnConstants.PersonIdPortenEmailAttribute}:", StringComparison.Ordinal)
@@ -178,8 +193,8 @@ public class CreateNotificationOrderHandler(
         if (distinctRecipients.Count != recipientsToProcess.Count)
         {
             logger.LogInformation(
-                "Deduplicated recipients for correspondence {CorrespondenceId}: {OriginalCount} -> {DistinctCount}",
-                correspondence.Id,
+                "Deduplicated recipients for {NotificationId}: {OriginalCount} -> {DistinctCount}",
+                context.Id,
                 recipientsToProcess.Count,
                 distinctRecipients.Count);
         }
@@ -190,12 +205,12 @@ public class CreateNotificationOrderHandler(
         {
             var notificationOrder = new NotificationOrderRequestV2
             {
-                SendersReference = $"corr-{correspondence.SendersReference}",
-                RequestedSendTime = correspondence.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
+                SendersReference = $"corr-{context.SendersReference}",
+                RequestedSendTime = context.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
                     ? DateTime.UtcNow
-                    : correspondence.RequestedPublishTime.UtcDateTime,
-                IdempotencyId = correspondence.Id.CreateVersion5(BuildRecipientKey(recipient)),
-                Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: false)
+                    : context.RequestedPublishTime.UtcDateTime,
+                IdempotencyId = context.Id.CreateVersion5(BuildRecipientKey(recipient)),
+                Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: false)
             };
 
             if (notificationRequest.SendReminder)
@@ -204,18 +219,18 @@ public class CreateNotificationOrderHandler(
                 [
                     new ReminderV2
                     {
-                        SendersReference = $"corr-{correspondence.SendersReference}",
+                        SendersReference = $"corr-{context.SendersReference}",
                         DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
-                        ConditionEndpoint = CreateConditionEndpoint(correspondence.Id.ToString())?.ToString(),
-                        Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), correspondence, isReminder: true)
+                        ConditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString())?.ToString(),
+                        Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
                     }
                 ];
             }
-            
+
             notificationOrders.Add(notificationOrder);
         }
-        
-        logger.LogInformation("Created {Count} notification request(s) V2 for correspondence {CorrespondenceId}", notificationOrders.Count, correspondence.Id);
+
+        logger.LogInformation("Created {Count} notification request(s) V2 for {NotificationId}", notificationOrders.Count, context.Id);
         return notificationOrders;
     }
 
@@ -229,9 +244,9 @@ public class CreateNotificationOrderHandler(
         throw new InvalidOperationException("Recipient must have exactly one identifier");
     }
 
-    private static RecipientV2 CreateRecipientOrderV2FromRecipient(Recipient recipient, NotificationRequest notificationRequest, NotificationContent content, CorrespondenceEntity correspondence, bool isReminder)
+    private static RecipientV2 CreateRecipientOrderV2FromRecipient(Recipient recipient, NotificationRequest notificationRequest, NotificationContent content, NotificationContext context, bool isReminder)
     {
-        var resourceIdWithPrefix = UrnConstants.Resource + ":" + correspondence.ResourceId;
+        var resourceIdWithPrefix = UrnConstants.Resource + ":" + context.ResourceId;
         var channel = isReminder
             ? notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel
             : notificationRequest.NotificationChannel;
@@ -296,7 +311,7 @@ public class CreateNotificationOrderHandler(
                     ChannelSchema = channel,
                     EmailSettings = emailSettings,
                     SmsSettings = smsSettings,
-                    IgnoreReservation = correspondence.IgnoreReservation
+                    IgnoreReservation = context.IgnoreReservation
                 }
             };
         }
@@ -339,16 +354,12 @@ public class CreateNotificationOrderHandler(
         return conditionEndpoint;
     }
 
-    private async Task PersistNotificationOrderRequests(NotificationRequest notificationRequest, CorrespondenceEntity correspondence, List<NotificationContent> notificationContents, CancellationToken cancellationToken)
+    private async Task PersistNotificationOrderRequests(NotificationRequest notificationRequest, NotificationContext context, List<NotificationContent> notificationContents, CancellationToken cancellationToken)
     {
         // Create notification order requests
-        var notificationOrderRequests = CreateNotificationOrderRequestsV2(
-            notificationRequest,
-            correspondence,
-            notificationContents,
-            cancellationToken);
+        var notificationOrderRequests = CreateNotificationOrderRequestsV2(notificationRequest, context, notificationContents);
 
-        logger.LogInformation("Persisting {Count} notification order requests for correspondence {CorrespondenceId}", notificationOrderRequests.Count, correspondence.Id);
+        logger.LogInformation("Persisting {Count} notification order requests for {NotificationId}", notificationOrderRequests.Count, context.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
         {
             await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
@@ -358,7 +369,7 @@ public class CreateNotificationOrderHandler(
                     await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
                     {
                         Id = notificationOrderRequest.IdempotencyId,
-                        CorrespondenceId = correspondence.Id,
+                        CorrespondenceId = context.CorrespondenceId,
                         IdempotencyType = IdempotencyType.NotificationOrder
                     }, ct);
                 }
@@ -366,7 +377,7 @@ public class CreateNotificationOrderHandler(
                 {
                     if (e.IsPostgresUniqueViolation())
                     {
-                        logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on correspondence {CorrespondenceId}. Skipping.", notificationOrderRequest.IdempotencyId, correspondence.Id);
+                        logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on {NotificationId}. Skipping.", notificationOrderRequest.IdempotencyId, context.Id);
                         return Task.CompletedTask;
                     }
                     throw;
@@ -377,7 +388,7 @@ public class CreateNotificationOrderHandler(
                     Created = DateTimeOffset.UtcNow,
                     NotificationTemplate = notificationRequest.NotificationTemplate,
                     NotificationChannel = notificationRequest.NotificationChannel,
-                    CorrespondenceId = correspondence.Id,
+                    CorrespondenceId = context.CorrespondenceId,
                     RequestedSendTime = notificationOrderRequest.RequestedSendTime,
                     IsReminder = false,
                     OrderRequest = JsonSerializer.Serialize(notificationOrderRequest)
@@ -386,6 +397,53 @@ public class CreateNotificationOrderHandler(
                 return Task.CompletedTask;
             }, logger, cancellationToken);
         }
+    }
+
+    internal record NotificationContext
+    {
+        public required Guid Id { get; init; }
+
+        public required Guid CorrespondenceId { get; init; }
+
+        public required string Recipient { get; init; }
+        public required string ResourceId { get; init; }
+        public required string SendersReference { get; init; }
+
+        public string? MessageSender { get; init; }
+
+        public string? SenderUrn { get; init; }
+
+        public string? MessageTitle { get; init; }
+        public DateTimeOffset RequestedPublishTime { get; init; }
+        public bool? IgnoreReservation { get; init; }
+
+        public static NotificationContext FromCorrespondence(CorrespondenceEntity correspondence) => new()
+        {
+            Id = correspondence.Id,
+            CorrespondenceId = correspondence.Id,
+            Recipient = correspondence.Recipient,
+            ResourceId = correspondence.ResourceId,
+            SendersReference = correspondence.SendersReference,
+            MessageSender = string.IsNullOrEmpty(correspondence.MessageSender) ? null : correspondence.MessageSender,
+            SenderUrn = correspondence.Sender,
+            MessageTitle = correspondence.Content?.MessageTitle,
+            RequestedPublishTime = correspondence.RequestedPublishTime,
+            IgnoreReservation = correspondence.IgnoreReservation
+        };
+
+        public static NotificationContext FromConfidentialReminder(ConfidentialReminderDialogDto reminder, Guid correspondenceId) => new()
+        {
+            Id = reminder.Id,
+            CorrespondenceId = correspondenceId,
+            Recipient = reminder.Recipient,
+            ResourceId = reminder.ResourceId,
+            SendersReference = reminder.SendersReference,
+            MessageSender = reminder.MessageSender,
+            SenderUrn = null,
+            MessageTitle = reminder.Title,
+            RequestedPublishTime = DateTimeOffset.UtcNow,
+            IgnoreReservation = null
+        };
     }
 
     internal class NotificationContent

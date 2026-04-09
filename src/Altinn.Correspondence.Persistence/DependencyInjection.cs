@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<ILegacyPartyRepository, LegacyPartyRepository>();
         services.AddScoped<IIdempotencyKeyRepository, IdempotencyKeyRepository>();
         services.AddScoped<IServiceOwnerRepository, ServiceOwnerRepository>();
+        services.AddScoped<IConfidentialReminderRepository, ConfidentialReminderRepository>();
     }
 
     private static NpgsqlDataSource BuildAzureNpgsqlDataSource(IConfiguration config, ILogger bootstrapLogger)

@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
@@ -559,21 +560,27 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
 
             // Get service owner names in bulk
-            var serviceOwnerIds = groupedData.Select(g => g.ServiceOwnerId).Distinct().ToList();
+            var serviceOwnerIds = groupedData
+                .Select(g => g.ServiceOwnerId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
             var serviceOwners = await _context.ServiceOwners
                 .Where(so => serviceOwnerIds.Contains(so.Id))
                 .ToDictionaryAsync(so => so.Id, so => so.Name, cancellationToken);
 
             // Map to DailySummaryDataDto
             var aggregatedData = groupedData
+                // Exclude groups that can't be resolved to a service owner in the ServiceOwners table (old legacy test data)
+                .Where(g => !string.IsNullOrEmpty(g.ServiceOwnerId) && serviceOwners.ContainsKey(g.ServiceOwnerId))
                 .Select(g => new DailySummaryDataDto
                 {
                     Date = g.Date,
                     Year = g.Date.Year,
                     Month = g.Date.Month,
                     Day = g.Date.Day,
-                    ServiceOwnerId = g.ServiceOwnerId,
-                    ServiceOwnerName = serviceOwners.GetValueOrDefault(g.ServiceOwnerId),
+                    ServiceOwnerId = g.ServiceOwnerId!,
+                    ServiceOwnerName = serviceOwners[g.ServiceOwnerId!],
                     MessageSender = g.MessageSender,
                     ResourceId = g.ResourceId,
                     RecipientType = g.RecipientType switch
@@ -673,6 +680,19 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Take(1000);
 
             return await query.ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetUnopenedConfidentialCorrespondencesForParty(string partyId, TimeSpan minAge, CancellationToken cancellationToken)
+        {
+            var cutoff = DateTimeOffset.UtcNow - minAge;
+            return await _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.Recipient == partyId)
+                .Where(c => c.IsConfidential)
+                .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published))
+                .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
+                .Where(c => c.RequestedPublishTime < cutoff)
+                .ToListAsync(cancellationToken);
         }
     }
 }

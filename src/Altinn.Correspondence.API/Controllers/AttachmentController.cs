@@ -84,6 +84,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     /// </ul></response>
     /// <response code="401">4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</response>
     /// <response code="404">2001: The requested attachment was not found</response>
+    /// <response code="408">2022: Upload request timed out due to data arriving too slowly</response>
     /// <response code="502">2002: Error occurred during upload</response>
     [HttpPost]
     [Produces("application/json")]
@@ -93,6 +94,7 @@ public class AttachmentController(ILogger<CorrespondenceController> logger) : Co
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status408RequestTimeout)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     [Authorize(Policy = AuthorizationConstants.Sender)]
     public async Task<ActionResult<AttachmentOverviewExt>> UploadAttachmentData(

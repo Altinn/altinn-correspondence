@@ -30,7 +30,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
             return AuthorizationErrors.InvalidPartyId;
         }
         var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber)))
+        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber) && string.IsNullOrEmpty(userParty.ExternalUrn)))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -39,7 +39,13 @@ public class LegacyGetCorrespondenceOverviewHandler(
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(user, userParty.SSN, correspondence.ResourceId, new List<ResourceAccessLevel> { ResourceAccessLevel.Read }, correspondence.Recipient, cancellationToken);
+        var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
+            user,
+            userParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
+            correspondence.ResourceId,
+            new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
+            correspondence.Recipient,
+            cancellationToken);
         if (minimumAuthLevel == null)
         {
             return AuthorizationErrors.LegacyNoAccessToCorrespondence;

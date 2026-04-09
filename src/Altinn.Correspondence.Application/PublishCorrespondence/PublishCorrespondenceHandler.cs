@@ -130,7 +130,7 @@ public class PublishCorrespondenceHandler(
             }
             else
             {
-                logger.LogInformation("Publishing correspondence {CorrespondenceId}", correspondenceId);
+                logger.LogInformation("Publishing correspondence {CorrespondenceId}. It was scheduled for {requestedPublishTime}.", correspondenceId, correspondence?.RequestedPublishTime);
                 status = new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondenceId,

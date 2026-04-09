@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -92,56 +93,6 @@ public class DialogportenService(HttpClient _httpClient,
             throw new Exception("Dialogporten did not return a transmissionId");
         }
         return transmissionResponse;
-    }
-
-    public async Task PatchDialogStatusAndExtendedStatusForTransmission(Guid correspondenceId, CancellationToken cancellationToken = default)
-    {
-        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
-        if (correspondence is null)
-        {
-            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
-            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
-        }
-
-        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
-        if (string.IsNullOrWhiteSpace(dialogId))
-        {
-            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
-        }
-
-        var statusReference = correspondence.ExternalReferences
-            .FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogStatus);
-        var extendedStatusReference = correspondence.ExternalReferences
-            .FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogExtendedStatus);
-
-        if (statusReference is null && extendedStatusReference is null)
-        {
-            return;
-        }
-
-        var patchRequestBuilder = new DialogPatchRequestBuilder();
-        if (statusReference is not null)
-        {
-            patchRequestBuilder.WithReplaceStatusOperation(statusReference.ReferenceValue);
-        }
-        if (extendedStatusReference is not null)
-        {
-            var languageCode = correspondence.Content?.Language ?? "nb";
-            patchRequestBuilder.WithReplaceExtendedStatusOperation(extendedStatusReference.ReferenceValue, languageCode);
-        }
-
-        var patchRequest = patchRequestBuilder.Build();
-        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            var responseContent = await response.Content.ReadAsStringAsync();
-            logger.LogError("Response from Dialogporten when patching status/extendedStatus for correspondence {correspondenceId} and dialog {dialogId} was not successful: {statusCode}: {responseContent}",
-                correspondenceId,
-                dialogId,
-                response.StatusCode,
-                responseContent);
-            throw new Exception($"Dialogporten patch of status/extendedStatus failed: {response.StatusCode}: {responseContent}");
-        }
     }
 
     public async Task<bool> PatchCorrespondenceDialogToConfirmed(Guid correspondenceId, CancellationToken cancellationToken = default)
@@ -906,6 +857,21 @@ public class DialogportenService(HttpClient _httpClient,
         }
 
         return DialogPortenSystemLabel.Default;
+    }
+
+    public async Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder)
+    {
+        var createDialogRequest = CreateDialogRequestMapper.CreateConfidentialReminderDialog(reminder, generalSettings.Value.CorrespondenceBaseUrl);
+        var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest);
+        if (!response.IsSuccessStatusCode){
+            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+        var dialogResponse = await response.Content.ReadFromJsonAsync<string>();
+        if (dialogResponse is null)
+        {
+            throw new Exception("Dialogporten did not return a dialogId");
+        }
+        return dialogResponse;
     }
 
 
