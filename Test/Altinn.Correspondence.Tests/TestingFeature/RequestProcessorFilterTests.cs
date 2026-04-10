@@ -78,6 +78,54 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         }
 
         /// <summary>
+        /// Should exclude health check calls
+        /// </summary>
+        [Fact]
+        public void ShouldMarkAsNoneForHealth()
+        {
+            // Arrange
+            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Path = "/health";
+            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
+
+            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, httpContextAccessor.Object);
+
+            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
+            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
+
+            // Act
+            dependencyFilterProcessor.OnStart(activity);
+
+            // Assert
+            Assert.Equal(System.Diagnostics.ActivityTraceFlags.None, activity.ActivityTraceFlags);
+        }
+
+        /// <summary>
+        /// Should exclude health check calls
+        /// </summary>
+        [Fact]
+        public void ShouldMarkAsNoneForHealthz()
+        {
+            // Arrange
+            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Path = "/healthz";
+            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
+
+            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, httpContextAccessor.Object);
+
+            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
+            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
+
+            // Act
+            dependencyFilterProcessor.OnStart(activity);
+
+            // Assert
+            Assert.Equal(System.Diagnostics.ActivityTraceFlags.None, activity.ActivityTraceFlags);
+        }
+
+        /// <summary>
         /// Should disable tracing for migration activities when disableTelemetryForMigration setting is true
         /// </summary>
         [Fact]

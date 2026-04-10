@@ -25,7 +25,8 @@ public static class TelemetryFilterHelper
         }
 
         // Always exclude health checks (exact match)
-        if (pathSpan.Equals("/health", StringComparison.OrdinalIgnoreCase))
+        if (pathSpan.Equals("/health", StringComparison.OrdinalIgnoreCase) ||
+            pathSpan.Equals("/healthz", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
