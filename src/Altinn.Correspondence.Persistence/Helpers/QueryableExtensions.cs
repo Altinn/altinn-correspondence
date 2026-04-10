@@ -23,16 +23,12 @@ namespace Altinn.Correspondence.Persistence.Helpers
             var blacklistSender = new List<CorrespondenceStatus?>
             {
                 CorrespondenceStatus.Archived,
-                CorrespondenceStatus.PurgedByAltinn,
-                CorrespondenceStatus.PurgedByRecipient,
             };
 
             var blacklistRecipient = new List<CorrespondenceStatus?>
             {
                 CorrespondenceStatus.Initialized,
                 CorrespondenceStatus.ReadyForPublish,
-                CorrespondenceStatus.PurgedByAltinn,
-                CorrespondenceStatus.PurgedByRecipient,
                 CorrespondenceStatus.Failed,
             };
 
