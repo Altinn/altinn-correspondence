@@ -6,6 +6,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     public static class DialogportenText
     {
+        private const int MaxActivityDescriptionLength = 255;
+        private const string DownloadStartedNbPrefix = "Startet nedlastning av vedlegg ";
+        private const string DownloadStartedEnPrefix = "Started downloading attachment ";
+
         public static string GetDialogportenText(DialogportenTextType type, DialogportenLanguageCode languageCode, params string[] tokens)
         {
             var normalizedTokens = NormalizeTokens(type, languageCode, tokens);
@@ -66,6 +70,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static string[] NormalizeTokens(DialogportenTextType type, DialogportenLanguageCode languageCode, string[] tokens)
         {
+            if (type == DialogportenTextType.DownloadStarted && tokens.Length >= 1)
+            {
+                return NormalizeDownloadStartedTokens(tokens);
+            }
+
             if (type is not (DialogportenTextType.NotificationSent or DialogportenTextType.NotificationReminderSent) || tokens.Length < 2)
             {
                 return tokens;
@@ -74,6 +83,48 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var destination = tokens[0];
             var channel = NormalizeNotificationChannel(channel: tokens[1], languageCode);
             return [destination, channel];
+        }
+
+        private static string[] NormalizeDownloadStartedTokens(string[] tokens)
+        {
+            var normalized = (string[])tokens.Clone();
+            var maxPrefixLength = Math.Max(DownloadStartedNbPrefix.Length, DownloadStartedEnPrefix.Length);
+            var maxFileNameLength = MaxActivityDescriptionLength - maxPrefixLength;
+            normalized[0] = TruncateFileNameKeepingExtension(normalized[0], maxFileNameLength);
+            return normalized;
+        }
+
+        private static string TruncateFileNameKeepingExtension(string? fileName, int maxLength)
+        {
+            var value = fileName ?? string.Empty;
+            if (value.Length <= maxLength)
+            {
+                return value;
+            }
+
+            if (maxLength <= 3)
+            {
+                return value[..maxLength];
+            }
+
+            var dotIndex = value.LastIndexOf('.');
+            var hasExtension = dotIndex > 0 && dotIndex < value.Length - 1;
+
+            if (!hasExtension)
+            {
+                return value[..(maxLength - 3)] + "...";
+            }
+
+            var extension = value[dotIndex..];
+            var baseNameMaxLength = maxLength - extension.Length - 3;
+
+            if (baseNameMaxLength <= 0)
+            {
+                return value[..(maxLength - 3)] + "...";
+            }
+
+            var baseNameLength = Math.Min(baseNameMaxLength, dotIndex);
+            return value[..baseNameLength] + "..." + extension;
         }
 
         private static string NormalizeNotificationChannel(string channel, DialogportenLanguageCode languageCode)
