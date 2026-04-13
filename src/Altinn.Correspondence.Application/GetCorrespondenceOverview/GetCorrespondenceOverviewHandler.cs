@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -6,6 +7,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -20,6 +22,7 @@ public class GetCorrespondenceOverviewHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
+    IHybridCacheWrapper cache,
     ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -77,14 +80,20 @@ public class GetCorrespondenceOverviewHandler(
                     logger.LogWarning("Rejected because correspondence not available for recipient in current state.");
                     return CorrespondenceErrors.CorrespondenceNotFound;
                 }
-                await correspondenceStatusRepository.AddCorrespondenceStatusFetched(new CorrespondenceStatusFetchedEntity
+                var cacheKey = $"Correspondence_Fetched_Debounce:{correspondence.Id}-{partyUuid}";
+                var alreadyFetched = await CacheHelpers.GetObjectFromCacheAsync<bool>(cacheKey, cache, cancellationToken);
+                if (alreadyFetched != true)
                 {
-                    CorrespondenceId = correspondence.Id,
-                    Status = CorrespondenceStatus.Fetched,
-                    StatusText = CorrespondenceStatus.Fetched.ToString(),
-                    StatusChanged = operationTimestamp,
-                    PartyUuid = partyUuid
-                }, cancellationToken);
+                    await CacheHelpers.StoreObjectInCacheAsync(cacheKey, true, cache, new HybridCacheEntryOptions { Expiration = TimeSpan.FromSeconds(15) }, cancellationToken);
+                    await correspondenceStatusRepository.AddCorrespondenceStatusFetched(new CorrespondenceStatusFetchedEntity
+                    {
+                        CorrespondenceId = correspondence.Id,
+                        Status = CorrespondenceStatus.Fetched,
+                        StatusText = CorrespondenceStatus.Fetched.ToString(),
+                        StatusChanged = operationTimestamp,
+                        PartyUuid = partyUuid
+                    }, cancellationToken);
+                }
                 if (request.OnlyGettingContent)
                 {
                     if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read)) { 
