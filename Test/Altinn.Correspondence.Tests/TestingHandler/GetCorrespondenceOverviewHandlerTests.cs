@@ -1,14 +1,17 @@
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Hangfire;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
+using System.Text;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -21,6 +24,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
         private readonly Mock<IDialogportenService> _dialogportenServiceMock;
         private readonly Mock<IConfidentialReminderRepository> _confidentialReminderRepositoryMock;
+        private readonly Mock<IHybridCacheWrapper> _cacheMock;
         private readonly Mock<ILogger<GetCorrespondenceOverviewHandler>> _loggerMock;
         private readonly GetCorrespondenceOverviewHandler _handler;
 
@@ -33,7 +37,18 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _dialogportenServiceMock = new Mock<IDialogportenService>();
             _confidentialReminderRepositoryMock = new Mock<IConfidentialReminderRepository>();
+            _cacheMock = new Mock<IHybridCacheWrapper>();
             _loggerMock = new Mock<ILogger<GetCorrespondenceOverviewHandler>>();
+
+            // Default: cache always returns a miss
+            _cacheMock
+                .Setup(x => x.GetOrCreateAsync<byte[]>(
+                    It.IsAny<string>(),
+                    It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                    It.IsAny<HybridCacheEntryOptions>(),
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((byte[])null!);
 
             _handler = new GetCorrespondenceOverviewHandler(
                 _altinnAuthorizationServiceMock.Object,
@@ -43,6 +58,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 _dialogportenServiceMock.Object,
+                _cacheMock.Object,
                 _loggerMock.Object);
         }
 
@@ -547,6 +563,129 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Assert - dialog is NOT soft-deleted because there was no dialog ID to delete
             _dialogportenServiceMock.Verify(
                 x => x.TrySoftDeleteDialog(It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_WhenCacheMiss_AddsFetchedStatusAndPopulatesCache()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+
+            var user = new ClaimsPrincipal();
+            var request = new GetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
+            };
+
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            _cacheMock
+                .Setup(x => x.GetOrCreateAsync<byte[]>(
+                    It.IsAny<string>(),
+                    It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                    It.IsAny<HybridCacheEntryOptions>(),
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((byte[])null!);
+
+            // Act
+            await _handler.Process(request, user, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatusFetched(
+                    It.Is<CorrespondenceStatusFetchedEntity>(s =>
+                        s.CorrespondenceId == correspondenceId &&
+                        s.PartyUuid == partyUuid),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            _cacheMock.Verify(
+                x => x.SetAsync(
+                    It.Is<string>(k => k.Contains(correspondenceId.ToString())),
+                    It.IsAny<byte[]>(),
+                    It.IsAny<HybridCacheEntryOptions>(),
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_WhenCacheHit_DoesNotAddFetchedStatus()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+
+            var user = new ClaimsPrincipal();
+            var request = new GetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
+            };
+
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .ReturnsAsync(correspondence);
+
+            var cachedBytes = Encoding.UTF8.GetBytes("true");
+            _cacheMock
+                .Setup(x => x.GetOrCreateAsync<byte[]>(
+                    It.IsAny<string>(),
+                    It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                    It.IsAny<HybridCacheEntryOptions>(),
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(cachedBytes);
+
+            // Act
+            await _handler.Process(request, user, CancellationToken.None);
+
+            // Assert 
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatusFetched(
+                    It.IsAny<CorrespondenceStatusFetchedEntity>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+
+            _cacheMock.Verify(
+                x => x.SetAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<byte[]>(),
+                    It.IsAny<HybridCacheEntryOptions>(),
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()),
                 Times.Never);
         }
     }
