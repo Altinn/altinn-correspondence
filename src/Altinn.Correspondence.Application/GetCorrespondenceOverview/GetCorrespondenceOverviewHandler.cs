@@ -95,7 +95,7 @@ public class GetCorrespondenceOverviewHandler(
                         }, cancellationToken);
                         return true;
                     },
-                    new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(3) },
+                    new HybridCacheEntryOptions { Expiration = TimeSpan.FromSeconds(15) },
                     null,
                     cancellationToken);
                 if (request.OnlyGettingContent)
