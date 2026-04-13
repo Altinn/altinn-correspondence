@@ -11,7 +11,6 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
-using System.Text;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -40,15 +39,16 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _cacheMock = new Mock<IHybridCacheWrapper>();
             _loggerMock = new Mock<ILogger<GetCorrespondenceOverviewHandler>>();
 
-            // Default: cache always returns a miss
+            // Default: cache miss — invoke the factory so the fetch event is persisted
             _cacheMock
-                .Setup(x => x.GetOrCreateAsync<byte[]>(
+                .Setup(x => x.GetOrCreateAsync(
                     It.IsAny<string>(),
-                    It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                    It.IsAny<Func<CancellationToken, ValueTask<bool>>>(),
                     It.IsAny<HybridCacheEntryOptions>(),
                     It.IsAny<IEnumerable<string>>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync((byte[])null!);
+                .Returns((string key, Func<CancellationToken, ValueTask<bool>> factory, HybridCacheEntryOptions opts, IEnumerable<string> tags, CancellationToken ct) =>
+                    factory(ct).AsTask());
 
             _handler = new GetCorrespondenceOverviewHandler(
                 _altinnAuthorizationServiceMock.Object,
@@ -597,15 +597,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);
 
-            _cacheMock
-                .Setup(x => x.GetOrCreateAsync<byte[]>(
-                    It.IsAny<string>(),
-                    It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
-                    It.IsAny<HybridCacheEntryOptions>(),
-                    It.IsAny<IEnumerable<string>>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync((byte[])null!);
-
             // Act
             await _handler.Process(request, user, CancellationToken.None);
 
@@ -615,15 +606,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<CorrespondenceStatusFetchedEntity>(s =>
                         s.CorrespondenceId == correspondenceId &&
                         s.PartyUuid == partyUuid),
-                    It.IsAny<CancellationToken>()),
-                Times.Once);
-
-            _cacheMock.Verify(
-                x => x.SetAsync(
-                    It.Is<string>(k => k.Contains(correspondenceId.ToString())),
-                    It.IsAny<byte[]>(),
-                    It.IsAny<HybridCacheEntryOptions>(),
-                    It.IsAny<IEnumerable<string>>(),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
         }
@@ -659,32 +641,22 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);
 
-            var cachedBytes = Encoding.UTF8.GetBytes("true");
             _cacheMock
-                .Setup(x => x.GetOrCreateAsync<byte[]>(
+                .Setup(x => x.GetOrCreateAsync(
                     It.IsAny<string>(),
-                    It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                    It.IsAny<Func<CancellationToken, ValueTask<bool>>>(),
                     It.IsAny<HybridCacheEntryOptions>(),
                     It.IsAny<IEnumerable<string>>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(cachedBytes);
+                .ReturnsAsync(true);
 
             // Act
             await _handler.Process(request, user, CancellationToken.None);
 
-            // Assert 
+            // Assert
             _correspondenceStatusRepositoryMock.Verify(
                 x => x.AddCorrespondenceStatusFetched(
                     It.IsAny<CorrespondenceStatusFetchedEntity>(),
-                    It.IsAny<CancellationToken>()),
-                Times.Never);
-
-            _cacheMock.Verify(
-                x => x.SetAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<byte[]>(),
-                    It.IsAny<HybridCacheEntryOptions>(),
-                    It.IsAny<IEnumerable<string>>(),
                     It.IsAny<CancellationToken>()),
                 Times.Never);
         }

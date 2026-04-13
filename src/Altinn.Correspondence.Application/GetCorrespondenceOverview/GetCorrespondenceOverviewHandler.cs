@@ -81,19 +81,23 @@ public class GetCorrespondenceOverviewHandler(
                     return CorrespondenceErrors.CorrespondenceNotFound;
                 }
                 var cacheKey = $"Correspondence_Fetched_Debounce:{correspondence.Id}-{partyUuid}";
-                var alreadyFetched = await CacheHelpers.GetObjectFromCacheAsync<bool>(cacheKey, cache, cancellationToken);
-                if (alreadyFetched != true)
-                {
-                    await CacheHelpers.StoreObjectInCacheAsync(cacheKey, true, cache, new HybridCacheEntryOptions { Expiration = TimeSpan.FromSeconds(15) }, cancellationToken);
-                    await correspondenceStatusRepository.AddCorrespondenceStatusFetched(new CorrespondenceStatusFetchedEntity
+                await cache.GetOrCreateAsync(
+                    cacheKey,
+                    async cancellationToken =>
                     {
-                        CorrespondenceId = correspondence.Id,
-                        Status = CorrespondenceStatus.Fetched,
-                        StatusText = CorrespondenceStatus.Fetched.ToString(),
-                        StatusChanged = operationTimestamp,
-                        PartyUuid = partyUuid
-                    }, cancellationToken);
-                }
+                        await correspondenceStatusRepository.AddCorrespondenceStatusFetched(new CorrespondenceStatusFetchedEntity
+                        {
+                            CorrespondenceId = correspondence.Id,
+                            Status = CorrespondenceStatus.Fetched,
+                            StatusText = CorrespondenceStatus.Fetched.ToString(),
+                            StatusChanged = operationTimestamp,
+                            PartyUuid = partyUuid
+                        }, cancellationToken);
+                        return true;
+                    },
+                    new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(3) },
+                    null,
+                    cancellationToken);
                 if (request.OnlyGettingContent)
                 {
                     if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read)) { 
