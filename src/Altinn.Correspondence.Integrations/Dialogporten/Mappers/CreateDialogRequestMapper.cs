@@ -93,20 +93,21 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static string GetDialogId(CorrespondenceEntity correspondence, DateTimeOffset currentUtcNow, ILogger? logger)
         {
-            if (IsUuidV7(correspondence.Id))
+            var sourceTimestamp = IsUuidV7(correspondence.Id)
+                ? GetTimestampFromUuidV7(correspondence.Id)
+                : correspondence.Created;
+
+            if (sourceTimestamp > currentUtcNow.AddSeconds(15))
             {
-                var timestampFromCorrespondenceId = GetTimestampFromUuidV7(correspondence.Id);
-                return CreateDeterministicUuidV7(timestampFromCorrespondenceId, correspondence.Id).ToString();
+                logger?.LogWarning(
+                    "Dialog ID timestamp is more than 15 seconds in the future for correspondence {CorrespondenceId}. Clamping from {OriginalTimestamp:o} to {ClampedTimestamp:o}.",
+                    correspondence.Id,
+                    sourceTimestamp,
+                    currentUtcNow);
+                sourceTimestamp = currentUtcNow;
             }
 
-            if (correspondence.Created > currentUtcNow.AddSeconds(15))
-            {
-                var fallbackDialogId = Guid.CreateVersion7().ToString();
-                logger?.LogWarning(
-                    "Created is more than 15 seconds in the future for correspondence {CorrespondenceId}. Falling back to non-deterministic dialogId {DialogId}.",
-                    correspondence.Id,
-                    fallbackDialogId);
-                return fallbackDialogId;
+            return CreateDeterministicUuidV7(sourceTimestamp, correspondence.Id).ToString();
             }
 
             return CreateDeterministicUuidV7(correspondence.Created, correspondence.Id).ToString();
