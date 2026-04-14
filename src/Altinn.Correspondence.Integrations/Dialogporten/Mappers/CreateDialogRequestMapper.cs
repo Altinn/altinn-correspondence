@@ -108,9 +108,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
 
             return CreateDeterministicUuidV7(sourceTimestamp, correspondence.Id).ToString();
-            }
-
-            return CreateDeterministicUuidV7(correspondence.Created, correspondence.Id).ToString();
         }
 
         private static bool IsUuidV7(Guid guid)
