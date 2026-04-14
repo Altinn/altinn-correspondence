@@ -33,6 +33,10 @@ internal class RecipientListAttribute : ValidationAttribute
 
         foreach (var recipient in recipients)
         {
+            if (string.IsNullOrWhiteSpace(recipient))
+            {
+                return new ValidationResult("Recipients can not contain null or empty values");
+            }
             var orgRegex = new Regex($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
             var personRegex = new Regex($@"^(?:{UrnConstants.PersonIdAttribute}:)?\d{{11}}$");
             var emailUrnRegex = new Regex($@"^{Regex.Escape(UrnConstants.PersonIdPortenEmailAttribute)}:.+$");
