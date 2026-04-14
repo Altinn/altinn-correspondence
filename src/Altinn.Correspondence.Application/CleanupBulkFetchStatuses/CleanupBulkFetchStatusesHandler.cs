@@ -77,14 +77,14 @@ public class CleanupBulkFetchStatusesHandler(
                 {
                     try
                     {
-                        logger.LogInformation("Deleting duplicate bulk fetch status {StatusId} for CorrespondenceId {CorrespondenceId} and PartyUuid {PartyUuid}", duplicate.Id, duplicate.CorrespondenceId, duplicate.PartyUuid);
+                        logger.LogInformation("Deleting duplicate bulk fetch status {StatusId} for CorrespondenceId {CorrespondenceId} and PartyUuid {PartyUuid} with StatusChanged {StatusChanged}", duplicate.Id, duplicate.CorrespondenceId, duplicate.PartyUuid, duplicate.StatusChanged);
                         await correspondenceStatusRepository.DeleteBulkFetchStatus(duplicate.Id, cancellationToken);
                         totalDeleted++;
                     }
                     catch (Exception ex)
                     {
                         totalErrors++;
-                        logger.LogError(ex, "Failed to delete bulk fetch status {StatusId} for CorrespondenceId {CorrespondenceId} and PartyUuid {PartyUuid}", duplicate.Id, duplicate.CorrespondenceId, duplicate.PartyUuid);
+                        logger.LogError(ex, "Failed to delete bulk fetch status {StatusId} for CorrespondenceId {CorrespondenceId} and PartyUuid {PartyUuid} with StatusChanged {StatusChanged}", duplicate.Id, duplicate.CorrespondenceId, duplicate.PartyUuid, duplicate.StatusChanged);
                     }
                 }
 
