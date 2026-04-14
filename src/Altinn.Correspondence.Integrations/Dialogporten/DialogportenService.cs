@@ -45,7 +45,7 @@ public class DialogportenService(HttpClient _httpClient,
         // Create idempotency key for open dialog activity
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger, dialogParty: GetDialogParty(correspondence));
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -60,6 +60,17 @@ public class DialogportenService(HttpClient _httpClient,
             throw new Exception("Dialogporten did not return a dialogId");
         }
         return dialogResponse;
+    }
+
+    private static string GetDialogParty(CorrespondenceEntity correspondence)
+    {
+        var dialogParty = correspondence.GetRecipientUrn();
+        // Migrated self-identified
+        if (correspondence.RecipientType == UrnConstants.PartyUuid)
+        {
+            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{correspondence.Recipient}";
+        }
+        return dialogParty;
     }
 
     public async Task<string> CreateDialogTransmission(Guid correspondenceId)
