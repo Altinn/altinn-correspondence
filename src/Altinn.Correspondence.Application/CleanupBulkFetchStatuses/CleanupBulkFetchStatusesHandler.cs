@@ -12,7 +12,7 @@ public class CleanupBulkFetchStatusesHandler(
     IBackgroundJobClient backgroundJobClient,
     ILogger<CleanupBulkFetchStatusesHandler> logger) : IHandler<CleanupBulkFetchStatusesRequest, CleanupBulkFetchStatusesResponse>
 {
-    private static readonly TimeSpan DebounceWindow = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DebounceWindow = TimeSpan.FromSeconds(15);
 
     public Task<OneOf<CleanupBulkFetchStatusesResponse, Error>> Process(CleanupBulkFetchStatusesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
