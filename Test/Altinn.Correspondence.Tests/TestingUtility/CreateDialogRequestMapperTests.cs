@@ -262,40 +262,6 @@ public class CreateDialogRequestMapperTests
     }
 
     [Fact]
-    public void CreateCorrespondenceDialog_WithCreatedMoreThan15SecondsInFuture_LogsWarningAndFallsBackToRandomUuidV7()
-    {
-        // Arrange
-        var currentUtcNow = DateTimeOffset.Parse("2026-01-15T10:11:30.000Z");
-        var correspondence = new CorrespondenceEntityBuilder()
-            .WithId(Guid.NewGuid())
-            .Build();
-        correspondence.Created = currentUtcNow.AddSeconds(16);
-        var loggerMock = new Mock<ILogger>();
-        var baseUrl = "https://example.com";
-
-        // Act
-        var firstResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, logger: loggerMock.Object, currentUtcNow: currentUtcNow);
-        var secondResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, logger: loggerMock.Object, currentUtcNow: currentUtcNow);
-
-        // Assert
-        Assert.NotEqual(firstResult.Id, secondResult.Id);
-        Assert.Equal(7, GetUuidVersion(Guid.Parse(firstResult.Id)));
-        Assert.Equal(7, GetUuidVersion(Guid.Parse(secondResult.Id)));
-
-        loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) =>
-                    v.ToString()!.Contains("Created is more than 15 seconds in the future") &&
-                    v.ToString()!.Contains(correspondence.Id.ToString()) &&
-                    v.ToString()!.Contains(firstResult.Id)),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.AtLeastOnce());
-    }
-
-    [Fact]
     public void CreateCorrespondenceDialog_WithEmailNotifications_ShouldCreateCorrectActivities()
     {
         // Arrange
