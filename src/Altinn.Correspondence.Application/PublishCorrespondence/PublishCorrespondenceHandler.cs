@@ -31,6 +31,8 @@ public class PublishCorrespondenceHandler(
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var operationTimestamp = DateTimeOffset.UtcNow;        
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        var expectedPublishTime = correspondence?.RequestedPublishTime > correspondence?.Created ? correspondence.RequestedPublishTime : correspondence.Created;
+        logger.LogInformation("Publishing correspondence {CorrespondenceId}. It was expected {expectedPublishTime} and actually executed at {actualPublishTimw}.", correspondenceId, expectedPublishTime, operationTimestamp);
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence!.Sender, cancellationToken);
         var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence!.Recipient, cancellationToken);
         var senderPartyUuid = senderParty?.PartyUuid;
@@ -129,7 +131,6 @@ public class PublishCorrespondenceHandler(
             }
             else
             {
-                logger.LogInformation("Publishing correspondence {CorrespondenceId}. It was scheduled for {requestedPublishTime}.", correspondenceId, correspondence?.RequestedPublishTime);
                 status = new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondenceId,
