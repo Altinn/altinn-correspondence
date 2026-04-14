@@ -2,6 +2,8 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Core.Models.Entities;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Altinn.Correspondence.Tests.TestingUtility;
 
@@ -215,6 +217,51 @@ public class CreateDialogRequestMapperTests
     }
 
     [Fact]
+    public void CreateCorrespondenceDialog_WithUuidV7CorrespondenceId_GeneratesDeterministicUuidV7WithSameTimestamp()
+    {
+        // Arrange
+        var created = DateTimeOffset.Parse("2026-01-15T10:11:12.345Z");
+        var correspondenceId = Guid.CreateVersion7(created);
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .Build();
+        correspondence.Created = created;
+        var baseUrl = "https://example.com";
+
+        // Act
+        var firstResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: created.AddSeconds(1));
+        var secondResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: created.AddSeconds(1));
+
+        // Assert
+        Assert.Equal(firstResult.Id, secondResult.Id);
+        Assert.NotEqual(correspondenceId.ToString(), firstResult.Id);
+        Assert.Equal(7, GetUuidVersion(Guid.Parse(firstResult.Id)));
+        Assert.Equal(GetTimestampFromUuidV7(correspondenceId), GetTimestampFromUuidV7(Guid.Parse(firstResult.Id)));
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithUuidV4CorrespondenceId_UsesCreatedForDeterministicUuidV7()
+    {
+        // Arrange
+        var currentUtcNow = DateTimeOffset.Parse("2026-01-15T10:11:30.000Z");
+        var created = DateTimeOffset.Parse("2026-01-15T10:11:12.123Z");
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(Guid.NewGuid())
+            .Build();
+        correspondence.Created = created;
+        var baseUrl = "https://example.com";
+
+        // Act
+        var firstResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcNow);
+        var secondResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcNow);
+
+        // Assert
+        Assert.Equal(firstResult.Id, secondResult.Id);
+        Assert.Equal(7, GetUuidVersion(Guid.Parse(firstResult.Id)));
+        Assert.Equal(created.ToUnixTimeMilliseconds(), GetTimestampFromUuidV7(Guid.Parse(firstResult.Id)).ToUnixTimeMilliseconds());
+    }
+
+    [Fact]
     public void CreateCorrespondenceDialog_WithEmailNotifications_ShouldCreateCorrectActivities()
     {
         // Arrange
@@ -364,6 +411,18 @@ public class CreateDialogRequestMapperTests
         var reminderEnDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
         Assert.NotNull(reminderEnDescription);
         Assert.Equal("Reminder notification about received message sent to +4712345678 on SMS.", reminderEnDescription.Value);
+    }
+
+    private static int GetUuidVersion(Guid guid)
+    {
+        return int.Parse(guid.ToString("N")[12].ToString(), System.Globalization.NumberStyles.HexNumber);
+    }
+
+    private static DateTimeOffset GetTimestampFromUuidV7(Guid uuidV7)
+    {
+        string hexValue = uuidV7.ToString("N");
+        long unixTimeMilliseconds = Convert.ToInt64(hexValue[..12], 16);
+        return DateTimeOffset.FromUnixTimeMilliseconds(unixTimeMilliseconds);
     }
 
 }
