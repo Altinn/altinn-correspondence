@@ -45,7 +45,7 @@ public class DialogportenService(HttpClient _httpClient,
         // Create idempotency key for open dialog activity
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
 
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger, dialogParty: GetDialogParty(correspondence));
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger, dialogParty: await GetDialogPartyAsync(correspondence));
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -62,13 +62,18 @@ public class DialogportenService(HttpClient _httpClient,
         return dialogResponse;
     }
 
-    private static string GetDialogParty(CorrespondenceEntity correspondence)
+    private async Task<string> GetDialogPartyAsync(CorrespondenceEntity correspondence)
     {
         var dialogParty = correspondence.GetRecipientUrn();
         // Migrated self-identified
         if (correspondence.RecipientType == UrnConstants.PartyUuid)
         {
-            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{correspondence.Recipient}";
+            var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence.Recipient.WithUrnPrefix(), cancellationToken: CancellationToken.None);
+            if (recipientParty == null)
+            {
+                throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {correspondence.Recipient.WithUrnPrefix()}");
+            }
+            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Name}";
         }
         return dialogParty;
     }
