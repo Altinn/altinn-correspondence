@@ -57,6 +57,8 @@ public class CleanupBulkFetchStatusesHandler(
                 isMoreStatuses = statusesWindow.Count > windowSize;
                 var batch = statusesWindow.Take(windowSize).ToList();
 
+                var duplicates = FindDuplicatesWithinDebounceWindow(batch, keeperState);
+
                 if (batch.Count > 0)
                 {
                     var last = batch[^1];
@@ -65,12 +67,8 @@ public class CleanupBulkFetchStatusesHandler(
 
                     var evictBefore = last.StatusChanged - DebounceWindow;
                     foreach (var key in keeperState.Keys.Where(k => keeperState[k].StatusChanged < evictBefore).ToList())
-                    {
                         keeperState.Remove(key);
-                    }
                 }
-
-                var duplicates = FindDuplicatesWithinDebounceWindow(batch, keeperState);
                 logger.LogInformation("Found {duplicateCount} duplicate fetch statuses to delete in current batch", duplicates.Count);
 
                 foreach (var duplicate in duplicates)

@@ -21,7 +21,7 @@ public class CleanupBulkFetchStatusesHandlerTests
         return (handler, repo);
     }
 
-    // The core regression test: rows 2 and 3 (within 30s of row 1) split across a batch boundary,
+    // The core regression test: rows 2 and 3 (within 15s of row 1) split across a batch boundary,
     // both should be deleted.
     [Fact]
     public async Task ExecuteCleanupInBackground_DeletesBothDuplicates_WhenSplitAcrossBatchBoundary()
@@ -32,8 +32,8 @@ public class CleanupBulkFetchStatusesHandlerTests
 
         var row1 = MakeFetch(corrId, partyId, t);
         var row2 = MakeFetch(corrId, partyId, t.AddSeconds(2));   // duplicate, batch 1
-        var row3 = MakeFetch(corrId, partyId, t.AddSeconds(22));  // duplicate, batch 2
-        var row4 = MakeFetch(corrId, partyId, t.AddSeconds(120)); // new keeper (> 30s from row1)
+        var row3 = MakeFetch(corrId, partyId, t.AddSeconds(10));  // duplicate, batch 2
+        var row4 = MakeFetch(corrId, partyId, t.AddSeconds(60));  // new keeper (> 15s from row1)
 
         var (handler, repo) = BuildHandler();
 
@@ -56,7 +56,7 @@ public class CleanupBulkFetchStatusesHandlerTests
         Assert.DoesNotContain(row4.Id, deleted); // new keeper
     }
 
-    // Two rows >30s apart should both be kept (different windows)
+    // Two rows >15s apart should both be kept (different windows)
     [Fact]
     public async Task ExecuteCleanupInBackground_PreservesRowsOutsideDebounceWindow()
     {
@@ -65,7 +65,7 @@ public class CleanupBulkFetchStatusesHandlerTests
         var t = DateTimeOffset.UtcNow;
 
         var row1 = MakeFetch(corrId, partyId, t);
-        var row2 = MakeFetch(corrId, partyId, t.AddSeconds(31)); // outside 30s window — new keeper
+        var row2 = MakeFetch(corrId, partyId, t.AddSeconds(16)); // outside 15s window — new keeper
 
         var (handler, repo) = BuildHandler();
 
