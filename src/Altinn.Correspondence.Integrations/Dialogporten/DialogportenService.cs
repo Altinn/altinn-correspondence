@@ -1057,7 +1057,7 @@ public class DialogportenService(HttpClient _httpClient,
         }
         else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
         {
-            forwardedByUrn = UrnConstants.PartyUuid + ":" + forwardedByParty.PartyUuid;
+            forwardedByUrn = await GetDialogParty(forwardingEvent?.Correspondence);
         }
         else
         {
@@ -1152,6 +1152,7 @@ public class DialogportenService(HttpClient _httpClient,
             {
                 throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {correspondence.Recipient.WithUrnPrefix()}");
             }
+            logger.LogInformation("Was " + recipientParty.Username);
             dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
         }
         return dialogParty;
