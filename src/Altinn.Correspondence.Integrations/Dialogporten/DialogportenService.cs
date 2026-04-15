@@ -44,8 +44,8 @@ public class DialogportenService(HttpClient _httpClient,
 
         // Create idempotency key for open dialog activity
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
-
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger, dialogParty: await GetDialogPartyAsync(correspondence));
+        var dialogParty = await GetDialogParty(correspondence);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger, dialogParty: dialogParty);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -62,18 +62,18 @@ public class DialogportenService(HttpClient _httpClient,
         return dialogResponse;
     }
 
-    private async Task<string> GetDialogPartyAsync(CorrespondenceEntity correspondence)
+    private async Task<string> GetDialogParty(CorrespondenceEntity correspondence)
     {
         var dialogParty = correspondence.GetRecipientUrn();
         // Migrated self-identified
         if (correspondence.RecipientType == UrnConstants.PartyUuid)
         {
             var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence.Recipient.WithUrnPrefix(), cancellationToken: CancellationToken.None);
-            if (recipientParty == null)
+            if (recipientParty == null || recipientParty.Name is null)
             {
                 throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {correspondence.Recipient.WithUrnPrefix()}");
             }
-            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Name}";
+            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
         }
         return dialogParty;
     }
