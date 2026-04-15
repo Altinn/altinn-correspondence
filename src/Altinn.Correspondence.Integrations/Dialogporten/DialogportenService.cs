@@ -1144,6 +1144,7 @@ public class DialogportenService(HttpClient _httpClient,
     {
         var dialogParty = correspondence.GetRecipientUrn();
         // Migrated self-identified
+        logger.LogInformation("DialogParty is: " + dialogParty);
         if (dialogParty?.StartsWith(UrnConstants.PartyUuid) == true)
         {
             var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence.Recipient.WithUrnPrefix(), cancellationToken: CancellationToken.None);
