@@ -22,7 +22,9 @@ public static class ApplicationConstants
         ".bmp",
         ".png",
         ".json",
-        ".csv"
+        ".csv",
+        ".dcm",
+        ".dicom"
     ];
 
     /// <summary>

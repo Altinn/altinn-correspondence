@@ -215,8 +215,18 @@ public static class StringExtensions
         {
             return false;
         }
-        // Simple email validation: contains @ and has characters before and after @
-        var atIndex = identifier.IndexOf('@');
-        return atIndex > 0 && atIndex < identifier.Length - 1 && identifier.IndexOf('@', atIndex + 1) == -1;
+        var emailValue = identifier;
+        var emailUrnPrefix = $"{UrnConstants.PersonIdPortenEmailAttribute}:";
+        if (identifier.StartsWith(emailUrnPrefix, StringComparison.Ordinal))
+        {
+            emailValue = identifier[emailUrnPrefix.Length..];
+        }
+        if (emailValue.Contains(':'))
+        {
+            return false;
+        }
+        // Simple email validation: contains @ and has characters before and after @, and that there is no other @
+        var atIndex = emailValue.IndexOf('@');
+        return atIndex > 0 && atIndex < emailValue.Length - 1 && emailValue.IndexOf('@', atIndex + 1) == -1;
     }
 }

@@ -362,7 +362,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task GetCorrespondences_WithoutStatusSpecified_AsSender_ReturnsAllExceptBlacklisted()
+        public async Task GetCorrespondences_WithoutStatusSpecified_AsSenderAndAsRecipient_ReturnsAllExceptBlacklisted()
         {
             // Arrange
             var resource = Guid.NewGuid().ToString();
@@ -375,17 +375,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
-            var correspondencesBeforeDeletion = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"sender"}");
+            var searchAsRecipient = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"recipient"}");
             var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
 
-            await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{response.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
-            var correspondencesAfterDeletion = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"sender"}");
-
+            var searchAsSender = await _senderClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resource}&role={"sender"}");
             // Assert
-            var expectedBeforeDeletion = payload.Recipients.Count;
-            Assert.Equal(correspondencesBeforeDeletion?.Ids.Count, expectedBeforeDeletion);
-            var expectedAfterDeletion = payload.Recipients.Count - 1; // One was deleted
-            Assert.Equal(expectedAfterDeletion, correspondencesAfterDeletion?.Ids.Count);
+            Assert.Equal(searchAsRecipient?.Ids.Count, payload.Recipients.Count-1); // ReadyForPublish is blacklisted for recipient
+            Assert.Equal(searchAsSender?.Ids.Count, payload.Recipients.Count); // ReadyForPublish is not blacklisted for sender
         }
 
         [Fact]

@@ -21,6 +21,8 @@ namespace Altinn.Correspondence.Common.Helpers
             { ".png", "image/png" },
             { ".json", "application/json" },
             { ".csv", "text/csv" },
+            { ".dcm", "application/dicom" },
+            { ".dicom", "application/dicom" },
         };
         public static string GetMIMEType(string fileName)
         {

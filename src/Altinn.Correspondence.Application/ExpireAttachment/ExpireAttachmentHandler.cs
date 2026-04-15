@@ -97,7 +97,7 @@ public class ExpireAttachmentHandler(
                 AltinnEventType.AttachmentExpired,
                 attachment.ResourceId,
                 attachment.Id.ToString(),
-                "Expiration",
+                "attachment",
                 attachment.Sender,
                 CancellationToken.None));
 

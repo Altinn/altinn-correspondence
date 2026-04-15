@@ -6,6 +6,8 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
+using System.Text;
 using UUIDNext;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
@@ -21,10 +23,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
     {
         internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null)
         {
-            var dialogId = Guid.CreateVersion7().ToString(); // Dialogporten requires time-stamped GUIDs
-            DateTimeOffset? dueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null;
-
             DateTimeOffset currentDateTimeUtcNow = currentUtcNow ?? DateTimeOffset.UtcNow;
+            var dialogId = GetDialogId(correspondence, currentDateTimeUtcNow, logger);
+            DateTimeOffset? dueAt = correspondence.DueDateTime != default ? correspondence.DueDateTime : null;
 
             // The problem of DueAt being in the past should only occur for migrated data, as such we are checking includeActivities flag first, since this is only set when making migrated correspondences available.
             if (includeActivities && dueAt.HasValue && dueAt < currentDateTimeUtcNow)
@@ -88,6 +89,55 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Transmissions = new List<Transmission>(),
                 SystemLabel = SystemLabel.Default
             };
+        }
+
+        private static string GetDialogId(CorrespondenceEntity correspondence, DateTimeOffset currentUtcNow, ILogger? logger)
+        {
+            var sourceTimestamp = IsUuidV7(correspondence.Id)
+                ? GetTimestampFromUuidV7(correspondence.Id)
+                : correspondence.Created;
+
+            if (sourceTimestamp > currentUtcNow.AddSeconds(15))
+            {
+                logger?.LogWarning(
+                    "Dialog ID timestamp is more than 15 seconds in the future for correspondence {CorrespondenceId}. Clamping from {OriginalTimestamp:o} to {ClampedTimestamp:o}.",
+                    correspondence.Id,
+                    sourceTimestamp,
+                    currentUtcNow);
+                sourceTimestamp = currentUtcNow;
+            }
+
+            return CreateDeterministicUuidV7(sourceTimestamp, correspondence.Id).ToString();
+        }
+
+        private static bool IsUuidV7(Guid guid)
+        {
+            return guid.ToString("N")[12] == '7';
+        }
+
+        private static DateTimeOffset GetTimestampFromUuidV7(Guid uuidV7)
+        {
+            string hexValue = uuidV7.ToString("N");
+            long unixTimeMilliseconds = Convert.ToInt64(hexValue[..12], 16);
+            return DateTimeOffset.FromUnixTimeMilliseconds(unixTimeMilliseconds);
+        }
+
+        private static Guid CreateDeterministicUuidV7(DateTimeOffset timestamp, Guid correspondenceId)
+        {
+            long unixTimeMilliseconds = Math.Max(0, timestamp.ToUnixTimeMilliseconds());
+            ulong timestamp48Bit = (ulong)unixTimeMilliseconds & 0xFFFFFFFFFFFFUL;
+            string timestampHex = timestamp48Bit.ToString("x12");
+
+            byte[] seedBytes = Encoding.UTF8.GetBytes($"{correspondenceId:N}:{unixTimeMilliseconds}");
+            byte[] hash = SHA256.HashData(seedBytes);
+            string hashHex = Convert.ToHexString(hash).ToLowerInvariant();
+
+            string randA = hashHex[..3];
+            int variantNibble = (Convert.ToInt32(hashHex[3].ToString(), 16) & 0x3) | 0x8;
+            string clockSeq = $"{variantNibble:x}{hashHex.Substring(4, 3)}";
+            string node = hashHex.Substring(7, 12);
+
+            return Guid.Parse($"{timestampHex[..8]}-{timestampHex.Substring(8, 4)}-7{randA}-{clockSeq}-{node}");
         }
 
         private static string GetSystemLabelForCorrespondence(CorrespondenceEntity correspondence, bool isSoftDeleted)
