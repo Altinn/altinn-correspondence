@@ -1146,6 +1146,7 @@ public class DialogportenService(HttpClient _httpClient,
         // Migrated self-identified
         if (dialogParty?.StartsWith(UrnConstants.PartyUuid) == true)
         {
+            logger.LogInformation("Looking up username for" + dialogParty);
             var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence.Recipient.WithUrnPrefix(), cancellationToken: CancellationToken.None);
             if (recipientParty == null || recipientParty.Username is null)
             {
