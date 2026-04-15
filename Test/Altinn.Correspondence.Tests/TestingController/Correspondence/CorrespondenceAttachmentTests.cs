@@ -82,6 +82,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [InlineData(".png")]
         [InlineData(".json")]
         [InlineData(".csv")]
+        [InlineData(".dcm")]
+        [InlineData(".dicom")]
         public async Task UploadCorrespondence_WithSupportedFileTypeAttachment_GivesOk(string filetype)
         {
             // Arrange

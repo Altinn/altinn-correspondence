@@ -31,6 +31,8 @@ internal static class DialogportenAttachmentMediaTypeMapper
             ".pps" => "PPS",
             ".gif" => "GIF",
             ".bmp" => "BMP",
+            ".dcm" => "DCM",
+            ".dicom" => "DICOM",
 
             _ => null
         };
