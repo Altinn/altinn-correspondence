@@ -1144,11 +1144,10 @@ public class DialogportenService(HttpClient _httpClient,
     {
         var dialogParty = correspondence.GetRecipientUrn();
         // Migrated self-identified
-        logger.LogInformation("DialogParty is: " + dialogParty);
         if (dialogParty?.StartsWith(UrnConstants.PartyUuid) == true)
         {
             var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence.Recipient.WithUrnPrefix(), cancellationToken: CancellationToken.None);
-            if (recipientParty == null || recipientParty.Name is null)
+            if (recipientParty == null || recipientParty.Username is null)
             {
                 throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {correspondence.Recipient.WithUrnPrefix()}");
             }
