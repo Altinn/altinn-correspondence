@@ -61,7 +61,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey) : new List<Activity>(),
+                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted),
                 ServiceOwnerContext = GetServiceOwnerContextForCorrespondence(correspondence)
