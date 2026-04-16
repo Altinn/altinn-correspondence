@@ -479,6 +479,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithResourceId("TTD-migratedCorrespondence-1-1")
                     .WithId(Guid.Empty) // Not set before creation
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithStatus(CorrespondenceStatus.Initialized)
                     .WithStatus(CorrespondenceStatus.Published)
                     .WithStatus(CorrespondenceStatus.Read)
                     .Build();
@@ -547,6 +548,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithResourceId("TTD-migratedCorrespondence-1-1")
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
                     .WithId(Guid.Empty) // Not set before creation
+                    .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(-1))
                     .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddDays(-1))
                     .WithStatus(CorrespondenceStatus.Read, DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(5))
                     .Build();
@@ -639,6 +641,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     .WithResourceId("TTD-migratedCorrespondence-1-1")
                     .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
                     .WithId(Guid.Empty) // Not set before creation
+                    .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(-1))
                     .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddDays(-1))
                     .WithStatus(CorrespondenceStatus.Read, DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(5))
                     .Build();

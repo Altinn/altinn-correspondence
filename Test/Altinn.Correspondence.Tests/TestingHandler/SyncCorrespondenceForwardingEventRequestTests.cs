@@ -85,6 +85,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)                
                 .WithAltinn2CorrespondenceId(12345)                
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -196,6 +197,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(false) // Availabe in Altinn 3 APIs and Dialoporten
@@ -331,6 +333,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -547,6 +550,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs

@@ -92,6 +92,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)                
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -170,6 +171,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -230,6 +232,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
@@ -282,6 +285,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 11, 0, 0, 0), _defaultUserPartyUuid)                
                 .WithAltinn2CorrespondenceId(12345)

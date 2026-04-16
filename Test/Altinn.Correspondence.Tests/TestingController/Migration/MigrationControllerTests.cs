@@ -588,8 +588,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Initialized, new DateTime(2024, 1, 6, 09, 00, 00))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 6, 09, 00, 01))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 09, 15, 00))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 7))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, new DateTime(2024, 1, 9))
@@ -644,8 +642,6 @@ public class MigrationControllerTests : MigrationTestBase
     {
         MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Initialized, new DateTime(2024, 1, 6, 09, 00, 00))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Published, new DateTime(2024, 1, 6, 09, 00, 01))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6, 09, 15, 00))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.Confirmed, new DateTime(2024, 1, 7))
             .WithStatusEvent(MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, new DateTime(2024, 1, 9))
@@ -737,7 +733,7 @@ public class MigrationControllerTests : MigrationTestBase
         // Assert that new events were created and no duplicates are created
         Assert.Equal(2, getCorrespondenceDetailsResponseObject2.Notifications.Count);
         Assert.Equal(1, getCorrespondenceDetailsResponseObject2.Notifications.Where(x => x.NotificationChannel == NotificationChannelExt.Sms).ToList().Count);
-        Assert.Equal(7, getCorrespondenceDetailsResponseObject2.StatusHistory.Where(x => x.Status != CorrespondenceStatusExt.Fetched).ToList().Count);
+        Assert.Equal(5, getCorrespondenceDetailsResponseObject2.StatusHistory.Where(x => x.Status != CorrespondenceStatusExt.Fetched).ToList().Count);
 
     }
 

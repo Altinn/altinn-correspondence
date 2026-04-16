@@ -83,6 +83,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)                
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1,"testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
@@ -139,6 +140,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
@@ -197,6 +199,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
@@ -266,6 +269,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
@@ -321,6 +325,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
                 .WithStatus(CorrespondenceStatus.Published)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
