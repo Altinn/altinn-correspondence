@@ -1140,7 +1140,7 @@ public class DialogportenService(HttpClient _httpClient,
         }
     }
 
-    private async Task<string> GetDialogParty(CorrespondenceEntity correspondence)
+    private async Task<string?> GetDialogParty(CorrespondenceEntity correspondence)
     {
         var dialogParty = correspondence.GetRecipientUrn();
         // Migrated self-identified
