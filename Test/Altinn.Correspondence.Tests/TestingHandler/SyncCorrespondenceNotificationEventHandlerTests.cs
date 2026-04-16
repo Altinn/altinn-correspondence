@@ -83,8 +83,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)                
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 6, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 7, 0, 0, 0))                
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1,"testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -140,8 +140,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 6, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 7, 0, 0, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
                 .WithIsMigrating(false) // Available in Altinn 3 APIs
@@ -199,8 +199,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 6, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 7, 0, 0, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -269,8 +269,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 6, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 7, 0, 0, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -325,8 +325,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 6, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 7, 0, 0, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithSingleAltinn2Notification(1, "testemail@altinn.no", NotificationChannel.Email, new DateTime(2024, 1, 7), new DateTime(2024, 1, 7, 12, 0, 0), false)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs

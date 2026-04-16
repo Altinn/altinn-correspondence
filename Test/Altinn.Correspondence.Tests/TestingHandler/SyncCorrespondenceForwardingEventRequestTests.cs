@@ -85,8 +85,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)                
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 5, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 6, 0, 0, 0))                
                 .WithAltinn2CorrespondenceId(12345)                
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
@@ -197,8 +197,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 5, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 6, 0, 0, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(false) // Availabe in Altinn 3 APIs and Dialoporten
                 .WithDialogId("123")
@@ -333,8 +333,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 5, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 6, 0, 0, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>() { new CorrespondenceForwardingEventEntity
@@ -550,8 +550,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var partyUuid = Guid.NewGuid();
 
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2024, 1, 5, 23, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2024, 1, 6, 0, 0, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>() {

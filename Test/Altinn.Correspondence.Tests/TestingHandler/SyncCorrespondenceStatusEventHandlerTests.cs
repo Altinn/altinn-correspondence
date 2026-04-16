@@ -92,8 +92,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)                
+                .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddMinutes(-2))
+                .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))                
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
@@ -171,8 +171,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddMinutes(-2))
+                .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
                 .Build();
@@ -232,8 +232,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2023, 10, 1, 11, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2023, 10, 1, 12, 0, 0))
                 .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -285,8 +285,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Initialized)
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2023, 10, 1, 10, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2023, 10, 1, 11, 0, 0))
                 .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 11, 0, 0, 0), _defaultUserPartyUuid)                
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -429,7 +429,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2023, 10, 1, 11, 59, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2023, 10, 1, 12, 0, 0))
                 .WithStatus(CorrespondenceStatus.Read, new DateTime(2023, 10, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not available in Altinn 3 APIs
@@ -494,7 +495,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddMinutes(-2))
+                .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -588,7 +590,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddMinutes(-2))
+                .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -662,7 +665,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddMinutes(-2))
+                .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -738,7 +742,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddMinutes(-2))
+                .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -811,7 +816,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             string dialogId = "dialog-id-123";
             DateTimeOffset purgeOccurred = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0));
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId(dialogId)
                 .Build();
@@ -903,7 +909,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -979,7 +986,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -1054,7 +1062,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 7, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 7, 1, 11, 59, 0))
                 .WithStatus(CorrespondenceStatus.Archived, new DateTime(2025, 7, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
@@ -1131,7 +1140,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 7, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 7, 1, 11, 59, 0))
                 .WithStatus(CorrespondenceStatus.Archived, new DateTime(2025, 7, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
@@ -1218,7 +1228,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             string dialogId = "dialog-id-123";
             DateTimeOffset purgeOccurred = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0));
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId(dialogId)
                 .Build();
@@ -1325,7 +1336,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -1401,7 +1413,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
                 .Build();
@@ -1478,6 +1491,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             string dialogId = "dialog-id-123";
             var correspondence = new CorrespondenceEntityBuilder()
                 .WithCreated(new DateTime(2025, 8, 1, 12, 0, 0))
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 59, 59), _defaultUserPartyUuid)
                 .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithDialogId(dialogId)
                 .WithAltinn2CorrespondenceId(12345)
@@ -1594,6 +1608,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddMinutes(-2))
                 .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithDialogId("dialog-id-123")
@@ -1677,6 +1692,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddMinutes(-2))
                 .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddMinutes(-1))
                 .WithStatus(CorrespondenceStatus.Read, DateTimeOffset.UtcNow.AddSeconds(-30))
                 .WithAltinn2CorrespondenceId(12345)
@@ -1783,7 +1799,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) 
                 .Build();
@@ -1865,7 +1882,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithStatus(CorrespondenceStatus.PurgedByRecipient, new DateTime(2025, 8, 1, 12, 0, 0), _defaultUserPartyUuid)
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true) // Not Available in Altinn 3                
@@ -1919,7 +1937,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true)
                 .Build();
@@ -1992,7 +2011,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true)
                 .Build();
@@ -2087,7 +2107,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithStatus(CorrespondenceStatus.Published)
+                .WithStatus(CorrespondenceStatus.Initialized, new DateTime(2025, 8, 1, 11, 58, 0))
+                .WithStatus(CorrespondenceStatus.Published, new DateTime(2025, 8, 1, 11, 59, 0))
                 .WithAltinn2CorrespondenceId(12345)
                 .WithIsMigrating(true)
                 .Build();
