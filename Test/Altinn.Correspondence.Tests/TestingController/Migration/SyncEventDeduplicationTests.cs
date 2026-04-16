@@ -193,6 +193,7 @@ public class SyncEventDeduplicationTests : MigrationTestBase
         var emailNotification = new CorrespondenceNotificationEntity
         {
             CorrespondenceId = result.CorrespondenceId,
+            Altinn2NotificationId = 123,
             NotificationAddress = "+4712345678",
             NotificationChannel = NotificationChannel.Email,
             NotificationSent = notificationSent,
@@ -205,6 +206,7 @@ public class SyncEventDeduplicationTests : MigrationTestBase
         var smsNotification = new CorrespondenceNotificationEntity
         {
             CorrespondenceId = result.CorrespondenceId,
+            Altinn2NotificationId = 123,
             NotificationAddress = "+4712345678",
             NotificationChannel = NotificationChannel.Sms, // Different channel
             NotificationSent = notificationSent,
@@ -441,15 +443,22 @@ public class SyncEventDeduplicationTests : MigrationTestBase
 
         // Initial migration
         var initializeResponse1 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        Assert.True(initializeResponse1.IsSuccessStatusCode);
         var result1 = await initializeResponse1.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
         Assert.NotNull(result1);
+        var correspondenceId1 = result1.CorrespondenceId;
 
-        var getDetailsResponse1 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{result1.CorrespondenceId}/details");
+        var getDetailsResponse1 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId1}/details");
         var details1 = await getDetailsResponse1.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
         // Act - Re-migrate with exact same events
         var initializeResponse2 = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
         Assert.True(initializeResponse2.IsSuccessStatusCode);
+        var result2 = await initializeResponse2.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result2);
+        var correspondenceId2 = result2.CorrespondenceId;
+
+        Assert.True(correspondenceId1 == correspondenceId2); // Should be the same correspondence, not a new one
 
         var getDetailsResponse2 = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{result1.CorrespondenceId}/details");
         var details2 = await getDetailsResponse2.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
