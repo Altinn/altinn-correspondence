@@ -105,27 +105,6 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
         Guid delegatedUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
 
-        // Arrange - Create a custom factory with a failing Hangfire mock
-        var backgroundJobClientMock = new Mock<IBackgroundJobClient>();
-        // Mock the underlying Create method that Enqueue extension method calls internally
-        backgroundJobClientMock
-            .SetupSequence(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-            .Returns("Job-id-01")
-            .Throws(new InvalidOperationException("Hangfire enqueue failed"));
-
-        var customFactory = new CustomWebApplicationFactory
-        {
-            CustomServices = services =>
-            {
-                // Replace IBackgroundJobClient with our failing mock
-                services.RemoveAll<IBackgroundJobClient>();
-                services.AddSingleton(backgroundJobClientMock.Object);
-            }
-        };
-
-        var customMigrationClient = customFactory.CreateClientWithAddedClaims(
-            ("scope", AuthorizationConstants.MigrateScope));
-
         // Arrange sync call
         SyncCorrespondenceForwardingEventRequestExt request = new SyncCorrespondenceForwardingEventRequestExt
         {
@@ -153,6 +132,27 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
                 }                
             }
         };
+
+        // Arrange - Create a custom factory with a failing Hangfire mock
+        var backgroundJobClientMock = new Mock<IBackgroundJobClient>();
+        // Mock the underlying Create method that Enqueue extension method calls internally
+        backgroundJobClientMock
+            .SetupSequence(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+            .Returns("Job-id-01")
+            .Throws(new InvalidOperationException("Hangfire enqueue failed"));
+
+        using var customFactory = new CustomWebApplicationFactory
+        {
+            CustomServices = services =>
+            {
+                // Replace IBackgroundJobClient with our failing mock
+                services.RemoveAll<IBackgroundJobClient>();
+                services.AddSingleton(backgroundJobClientMock.Object);
+            }
+        };
+
+        var customMigrationClient = customFactory.CreateClientWithAddedClaims(
+            ("scope", AuthorizationConstants.MigrateScope));
 
         // Act - Sync with custom factory - should fail due to Hangfire exception
         var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceForwardingEventUrl, request);

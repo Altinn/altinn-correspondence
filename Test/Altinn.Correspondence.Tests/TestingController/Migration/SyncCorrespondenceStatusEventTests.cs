@@ -234,9 +234,6 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
-        // Arrange - Create a custom client with a failing Hangfire mock
-        var customMigrationClient = CreateClientWithFailingHangfire();
-
         // Arrange sync call
         SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
@@ -253,12 +250,17 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             }
         };
 
-        // Act - Sync with custom factory - should fail due to Hangfire exception
-        var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
+        // Arrange - Create a custom client with a failing Hangfire mock
+        var (customFactory, customMigrationClient) = CreateClientWithFailingHangfire();
+        using (customFactory)
+        {
+            // Act - Sync with custom factory - should fail due to Hangfire exception
+            var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
-        // Assert - Response indicates failure
-        Assert.False(response.IsSuccessStatusCode);
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            // Assert - Response indicates failure
+            Assert.False(response.IsSuccessStatusCode);
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        }
 
         // Assert that the Correspondence did not get purged
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
@@ -353,9 +355,6 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
-        // Arrange - Create a custom client with a failing Hangfire mock
-        var customMigrationClient = CreateClientWithFailingHangfire();
-
         // Arrange sync call
         SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
@@ -372,12 +371,17 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             }
         };
 
-        // Act - Sync with custom factory - should fail due to Hangfire exception
-        var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
+        // Arrange - Create a custom client with a failing Hangfire mock
+        var (customFactory, customMigrationClient) = CreateClientWithFailingHangfire();
+        using (customFactory)
+        {
+            // Act - Sync with custom factory - should fail due to Hangfire exception
+            var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
-        // Assert - Response indicates failure
-        Assert.False(response.IsSuccessStatusCode);
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            // Assert - Response indicates failure
+            Assert.False(response.IsSuccessStatusCode);
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        }
 
         // Assert that the Correspondence is still accessible (rollback means no changes persisted)
         // NOT A TRUE verification of rollback but at least verifies that the correspondence is still avaialable
@@ -586,9 +590,6 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Setup initial Migrated Correspondence
         var correspondenceId = await MigrateCorrespondence(migrateCorrespondenceExt);
 
-        // Arrange - Create a custom client with a failing Hangfire mock
-        var customMigrationClient = CreateClientWithFailingHangfire();
-
         // Arrange sync call
         SyncCorrespondenceStatusEventRequestExt request = new SyncCorrespondenceStatusEventRequestExt
         {
@@ -605,12 +606,17 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             }
         };
 
-        // Act - Sync with custom factory - should fail due to Hangfire exception
-        var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
+        // Arrange - Create a custom client with a failing Hangfire mock
+        var (customFactory, customMigrationClient) = CreateClientWithFailingHangfire();
+        using (customFactory)
+        {
+            // Act - Sync with custom factory - should fail due to Hangfire exception
+            var response = await customMigrationClient.PostAsJsonAsync(syncCorrespondenceStatusEventUrl, request);
 
-        // Assert - Response indicates failure
-        Assert.False(response.IsSuccessStatusCode);
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            // Assert - Response indicates failure
+            Assert.False(response.IsSuccessStatusCode);
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        }
 
         // Assert - The Archive status was NOT saved due to rollback
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
@@ -765,7 +771,7 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
     /// <summary>
     /// Helper method to create a custom factory with a failing Hangfire mock for transaction rollback testing.
     /// </summary>
-    private HttpClient CreateClientWithFailingHangfire()
+    private (CustomWebApplicationFactory Factory, HttpClient Client) CreateClientWithFailingHangfire()
     {
         var backgroundJobClientMock = new Mock<IBackgroundJobClient>();
         backgroundJobClientMock
@@ -781,7 +787,9 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
             }
         };
 
-        return customFactory.CreateClientWithAddedClaims(
+        var client = customFactory.CreateClientWithAddedClaims(
             ("scope", AuthorizationConstants.MigrateScope));
+
+        return (customFactory, client);
     }
 }
