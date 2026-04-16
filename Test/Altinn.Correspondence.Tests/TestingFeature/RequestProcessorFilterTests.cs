@@ -222,7 +222,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         }
 
         /// <summary>
-        /// Should enable tracing for migration activities when disableTelemetryForMigration setting is true and disableTelemetryForSync setting is false
+        /// Should enable tracing for migration activities when disableTelemetryForMigration setting is false and disableTelemetryForSync setting is true
         /// </summary>
         [Fact]
         public void ShouldMarkAsRecordedForMigrationWhenEnabledMigrationTelemetryAndDisabledSyncTelemetry()

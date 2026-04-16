@@ -53,6 +53,18 @@ public class CorrespondenceMigrationEventHelper(
                 // Transaction rolls back (duplicate is not an error, but no changes to commit)
                 return false;
             }
+
+            // Update the in-memory correspondence instance to reflect the new status
+            // This ensures subsequent event processing in the same batch has accurate state
+            correspondence.Statuses.Add(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondenceId,
+                StatusText = $"{operationName} event {eventToExecute.Status} from Altinn 2",
+                Status = eventToExecute.Status,
+                StatusChanged = eventToExecute.StatusChanged,
+                PartyUuid = eventToExecute.PartyUuid,
+                SyncedFromAltinn2 = DateTimeOffset.UtcNow
+            });
         
             // 2 - Enqueue background jobs only if the event was actually saved (not a duplicate) and has been made available
             if (correspondence.IsMigrating == false)
@@ -395,6 +407,18 @@ public class CorrespondenceMigrationEventHelper(
                 logger.LogDebug("Purge events were duplicates for correspondence {CorrespondenceId}, skipping background job processing", correspondence.Id);
                 return false;
             }
+
+            // Update the in-memory correspondence instance to reflect the purge status
+            // This ensures subsequent event processing in the same batch knows the correspondence has been purged
+            correspondence.Statuses.Add(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = corrStatus,
+                StatusChanged = deleteEventToSync.EventOccurred,
+                StatusText = $"{operationName} event {corrStatus} from Altinn 2",
+                PartyUuid = deleteEventToSync.PartyUuid,
+                SyncedFromAltinn2 = syncedTimestamp
+            });
 
             if (correspondence.IsMigrating == false)
             {

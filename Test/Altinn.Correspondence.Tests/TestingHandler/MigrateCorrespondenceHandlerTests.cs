@@ -1330,9 +1330,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceNotificationRepositoryMock
                 .Setup(x => x.AddNotificationForSync(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondenceId);
-            _correspondenceForwardingEventRepositoryMock
-                .Setup(x => x.AddForwardingEventForSync(It.Is<CorrespondenceForwardingEventEntity>(f => f.ForwardedOnDate == fwdDate1), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Guid.Empty); // Simulates duplicate, as the same forwarding event already exists in the system 
 
             _correspondenceForwardingEventRepositoryMock
                 .Setup(x => x.AddForwardingEventForSync(It.Is<CorrespondenceForwardingEventEntity>(f => f.ForwardedOnDate == fwdDate2), It.IsAny<CancellationToken>()))

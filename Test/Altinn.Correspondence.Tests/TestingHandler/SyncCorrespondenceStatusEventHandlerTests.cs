@@ -2155,6 +2155,164 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _dialogPortenServiceMock.VerifyNoOtherCalls();
         }
 
+        [Fact]
+        public async Task Available_PurgeByRecipientThenSoftDelete_SoftDeleteSkipsDialogportenUpdate()
+        {
+            // Arrange
+            // This test validates that when a purge event is processed first, the in-memory correspondence
+            // instance is updated so that subsequent soft delete events correctly detect the purge status
+            // and skip Dialogporten updates (since the correspondence is already purged)
+            string dialogId = "dialog-id-123";
+            DateTimeOffset orignalSoftDeleteOccurred = new DateTimeOffset(new DateTime(2025, 7, 16, 12, 0, 0)); // Original soft delete that happened before purge
+            DateTimeOffset purgeOccurred = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 0, 0));
+            DateTimeOffset newSoftDeleteOccurred = new DateTimeOffset(new DateTime(2025, 8, 1, 12, 5, 0)); // 5 minutes after purge; should be unrealistic in real life, but good for testing that the order of events is handled correctly
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Initialized)
+                .WithStatus(CorrespondenceStatus.Published)
+                .WithAltinn2CorrespondenceId(12345)
+                .WithDialogId(dialogId)
+                .Build();
+            var correspondenceId = correspondence.Id;
+            var sender = correspondence.Sender;
+
+            // Send events in chronological order: purge first, then soft delete
+            var request = new SyncCorrespondenceStatusEventRequest
+            {
+                CorrespondenceId = correspondenceId,
+                SyncedEvents = null,
+                SyncedDeleteEvents = new List<CorrespondenceDeleteEventEntity>
+                {
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
+                        EventOccurred = orignalSoftDeleteOccurred,
+                        PartyUuid = _defaultUserPartyUuid
+                    },
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventType = CorrespondenceDeleteEventType.HardDeletedByRecipient,
+                        EventOccurred = purgeOccurred,
+                        PartyUuid = _defaultUserPartyUuid
+                    },
+                    new CorrespondenceDeleteEventEntity
+                    {
+                        EventType = CorrespondenceDeleteEventType.SoftDeletedByRecipient,
+                        EventOccurred = newSoftDeleteOccurred,
+                        PartyUuid = _defaultUserPartyUuid
+                    }
+                }
+            };
+
+            // Mock correspondence repository
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondence);
+            _correspondenceDeleteEventRepositoryMock
+                .Setup(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CorrespondenceDeleteEventEntity>());
+            _correspondenceDeleteEventRepositoryMock
+               .Setup(x => x.AddDeleteEventForSync(It.IsAny<CorrespondenceDeleteEventEntity>(), It.IsAny<CancellationToken>()))
+               .ReturnsAsync(Guid.NewGuid());
+            _correspondenceStatusRepositoryMock
+                .Setup(x => x.AddCorrespondenceStatusForSync(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Guid.NewGuid());
+            _attachmentRepositoryMock
+                .Setup(x => x.GetAttachmentsByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<AttachmentEntity>());
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+            _backgroundJobClientMock
+                .Setup(x => x.Create(It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.CreateCorrespondencePurgedActivity)), It.IsAny<EnqueuedState>())).Returns("1");
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert OK Return
+            Assert.True(result.IsT0);
+            Assert.Equal(correspondenceId, result.AsT0);
+
+            // Verify correct calls to Correspondence repository
+            _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.StatusEvents, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify that Purge status was added to Repository with SyncedFromAltinn2 set
+            _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatusForSync(
+                It.Is<CorrespondenceStatusEntity>(e =>
+                    e.CorrespondenceId == correspondenceId &&
+                    e.Status == CorrespondenceStatus.PurgedByRecipient &&
+                    e.StatusChanged.Equals(purgeOccurred) &&
+                    e.PartyUuid == _defaultUserPartyUuid &&
+                    e.SyncedFromAltinn2 != null),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+            _correspondenceStatusRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify all delete events were saved
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEventForSync(
+               It.Is<CorrespondenceDeleteEventEntity>(e =>
+                   e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
+                   && e.PartyUuid == _defaultUserPartyUuid
+                   && e.EventOccurred.Equals(orignalSoftDeleteOccurred)
+                   && e.SyncedFromAltinn2 != null),
+               It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEventForSync(
+               It.Is<CorrespondenceDeleteEventEntity>(e =>
+                   e.EventType == CorrespondenceDeleteEventType.HardDeletedByRecipient
+                   && e.PartyUuid == _defaultUserPartyUuid
+                   && e.EventOccurred.Equals(purgeOccurred)
+                   && e.SyncedFromAltinn2 != null),
+               It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.AddDeleteEventForSync(
+               It.Is<CorrespondenceDeleteEventEntity>(e =>
+                   e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient
+                   && e.PartyUuid == _defaultUserPartyUuid
+                   && e.EventOccurred.Equals(newSoftDeleteOccurred)
+                   && e.SyncedFromAltinn2 != null),
+               It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify background job for Altinn Events (only for purge, not for soft delete)
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IEventBus.Publish) && (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondencePurged && (string)job.Args[4] == sender),
+                It.IsAny<EnqueuedState>()), Times.Once);
+
+            // Verify background jobs for Dialogporten activities for Purge only
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.TrySoftDeleteDialog)
+                    && (string)j.Args[0] == dialogId
+                ), It.IsAny<IState>()), Times.Once);
+
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(j => j.Method.Name == nameof(PurgeCorrespondenceHelper.ReportActivityToDialogporten)
+                    && (bool)j.Args[0] == false
+                    && (Guid)j.Args[1] == correspondenceId
+                    && (DateTimeOffset)j.Args[2] == purgeOccurred
+                    && (string)j.Args[3] == _defaultUserPartyIdentifier
+                ), It.IsAny<AwaitingState>()), Times.Once);
+
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(j => j.Method.Name == nameof(PurgeCorrespondenceHelper.ReportNotificationCancelledToDialogporten)
+                    && (Guid)j.Args[0] == correspondenceId
+                    && (DateTimeOffset)j.Args[1] == purgeOccurred
+                ), It.IsAny<AwaitingState>()), Times.Once);
+
+            // CRITICAL: Verify that only 1 Dialogporten updates for soft delete were enqueued
+            // This is the key assertion - the new soft delete should be skipped because the correspondence was already purged
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)
+                    && (Guid)job.Args[0] == correspondenceId
+                    && job.Args[3] != null
+                    && ((List<DialogPortenSystemLabel>)job.Args[3]).Contains(DialogPortenSystemLabel.Bin)),
+                It.IsAny<EnqueuedState>()), Times.Once);
+
+            // Should not trigger any additional Dialogporten changes or background jobs beyond those for purge
+            _backgroundJobClientMock.VerifyNoOtherCalls();
+            _dialogPortenServiceMock.VerifyNoOtherCalls();
+        }
+
         private void VerifyAltinnEventEnqueued(Guid correspondenceId, AltinnEventType eventType, string recipient)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
