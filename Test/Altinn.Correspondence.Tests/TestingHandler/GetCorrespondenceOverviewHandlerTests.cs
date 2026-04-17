@@ -111,6 +111,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                         s.Status == CorrespondenceStatus.Read),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
+
+            _backgroundJobClientMock.Verify(
+                x => x.Enqueue(
+                    It.Is<System.Linq.Expressions.Expression<System.Action<IEventBus>>>(expr =>
+                        expr.ToString().Contains("CorrespondenceReceiverRead")
+                    )
+                ),
+                Times.Once);
         }
 
         [Fact]
