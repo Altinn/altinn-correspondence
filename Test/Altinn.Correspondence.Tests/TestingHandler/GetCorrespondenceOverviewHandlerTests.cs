@@ -5,8 +5,11 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Factories;
 using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -112,13 +115,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            _backgroundJobClientMock.Verify(
-                x => x.Enqueue(
-                    It.Is<System.Linq.Expressions.Expression<System.Action<IEventBus>>>(expr =>
-                        expr.ToString().Contains("CorrespondenceReceiverRead")
-                    )
-                ),
-                Times.Once);
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job =>
+                    job.Type == typeof(IEventBus) &&
+                    job.Method.Name == nameof(IEventBus.Publish) &&
+                    (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceReceiverRead),
+                It.Is<IState>(state => state is EnqueuedState)), Times.Once);
         }
 
         [Fact]
