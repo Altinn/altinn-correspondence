@@ -241,7 +241,11 @@ public class DialogportenService(HttpClient _httpClient,
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
-
+        if (partyUrn?.StartsWith(UrnConstants.PartyUuid) == true)
+        {
+            partyUrn = await GetDialogParty(correspondence);
+        }
+        var dialogParty = await GetDialogParty(correspondence);
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, partyUrn, activityTimestamp, tokens);
 
         if (dialogActivityId is not null)
