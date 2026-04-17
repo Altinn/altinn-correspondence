@@ -16,6 +16,7 @@ namespace Altinn.Correspondence.Common.Helpers
             { ".txt", "text/plain" },
             { ".xml", "text/xml" },
             { ".jpg", "image/jpeg" },
+            { ".jpeg", "image/jpeg" },
             { ".gif", "image/gif" },
             { ".bmp", "image/bmp" },
             { ".png", "image/png" },

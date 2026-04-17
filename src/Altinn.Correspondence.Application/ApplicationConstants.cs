@@ -18,6 +18,7 @@ public static class ApplicationConstants
         ".txt",
         ".xml",
         ".jpg",
+        ".jpeg",
         ".gif",
         ".bmp",
         ".png",
