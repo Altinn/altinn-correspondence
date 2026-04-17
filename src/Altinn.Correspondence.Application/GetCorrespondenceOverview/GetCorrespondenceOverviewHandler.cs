@@ -109,6 +109,13 @@ public class GetCorrespondenceOverviewHandler(
                             StatusChanged = operationTimestamp,
                             PartyUuid = partyUuid
                         }, cancellationToken);
+                        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
+                            AltinnEventType.CorrespondenceReceiverRead,
+                            correspondence.ResourceId,
+                            correspondence.Id.ToString(),
+                            "correspondence",
+                            correspondence.Sender,
+                            CancellationToken.None));
                         if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
                         {
                             backgroundJobClient.Enqueue<IAltinnStorageService>(
