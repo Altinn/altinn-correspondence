@@ -47,11 +47,30 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
         return status.Id;
     }
 
-    public async Task<List<CorrespondenceStatusEntity>> GetStatusesByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
+    public async Task<List<CorrespondenceStatusFetchedEntity>> GetBulkFetchStatusesWindowAfter(int windowSize, DateTimeOffset? afterStatusChanged, Guid? afterId, CancellationToken cancellationToken)
     {
-        return await _context.CorrespondenceStatuses
-            .AsNoTracking()
-            .Where(s => s.CorrespondenceId == correspondenceId)
-            .ToListAsync(cancellationToken);
+        var query = _context.CorrespondenceFetches
+            .OrderBy(s => s.StatusChanged)
+            .ThenBy(s => s.Id)
+            .AsQueryable();
+
+        if (afterStatusChanged != null && afterId != null)
+        {
+            query = query.Where(s =>
+                s.StatusChanged > afterStatusChanged ||
+                (s.StatusChanged == afterStatusChanged && s.Id.CompareTo(afterId.Value) > 0));
+        }
+
+        return await query.Take(windowSize).ToListAsync(cancellationToken);
+    }
+
+    public async Task DeleteBulkFetchStatus(Guid id, CancellationToken cancellationToken)
+    {
+        var status = await _context.CorrespondenceFetches.FindAsync([id], cancellationToken);
+        if (status != null)
+        {
+            _context.CorrespondenceFetches.Remove(status);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
     }
 }

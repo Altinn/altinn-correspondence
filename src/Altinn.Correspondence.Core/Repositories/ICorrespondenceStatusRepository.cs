@@ -8,7 +8,9 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<Guid> AddCorrespondenceStatusForSync(CorrespondenceStatusEntity correspondenceStatusEntity, CancellationToken cancellationToken);
 
         Task<Guid> AddCorrespondenceStatusFetched(CorrespondenceStatusFetchedEntity correspondenceStatusFetchedEntity, CancellationToken cancellationToken);
-        
-        Task<List<CorrespondenceStatusEntity>> GetStatusesByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken);
+
+        Task<List<CorrespondenceStatusFetchedEntity>> GetBulkFetchStatusesWindowAfter(int windowSize, DateTimeOffset? afterStatusChanged, Guid? afterId, CancellationToken cancellationToken);
+
+        Task DeleteBulkFetchStatus(Guid id, CancellationToken cancellationToken);
     }
 }
