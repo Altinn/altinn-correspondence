@@ -47,7 +47,8 @@ static void BuildAndRun(string[] args)
     builder.Configuration
         .AddJsonFile("appsettings.json", true, true)
         .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
-        .AddJsonFile("appsettings.local.json", true, true);
+        .AddJsonFile("appsettings.local.json", true, true)
+        .AddEnvironmentVariables();
     StartupAppSettingsLogging.LogConfigurationKeys(builder.Configuration, bootstrapLogger, false);
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment, bootstrapLogger);
 
