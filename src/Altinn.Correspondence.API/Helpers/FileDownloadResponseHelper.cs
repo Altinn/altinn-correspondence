@@ -21,6 +21,8 @@ public static class FileDownloadResponseHelper
             ".json" => "application/json",
             ".xml" => "application/xml",
             ".html" => "text/html; charset=utf-8",
+            ".dcm" => "application/dicom",
+            ".dicom" => "application/dicom",
             _ => MediaTypeNames.Application.Octet
         };
     }

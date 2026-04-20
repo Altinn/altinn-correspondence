@@ -39,6 +39,7 @@ namespace Altinn.Correspondence.Tests.Factories
                     {
                         Status = MigrateCorrespondenceStatusExt.Initialized,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 5)),
+                        StatusText = "Correspondence Created in Altinn 2",
                         EventUserPartyUuid = _defaultUserPartyUuid,
                         EventUserUuid = _defaultUserUuid
 
@@ -47,6 +48,7 @@ namespace Altinn.Correspondence.Tests.Factories
                     {
                         Status = MigrateCorrespondenceStatusExt.Published,
                         StatusChanged = new DateTimeOffset(new DateTime(2024, 1, 6)),
+                        StatusText = "Correspondence Published in Altinn 2",
                         EventUserPartyUuid = _defaultUserPartyUuid,
                         EventUserUuid = _defaultUserUuid
                     }
@@ -135,6 +137,7 @@ namespace Altinn.Correspondence.Tests.Factories
             {
                 Status = status,
                 StatusChanged = new DateTimeOffset(occurred),
+                StatusText = $"Migrated event {status} from Altinn 2",
                 EventUserPartyUuid = (Guid)userPartyUuid,
                 EventUserUuid = (Guid)userUuid
             });

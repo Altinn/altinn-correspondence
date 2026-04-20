@@ -1,19 +1,43 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class CorrespondenceNotificationRepository(ApplicationDbContext context) : ICorrespondenceNotificationRepository
+    public class CorrespondenceNotificationRepository(ApplicationDbContext context, ILogger<ICorrespondenceNotificationRepository> logger) : ICorrespondenceNotificationRepository
     {
         private readonly ApplicationDbContext _context = context;
 
         public async Task<Guid> AddNotification(CorrespondenceNotificationEntity notification, CancellationToken cancellationToken)
         {
             await _context.CorrespondenceNotifications.AddAsync(notification, cancellationToken);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
             return notification.Id;
+        }
+
+        public async Task<Guid> AddNotificationForSync(CorrespondenceNotificationEntity notification, CancellationToken cancellationToken)
+        {
+            _context.CorrespondenceNotifications.Add(notification);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                return notification.Id;
+            }
+            catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
+            {
+                // Just let duplicates fail silently in race conditions, the Empty GUID will be used by the caller to determine that the status was not added, and the log will contain the details of the existing status.
+                logger.LogInformation(
+                    "Notification event already exists for correspondence {CorrespondenceId} during sync. Altinn2NotificationId: {Altinn2NotificationId}, NotificationSent: {NotificationSent}. Skipping duplicate.",
+                    notification.CorrespondenceId,
+                    notification.Altinn2NotificationId,
+                    notification.NotificationSent);
+
+                _context.Entry(notification).State = EntityState.Detached;
+                return Guid.Empty;
+            }
         }
 
         public async Task<CorrespondenceNotificationEntity?> GetPrimaryNotification(Guid correspondenceId, CancellationToken cancellationToken)

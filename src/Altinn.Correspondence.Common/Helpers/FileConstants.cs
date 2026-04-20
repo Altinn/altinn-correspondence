@@ -16,11 +16,14 @@ namespace Altinn.Correspondence.Common.Helpers
             { ".txt", "text/plain" },
             { ".xml", "text/xml" },
             { ".jpg", "image/jpeg" },
+            { ".jpeg", "image/jpeg" },
             { ".gif", "image/gif" },
             { ".bmp", "image/bmp" },
             { ".png", "image/png" },
             { ".json", "application/json" },
             { ".csv", "text/csv" },
+            { ".dcm", "application/dicom" },
+            { ".dicom", "application/dicom" },
         };
         public static string GetMIMEType(string fileName)
         {

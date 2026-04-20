@@ -12,9 +12,9 @@ using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
 using Altinn.Correspondence.Application.RepairNotificationDelivery;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Repositories;
 using Hangfire;
 using Altinn.Correspondence.Application.MigrateForwardingEventsBatch;
+using Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -284,6 +284,28 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     {
         backgroundJobClient.Enqueue<MigrateForwardingEventsBatchHandler>(handler => handler.Process(count, DateTimeOffset.UtcNow));
         return Ok();
+    }
+
+
+    [HttpPost]
+    [Route("cleanup-bulk-fetch-statuses")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> CleanupBulkFetchStatuses(
+        [FromServices] CleanupBulkFetchStatusesHandler handler,
+        [FromBody] CleanupBulkFetchStatusesRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        _logger.LogInformation("Request to cleanup bulk fetch statuses received");
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
     }
 
     private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);

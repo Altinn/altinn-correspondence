@@ -290,7 +290,8 @@ public class DialogportenTests
         Assert.IsType<GetCorrespondenceOverviewResponse>(result.Value);
 
         // Assert
-        Assert.Single(hangfireBackgroundJobClient.Invocations);
+        Assert.Equal(2, hangfireBackgroundJobClient.Invocations.Count);
         Assert.Contains(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "IDialogportenService.CreateOpenedActivity");
+        Assert.Contains(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "IEventBus.Publish");
     }
 }
