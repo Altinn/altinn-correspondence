@@ -1,5 +1,7 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
+using Altinn.Correspondence.Application.SendNotificationOrder;
+using Altinn.Correspondence.Application.SendSlackNotification;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -7,13 +9,12 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
-using Altinn.Correspondence.Application.SendNotificationOrder;
-using Altinn.Correspondence.Application.SendSlackNotification;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
