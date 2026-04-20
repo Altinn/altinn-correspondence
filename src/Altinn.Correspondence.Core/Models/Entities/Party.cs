@@ -68,5 +68,10 @@ namespace Altinn.Correspondence.Core.Models.Entities
         /// Gets or sets the Altinn user id associated with this party, if any
         /// </summary>
         public int? UserId { get; set; }
+
+        // <summary>
+        // The username for SI users
+        // </summary>
+        public string? Username { get; set; }
     }
 }
