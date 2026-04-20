@@ -245,7 +245,6 @@ public class DialogportenService(HttpClient _httpClient,
         {
             partyUrn = await GetDialogParty(correspondence);
         }
-        var dialogParty = await GetDialogParty(correspondence);
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, partyUrn, activityTimestamp, tokens);
 
         if (dialogActivityId is not null)
