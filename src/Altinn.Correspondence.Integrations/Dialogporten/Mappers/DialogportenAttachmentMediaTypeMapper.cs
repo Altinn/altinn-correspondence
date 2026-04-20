@@ -17,6 +17,7 @@ internal static class DialogportenAttachmentMediaTypeMapper
             ".html" => "text/html",
             ".json" => "application/json",
             ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
             ".png" => "image/png",
             ".csv" => "text/csv",
             ".txt" => "text/plain",

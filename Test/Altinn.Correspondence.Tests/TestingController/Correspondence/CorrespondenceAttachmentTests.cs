@@ -77,6 +77,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [InlineData(".txt")]
         [InlineData(".xml")]
         [InlineData(".jpg")]
+        [InlineData(".jpeg")]
         [InlineData(".gif")]
         [InlineData(".bmp")]
         [InlineData(".png")]
