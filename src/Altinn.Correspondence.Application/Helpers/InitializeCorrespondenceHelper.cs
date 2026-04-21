@@ -427,16 +427,22 @@ namespace Altinn.Correspondence.Application.Helpers
         public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, Guid partyUuid, CancellationToken cancellationToken)
         {
             logger.LogInformation($"Uploading {correspondenceAttachments.Count} correspondence attachments.");
-            foreach (var file in files)
+            for (int i = 0; i < files.Count; i++)
             {
-                var attachment = correspondenceAttachments.FirstOrDefault(a => a.FileName.ToLower() == file.FileName.ToLower());
+                var attachment = correspondenceAttachments[i];
+                if (attachment.FileName != files[i].FileName)
+                {
+                    // Fallback in case order of attachments and files do not match, try to find the attachment by filename
+                    logger.LogInformation("Attachment filename does not match uploaded file. Attempting to find attachment by filename.");
+                    attachment = correspondenceAttachments.FirstOrDefault(a => a.FileName?.ToLower() == files[i].FileName.ToLower());
+                }
 
                 if (attachment == null)
                 {
                     return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 }
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
-                await using (var f = file.OpenReadStream())
+                await using (var f = files[i].OpenReadStream())
                 {
                     uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
