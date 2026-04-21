@@ -312,6 +312,7 @@ public class InitializeCorrespondencesHandler(
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Processing correspondence initialization request for resource {ResourceId}", request.Correspondence.ResourceId);
+        logger.LogInformation(request.Correspondence.OriginalRequest);
 
         if (request.IdempotentKey.HasValue)
         {
