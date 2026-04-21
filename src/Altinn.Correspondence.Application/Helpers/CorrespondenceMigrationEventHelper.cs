@@ -281,6 +281,9 @@ public class CorrespondenceMigrationEventHelper(
                 case PartyType.Organization:
                     enduserIdByPartyUuid[uuid] = $"{UrnConstants.OrganizationNumberAttribute}:{party.OrgNumber}";
                     break;
+                case PartyType.SelfIdentified:
+                    enduserIdByPartyUuid[uuid] = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{party.Username}";
+                    break;
                 default:
                     logger.LogWarning("Party with UUID {PartyUuid} has unsupported PartyType {PartyTypeName}. Cannot map to Dialogporten enduserId.", uuid, party.PartyTypeName);
                     break;

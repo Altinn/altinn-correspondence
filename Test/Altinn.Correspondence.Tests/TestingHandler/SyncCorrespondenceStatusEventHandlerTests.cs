@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Tests.Factories;
 using Hangfire;
 using Hangfire.Common;
@@ -38,6 +39,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private string _defaultUserPartyIdentifier = $"{UrnConstants.PersonIdAttribute}:{12018012345}";
         private Guid _defaultServiceOwnerPartyUuuid = Guid.NewGuid();
         private string _defaultServiceOwnerOrgNumber = "991825827";
+        private string _defaultUserUsername = "self-identified-user";
         private string _defaultServiceOwnerPartyIdentifier = $"{UrnConstants.OrganizationNumberAttribute}:{991825827}";
 
         private Guid _selfIdentifiedUserPartyUuid = Guid.NewGuid();
@@ -738,7 +740,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Available_ArchivedBySelfIdentifiedUser_NoDPUpdate()
+        public async Task Available_ArchivedBySelfIdentifiedUser_DPUpdate()
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
@@ -773,7 +775,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(Guid.NewGuid());
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid, PartyTypeName = PartyType.SelfIdentified });
+                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid, PartyTypeName = PartyType.SelfIdentified, Username = _defaultUserUsername });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -803,6 +805,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Verify register lookup performed
             _altinnRegisterServiceMock.Verify(_altinnRegisterServiceMock => _altinnRegisterServiceMock.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()), Times.Once);
             _altinnRegisterServiceMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.Verify(x => x.Create(It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)), It.IsAny<EnqueuedState>()), Times.Once);
 
             // Should not trigger any additional Dialogporten changes or background jobs
             _backgroundJobClientMock.VerifyNoOtherCalls();
@@ -947,7 +950,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person, Username = _defaultUserUsername });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -982,7 +985,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Available_SoftDeleteBySelfIdentifiedRecipient_NoDPUpdate()
+        public async Task Available_SoftDeleteBySelfIdentifiedRecipient_DPUpdate()
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
@@ -1024,7 +1027,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid, PartyTypeName = PartyType.SelfIdentified });
+                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid, PartyTypeName = PartyType.SelfIdentified, Username = _defaultUserUsername });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1049,6 +1052,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.Verify(x => x.Create(It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)), It.IsAny<EnqueuedState>()), Times.Once);
 
             // No soft delete enqueued in Dialogporten for self-identified users
 
@@ -1409,7 +1413,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Available_RestoreBySelfIdentifiedRecipient_NoDPUpdate()
+        public async Task Available_RestoreBySelfIdentifiedRecipient_DPUpdate()
         {
             // Arrange
             var correspondence = new CorrespondenceEntityBuilder()
@@ -1451,7 +1455,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(new List<AttachmentEntity>());
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyByPartyUuid(_selfIdentifiedUserPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid,PartyTypeName = PartyType.SelfIdentified });
+                .ReturnsAsync(new Party { PartyUuid = _selfIdentifiedUserPartyUuid,PartyTypeName = PartyType.SelfIdentified, Username = _defaultUserUsername });
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1476,6 +1480,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteEventRepositoryMock.Verify(x => x.GetDeleteEventsForCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceDeleteEventRepositoryMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.Verify(x => x.Create(It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.UpdateSystemLabelsOnDialog)), It.IsAny<EnqueuedState>()), Times.Once);
 
             // No restore in Dialogporten enqueued for self-identified users
 
