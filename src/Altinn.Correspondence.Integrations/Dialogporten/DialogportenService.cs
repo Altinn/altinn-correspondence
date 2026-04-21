@@ -44,8 +44,8 @@ public class DialogportenService(HttpClient _httpClient,
 
         // Create idempotency key for open dialog activity
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
-
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger);
+        var dialogParty = await GetDialogParty(correspondence);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger, dialogParty: dialogParty);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -241,7 +241,10 @@ public class DialogportenService(HttpClient _httpClient,
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
-
+        if (partyUrn?.StartsWith(UrnConstants.PartyUuid) == true)
+        {
+            partyUrn = await GetDialogParty(correspondence);
+        }
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, partyUrn, activityTimestamp, tokens);
 
         if (dialogActivityId is not null)
@@ -894,6 +897,7 @@ public class DialogportenService(HttpClient _httpClient,
         }
 
         var (OpenedId, ConfirmedId) = await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
+        var dialogParty = await GetDialogParty(correspondence);
 
         var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(
             correspondence: correspondence,
@@ -902,7 +906,8 @@ public class DialogportenService(HttpClient _httpClient,
             logger: logger,
             openedActivityIdempotencyKey: OpenedId.ToString(),
             confirmedActivityIdempotencyKey: ConfirmedId?.ToString(),
-            isSoftDeleted: isSoftDeleted);
+            isSoftDeleted: isSoftDeleted,
+            dialogParty: dialogParty);
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -1055,7 +1060,7 @@ public class DialogportenService(HttpClient _httpClient,
         }
         else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
         {
-            forwardedByUrn = UrnConstants.PartyUuid + ":" + forwardedByParty.PartyUuid;
+            forwardedByUrn = await GetDialogParty(forwardingEvent?.Correspondence);
         }
         else
         {
@@ -1136,5 +1141,21 @@ public class DialogportenService(HttpClient _httpClient,
         {
             throw new Exception($"Forwarding event {forwardingEvent.Id} has no valid forwarding target (no ForwardedToUserUuid, ForwardedToEmailAddress or MailboxSupplier)");
         }
+    }
+
+    private async Task<string?> GetDialogParty(CorrespondenceEntity correspondence)
+    {
+        var dialogParty = correspondence.GetRecipientUrn();
+        // Migrated self-identified
+        if (dialogParty?.StartsWith(UrnConstants.PartyUuid) == true)
+        {
+            var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence.Recipient.WithUrnPrefix(), cancellationToken: CancellationToken.None);
+            if (recipientParty == null || recipientParty.Username is null)
+            {
+                throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {correspondence.Recipient.WithUrnPrefix()}");
+            }
+            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
+        }
+        return dialogParty;
     }
 }

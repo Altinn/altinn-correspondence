@@ -32,7 +32,8 @@ public static class PartyMapper
             SSN = partyV2.PersonIdentifier,
             OrgNumber = partyV2.OrganizationIdentifier,
             ExternalUrn = partyV2.ExternalUrn,
-            UserId = partyV2.User?.UserId
+            UserId = partyV2.User?.UserId,
+            Username = Uri.EscapeDataString(partyV2.User?.Username?.ToLowerInvariant() ?? string.Empty)
         };
 
         if (!string.IsNullOrWhiteSpace(partyV2.PartyType))

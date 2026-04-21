@@ -1,9 +1,9 @@
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
-using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;

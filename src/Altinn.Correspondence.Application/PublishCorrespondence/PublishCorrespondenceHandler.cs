@@ -1,5 +1,7 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
+using Altinn.Correspondence.Application.SendNotificationOrder;
+using Altinn.Correspondence.Application.SendSlackNotification;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -7,13 +9,12 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
-using Altinn.Correspondence.Application.SendNotificationOrder;
-using Altinn.Correspondence.Application.SendSlackNotification;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Application.PublishCorrespondence;
 
@@ -31,6 +32,8 @@ public class PublishCorrespondenceHandler(
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var operationTimestamp = DateTimeOffset.UtcNow;        
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        var expectedPublishTime = correspondence?.RequestedPublishTime > correspondence?.Created ? correspondence.RequestedPublishTime : correspondence?.Created;
+        logger.LogInformation("Publishing correspondence {CorrespondenceId}. It was expected {expectedPublishTime} and actually executed at {actualPublishTime}.", correspondenceId, expectedPublishTime, operationTimestamp);
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence!.Sender, cancellationToken);
         var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence!.Recipient, cancellationToken);
         var senderPartyUuid = senderParty?.PartyUuid;
@@ -129,7 +132,6 @@ public class PublishCorrespondenceHandler(
             }
             else
             {
-                logger.LogInformation("Publishing correspondence {CorrespondenceId}. It was scheduled for {requestedPublishTime}.", correspondenceId, correspondence?.RequestedPublishTime);
                 status = new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondenceId,

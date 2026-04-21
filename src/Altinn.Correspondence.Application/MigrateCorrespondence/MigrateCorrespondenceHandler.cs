@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -95,48 +96,47 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
         {
             if (e.IsPostgresUniqueViolation()) // Correspondence Already Migrated
             {
-                // Use transaction protection for remigration logic
-                var remigrationResult = await TransactionWithRetriesPolicy.Execute<MigrateCorrespondenceResponse>(async (cancellationToken) =>
+                // Fetch correspondence
+                var existingCorrespondence = await correspondenceRepository.GetCorrespondenceByAltinn2Id((int)request.CorrespondenceEntity.Altinn2CorrespondenceId, cancellationToken);
+                if (existingCorrespondence == null)
                 {
-                    // Fetch correspondence within transaction to get fresh data
-                    var existingCorrespondence = await correspondenceRepository.GetCorrespondenceByAltinn2Id((int)request.CorrespondenceEntity.Altinn2CorrespondenceId, cancellationToken);
-                    if (existingCorrespondence == null)
-                    {
-                        throw new InvalidOperationException($"Correspondence with Altinn2Id {request.CorrespondenceEntity.Altinn2CorrespondenceId} not found during remigration transaction");
-                    }
+                    throw new InvalidOperationException($"Correspondence with Altinn2Id {request.CorrespondenceEntity.Altinn2CorrespondenceId} not found during remigration");
+                }
 
-                    var correspondenceId = existingCorrespondence.Id;
+                var correspondenceId = existingCorrespondence.Id;
 
-                    // Clear the change tracker to prevent EF Core from tracking request.CorrespondenceEntity
-                    // when processing events that have navigation properties pointing to it
-                    correspondenceRepository.ClearChangeTracker();
+                // Clear the change tracker to prevent EF Core from tracking request.CorrespondenceEntity
+                // when processing events that have navigation properties pointing to it
+                correspondenceRepository.ClearChangeTracker();
 
-                    // Process all event types if they exist in the request
-                    var eventsProcessed = await correspondenceMigrationEventHelper.ProcessAllEventsForCorrespondence(
-                        correspondenceId,
-                        existingCorrespondence,
-                        request.CorrespondenceEntity.Statuses,
-                        request.DeleteEventEntities,
-                        request.CorrespondenceEntity.Notifications,
-                        request.CorrespondenceEntity.ForwardingEvents,
-                        "remigrate",
-                        cancellationToken);
+                // Process all event types if they exist in the request
+                // Note: We don't use TransactionWithRetriesPolicy here because:
+                // 1. ProcessAllEventsForCorrespondence calls loops with multiple SaveChangesAsync() calls
+                // 2. TransactionScope + multiple SaveChanges causes "operation in progress" errors with PostgreSQL
+                // 3. Each event save is already atomic via EF Core's implicit transaction
+                // 4. Partial success is acceptable for remigration (events processed independently)
+                var eventsProcessed = await correspondenceMigrationEventHelper.ProcessAllEventsForCorrespondence(
+                    correspondenceId,
+                    existingCorrespondence,
+                    request.CorrespondenceEntity.Statuses,
+                    request.DeleteEventEntities,
+                    request.CorrespondenceEntity.Notifications,
+                    request.CorrespondenceEntity.ForwardingEvents,
+                    MigrationOperationType.Remigrate,
+                    cancellationToken);
 
-                    if (eventsProcessed == 0)
-                    {
-                        logger.LogInformation("No new events to remigrate for Correspondence {CorrespondenceId}. Exiting remigrate process.", correspondenceId);
-                    }
+                if (eventsProcessed == 0)
+                {
+                    logger.LogInformation("No new events to remigrate for Correspondence {CorrespondenceId}. Exiting remigrate process.", correspondenceId);
+                }
 
-                    return new MigrateCorrespondenceResponse()
-                    {
-                        Altinn2CorrespondenceId = request.Altinn2CorrespondenceId,
-                        CorrespondenceId = correspondenceId,
-                        IsAlreadyMigrated = true,
-                        AttachmentMigrationStatuses = existingCorrespondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null
-                    };
-                }, logger, cancellationToken);
-
-                return remigrationResult;
+                return new MigrateCorrespondenceResponse()
+                {
+                    Altinn2CorrespondenceId = request.Altinn2CorrespondenceId,
+                    CorrespondenceId = correspondenceId,
+                    IsAlreadyMigrated = true,
+                    AttachmentMigrationStatuses = existingCorrespondence.Content?.Attachments.Select(a => new AttachmentMigrationStatus() { AttachmentId = a.AttachmentId, AttachmentStatus = AttachmentStatus.Initialized }).ToList() ?? null
+                };
             }
 
             throw;

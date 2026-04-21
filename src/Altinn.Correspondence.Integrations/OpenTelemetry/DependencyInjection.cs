@@ -46,17 +46,11 @@ public static class DependencyInjection
                             {
                                 return false;
                             }
-                            var path = httpContext.Request.Path.Value?.ToLowerInvariant();
-                            var isHealthCheck = path != null && path.Contains("/health");
-                            var isMigrationCall = path != null && path.Contains("/migration");
-                            if (generalSettings.DisableTelemetryForMigration)
-                            {
-                                return !isHealthCheck && !isMigrationCall;
-                            }
-                            else
-                            {
-                                return !isHealthCheck;
-                            }
+
+                            // Use shared filtering logic - return INVERSE (true = include, false = exclude)
+                            return !TelemetryFilterHelper.ShouldExcludeRequest(
+                                httpContext.Request.Path.Value,
+                                generalSettings);
                         };
                     })
                     .AddHttpClientInstrumentation(options =>
