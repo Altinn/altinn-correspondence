@@ -374,16 +374,32 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {
-            foreach (var attachment in attachments)
-            {
-                if (attachment.Attachment?.DataLocationUrl != null) continue;
+            var uploadTargetAttachments = attachments
+                .Where(a => a.Attachment != null && IsUploadTarget(a.Attachment))
+                .ToList();
 
-                var nameError = attachmentHelper.ValidateAttachmentName(attachment.Attachment!);
+            if (uploadTargetAttachments.Count != files.Count)
+            {
+                return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+            }
+
+            for (int i = 0; i < uploadTargetAttachments.Count; i++)
+            {
+                var attachment = uploadTargetAttachments[i].Attachment!;
+
+                var nameError = attachmentHelper.ValidateAttachmentName(attachment);
                 if (nameError is not null) return nameError;
 
-                var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
-                if (file == null) return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
-                if (file?.Length > ApplicationConstants.MaxFormDataFileUploadSize || file?.Length == 0) return AttachmentErrors.InvalidFileSize("2GB");
+                // The API must preserve positional order between file metadata and form files.
+                if (!string.Equals(files[i].FileName, attachment.FileName, StringComparison.Ordinal))
+                {
+                    return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+                }
+
+                if (files[i].Length > ApplicationConstants.MaxFormDataFileUploadSize || files[i].Length == 0)
+                {
+                    return AttachmentErrors.InvalidFileSize("2GB");
+                }
             }
             return null;
         }
@@ -427,20 +443,23 @@ namespace Altinn.Correspondence.Application.Helpers
         public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, Guid partyUuid, CancellationToken cancellationToken)
         {
             logger.LogInformation($"Uploading {correspondenceAttachments.Count} correspondence attachments.");
+            var uploadTargetAttachments = correspondenceAttachments
+                .Where(IsUploadTarget)
+                .ToList();
+
+            if (uploadTargetAttachments.Count != files.Count)
+            {
+                return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+            }
+
             for (int i = 0; i < files.Count; i++)
             {
-                var attachment = correspondenceAttachments[i];
-                if (attachment.FileName != files[i].FileName)
-                {
-                    // Fallback in case order of attachments and files do not match, try to find the attachment by filename
-                    logger.LogInformation("Attachment filename does not match uploaded file. Attempting to find attachment by filename.");
-                    attachment = correspondenceAttachments.FirstOrDefault(a => a.FileName?.ToLower() == files[i].FileName.ToLower());
-                }
-
-                if (attachment == null)
+                var attachment = uploadTargetAttachments[i];
+                if (!string.Equals(attachment.FileName, files[i].FileName, StringComparison.Ordinal))
                 {
                     return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 }
+
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = files[i].OpenReadStream())
                 {
@@ -454,6 +473,12 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             logger.LogInformation($"Uploaded {correspondenceAttachments.Count} correspondence attachments.");
             return null;
+        }
+
+        public static bool IsUploadTarget(AttachmentEntity attachment)
+        {
+            return attachment.DataLocationType == AttachmentDataLocationType.AltinnCorrespondenceAttachment
+                && string.IsNullOrWhiteSpace(attachment.DataLocationUrl);
         }
 
         public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, string serviceOwnerOrgNumber, CancellationToken cancellationToken)

@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -27,6 +27,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
         internal class ValidatedData
         {
             public List<AttachmentEntity> AttachmentsToBeUploaded { get; set; } = new();
+            public List<AttachmentEntity> UploadTargetAttachments { get; set; } = new();
             public Guid PartyUuid { get; set; }
             public List<string> ReservedRecipients { get; set; } = new();
             public List<Party> RecipientDetails { get; set; } = new();
@@ -236,6 +237,10 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                     logger.LogDebug("Processing new attachment {AttachmentId}", attachment.AttachmentId);
                     var processedAttachment = await initializeCorrespondenceHelper.ProcessNewAttachment(attachment, partyUuid, validatedData.ServiceOwnerOrgNumber, cancellationToken);
                     validatedData.AttachmentsToBeUploaded.Add(processedAttachment);
+                    if (InitializeCorrespondenceHelper.IsUploadTarget(processedAttachment))
+                    {
+                        validatedData.UploadTargetAttachments.Add(processedAttachment);
+                    }
                 }
             }
             if (existingAttachmentIds.Count > 0)
@@ -261,8 +266,8 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 }
             }
 
-            logger.LogDebug("Uploading {Count} attachments", validatedData.AttachmentsToBeUploaded.Count);
-            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.AttachmentsToBeUploaded, uploadAttachmentFiles, partyUuid, cancellationToken);
+            logger.LogDebug("Uploading {Count} attachments", validatedData.UploadTargetAttachments.Count);
+            var uploadError = await initializeCorrespondenceHelper.UploadAttachments(validatedData.UploadTargetAttachments, uploadAttachmentFiles, partyUuid, cancellationToken);
             if (uploadError != null)
             {
                 logger.LogError("Attachment upload failed: {Error}", uploadError);
