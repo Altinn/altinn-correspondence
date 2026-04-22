@@ -1119,7 +1119,7 @@ public class DialogportenService(HttpClient _httpClient,
                     forwardingActivities.Add(activity);
                 }
             }
-            catch (Exception ex) when (ex is OperationCanceledException or TaskCanceledException || cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (ex is OperationCanceledException || cancellationToken.IsCancellationRequested)
             {
                 throw;
             }
@@ -1231,8 +1231,8 @@ public class DialogportenService(HttpClient _httpClient,
         // All validation and lookups succeeded, now persist the new DialogActivityId if needed
         if (persistNewActivityId)
         {
-            forwardingEvent.DialogActivityId = dialogActivityId;
             await correspondenceForwardingEventRepository.SetDialogActivityId(forwardingEvent.Id, dialogActivityId, cancellationToken);
+            forwardingEvent.DialogActivityId = dialogActivityId;
         }
 
         // Build and return the Activity object
