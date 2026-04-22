@@ -29,6 +29,8 @@ var predefinedKeyvaultSecretEnvVars = [
   { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretName: 'access-management-subscription-key' }
   { name: 'MaskinportenSettings__ClientId', secretName: 'maskinporten-client-id' }
   { name: 'MaskinportenSettings__EncodedJwk', secretName: 'maskinporten-jwk' }
+  { name: 'MaskinportenJwkRotationSettings__AdminClientId', secretName: 'maskinporten-admin-client-id' }
+  { name: 'MaskinportenJwkRotationSettings__AdminEncodedJwk', secretName: 'maskinporten-admin-jwk' }
   { name: 'GeneralSettings__SlackUrl', secretName: 'slack-url' }
   { name: 'AltinnIdProviderSettings__ClientId', secretName: 'altinn-idprovider-client-id' }
   { name: 'AltinnIdProviderSettings__ClientSecret', secretName: 'altinn-idprovider-client-secret' }
@@ -67,6 +69,7 @@ var containerAppEnvVarsComputed = [
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
+  { name: 'MaskinportenJwkRotationSettings__KeyVaultUrl', value: keyVaultUrl }
   ]
 
 // Combine all environment variables

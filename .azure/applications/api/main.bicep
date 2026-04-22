@@ -58,11 +58,22 @@ module keyvaultAddReaderRolesAppIdentity '../../modules/keyvault/addReaderRoles.
   }
 }
 
+module keyvaultAddSecretsOfficerRoleAppIdentity '../../modules/keyvault/addSecretsOfficerRole.bicep' = {
+  name: 'kvsecretsofficer-${namePrefix}-app'
+  scope: resourceGroup
+  params: {
+    keyvaultName: sourceKeyVaultName
+    principalType: 'ServicePrincipal'
+    principalObjectId: appIdentity.outputs.principalId
+  }
+}
+
 module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
   name: 'databaseAccess'
   scope: resourceGroup
   dependsOn: [
     keyvaultAddReaderRolesAppIdentity // Timing issue
+    keyvaultAddSecretsOfficerRoleAppIdentity
   ]
   params: {
     principalType: 'ServicePrincipal'
@@ -91,7 +102,7 @@ module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bic
 module containerApp '../../modules/containerApp/main.bicep' = {
   name: containerAppName
   scope: resourceGroup
-  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess]
+  dependsOn: [keyvaultAddReaderRolesAppIdentity, keyvaultAddSecretsOfficerRoleAppIdentity, databaseAccess]
   params: {
     eventGridIps: fetchEventGridIpsScript.outputs.eventGridIps!
     namePrefix: namePrefix
