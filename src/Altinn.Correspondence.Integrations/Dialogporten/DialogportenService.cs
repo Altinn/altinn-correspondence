@@ -1045,9 +1045,7 @@ public class DialogportenService(HttpClient _httpClient,
 
         // Post the activity to Dialogporten
         var correspondence = forwardingEvent.Correspondence!;
-
-        // Build the activity using shared logic
-        var activity = await BuildForwardingActivity(forwardingEvent, correspondence, cancellationToken);
+                
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
@@ -1058,7 +1056,10 @@ public class DialogportenService(HttpClient _httpClient,
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
         }
-        
+
+        // Build the activity using shared logic
+        var activity = await BuildForwardingActivity(forwardingEvent, correspondence, cancellationToken);
+
         // Convert the Activity to CreateDialogActivityRequest
         var createDialogActivityRequest = new CreateDialogActivityRequest
         {
