@@ -31,9 +31,9 @@ public class DialogportenServiceTests
                     m.RequestUri != null &&
                     m.RequestUri.AbsolutePath.EndsWith("/dialogporten/api/v1/serviceowner/dialogs")),
                 ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) =>
             {
-                capturedRequestBody = await req.Content!.ReadAsStringAsync();
+                capturedRequestBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
             })
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -88,9 +88,9 @@ public class DialogportenServiceTests
                     m.RequestUri != null &&
                     m.RequestUri.AbsolutePath.EndsWith("/dialogporten/api/v1/serviceowner/dialogs")),
                 ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) =>
             {
-                capturedRequestBody = await req.Content!.ReadAsStringAsync();
+                capturedRequestBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
             })
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
             {

@@ -1042,15 +1042,20 @@ public class DialogportenService(HttpClient _httpClient,
     public async Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)
     {
         var forwardingEvent = await correspondenceForwardingEventRepository.GetForwardingEvent(forwardingEventId, cancellationToken);
-        
-        // Build the activity using shared logic
-        var activity = await BuildForwardingActivity(forwardingEvent, cancellationToken);
-        
+
         // Post the activity to Dialogporten
         var correspondence = forwardingEvent.Correspondence!;
+
+        // Build the activity using shared logic
+        var activity = await BuildForwardingActivity(forwardingEvent, correspondence, cancellationToken);
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
+            if (correspondence.IsMigrating)
+            {
+                logger.LogWarning("Skipping adding forwarding event for correspondence {correspondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", correspondence.Id);
+                return;
+            }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
         }
         
@@ -1107,11 +1112,15 @@ public class DialogportenService(HttpClient _httpClient,
         {
             try
             {
-                var activity = await BuildForwardingActivity(forwardingEvent, cancellationToken);
+                var activity = await BuildForwardingActivity(forwardingEvent, correspondence, cancellationToken);
                 if (activity != null)
                 {
                     forwardingActivities.Add(activity);
                 }
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or TaskCanceledException || cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -1127,14 +1136,8 @@ public class DialogportenService(HttpClient _httpClient,
     /// Builds a complete Activity object for a single forwarding event.
     /// Performs all necessary party lookups and determines forwarding type.
     /// </summary>
-    private async Task<Activity> BuildForwardingActivity(CorrespondenceForwardingEventEntity forwardingEvent, CancellationToken cancellationToken)
+    private async Task<Activity> BuildForwardingActivity(CorrespondenceForwardingEventEntity forwardingEvent, CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
-        if (forwardingEvent.Correspondence == null)
-        {
-            throw new ArgumentException($"Forwarding event {forwardingEvent.Id} has no correspondence loaded", nameof(forwardingEvent));
-        }
-        
-        var correspondence = forwardingEvent.Correspondence;
         // Ensure DialogActivityId exists
         if (forwardingEvent.DialogActivityId == null)
         {
