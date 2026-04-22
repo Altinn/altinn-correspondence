@@ -374,9 +374,27 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {
-            var uploadTargetAttachments = attachments
-                .Where(a => a.Attachment != null && IsUploadTarget(a.Attachment))
-                .ToList();
+            var uploadTargetAttachments = new List<CorrespondenceAttachmentEntity>();
+
+            foreach (var attachmentMetadata in attachments)
+            {
+                var attachment = attachmentMetadata.Attachment;
+                if (attachment is null)
+                {
+                    return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+                }
+
+                var nameError = attachmentHelper.ValidateAttachmentName(attachment);
+                if (nameError is not null)
+                {
+                    return nameError;
+                }
+
+                if (IsUploadTarget(attachment))
+                {
+                    uploadTargetAttachments.Add(attachmentMetadata);
+                }
+            }
 
             if (uploadTargetAttachments.Count != files.Count)
             {
@@ -386,9 +404,6 @@ namespace Altinn.Correspondence.Application.Helpers
             for (int i = 0; i < uploadTargetAttachments.Count; i++)
             {
                 var attachment = uploadTargetAttachments[i].Attachment!;
-
-                var nameError = attachmentHelper.ValidateAttachmentName(attachment);
-                if (nameError is not null) return nameError;
 
                 // The API must preserve positional order between file metadata and form files.
                 if (!string.Equals(files[i].FileName, attachment.FileName, StringComparison.Ordinal))
