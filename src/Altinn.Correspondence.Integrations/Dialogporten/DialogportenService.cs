@@ -1138,12 +1138,17 @@ public class DialogportenService(HttpClient _httpClient,
     /// </summary>
     private async Task<Activity> BuildForwardingActivity(CorrespondenceForwardingEventEntity forwardingEvent, CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
-        // Ensure DialogActivityId exists
+        // Generate DialogActivityId if needed, but don't persist until validation succeeds
+        Guid dialogActivityId;
+        bool persistNewActivityId = false;
         if (forwardingEvent.DialogActivityId == null)
         {
-            var dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
-            forwardingEvent.DialogActivityId = dialogActivityId;
-            await correspondenceForwardingEventRepository.SetDialogActivityId(forwardingEvent.Id, dialogActivityId, cancellationToken);
+            dialogActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
+            persistNewActivityId = true;
+        }
+        else
+        {
+            dialogActivityId = forwardingEvent.DialogActivityId.Value;
         }
 
         // Resolve forwardedBy party
@@ -1222,10 +1227,17 @@ public class DialogportenService(HttpClient _httpClient,
             throw new Exception($"Forwarding event {forwardingEvent.Id} has no valid forwarding target (no ForwardedToUserUuid, ForwardedToEmailAddress or MailboxSupplier)");
         }
 
+        // All validation and lookups succeeded, now persist the new DialogActivityId if needed
+        if (persistNewActivityId)
+        {
+            forwardingEvent.DialogActivityId = dialogActivityId;
+            await correspondenceForwardingEventRepository.SetDialogActivityId(forwardingEvent.Id, dialogActivityId, cancellationToken);
+        }
+
         // Build and return the Activity object
         return new Activity
         {
-            Id = forwardingEvent.DialogActivityId.Value.ToString(),
+            Id = dialogActivityId.ToString(),
             PerformedBy = new PerformedBy
             {
                 ActorId = forwardedByUrn,
