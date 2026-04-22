@@ -1039,11 +1039,11 @@ public class DialogportenService(HttpClient _httpClient,
         }
         throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
     }
+
     public async Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)
     {
         var forwardingEvent = await correspondenceForwardingEventRepository.GetForwardingEvent(forwardingEventId, cancellationToken);
-
-        // Post the activity to Dialogporten
+        
         var correspondence = forwardingEvent.Correspondence!;
                 
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
