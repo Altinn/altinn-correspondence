@@ -517,12 +517,11 @@ public class DialogportenServiceTests
                 d.Value.Contains("user1@awesometestusers.com") || 
                 d.Value.Contains("Digipost") || 
                 d.Value.Contains("Delegate")) == true)
-            .OrderBy(a => a.CreatedAt)
             .ToList();
 
         Assert.Equal(3, forwardingActivities.Count);
 
-        // Verify they are ordered by ForwardedOnDate
+        // Verify they are in the correct emission order
         Assert.Equal(emailDate, forwardingActivities[0].CreatedAt);
         Assert.Equal(mailboxDate, forwardingActivities[1].CreatedAt);
         Assert.Equal(delegationDate, forwardingActivities[2].CreatedAt);
