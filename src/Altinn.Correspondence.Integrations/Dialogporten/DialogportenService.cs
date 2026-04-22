@@ -1242,6 +1242,8 @@ public class DialogportenService(HttpClient _httpClient,
             PerformedBy = new PerformedBy
             {
                 ActorId = forwardedByUrn,
+                // ActorType is always "PartyRepresentative" for forwarding events since they are
+                // performed by a user forwarding on behalf of a party.                
                 ActorType = "PartyRepresentative"
             },
             CreatedAt = forwardingEvent.ForwardedOnDate,
