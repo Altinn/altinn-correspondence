@@ -229,6 +229,31 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 return replyOptionsError;
             }
 
+            var hasRecipientNamePlaceholder =
+                request.Correspondence.Content?.MessageBody?.Contains("{{recipientName}}", StringComparison.Ordinal) == true ||
+                request.Correspondence.Content?.MessageTitle?.Contains("{{recipientName}}", StringComparison.Ordinal) == true ||
+                request.Correspondence.Content?.MessageSummary?.Contains("{{recipientName}}", StringComparison.Ordinal) == true;
+
+            if (hasRecipientNamePlaceholder)
+            {
+                var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
+                validatedData.RecipientDetails = await altinnRegisterService.LookUpPartiesByIds(recipientsToSearch, cancellationToken);
+                if (validatedData.RecipientDetails == null || validatedData.RecipientDetails.Count != recipientsToSearch.Count)
+                {
+                    return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(
+                        validatedData.RecipientDetails != null ?
+                        validatedData.RecipientDetails.Select(r => r.SSN ?? r.OrgNumber) :
+                        new List<string>()).ToList());
+                }
+                foreach (var details in validatedData.RecipientDetails)
+                {
+                    if (details.PartyUuid == Guid.Empty)
+                    {
+                        return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
+                    }
+                }
+            }
+
             logger.LogDebug("Processing attachments for correspondence");
             if (uploadAttachmentMetadata.Count > 0)
             {
@@ -272,28 +297,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             {
                 logger.LogError("Attachment upload failed: {Error}", uploadError);
                 return uploadError;
-            }
-
-            if (request.Correspondence.Content!.MessageBody.Contains("{{recipientName}}") ||
-                request.Correspondence.Content!.MessageTitle.Contains("{{recipientName}}") ||
-                request.Correspondence.Content!.MessageSummary.Contains("{{recipientName}}"))
-            {
-                var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
-                validatedData.RecipientDetails = await altinnRegisterService.LookUpPartiesByIds(recipientsToSearch, cancellationToken);
-                if (validatedData.RecipientDetails == null || validatedData.RecipientDetails.Count != recipientsToSearch.Count)
-                {
-                    return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(
-                        validatedData.RecipientDetails != null ?
-                        validatedData.RecipientDetails.Select(r => r.SSN ?? r.OrgNumber) :
-                        new List<string>()).ToList());
-                }
-                foreach (var details in validatedData.RecipientDetails)
-                {
-                    if (details.PartyUuid == Guid.Empty)
-                    {
-                        return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
-                    }
-                }
             }
 
             logger.LogInformation("Validation and data preparation completed successfully");
