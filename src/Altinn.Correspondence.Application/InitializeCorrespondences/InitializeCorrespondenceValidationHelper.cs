@@ -94,16 +94,16 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
                 return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
             }
-            var recipientValidation = await ValidateRecipientParty(request, cancellationToken);
-            if (recipientValidation.IsT1)
-            {
-                return recipientValidation.AsT1;
-            }
-
             if (request.Recipients.Count != request.Recipients.Distinct().Count())
             {
                 logger.LogWarning("Duplicate recipients found in request");
                 return CorrespondenceErrors.DuplicateRecipients;
+            }
+
+            var recipientValidation = await ValidateRecipientParty(request, cancellationToken);
+            if (recipientValidation.IsT1)
+            {
+                return recipientValidation.AsT1;
             }
 
             if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
