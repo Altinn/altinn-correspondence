@@ -67,15 +67,12 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
                 logger.LogInformation("Set dataLocationUrl of {attachmentId}", attachmentId);
-                logger.LogInformation("IsValidUpdate after setting dataLocationUrl for {attachmentId}: {isValidUpdate}", attachmentId, isValidUpdate);
 
                 if (string.IsNullOrWhiteSpace(attachment.Checksum))
                 {
                     isValidUpdate |= await attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
-                    logger.LogInformation("IsValidUpdate after setting checksum for {attachmentId}: {isValidUpdate}", attachmentId, isValidUpdate);
                 }
                 isValidUpdate |= await attachmentRepository.SetAttachmentSize(attachment, size, cancellationToken);
-                logger.LogInformation("IsValidUpdate after setting size for {attachmentId}: {isValidUpdate}", attachmentId, isValidUpdate);
 
                 if (!isValidUpdate)
                 {
