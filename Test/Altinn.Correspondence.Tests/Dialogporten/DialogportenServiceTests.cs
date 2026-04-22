@@ -313,6 +313,16 @@ public class DialogportenServiceTests
 
         Assert.NotNull(deserialized);
         Assert.NotNull(deserialized!.Activities);
+
+        var mailboxForwardingActivity = deserialized.Activities.FirstOrDefault(a => 
+            a.Type == "Information" && 
+            a.Description != null && 
+            a.Description.Any(d => d.LanguageCode == "nb" && d.Value.Contains("Digipost")));
+
+        Assert.NotNull(mailboxForwardingActivity);
+        var nbDescription = mailboxForwardingActivity!.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        Assert.NotNull(nbDescription);
+        Assert.Equal("sendte \"Default title\" til Digipost", nbDescription!.Value);
     }
 
     [Fact]
