@@ -255,7 +255,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
 
     public async Task<string> MakeCorrespondenceAvailableInDialogportenAndApi(Guid correspondenceId, CancellationToken cancellationToken, bool isPrepublished, CorrespondenceEntity ? correspondenceEntity = null, bool createEvents = false)
     {
-        var correspondence = correspondenceEntity ?? await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken, true);
+        var correspondence = correspondenceEntity ?? await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, true, cancellationToken, true);
         if (correspondence == null)
         {
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));

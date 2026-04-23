@@ -37,7 +37,13 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
 
     public async Task<CorrespondenceForwardingEventEntity> GetForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)
     {
-        var correspondenceForwardingEventQuery = _context.CorrespondenceForwardingEvents.AsSplitQuery().Include(c => c.Correspondence).ThenInclude(c => c.Content).AsQueryable(); 
+        var correspondenceForwardingEventQuery = _context.CorrespondenceForwardingEvents.AsSplitQuery()
+            .Include(c => c.Correspondence)
+            .ThenInclude(c => c.Content)
+            .Include(c => c.Correspondence)
+            .ThenInclude(c => c.ExternalReferences)
+            .AsQueryable();
+
         var forwardingEvent = await correspondenceForwardingEventQuery.SingleOrDefaultAsync(c => c.Id == forwardingEventId, cancellationToken);
         return forwardingEvent ?? throw new KeyNotFoundException($"Could not find correspondence forwarding event with id {forwardingEventId}");
     }

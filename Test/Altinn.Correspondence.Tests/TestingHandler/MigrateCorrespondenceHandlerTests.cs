@@ -760,6 +760,127 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
+        public async Task ProcessAndMakeAvailable_ForwardingEvents_OK()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            int altinn2CorrespondenceId = 12345;
+            var forwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E");
+            var forwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17");
+
+            var correspondenceRequestObject = new CorrespondenceEntityBuilder()
+                    .WithResourceId("TTD-migratedCorrespondence-1-1")
+                    .WithId(Guid.Empty) // Not set before creation
+                    .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
+                    .WithStatus(CorrespondenceStatus.Initialized, DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(-1))
+                    .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddDays(-1))
+                    .WithForwardingEvents(new List<CorrespondenceForwardingEventEntity>() { new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Copy sent to own email address
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 0, 0)),
+                        ForwardedByPartyUuid = _defaultUserPartyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = forwardedByUserUuid,
+                        ForwardedToEmailAddress = "user1@awesometestusers.com",
+                        ForwardingText = "Keep this as a backup in my email."
+                    },
+                    new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Copy sent to own digital mailbox
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11, 5, 0)),
+                        ForwardedByPartyUuid = _defaultUserPartyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = forwardedByUserUuid,
+                        MailboxSupplier = "urn:altinn:organization:identifier-no:123456789"
+                    },
+                    new CorrespondenceForwardingEventEntity
+                    {
+                        // Example of Instance Delegation by User 1 to User2
+                        ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 12, 15, 0)),
+                        ForwardedByPartyUuid = _defaultUserPartyUuid,
+                        ForwardedByUserId = 123,
+                        ForwardedByUserUuid = forwardedByUserUuid,
+                        ForwardedToUserId = 456,
+                        ForwardedToUserUuid = forwardedToUserUuid,
+                        ForwardingText = "User2, - look into this for me please. - User1.",
+                        ForwardedToEmailAddress  = "user2@awesometestusers.com"
+                    }})
+                    .Build();
+
+            var correspondenceMockReturn = new CorrespondenceEntity
+            {
+                Id = correspondenceId,
+                ResourceId = correspondenceRequestObject.ResourceId,
+                Recipient = correspondenceRequestObject.Recipient,
+                Sender = correspondenceRequestObject.Sender,
+                SendersReference = correspondenceRequestObject.SendersReference,
+                RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
+                Statuses = correspondenceRequestObject.Statuses,
+                ExternalReferences = correspondenceRequestObject.ExternalReferences,
+                Created = correspondenceRequestObject.Created,
+                Altinn2CorrespondenceId = correspondenceRequestObject.Altinn2CorrespondenceId,
+                ForwardingEvents = correspondenceRequestObject.ForwardingEvents
+            };
+
+            // Set navigation properties for forwarding events
+            foreach (var fwdEvent in correspondenceMockReturn.ForwardingEvents)
+            {
+                fwdEvent.Correspondence = correspondenceMockReturn;
+                fwdEvent.CorrespondenceId = correspondenceId;
+            }
+
+            var request = new MigrateCorrespondenceRequest
+            {
+                Altinn2CorrespondenceId = altinn2CorrespondenceId,
+                CorrespondenceEntity = correspondenceRequestObject,
+                MakeAvailable = true
+            };
+
+            _correspondenceRepositoryMock.Setup(x => x.CreateCorrespondence(It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondenceMockReturn);
+            _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceById(
+                correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+                .ReturnsAsync(correspondenceMockReturn);
+
+            // The dialogporten service will call BuildForwardingActivities internally when creating the dialog
+            _dialogportenServiceMock.Setup(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
+                correspondenceId, It.IsAny<CorrespondenceEntity>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .ReturnsAsync($"dialog-{correspondenceId}");
+
+            // Act
+            var result = await _handler.Process(request, null, CancellationToken.None);
+
+            // Assert
+            Assert.True(result.IsT0);
+
+            // Verify correspondence was created with all 3 forwarding events of different types
+            _correspondenceRepositoryMock.Verify(x => x.CreateCorrespondence(It.Is<CorrespondenceEntity>(c =>
+                c.Altinn2CorrespondenceId == altinn2CorrespondenceId &&
+                c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published) &&
+                c.ForwardingEvents != null && c.ForwardingEvents.Count == 3 &&
+                c.ForwardingEvents.Any(fe => fe.ForwardedToEmailAddress == "user1@awesometestusers.com") &&
+                c.ForwardingEvents.Any(fe => fe.MailboxSupplier == "urn:altinn:organization:identifier-no:123456789") &&
+                c.ForwardingEvents.Any(fe => fe.ForwardedToUserUuid == forwardedToUserUuid)
+            ), It.IsAny<CancellationToken>()), Times.Once);
+
+            _correspondenceRepositoryMock.Verify(x => x.AddExternalReference(
+                correspondenceId, ReferenceType.DialogportenDialogId, $"dialog-{correspondenceId}", It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.Verify(x => x.UpdateIsMigrating(
+                correspondenceId, false, It.IsAny<CancellationToken>()), Times.Once);
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+
+            // Verify dialog was created with the correspondence containing forwarding events
+            // Note: BuildForwardingActivities is called internally by CreateCorrespondenceDialogForMigratedCorrespondence
+            _dialogportenServiceMock.Verify(x => x.CreateCorrespondenceDialogForMigratedCorrespondence(
+                correspondenceId, 
+                It.Is<CorrespondenceEntity>(c => c.ForwardingEvents != null && c.ForwardingEvents.Count == 3), 
+                It.IsAny<bool>(), 
+                false), 
+                Times.Once);
+            _dialogportenServiceMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task Remigrate_NewEventsInA3_NothingChanged()
         {
             // Arrange

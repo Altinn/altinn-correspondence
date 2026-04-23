@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, string? dialogParty = null)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, string? dialogParty = null, List<Activity>? forwardingActivities = null)
         {
             DateTimeOffset currentDateTimeUtcNow = currentUtcNow ?? DateTimeOffset.UtcNow;
             var dialogId = GetDialogId(correspondence, currentDateTimeUtcNow, logger);
@@ -61,7 +61,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
-                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty) : new List<Activity>(),
+                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty, forwardingActivities) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted),
                 ServiceOwnerContext = GetServiceOwnerContextForCorrespondence(correspondence)
@@ -301,7 +301,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         }
 
 
-        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, string? dialogParty = null)
+        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, string? dialogParty = null, List<Activity>? forwardingActivities = null)
         {
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
@@ -319,6 +319,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
 
             activities.AddRange(GetActivitiesFromNotifications(correspondence));
+
+            if (forwardingActivities != null)
+            {
+                activities.AddRange(forwardingActivities);
+            }
 
             return activities.OrderBy(a => a.CreatedAt).ToList();
         }

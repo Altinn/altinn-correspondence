@@ -1,7 +1,9 @@
+using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Altinn.Correspondence.Tests.Factories;
-using Altinn.Correspondence.Core.Models.Entities;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -411,6 +413,61 @@ public class CreateDialogRequestMapperTests
         var reminderEnDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
         Assert.NotNull(reminderEnDescription);
         Assert.Equal("Reminder notification about received message sent to +4712345678 on SMS.", reminderEnDescription.Value);
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_WithForwardingActivities_ShouldIncludeInDialog()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var fwdEventId = Guid.NewGuid();
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithMessageTitle("Test Message")
+            .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow.AddDays(-1))
+            .WithForwardingEvents(
+            new List<CorrespondenceForwardingEventEntity>
+            {
+                new CorrespondenceForwardingEventEntity
+                {
+                    // Example of Copy sent to own email address
+                    ForwardedOnDate = new DateTimeOffset(new DateTime(2024, 1, 6, 11 ,0 ,0)),
+                    ForwardedByPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920"),
+                    ForwardedByUserId = 123,
+                    ForwardedByUserUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E"),
+                    ForwardedToEmailAddress = "user1@awesometestusers.com",
+                    ForwardingText = "Keep this as a backup in my email."
+                }
+            })
+            .Build();
+
+        var forwardingActivities = new List<Activity>
+        {
+            new Activity
+            {
+                Id = fwdEventId.ToString(),
+                Type = "Information",
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-2),
+                PerformedBy = new PerformedBy { ActorId = "urn:altinn:person:identifier-no:12018012345", ActorType = "PartyRepresentative" },
+                Description = new List<Description>
+                {
+                    new Description { LanguageCode = "nb", Value = "Kopi av 'Test Message' ble videresendt til user1@awesometestusers.com. Melding: Keep this as a backup in my email." }
+                }
+            }
+        };
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(
+            correspondence,
+            "https://example.com",
+            includeActivities: true,
+            forwardingActivities: forwardingActivities);
+
+        // Assert
+        Assert.NotNull(result.Activities);
+        var forwardingActivity = result.Activities.FirstOrDefault(a => a.Type == "Information");
+        Assert.NotNull(forwardingActivity);
+        Assert.Contains("videresendt til user1@awesometestusers.com", forwardingActivity.Description[0].Value);
     }
 
     private static int GetUuidVersion(Guid guid)
