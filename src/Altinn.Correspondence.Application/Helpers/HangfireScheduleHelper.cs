@@ -62,14 +62,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
-            if (correspondence.RequestedPublishTime < DateTimeOffset.UtcNow)
-            {
-                backgroundJobClient.Enqueue<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken));
-            }
-            else
-            {
-                backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
-            }
+            backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
         }
 
         private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now
