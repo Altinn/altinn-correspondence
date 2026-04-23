@@ -254,6 +254,23 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 }
             }
 
+            if (request.Notification != null)
+            {
+                logger.LogDebug("Validating notification template {TemplateId}", request.Notification.NotificationTemplate);
+                var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
+                if (templates.Count == 0)
+                {
+                    logger.LogWarning("Notification template {TemplateId} not found", request.Notification.NotificationTemplate);
+                    return NotificationErrors.TemplateNotFound;
+                }
+                var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification, request.Recipients);
+                if (notificationError != null)
+                {
+                    logger.LogWarning("Notification validation failed with an error.");
+                    return notificationError;
+                }
+            }
+
             logger.LogDebug("Processing attachments for correspondence");
             if (uploadAttachmentMetadata.Count > 0)
             {
@@ -272,23 +289,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             {
                 logger.LogDebug("Adding {Count} existing attachments", existingAttachmentIds.Count);
                 validatedData.AttachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
-            }
-
-            if (request.Notification != null)
-            {
-                logger.LogDebug("Validating notification template {TemplateId}", request.Notification.NotificationTemplate);
-                var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
-                if (templates.Count == 0)
-                {
-                    logger.LogWarning("Notification template {TemplateId} not found", request.Notification.NotificationTemplate);
-                    return NotificationErrors.TemplateNotFound;
-                }
-                var notificationError = initializeCorrespondenceHelper.ValidateNotification(request.Notification, request.Recipients);
-                if (notificationError != null)
-                {
-                    logger.LogWarning("Notification validation failed with an error.");
-                    return notificationError;
-                }
             }
 
             logger.LogDebug("Uploading {Count} attachments", validatedData.UploadTargetAttachments.Count);
