@@ -374,16 +374,50 @@ namespace Altinn.Correspondence.Application.Helpers
         /// </summary>
         public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
         {
-            foreach (var attachment in attachments)
+            var uploadTargetAttachments = new List<CorrespondenceAttachmentEntity>();
+
+            foreach (var attachmentMetadata in attachments)
             {
-                if (attachment.Attachment?.DataLocationUrl != null) continue;
+                var attachment = attachmentMetadata.Attachment;
+                if (attachment is null)
+                {
+                    return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+                }
 
-                var nameError = attachmentHelper.ValidateAttachmentName(attachment.Attachment!);
-                if (nameError is not null) return nameError;
+                var nameError = attachmentHelper.ValidateAttachmentName(attachment);
+                if (nameError is not null)
+                {
+                    return nameError;
+                }
 
-                var file = files.FirstOrDefault(a => a.FileName == attachment.Attachment?.FileName);
-                if (file == null) return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
-                if (file?.Length > ApplicationConstants.MaxFormDataFileUploadSize || file?.Length == 0) return AttachmentErrors.InvalidFileSize("2GB");
+                if (IsUploadTarget(attachment))
+                {
+                    uploadTargetAttachments.Add(attachmentMetadata);
+                }
+            }
+
+            if (uploadTargetAttachments.Count != files.Count)
+            {
+                return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+            }
+
+            var uniqueFileIndexByName = BuildUniqueFileIndexByName(files);
+            var usedFileIndices = new HashSet<int>();
+
+            for (int i = 0; i < uploadTargetAttachments.Count; i++)
+            {
+                var attachment = uploadTargetAttachments[i].Attachment!;
+                if (!TryResolveFileIndex(files, uniqueFileIndexByName, usedFileIndices, attachment.FileName, i, out var fileIndex))
+                {
+                    return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+                }
+
+                usedFileIndices.Add(fileIndex);
+                var file = files[fileIndex];
+                if (file.Length > ApplicationConstants.MaxFormDataFileUploadSize || file.Length == 0)
+                {
+                    return AttachmentErrors.InvalidFileSize("2GB");
+                }
             }
             return null;
         }
@@ -427,14 +461,28 @@ namespace Altinn.Correspondence.Application.Helpers
         public async Task<Error?> UploadAttachments(List<AttachmentEntity> correspondenceAttachments, List<IFormFile> files, Guid partyUuid, CancellationToken cancellationToken)
         {
             logger.LogInformation($"Uploading {correspondenceAttachments.Count} correspondence attachments.");
-            foreach (var file in files)
-            {
-                var attachment = correspondenceAttachments.FirstOrDefault(a => a.FileName.ToLower() == file.FileName.ToLower());
+            var uploadTargetAttachments = correspondenceAttachments
+                .Where(IsUploadTarget)
+                .ToList();
 
-                if (attachment == null)
+            if (uploadTargetAttachments.Count != files.Count)
+            {
+                return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+            }
+
+            var uniqueFileIndexByName = BuildUniqueFileIndexByName(files);
+            var usedFileIndices = new HashSet<int>();
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                var attachment = uploadTargetAttachments[i];
+                if (!TryResolveFileIndex(files, uniqueFileIndexByName, usedFileIndices, attachment.FileName, i, out var fileIndex))
                 {
                     return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 }
+
+                usedFileIndices.Add(fileIndex);
+                var file = files[fileIndex];
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
                 await using (var f = file.OpenReadStream())
                 {
@@ -448,6 +496,63 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             logger.LogInformation($"Uploaded {correspondenceAttachments.Count} correspondence attachments.");
             return null;
+        }
+
+        public static bool IsUploadTarget(AttachmentEntity attachment)
+        {
+            return attachment.DataLocationType == AttachmentDataLocationType.AltinnCorrespondenceAttachment
+                && string.IsNullOrWhiteSpace(attachment.DataLocationUrl);
+        }
+
+        private static Dictionary<string, int> BuildUniqueFileIndexByName(IReadOnlyList<IFormFile> files)
+        {
+            var uniqueFileIndexByName = new Dictionary<string, int>(StringComparer.Ordinal);
+            var duplicateFileNames = new HashSet<string>(StringComparer.Ordinal);
+
+            for (var i = 0; i < files.Count; i++)
+            {
+                var fileName = files[i].FileName;
+                if (duplicateFileNames.Contains(fileName))
+                {
+                    continue;
+                }
+
+                if (!uniqueFileIndexByName.TryAdd(fileName, i))
+                {
+                    uniqueFileIndexByName.Remove(fileName);
+                    duplicateFileNames.Add(fileName);
+                }
+            }
+
+            return uniqueFileIndexByName;
+        }
+
+        private static bool TryResolveFileIndex(
+            IReadOnlyList<IFormFile> files,
+            IReadOnlyDictionary<string, int> uniqueFileIndexByName,
+            IReadOnlySet<int> usedFileIndices,
+            string attachmentFileName,
+            int expectedIndex,
+            out int fileIndex)
+        {
+            if (expectedIndex >= 0
+                && expectedIndex < files.Count
+                && !usedFileIndices.Contains(expectedIndex)
+                && string.Equals(files[expectedIndex].FileName, attachmentFileName, StringComparison.Ordinal))
+            {
+                fileIndex = expectedIndex;
+                return true;
+            }
+
+            if (uniqueFileIndexByName.TryGetValue(attachmentFileName, out var fallbackIndex)
+                && !usedFileIndices.Contains(fallbackIndex))
+            {
+                fileIndex = fallbackIndex;
+                return true;
+            }
+
+            fileIndex = default;
+            return false;
         }
 
         public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, string serviceOwnerOrgNumber, CancellationToken cancellationToken)

@@ -95,6 +95,7 @@ public static class DependencyInjection
         services.AddScoped<HangfireScheduleHelper>();
         services.AddScoped<NotificationMapper>();
         services.AddScoped<CorrespondenceMigrationEventHelper>();
+        services.AddScoped<InitializeCorrespondenceValidationHelper>();
 
         // Legacy
         services.AddScoped<LegacyGetCorrespondencesHandler>();
