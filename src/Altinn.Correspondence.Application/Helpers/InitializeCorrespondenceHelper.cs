@@ -401,17 +401,18 @@ namespace Altinn.Correspondence.Application.Helpers
                 return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
             }
 
+            var uniqueFileIndexByName = BuildUniqueFileIndexByName(files);
+
             for (int i = 0; i < uploadTargetAttachments.Count; i++)
             {
                 var attachment = uploadTargetAttachments[i].Attachment!;
-
-                // The API must preserve positional order between file metadata and form files.
-                if (!string.Equals(files[i].FileName, attachment.FileName, StringComparison.Ordinal))
+                if (!TryResolveFileIndex(files, uniqueFileIndexByName, attachment.FileName, i, out var fileIndex))
                 {
                     return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 }
 
-                if (files[i].Length > ApplicationConstants.MaxFormDataFileUploadSize || files[i].Length == 0)
+                var file = files[fileIndex];
+                if (file.Length > ApplicationConstants.MaxFormDataFileUploadSize || file.Length == 0)
                 {
                     return AttachmentErrors.InvalidFileSize("2GB");
                 }
@@ -467,16 +468,19 @@ namespace Altinn.Correspondence.Application.Helpers
                 return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
             }
 
+            var uniqueFileIndexByName = BuildUniqueFileIndexByName(files);
+
             for (int i = 0; i < files.Count; i++)
             {
                 var attachment = uploadTargetAttachments[i];
-                if (!string.Equals(attachment.FileName, files[i].FileName, StringComparison.Ordinal))
+                if (!TryResolveFileIndex(files, uniqueFileIndexByName, attachment.FileName, i, out var fileIndex))
                 {
                     return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 }
 
+                var file = files[fileIndex];
                 OneOf<UploadAttachmentResponse, Error> uploadResponse;
-                await using (var f = files[i].OpenReadStream())
+                await using (var f = file.OpenReadStream())
                 {
                     uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
@@ -494,6 +498,42 @@ namespace Altinn.Correspondence.Application.Helpers
         {
             return attachment.DataLocationType == AttachmentDataLocationType.AltinnCorrespondenceAttachment
                 && string.IsNullOrWhiteSpace(attachment.DataLocationUrl);
+        }
+
+        private static Dictionary<string, int> BuildUniqueFileIndexByName(IReadOnlyList<IFormFile> files)
+        {
+            var uniqueFileIndexByName = new Dictionary<string, int>(StringComparer.Ordinal);
+            var duplicateFileNames = new HashSet<string>(StringComparer.Ordinal);
+
+            for (var i = 0; i < files.Count; i++)
+            {
+                var fileName = files[i].FileName;
+                if (duplicateFileNames.Contains(fileName))
+                {
+                    continue;
+                }
+
+                if (!uniqueFileIndexByName.TryAdd(fileName, i))
+                {
+                    uniqueFileIndexByName.Remove(fileName);
+                    duplicateFileNames.Add(fileName);
+                }
+            }
+
+            return uniqueFileIndexByName;
+        }
+
+        private static bool TryResolveFileIndex(IReadOnlyList<IFormFile> files, IReadOnlyDictionary<string, int> uniqueFileIndexByName, string attachmentFileName, int expectedIndex, out int fileIndex)
+        {
+            if (expectedIndex >= 0
+                && expectedIndex < files.Count
+                && string.Equals(files[expectedIndex].FileName, attachmentFileName, StringComparison.Ordinal))
+            {
+                fileIndex = expectedIndex;
+                return true;
+            }
+
+            return uniqueFileIndexByName.TryGetValue(attachmentFileName, out fileIndex);
         }
 
         public async Task<AttachmentEntity> ProcessNewAttachment(CorrespondenceAttachmentEntity correspondenceAttachment, Guid partyUuid, string serviceOwnerOrgNumber, CancellationToken cancellationToken)

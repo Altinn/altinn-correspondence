@@ -197,6 +197,85 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task UploadCorrespondence_WithInOrderAttachmentFileNames_GivesOk()
+        {
+            using var stream1 = new MemoryStream("first file content"u8.ToArray());
+            using var stream2 = new MemoryStream("second file content"u8.ToArray());
+            var file1 = new FormFile(stream1, 0, stream1.Length, "file1", "in-order-1.txt");
+            var file2 = new FormFile(stream2, 0, stream2.Length, "file2", "in-order-2.txt");
+
+            var attachment1 = AttachmentHelper.GetAttachmentMetaData(file1.FileName);
+            var attachment2 = AttachmentHelper.GetAttachmentMetaData(file2.FileName);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
+                .WithAttachments([attachment1, attachment2])
+                .Build();
+
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            formData.Add(new StreamContent(file1.OpenReadStream()), "attachments", file1.FileName);
+            formData.Add(new StreamContent(file2.OpenReadStream()), "attachments", file2.FileName);
+
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            Assert.Equal(HttpStatusCode.OK, uploadCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task UploadCorrespondence_WithOutOfOrderUniqueAttachmentFileNames_GivesOk()
+        {
+            using var stream1 = new MemoryStream("first file content"u8.ToArray());
+            using var stream2 = new MemoryStream("second file content"u8.ToArray());
+            var file1 = new FormFile(stream1, 0, stream1.Length, "file1", "out-of-order-1.txt");
+            var file2 = new FormFile(stream2, 0, stream2.Length, "file2", "out-of-order-2.txt");
+
+            var attachment1 = AttachmentHelper.GetAttachmentMetaData(file1.FileName);
+            var attachment2 = AttachmentHelper.GetAttachmentMetaData(file2.FileName);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
+                .WithAttachments([attachment1, attachment2])
+                .Build();
+
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            formData.Add(new StreamContent(file2.OpenReadStream()), "attachments", file2.FileName);
+            formData.Add(new StreamContent(file1.OpenReadStream()), "attachments", file1.FileName);
+
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            Assert.Equal(HttpStatusCode.OK, uploadCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task UploadCorrespondence_WithOutOfOrderAmbiguousDuplicateAttachmentFileNames_GivesBadRequest()
+        {
+            using var streamA1 = new MemoryStream("first file content"u8.ToArray());
+            using var streamB = new MemoryStream("second file content"u8.ToArray());
+            using var streamA2 = new MemoryStream("third file content"u8.ToArray());
+            var fileA1 = new FormFile(streamA1, 0, streamA1.Length, "fileA1", "ambiguous-a.txt");
+            var fileB = new FormFile(streamB, 0, streamB.Length, "fileB", "ambiguous-b.txt");
+            var fileA2 = new FormFile(streamA2, 0, streamA2.Length, "fileA2", "ambiguous-a.txt");
+
+            var attachmentA = AttachmentHelper.GetAttachmentMetaData(fileA1.FileName);
+            var attachmentB = AttachmentHelper.GetAttachmentMetaData(fileB.FileName);
+            var attachmentC = AttachmentHelper.GetAttachmentMetaData(fileA2.FileName);
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([$"{UrnConstants.OrganizationNumberAttribute}:986252932"])
+                .WithAttachments([attachmentA, attachmentB, attachmentC])
+                .Build();
+
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            formData.Add(new StreamContent(fileB.OpenReadStream()), "attachments", fileB.FileName);
+            formData.Add(new StreamContent(fileA1.OpenReadStream()), "attachments", fileA1.FileName);
+            formData.Add(new StreamContent(fileA2.OpenReadStream()), "attachments", fileA2.FileName);
+
+            var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+            Assert.Equal(HttpStatusCode.BadRequest, uploadCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
         public async Task UploadCorrespondence_WithAttachmentExpirationTimeBeforeMinimum_GivesBadRequest()
         {
             using var stream = File.OpenRead("./Data/Markdown.txt");
