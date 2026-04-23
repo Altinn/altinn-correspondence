@@ -9,6 +9,8 @@ public interface IDigdirMaskinportenAdminService
 
 public interface IKeyVaultSecretStore
 {
+    Task<string?> GetSecretValueAsync(string vaultUrl, string secretName, CancellationToken cancellationToken);
+
     Task SetSecretAsync(string vaultUrl, string secretName, string value, CancellationToken cancellationToken);
 }
 

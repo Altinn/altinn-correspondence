@@ -59,6 +59,8 @@ public class MaskinportenJwkRotationServiceTests
             .ReturnsAsync("token");
 
         var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv.example", "maskinporten-jwk", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("current-private-jwk");
 
         var service = CreateService(
             digdirAdminService.Object,
@@ -114,6 +116,8 @@ public class MaskinportenJwkRotationServiceTests
             .ReturnsAsync("token");
 
         var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync(It.IsAny<string>(), "maskinporten-jwk", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("current-private-jwk");
 
         var service = CreateService(
             digdirAdminService.Object,
@@ -127,6 +131,73 @@ public class MaskinportenJwkRotationServiceTests
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv-two.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv-three.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RotateAsync_RestoresPreviouslyUpdatedKeyVaultSecretsWhenLaterVaultWriteFails()
+    {
+        var originalJwks = new MaskinportenJwkSet
+        {
+            Keys = [new() { Kid = "current-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-current", E = "AQAB" }]
+        };
+        var updatedJwks = new MaskinportenJwkSet
+        {
+            Keys =
+            [
+                new() { Kid = "current-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-current", E = "AQAB" },
+                new() { Kid = "new-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-new", E = "AQAB" }
+            ]
+        };
+
+        var digdirAdminService = new Mock<IDigdirMaskinportenAdminService>();
+        digdirAdminService.SetupSequence(service => service.GetJwksAsync("target-client", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(originalJwks)
+            .ReturnsAsync(updatedJwks);
+        digdirAdminService.SetupSequence(service => service.UpdateJwksAsync("target-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedJwks)
+            .ReturnsAsync(originalJwks);
+
+        var generator = new Mock<IMaskinportenJwkGenerator>();
+        generator.Setup(service => service.GetPublicKey(It.IsAny<string>()))
+            .Returns(new MaskinportenJwkKey { Kid = "current-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-current", E = "AQAB" });
+        generator.Setup(service => service.Generate(It.IsAny<string>()))
+            .Returns(new MaskinportenGeneratedJwk
+            {
+                Kid = "new-kid",
+                PrivateJwkBase64 = "new-private-jwk",
+                PublicJwk = new MaskinportenJwkKey { Kid = "new-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-new", E = "AQAB" }
+            });
+
+        var tokenService = new Mock<IMaskinportenTokenService>();
+        tokenService.Setup(service => service.RequestTokenAsync("target-client", "new-private-jwk", "scope:a", "test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("token");
+
+        var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv.example", "maskinporten-jwk", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("old-kv-one");
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv-two.example", "maskinporten-jwk", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("old-kv-two");
+        keyVaultSecretStore.SetupSequence(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Returns(Task.CompletedTask);
+        keyVaultSecretStore.Setup(store => store.SetSecretAsync("https://kv-two.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("key vault write failed"));
+
+        var service = CreateService(
+            digdirAdminService.Object,
+            generator.Object,
+            tokenService.Object,
+            keyVaultSecretStore.Object,
+            settings => settings.AdditionalKeyVaultUrls = "https://kv-two.example");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RotateAsync(CancellationToken.None));
+
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "old-kv-one", It.IsAny<CancellationToken>()), Times.Once);
+        digdirAdminService.Verify(service => service.UpdateJwksAsync(
+            "target-client",
+            It.Is<MaskinportenJwkSet>(jwks => jwks.Keys.Count == 1 && jwks.Keys[0].Kid == "current-kid"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -172,6 +243,8 @@ public class MaskinportenJwkRotationServiceTests
             .ReturnsAsync("token");
 
         var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv.example", "maskinporten-jwk", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("current-private-jwk");
 
         var service = CreateService(
             digdirAdminService.Object,
@@ -301,6 +374,8 @@ public class MaskinportenJwkRotationServiceTests
             .ReturnsAsync("token");
 
         var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv.example", "maskinporten-jwk", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("current-private-jwk");
         keyVaultSecretStore.Setup(store => store.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("key vault write failed"));
 

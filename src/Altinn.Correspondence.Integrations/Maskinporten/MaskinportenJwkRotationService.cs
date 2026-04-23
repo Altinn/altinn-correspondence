@@ -26,6 +26,8 @@ public class MaskinportenJwkRotationService(
         var targetClientId = target.ClientId;
         var verificationScope = GetVerificationScope(target);
         var currentPublicKey = jwkGenerator.GetPublicKey(target.EncodedJwk);
+        var originalSecretValues = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        var updatedKeyVaultUrls = new List<string>();
 
         logger.LogInformation("Starting Maskinporten JWK rotation for client {ClientId}.", targetClientId);
         var originalJwks = await digdirMaskinportenAdminService.GetJwksAsync(targetClientId, cancellationToken);
@@ -57,11 +59,18 @@ public class MaskinportenJwkRotationService(
 
             foreach (var keyVaultUrl in keyVaultUrls)
             {
+                originalSecretValues[keyVaultUrl] = await keyVaultSecretStore.GetSecretValueAsync(
+                    keyVaultUrl,
+                    settings.KeyVaultSecretName,
+                    cancellationToken);
+
                 await keyVaultSecretStore.SetSecretAsync(
                     keyVaultUrl,
                     settings.KeyVaultSecretName,
                     generated.PrivateJwkBase64,
                     cancellationToken);
+
+                updatedKeyVaultUrls.Add(keyVaultUrl);
             }
 
             logger.LogInformation(
@@ -83,12 +92,64 @@ public class MaskinportenJwkRotationService(
                 KeyVaultSecretName = settings.KeyVaultSecretName
             };
         }
-        catch
+        catch (Exception ex)
         {
+            List<Exception>? rollbackFailures = null;
+
+            if (updatedKeyVaultUrls.Count > 0)
+            {
+                logger.LogWarning(
+                    "Maskinporten JWK rotation failed after updating Key Vault secrets. Restoring previous secret values for vaults: {KeyVaultUrls}.",
+                    string.Join(", ", updatedKeyVaultUrls));
+
+                foreach (var keyVaultUrl in updatedKeyVaultUrls)
+                {
+                    if (!originalSecretValues.TryGetValue(keyVaultUrl, out var originalSecretValue) || string.IsNullOrWhiteSpace(originalSecretValue))
+                    {
+                        var rollbackException = new InvalidOperationException(
+                            $"Cannot restore Maskinporten JWK secret for vault {keyVaultUrl} because the original secret value was missing.");
+                        rollbackFailures ??= [];
+                        rollbackFailures.Add(rollbackException);
+                        logger.LogError(rollbackException, "Failed to restore Maskinporten JWK secret for vault {KeyVaultUrl}.", keyVaultUrl);
+                        continue;
+                    }
+
+                    try
+                    {
+                        await keyVaultSecretStore.SetSecretAsync(
+                            keyVaultUrl,
+                            settings.KeyVaultSecretName,
+                            originalSecretValue,
+                            cancellationToken);
+                    }
+                    catch (Exception rollbackEx)
+                    {
+                        rollbackFailures ??= [];
+                        rollbackFailures.Add(rollbackEx);
+                        logger.LogError(rollbackEx, "Failed to restore Maskinporten JWK secret for vault {KeyVaultUrl}.", keyVaultUrl);
+                    }
+                }
+            }
+
             if (jwksUpdated)
             {
                 logger.LogWarning("Maskinporten JWK rotation failed after JWKS update. Restoring original JWKS for client {ClientId}.", targetClientId);
-                await digdirMaskinportenAdminService.UpdateJwksAsync(targetClientId, originalJwks, cancellationToken);
+                try
+                {
+                    await digdirMaskinportenAdminService.UpdateJwksAsync(targetClientId, originalJwks, cancellationToken);
+                }
+                catch (Exception rollbackEx)
+                {
+                    rollbackFailures ??= [];
+                    rollbackFailures.Add(rollbackEx);
+                    logger.LogError(rollbackEx, "Failed to restore original JWKS for client {ClientId}.", targetClientId);
+                }
+            }
+
+            if (rollbackFailures is not null)
+            {
+                rollbackFailures.Insert(0, ex);
+                throw new AggregateException("Maskinporten JWK rotation failed and one or more rollback operations also failed.", rollbackFailures);
             }
 
             throw;
