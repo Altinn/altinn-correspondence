@@ -21,6 +21,7 @@ public class MaskinportenJwkRotationService(
         var settings = rotationOptions.Value;
         var target = targetOptions.Value;
         ValidateConfiguration(settings, target);
+        var keyVaultUrls = GetKeyVaultUrls(settings);
 
         var targetClientId = target.ClientId;
         var verificationScope = GetVerificationScope(target);
@@ -32,7 +33,7 @@ public class MaskinportenJwkRotationService(
 
         var rotatedJwks = new MaskinportenJwkSet
         {
-            Keys = [.. MergeDistinctKeys(currentPublicKey, generated.PublicJwk)]
+            Keys = [.. MergeDistinctKeys(originalJwks.Keys, currentPublicKey, generated.PublicJwk)]
         };
 
         var jwksUpdated = false;
@@ -54,18 +55,22 @@ public class MaskinportenJwkRotationService(
                 target.Environment,
                 cancellationToken);
 
-            await keyVaultSecretStore.SetSecretAsync(
-                settings.KeyVaultUrl,
-                settings.KeyVaultSecretName,
-                generated.PrivateJwkBase64,
-                cancellationToken);
+            foreach (var keyVaultUrl in keyVaultUrls)
+            {
+                await keyVaultSecretStore.SetSecretAsync(
+                    keyVaultUrl,
+                    settings.KeyVaultSecretName,
+                    generated.PrivateJwkBase64,
+                    cancellationToken);
+            }
 
             logger.LogInformation(
-                "Completed Maskinporten JWK rotation for client {ClientId}. New kid={Kid}. Keys before={Before}, keys after={After}.",
+                "Completed Maskinporten JWK rotation for client {ClientId}. New kid={Kid}. Keys before={Before}, keys after={After}. Key Vaults updated: {KeyVaultUrls}.",
                 targetClientId,
                 generated.Kid,
                 originalJwks.Keys.Count,
-                verifiedJwks.Keys.Count);
+                verifiedJwks.Keys.Count,
+                string.Join(", ", keyVaultUrls));
 
             return new MaskinportenJwkRotationResult
             {
@@ -90,8 +95,11 @@ public class MaskinportenJwkRotationService(
         }
     }
 
-    private static IEnumerable<MaskinportenJwkKey> MergeDistinctKeys(params MaskinportenJwkKey[] keys)
-        => keys
+    private static IEnumerable<MaskinportenJwkKey> MergeDistinctKeys(
+        IEnumerable<MaskinportenJwkKey> existingKeys,
+        params MaskinportenJwkKey[] keys)
+        => existingKeys
+            .Concat(keys)
             .GroupBy(key => key.Kid, StringComparer.Ordinal)
             .Select(group => group.Last());
 
@@ -173,6 +181,15 @@ public class MaskinportenJwkRotationService(
             ?? throw new InvalidOperationException("No verification scope configured for Maskinporten JWK rotation.");
     }
 
+    private static IReadOnlyList<string> GetKeyVaultUrls(MaskinportenJwkRotationSettings settings)
+        => new[] { settings.KeyVaultUrl }
+            .Concat(
+                settings.AdditionalKeyVaultUrls
+                    .Split([',', ';', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
     private static bool IsRetryableVerificationFailure(Exception exception)
         => exception is InvalidOperationException invalidOperationException
             && invalidOperationException.Message.Contains("Unknown key identifier (kid)", StringComparison.OrdinalIgnoreCase);
@@ -198,7 +215,7 @@ public class MaskinportenJwkRotationService(
             throw new InvalidOperationException("Maskinporten JWK rotation admin JWK is missing.");
         }
 
-        if (string.IsNullOrWhiteSpace(settings.KeyVaultUrl))
+        if (GetKeyVaultUrls(settings).Count == 0)
         {
             throw new InvalidOperationException("Maskinporten JWK rotation Key Vault URL is missing.");
         }

@@ -13,7 +13,7 @@ namespace Altinn.Correspondence.Tests.TestingIntegrations.Maskinporten;
 public class MaskinportenJwkRotationServiceTests
 {
     [Fact]
-    public async Task RotateAsync_UpdatesJwksWithCurrentAndNewKeyAndWritesSecret()
+    public async Task RotateAsync_PreservesExistingJwksAndWritesSecret()
     {
         var originalJwks = new MaskinportenJwkSet
         {
@@ -28,6 +28,7 @@ public class MaskinportenJwkRotationServiceTests
             Keys =
             [
                 new() { Kid = "current-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-current", E = "AQAB" },
+                new() { Kid = "stale-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-stale", E = "AQAB" },
                 new() { Kid = "new-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-new", E = "AQAB" }
             ]
         };
@@ -38,7 +39,7 @@ public class MaskinportenJwkRotationServiceTests
             .ReturnsAsync(updatedJwks);
         digdirAdminService.Setup(service => service.UpdateJwksAsync(
                 "target-client",
-                It.Is<MaskinportenJwkSet>(jwks => jwks.Keys.Select(key => key.Kid).OrderBy(kid => kid).SequenceEqual(new[] { "current-kid", "new-kid" })),
+                It.Is<MaskinportenJwkSet>(jwks => jwks.Keys.Select(key => key.Kid).OrderBy(kid => kid).SequenceEqual(new[] { "current-kid", "new-kid", "stale-kid" })),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedJwks);
 
@@ -69,9 +70,63 @@ public class MaskinportenJwkRotationServiceTests
 
         Assert.Equal("new-kid", result.NewKid);
         Assert.Equal(2, result.PreviousKeyCount);
-        Assert.Equal(2, result.CurrentKeyCount);
+        Assert.Equal(3, result.CurrentKeyCount);
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
         digdirAdminService.VerifyAll();
+    }
+
+    [Fact]
+    public async Task RotateAsync_WritesSecretToAllConfiguredKeyVaults()
+    {
+        var originalJwks = new MaskinportenJwkSet
+        {
+            Keys = [new() { Kid = "current-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-current", E = "AQAB" }]
+        };
+        var updatedJwks = new MaskinportenJwkSet
+        {
+            Keys =
+            [
+                new() { Kid = "current-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-current", E = "AQAB" },
+                new() { Kid = "new-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-new", E = "AQAB" }
+            ]
+        };
+
+        var digdirAdminService = new Mock<IDigdirMaskinportenAdminService>();
+        digdirAdminService.SetupSequence(service => service.GetJwksAsync("target-client", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(originalJwks)
+            .ReturnsAsync(updatedJwks);
+        digdirAdminService.Setup(service => service.UpdateJwksAsync("target-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updatedJwks);
+
+        var generator = new Mock<IMaskinportenJwkGenerator>();
+        generator.Setup(service => service.GetPublicKey(It.IsAny<string>()))
+            .Returns(new MaskinportenJwkKey { Kid = "current-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-current", E = "AQAB" });
+        generator.Setup(service => service.Generate(It.IsAny<string>()))
+            .Returns(new MaskinportenGeneratedJwk
+            {
+                Kid = "new-kid",
+                PrivateJwkBase64 = "new-private-jwk",
+                PublicJwk = new MaskinportenJwkKey { Kid = "new-kid", Kty = "RSA", Use = "sig", Alg = "RS256", N = "n-new", E = "AQAB" }
+            });
+
+        var tokenService = new Mock<IMaskinportenTokenService>();
+        tokenService.Setup(service => service.RequestTokenAsync("target-client", "new-private-jwk", "scope:a", "test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("token");
+
+        var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+
+        var service = CreateService(
+            digdirAdminService.Object,
+            generator.Object,
+            tokenService.Object,
+            keyVaultSecretStore.Object,
+            settings => settings.AdditionalKeyVaultUrls = "https://kv-two.example, https://kv-three.example");
+
+        await service.RotateAsync(CancellationToken.None);
+
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv-two.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv-three.example", "maskinporten-jwk", "new-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -279,6 +334,7 @@ public class MaskinportenJwkRotationServiceTests
             AdminClientId = "admin-client",
             AdminEncodedJwk = CreateEncodedJwk("admin-kid"),
             KeyVaultUrl = "https://kv.example",
+            AdditionalKeyVaultUrls = string.Empty,
             KeyVaultSecretName = "maskinporten-jwk",
             NewKeyIdPrefix = "rotation-prefix",
             VerificationMaxAttempts = 3,
