@@ -18,6 +18,10 @@ public class MaskinportenJwkRotationSettings
 
     public string AdminApiBaseUrl { get; set; } = string.Empty;
 
+    public string AdminKeyVaultSecretName { get; set; } = "maskinporten-admin-jwk";
+
+    public string AdminNewKeyIdPrefix { get; set; } = "altinn-correspondence-maskinporten-admin";
+
     public string KeyVaultUrl { get; set; } = string.Empty;
 
     public string AdditionalKeyVaultUrls { get; set; } = string.Empty;

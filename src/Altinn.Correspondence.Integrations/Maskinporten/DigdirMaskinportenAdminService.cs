@@ -9,40 +9,40 @@ namespace Altinn.Correspondence.Integrations.Maskinporten;
 
 public class DigdirMaskinportenAdminService(
     IHttpClientFactory httpClientFactory,
-    IOptions<MaskinportenJwkRotationSettings> rotationSettings,
-    IOptions<MaskinportenSettings> maskinportenSettings,
     IMaskinportenTokenService tokenService,
     ILogger<DigdirMaskinportenAdminService> logger) : IDigdirMaskinportenAdminService
 {
-    public async Task<MaskinportenJwkSet> GetJwksAsync(string clientId, CancellationToken cancellationToken)
+    public async Task<MaskinportenJwkSet> GetJwksAsync(string clientId, MaskinportenAdminApiCredentials adminCredentials, CancellationToken cancellationToken)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Get, $"clients/{clientId}/jwks", cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Get, $"clients/{clientId}/jwks", adminCredentials, cancellationToken);
         using var response = await SendAsync(request, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<MaskinportenJwkSet>(cancellationToken: cancellationToken))
             ?? throw new InvalidOperationException($"Unable to deserialize Digdir JWKS for client '{clientId}'.");
     }
 
-    public async Task<MaskinportenJwkSet> UpdateJwksAsync(string clientId, MaskinportenJwkSet jwks, CancellationToken cancellationToken)
+    public async Task<MaskinportenJwkSet> UpdateJwksAsync(string clientId, MaskinportenJwkSet jwks, MaskinportenAdminApiCredentials adminCredentials, CancellationToken cancellationToken)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Post, $"clients/{clientId}/jwks", cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Post, $"clients/{clientId}/jwks", adminCredentials, cancellationToken);
         request.Content = JsonContent.Create(jwks);
         using var response = await SendAsync(request, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<MaskinportenJwkSet>(cancellationToken: cancellationToken))
             ?? throw new InvalidOperationException($"Unable to deserialize updated Digdir JWKS for client '{clientId}'.");
     }
 
-    private async Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string relativePath, CancellationToken cancellationToken)
+    private async Task<HttpRequestMessage> CreateRequestAsync(
+        HttpMethod method,
+        string relativePath,
+        MaskinportenAdminApiCredentials adminCredentials,
+        CancellationToken cancellationToken)
     {
-        var settings = rotationSettings.Value;
-        var maskinporten = maskinportenSettings.Value;
         var accessToken = await tokenService.RequestTokenAsync(
-            settings.AdminClientId,
-            settings.AdminEncodedJwk,
-            settings.AdminScope,
-            maskinporten.Environment,
+            adminCredentials.ClientId,
+            adminCredentials.EncodedJwk,
+            adminCredentials.Scope,
+            adminCredentials.Environment,
             cancellationToken);
 
-        var request = new HttpRequestMessage(method, $"{GetDigdirApiBaseUrl(settings.AdminApiBaseUrl, maskinporten.Environment)}/{relativePath}");
+        var request = new HttpRequestMessage(method, $"{GetDigdirApiBaseUrl(adminCredentials.ApiBaseUrl, adminCredentials.Environment)}/{relativePath}");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         return request;
     }

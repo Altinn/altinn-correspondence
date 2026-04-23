@@ -40,11 +40,24 @@ public class MaskinportenGeneratedJwk
     public MaskinportenJwkKey PublicJwk { get; init; } = new();
 }
 
-public class MaskinportenJwkRotationResult
+public class MaskinportenAdminApiCredentials
 {
-    public string TargetClientId { get; init; } = string.Empty;
+    public string ClientId { get; init; } = string.Empty;
 
-    public string TargetClientName { get; init; } = string.Empty;
+    public string EncodedJwk { get; init; } = string.Empty;
+
+    public string Scope { get; init; } = string.Empty;
+
+    public string ApiBaseUrl { get; init; } = string.Empty;
+
+    public string Environment { get; init; } = string.Empty;
+}
+
+public class MaskinportenJwkRotationClientResult
+{
+    public string ClientId { get; init; } = string.Empty;
+
+    public string ClientName { get; init; } = string.Empty;
 
     public string NewKid { get; init; } = string.Empty;
 
@@ -55,4 +68,9 @@ public class MaskinportenJwkRotationResult
     public string VerificationScope { get; init; } = string.Empty;
 
     public string KeyVaultSecretName { get; init; } = string.Empty;
+}
+
+public class MaskinportenJwkRotationResult
+{
+    public IReadOnlyList<MaskinportenJwkRotationClientResult> Clients { get; init; } = [];
 }

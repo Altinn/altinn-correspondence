@@ -22,16 +22,73 @@ public class MaskinportenJwkRotationService(
         var target = targetOptions.Value;
         ValidateConfiguration(settings, target);
         var keyVaultUrls = GetKeyVaultUrls(settings);
+        await PreflightKeyVaultSecretsAsync(
+            keyVaultUrls,
+            [settings.AdminKeyVaultSecretName, settings.KeyVaultSecretName],
+            cancellationToken);
 
-        var targetClientId = target.ClientId;
-        var verificationScope = GetVerificationScope(target);
-        var currentPublicKey = jwkGenerator.GetPublicKey(target.EncodedJwk);
+        var adminCredentials = CreateAdminCredentials(settings, target.Environment, settings.AdminEncodedJwk);
+        var adminRotation = await RotateClientAsync(
+            new RotationTarget(
+                settings.AdminClientId,
+                "Maskinporten admin",
+                settings.AdminEncodedJwk,
+                settings.AdminScope,
+                settings.AdminKeyVaultSecretName,
+                settings.AdminNewKeyIdPrefix),
+            keyVaultUrls,
+            adminCredentials,
+            generated => VerifyAdminDcrAccessAsync(settings, target.Environment, generated, cancellationToken),
+            cancellationToken);
+
+        adminCredentials = CreateAdminCredentials(settings, target.Environment, adminRotation.Generated.PrivateJwkBase64);
+        var targetRotation = await RotateClientAsync(
+            new RotationTarget(
+                target.ClientId,
+                "Correspondence",
+                target.EncodedJwk,
+                GetVerificationScope(target),
+                settings.KeyVaultSecretName,
+                settings.NewKeyIdPrefix),
+            keyVaultUrls,
+            adminCredentials,
+            generated => tokenService.RequestTokenAsync(
+                target.ClientId,
+                generated.PrivateJwkBase64,
+                GetVerificationScope(target),
+                target.Environment,
+                cancellationToken),
+            cancellationToken);
+
+        return new MaskinportenJwkRotationResult
+        {
+            Clients = [adminRotation.Result, targetRotation.Result]
+        };
+    }
+
+    private static IEnumerable<MaskinportenJwkKey> MergeDistinctKeys(
+        IEnumerable<MaskinportenJwkKey> existingKeys,
+        params MaskinportenJwkKey[] keys)
+        => existingKeys
+            .Concat(keys)
+            .GroupBy(key => key.Kid, StringComparer.Ordinal)
+            .Select(group => group.Last());
+
+    private async Task<SingleRotationExecution> RotateClientAsync(
+        RotationTarget rotationTarget,
+        IReadOnlyList<string> keyVaultUrls,
+        MaskinportenAdminApiCredentials adminCredentials,
+        Func<MaskinportenGeneratedJwk, Task> verifyNewKey,
+        CancellationToken cancellationToken)
+    {
+        var settings = rotationOptions.Value;
+        var currentPublicKey = jwkGenerator.GetPublicKey(rotationTarget.CurrentEncodedJwk);
         var originalSecretValues = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         var updatedKeyVaultUrls = new List<string>();
 
-        logger.LogInformation("Starting Maskinporten JWK rotation for client {ClientId}.", targetClientId);
-        var originalJwks = await digdirMaskinportenAdminService.GetJwksAsync(targetClientId, cancellationToken);
-        var generated = jwkGenerator.Generate(settings.NewKeyIdPrefix);
+        logger.LogInformation("Starting Maskinporten JWK rotation for client {ClientId}.", rotationTarget.ClientId);
+        var originalJwks = await digdirMaskinportenAdminService.GetJwksAsync(rotationTarget.ClientId, adminCredentials, cancellationToken);
+        var generated = jwkGenerator.Generate(rotationTarget.NewKeyIdPrefix);
 
         var rotatedJwks = new MaskinportenJwkSet
         {
@@ -41,32 +98,32 @@ public class MaskinportenJwkRotationService(
         var jwksUpdated = false;
         try
         {
-            var updatedJwks = await digdirMaskinportenAdminService.UpdateJwksAsync(targetClientId, rotatedJwks, cancellationToken);
+            var updatedJwks = await digdirMaskinportenAdminService.UpdateJwksAsync(rotationTarget.ClientId, rotatedJwks, adminCredentials, cancellationToken);
             jwksUpdated = true;
 
             logger.LogInformation(
                 "Maskinporten JWKS updated for client {ClientId}. Returned kids: {Kids}.",
-                targetClientId,
+                rotationTarget.ClientId,
                 FormatKids(updatedJwks.Keys));
 
             var verifiedJwks = await VerifyNewKeyAsync(
                 settings,
-                targetClientId,
+                rotationTarget.ClientId,
                 generated,
-                verificationScope,
-                target.Environment,
+                adminCredentials,
+                verifyNewKey,
                 cancellationToken);
 
             foreach (var keyVaultUrl in keyVaultUrls)
             {
                 originalSecretValues[keyVaultUrl] = await keyVaultSecretStore.GetSecretValueAsync(
                     keyVaultUrl,
-                    settings.KeyVaultSecretName,
+                    rotationTarget.KeyVaultSecretName,
                     cancellationToken);
 
                 await keyVaultSecretStore.SetSecretAsync(
                     keyVaultUrl,
-                    settings.KeyVaultSecretName,
+                    rotationTarget.KeyVaultSecretName,
                     generated.PrivateJwkBase64,
                     cancellationToken);
 
@@ -75,22 +132,24 @@ public class MaskinportenJwkRotationService(
 
             logger.LogInformation(
                 "Completed Maskinporten JWK rotation for client {ClientId}. New kid={Kid}. Keys before={Before}, keys after={After}. Key Vaults updated: {KeyVaultUrls}.",
-                targetClientId,
+                rotationTarget.ClientId,
                 generated.Kid,
                 originalJwks.Keys.Count,
                 verifiedJwks.Keys.Count,
                 string.Join(", ", keyVaultUrls));
 
-            return new MaskinportenJwkRotationResult
-            {
-                TargetClientId = targetClientId,
-                TargetClientName = "Correspondence",
-                NewKid = generated.Kid,
-                PreviousKeyCount = originalJwks.Keys.Count,
-                CurrentKeyCount = verifiedJwks.Keys.Count,
-                VerificationScope = verificationScope,
-                KeyVaultSecretName = settings.KeyVaultSecretName
-            };
+            return new SingleRotationExecution(
+                new MaskinportenJwkRotationClientResult
+                {
+                    ClientId = rotationTarget.ClientId,
+                    ClientName = rotationTarget.ClientName,
+                    NewKid = generated.Kid,
+                    PreviousKeyCount = originalJwks.Keys.Count,
+                    CurrentKeyCount = verifiedJwks.Keys.Count,
+                    VerificationScope = rotationTarget.VerificationScope,
+                    KeyVaultSecretName = rotationTarget.KeyVaultSecretName
+                },
+                generated);
         }
         catch (Exception ex)
         {
@@ -102,7 +161,7 @@ public class MaskinportenJwkRotationService(
                     "Maskinporten JWK rotation failed after updating Key Vault secrets. Restoring previous secret values for vaults: {KeyVaultUrls}.",
                     string.Join(", ", updatedKeyVaultUrls));
 
-                foreach (var keyVaultUrl in updatedKeyVaultUrls)
+                foreach (var keyVaultUrl in updatedKeyVaultUrls.AsEnumerable().Reverse())
                 {
                     if (!originalSecretValues.TryGetValue(keyVaultUrl, out var originalSecretValue) || string.IsNullOrWhiteSpace(originalSecretValue))
                     {
@@ -118,7 +177,7 @@ public class MaskinportenJwkRotationService(
                     {
                         await keyVaultSecretStore.SetSecretAsync(
                             keyVaultUrl,
-                            settings.KeyVaultSecretName,
+                            rotationTarget.KeyVaultSecretName,
                             originalSecretValue,
                             cancellationToken);
                     }
@@ -133,16 +192,16 @@ public class MaskinportenJwkRotationService(
 
             if (jwksUpdated)
             {
-                logger.LogWarning("Maskinporten JWK rotation failed after JWKS update. Restoring original JWKS for client {ClientId}.", targetClientId);
+                logger.LogWarning("Maskinporten JWK rotation failed after JWKS update. Restoring original JWKS for client {ClientId}.", rotationTarget.ClientId);
                 try
                 {
-                    await digdirMaskinportenAdminService.UpdateJwksAsync(targetClientId, originalJwks, cancellationToken);
+                    await digdirMaskinportenAdminService.UpdateJwksAsync(rotationTarget.ClientId, originalJwks, adminCredentials, cancellationToken);
                 }
                 catch (Exception rollbackEx)
                 {
                     rollbackFailures ??= [];
                     rollbackFailures.Add(rollbackEx);
-                    logger.LogError(rollbackEx, "Failed to restore original JWKS for client {ClientId}.", targetClientId);
+                    logger.LogError(rollbackEx, "Failed to restore original JWKS for client {ClientId}.", rotationTarget.ClientId);
                 }
             }
 
@@ -156,27 +215,19 @@ public class MaskinportenJwkRotationService(
         }
     }
 
-    private static IEnumerable<MaskinportenJwkKey> MergeDistinctKeys(
-        IEnumerable<MaskinportenJwkKey> existingKeys,
-        params MaskinportenJwkKey[] keys)
-        => existingKeys
-            .Concat(keys)
-            .GroupBy(key => key.Kid, StringComparer.Ordinal)
-            .Select(group => group.Last());
-
     private async Task<MaskinportenJwkSet> VerifyNewKeyAsync(
         MaskinportenJwkRotationSettings settings,
         string targetClientId,
         MaskinportenGeneratedJwk generated,
-        string verificationScope,
-        string environment,
+        MaskinportenAdminApiCredentials adminCredentials,
+        Func<MaskinportenGeneratedJwk, Task> verifyNewKey,
         CancellationToken cancellationToken)
     {
         Exception? lastRetryableException = null;
 
         for (var attempt = 1; attempt <= settings.VerificationMaxAttempts; attempt++)
         {
-            var currentJwks = await digdirMaskinportenAdminService.GetJwksAsync(targetClientId, cancellationToken);
+            var currentJwks = await digdirMaskinportenAdminService.GetJwksAsync(targetClientId, adminCredentials, cancellationToken);
             var kidPresent = currentJwks.Keys.Any(key => string.Equals(key.Kid, generated.Kid, StringComparison.Ordinal));
 
             logger.LogInformation(
@@ -189,12 +240,7 @@ public class MaskinportenJwkRotationService(
 
             try
             {
-                await tokenService.RequestTokenAsync(
-                    targetClientId,
-                    generated.PrivateJwkBase64,
-                    verificationScope,
-                    environment,
-                    cancellationToken);
+                await verifyNewKey(generated);
 
                 logger.LogInformation(
                     "Verified Maskinporten JWK rotation for client {ClientId} with kid {Kid} on attempt {Attempt}/{MaxAttempts}.",
@@ -231,6 +277,48 @@ public class MaskinportenJwkRotationService(
 
         throw new InvalidOperationException("Maskinporten JWK rotation verification failed without a retryable exception.");
     }
+
+    private async Task VerifyAdminDcrAccessAsync(
+        MaskinportenJwkRotationSettings settings,
+        string environment,
+        MaskinportenGeneratedJwk generated,
+        CancellationToken cancellationToken)
+    {
+        var updatedAdminCredentials = CreateAdminCredentials(settings, environment, generated.PrivateJwkBase64);
+        await digdirMaskinportenAdminService.GetJwksAsync(settings.AdminClientId, updatedAdminCredentials, cancellationToken);
+    }
+
+    private async Task PreflightKeyVaultSecretsAsync(
+        IReadOnlyList<string> keyVaultUrls,
+        IEnumerable<string> secretNames,
+        CancellationToken cancellationToken)
+    {
+        var distinctSecretNames = secretNames
+            .Where(secretName => !string.IsNullOrWhiteSpace(secretName))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        foreach (var keyVaultUrl in keyVaultUrls)
+        {
+            foreach (var secretName in distinctSecretNames)
+            {
+                await keyVaultSecretStore.GetSecretValueAsync(keyVaultUrl, secretName, cancellationToken);
+            }
+        }
+    }
+
+    private static MaskinportenAdminApiCredentials CreateAdminCredentials(
+        MaskinportenJwkRotationSettings settings,
+        string environment,
+        string encodedJwk)
+        => new()
+        {
+            ClientId = settings.AdminClientId,
+            EncodedJwk = encodedJwk,
+            Scope = settings.AdminScope,
+            ApiBaseUrl = settings.AdminApiBaseUrl,
+            Environment = environment
+        };
 
     private static string GetVerificationScope(MaskinportenSettings target)
     {
@@ -276,14 +364,34 @@ public class MaskinportenJwkRotationService(
             throw new InvalidOperationException("Maskinporten JWK rotation admin JWK is missing.");
         }
 
+        if (string.IsNullOrWhiteSpace(settings.AdminScope))
+        {
+            throw new InvalidOperationException("Maskinporten JWK rotation admin scope is missing.");
+        }
+
         if (GetKeyVaultUrls(settings).Count == 0)
         {
             throw new InvalidOperationException("Maskinporten JWK rotation Key Vault URL is missing.");
         }
 
+        if (string.IsNullOrWhiteSpace(settings.AdminKeyVaultSecretName))
+        {
+            throw new InvalidOperationException("Maskinporten JWK rotation admin Key Vault secret name is missing.");
+        }
+
         if (string.IsNullOrWhiteSpace(settings.KeyVaultSecretName))
         {
             throw new InvalidOperationException("Maskinporten JWK rotation Key Vault secret name is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.AdminNewKeyIdPrefix))
+        {
+            throw new InvalidOperationException("Maskinporten JWK rotation admin key id prefix is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.NewKeyIdPrefix))
+        {
+            throw new InvalidOperationException("Maskinporten JWK rotation key id prefix is missing.");
         }
 
         if (settings.VerificationMaxAttempts <= 0)
@@ -306,4 +414,16 @@ public class MaskinportenJwkRotationService(
             throw new InvalidOperationException("Target Maskinporten private JWK is missing.");
         }
     }
+
+    private sealed record RotationTarget(
+        string ClientId,
+        string ClientName,
+        string CurrentEncodedJwk,
+        string VerificationScope,
+        string KeyVaultSecretName,
+        string NewKeyIdPrefix);
+
+    private sealed record SingleRotationExecution(
+        MaskinportenJwkRotationClientResult Result,
+        MaskinportenGeneratedJwk Generated);
 }

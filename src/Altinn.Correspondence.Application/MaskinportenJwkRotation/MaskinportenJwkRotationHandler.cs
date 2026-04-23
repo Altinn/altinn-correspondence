@@ -17,9 +17,13 @@ public class MaskinportenJwkRotationHandler(
         try
         {
             var result = await rotationService.RotateAsync(cancellationToken);
+            var summary = string.Join(
+                " ",
+                result.Clients.Select(client =>
+                    $"Client {client.ClientName} ({client.ClientId}) rotated to kid {client.NewKid}. Keys before: {client.PreviousKeyCount}, keys after: {client.CurrentKeyCount}. Secret updated: {client.KeyVaultSecretName}. Verification scope: {client.VerificationScope}."));
             await slackNotificationHandler.Process(
                 "Maskinporten JWK rotation completed",
-                $"Client {result.TargetClientName} ({result.TargetClientId}) rotated to kid {result.NewKid}. Keys before: {result.PreviousKeyCount}, keys after: {result.CurrentKeyCount}. Secret updated: {result.KeyVaultSecretName}. Verification scope: {result.VerificationScope}.");
+                summary);
         }
         catch (Exception ex)
         {

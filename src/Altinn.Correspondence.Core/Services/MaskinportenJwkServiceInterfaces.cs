@@ -2,9 +2,9 @@ namespace Altinn.Correspondence.Core.Services;
 
 public interface IDigdirMaskinportenAdminService
 {
-    Task<MaskinportenJwkSet> GetJwksAsync(string clientId, CancellationToken cancellationToken);
+    Task<MaskinportenJwkSet> GetJwksAsync(string clientId, MaskinportenAdminApiCredentials adminCredentials, CancellationToken cancellationToken);
 
-    Task<MaskinportenJwkSet> UpdateJwksAsync(string clientId, MaskinportenJwkSet jwks, CancellationToken cancellationToken);
+    Task<MaskinportenJwkSet> UpdateJwksAsync(string clientId, MaskinportenJwkSet jwks, MaskinportenAdminApiCredentials adminCredentials, CancellationToken cancellationToken);
 }
 
 public interface IKeyVaultSecretStore
