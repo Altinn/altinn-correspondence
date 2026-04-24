@@ -20,11 +20,6 @@ param apimIp string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
-var testRotationVault = {
-  environment: 'test'
-  resourceGroupName: 'altinn-corr-test-rg'
-  keyVaultName: 'altinn-corr-test-kv'
-}
 var at22RotationVault = {
   environment: 'at22'
   resourceGroupName: 'altinn-corr-at22-rg'
@@ -52,17 +47,7 @@ var yt01RotationVault = {
 }
 var additionalRotationVaults = environment == 'test'
   ? [at22RotationVault, at23RotationVault, at24RotationVault, stagingRotationVault, yt01RotationVault]
-  : environment == 'at22'
-    ? [testRotationVault, at23RotationVault, at24RotationVault, stagingRotationVault, yt01RotationVault]
-    : environment == 'at23'
-      ? [testRotationVault, at22RotationVault, at24RotationVault, stagingRotationVault, yt01RotationVault]
-      : environment == 'at24'
-        ? [testRotationVault, at22RotationVault, at23RotationVault, stagingRotationVault, yt01RotationVault]
-        : environment == 'staging'
-          ? [testRotationVault, at22RotationVault, at23RotationVault, at24RotationVault, yt01RotationVault]
-          : environment == 'yt01'
-            ? [testRotationVault, at22RotationVault, at23RotationVault, at24RotationVault, stagingRotationVault]
-            : []
+  : []
 
 var resourceGroupName = '${namePrefix}-rg'
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' existing = {

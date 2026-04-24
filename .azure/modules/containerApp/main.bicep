@@ -63,15 +63,6 @@ var containerAppEnvVarsFromConfig = [for config in secretEnvVars: {
 }]
 
 // Additional computed environment variables (that need expressions)
-var nonProdRotationEnvironments = [
-  'test'
-  'at22'
-  'at23'
-  'at24'
-  'staging'
-  'yt01'
-]
-
 var nonProdRotationKeyVaultNames = [
   'altinn-corr-test-kv'
   'altinn-corr-at22-kv'
@@ -85,12 +76,12 @@ var nonProdRotationKeyVaultUrlsArray = [for vaultName in nonProdRotationKeyVault
 
 var nonProdRotationKeyVaultUrls = join(nonProdRotationKeyVaultUrlsArray, ',')
 
-var additionalRotationKeyVaultUrls = contains(nonProdRotationEnvironments, environment) ? nonProdRotationKeyVaultUrls : ''
 var rotationLeaderEnvironments = [
   'test'
   'production'
 ]
 var rotationEnabled = contains(rotationLeaderEnvironments, environment)
+var additionalRotationKeyVaultUrls = rotationEnabled && environment == 'test' ? nonProdRotationKeyVaultUrls : ''
 
 var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
