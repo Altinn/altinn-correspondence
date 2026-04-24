@@ -82,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<MaskinportenJwkRotationHandler>();
         services.AddScoped<CleanupConfirmedMigratedCorrespondences.CleanupConfirmedMigratedCorrespondencesHandler>();
         services.AddScoped<EnqueueMissingNotificationSentChecksHandler>();
+        services.AddScoped<CleanupBulkFetchStatuses.CleanupBulkFetchStatusesHandler>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();
