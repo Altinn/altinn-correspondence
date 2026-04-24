@@ -140,6 +140,56 @@ public class MaskinportenJwkRotationServiceTests
     }
 
     [Fact]
+    public async Task RotateAsync_DeduplicatesKeyVaultUrlsThatDifferOnlyByTrailingSlash()
+    {
+        var adminOriginalJwks = CreateJwks("admin-kid");
+        var adminUpdatedJwks = CreateJwks("admin-kid", "new-admin-kid");
+        var targetOriginalJwks = CreateJwks("current-kid");
+        var targetUpdatedJwks = CreateJwks("current-kid", "new-target-kid");
+
+        var digdirAdminService = new Mock<IDigdirMaskinportenAdminService>();
+        digdirAdminService.SetupSequence(service => service.GetJwksAsync("admin-client", It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(adminOriginalJwks)
+            .ReturnsAsync(adminUpdatedJwks)
+            .ReturnsAsync(adminUpdatedJwks);
+        digdirAdminService.SetupSequence(service => service.GetJwksAsync("target-client", It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(targetOriginalJwks)
+            .ReturnsAsync(targetUpdatedJwks);
+        digdirAdminService.Setup(service => service.UpdateJwksAsync("admin-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(adminUpdatedJwks);
+        digdirAdminService.Setup(service => service.UpdateJwksAsync("target-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(targetUpdatedJwks);
+
+        var generator = new Mock<IMaskinportenJwkGenerator>();
+        generator.Setup(service => service.GetPublicKey(CreateEncodedJwk("admin-kid")))
+            .Returns(CreatePublicKey("admin-kid"));
+        generator.Setup(service => service.GetPublicKey(CreateEncodedJwk("current-kid")))
+            .Returns(CreatePublicKey("current-kid"));
+        generator.SetupSequence(service => service.Generate(It.IsAny<string>()))
+            .Returns(CreateGeneratedJwk("new-admin-kid", "new-admin-private-jwk"))
+            .Returns(CreateGeneratedJwk("new-target-kid", "new-target-private-jwk"));
+
+        var tokenService = new Mock<IMaskinportenTokenService>();
+        tokenService.Setup(service => service.RequestTokenAsync("target-client", "new-target-private-jwk", "scope:a", "test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("token");
+
+        var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+        SetupAllSecretReads(keyVaultSecretStore);
+
+        var service = CreateService(
+            digdirAdminService.Object,
+            generator.Object,
+            tokenService.Object,
+            keyVaultSecretStore.Object,
+            settings => settings.AdditionalKeyVaultUrls = "https://kv.example/, https://kv-two.example");
+
+        await service.RotateAsync(CancellationToken.None);
+
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-admin-jwk", "new-admin-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "new-target-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task RotateAsync_RestoresAdminRotationWhenAdminSecretWriteFails()
     {
         var adminOriginalJwks = CreateJwks("admin-kid");

@@ -335,9 +335,15 @@ public class MaskinportenJwkRotationService(
             .Concat(
                 settings.AdditionalKeyVaultUrls
                     .Split([',', ';', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Select(NormalizeKeyVaultUrl)
             .Where(url => !string.IsNullOrWhiteSpace(url))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+
+    private static string NormalizeKeyVaultUrl(string url)
+        => string.IsNullOrWhiteSpace(url)
+            ? string.Empty
+            : url.Trim().TrimEnd('/');
 
     private static bool IsRetryableVerificationFailure(Exception exception)
         => exception is InvalidOperationException invalidOperationException
