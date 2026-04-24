@@ -206,7 +206,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     && ((string[])job.Args[4])[0] == "testemail@altinn.no"
                     && ((string[])job.Args[4])[1] == "Email"
                     ),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<EnqueuedState>()), Times.Once);
             _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 

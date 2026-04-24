@@ -1797,21 +1797,21 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IEventBus.Publish) && (AltinnEventType)job.Args[0] == eventType && (string)job.Args[4] == recipient),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<EnqueuedState>()), Times.Once);
         }
 
         private void VerifyDialogportenServiceCreateConfirmedActivityEnqueued(Guid correspondenceId, DialogportenActorType actorType, string partyUrn)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateConfirmedActivity) && (Guid)job.Args[0] == correspondenceId && (DialogportenActorType)job.Args[1] == actorType && (string)job.Args[3] == partyUrn),
-                It.IsAny<IState>()));
+                It.IsAny<IState>()), Times.Once);
         }
 
         private void VerifyDialogportenServicePatchCorrespondenceDialogToConfirmedEnqueued(Guid correspondenceId)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.PatchCorrespondenceDialogToConfirmed) && (Guid)job.Args[0] == correspondenceId),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<EnqueuedState>()), Times.Once);
         }
 
         private void VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(Guid correspondenceId, string partyIdentifier)
@@ -1824,21 +1824,21 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                         && job.Args[3] != null
                         && ((List<DialogPortenSystemLabel>)job.Args[3]).Contains(DialogPortenSystemLabel.Archive)
                         && job.Args[4] == null),
-                    It.IsAny<EnqueuedState>()));
+                    It.IsAny<EnqueuedState>()), Times.Once);
         }
 
         private void VerifyDialogportenServiceCreateOpenedActivityEnqueued(Guid correspondenceId, string partyUrn)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateOpenedActivity) && (Guid)job.Args[0] == correspondenceId && (string)job.Args[3] == partyUrn),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<EnqueuedState>()), Times.Once);
         }
 
         private void VerifyDialogportenServiceAddForwardingEvent(Guid forwardingEventId)
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.AddForwardingEvent) && (Guid)job.Args[0] == forwardingEventId),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<EnqueuedState>()), Times.Once);
         }
 
         private void VerifyDialogportenServiceAddNotificationEvent(Guid correspondenceId, DialogportenTextType dialogportenTextType, DateTimeOffset sentTime, string notificationAddress, string notificationChannel)
@@ -1853,7 +1853,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     && ((string[])job.Args[4])[0] == notificationAddress 
                     && ((string[])job.Args[4])[1] == notificationChannel
                     ),
-                It.IsAny<EnqueuedState>()));
+                It.IsAny<EnqueuedState>()), Times.Once);
         }
     }
 }

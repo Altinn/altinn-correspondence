@@ -684,13 +684,14 @@ public class CorrespondenceMigrationEventHelper(
         return forwardingEventsToProcess;
     }
 
-    public async Task<int> ProcessNotificationEvents(Guid correspondenceId, CorrespondenceEntity correspondence, List<CorrespondenceNotificationEntity> notificationEvents, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public async Task<int> ProcessNotificationEvents(CorrespondenceEntity correspondence, List<CorrespondenceNotificationEntity> notificationEvents, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         if (notificationEvents.Count == 0)
         {
             return 0;
         }
 
+        Guid correspondenceId = correspondence.Id;
         int savedCount = 0;
 
         foreach (var notification in notificationEvents)
@@ -937,7 +938,7 @@ public class CorrespondenceMigrationEventHelper(
             var filteredNotificationEvents = FilterNotificationEvents(correspondenceId, notificationEvents, correspondence);
             if (filteredNotificationEvents.Count > 0)
             {
-                var savedNotificationEventsCount = await ProcessNotificationEvents(correspondenceId, correspondence, filteredNotificationEvents, operationName, cancellationToken);
+                var savedNotificationEventsCount = await ProcessNotificationEvents(correspondence, filteredNotificationEvents, operationName, cancellationToken);
                 totalEventsProcessed += savedNotificationEventsCount;
             }
         }
