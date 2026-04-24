@@ -24,7 +24,13 @@ public class MaskinportenJwkRotationService(
         var keyVaultUrls = GetKeyVaultUrls(settings);
         await PreflightKeyVaultSecretsAsync(
             keyVaultUrls,
-            [settings.AdminKeyVaultSecretName, settings.KeyVaultSecretName],
+            new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+            {
+                [settings.AdminKeyVaultSecretName] = null,
+                [settings.KeyVaultSecretName] = null,
+                [settings.AdminClientIdKeyVaultSecretName] = settings.AdminClientId,
+                [settings.TargetClientIdKeyVaultSecretName] = target.ClientId
+            },
             cancellationToken);
 
         var adminCredentials = CreateAdminCredentials(settings, target.Environment, settings.AdminEncodedJwk);
@@ -290,19 +296,22 @@ public class MaskinportenJwkRotationService(
 
     private async Task PreflightKeyVaultSecretsAsync(
         IReadOnlyList<string> keyVaultUrls,
-        IEnumerable<string> secretNames,
+        IReadOnlyDictionary<string, string?> secretRequirements,
         CancellationToken cancellationToken)
     {
-        var distinctSecretNames = secretNames
-            .Where(secretName => !string.IsNullOrWhiteSpace(secretName))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
         foreach (var keyVaultUrl in keyVaultUrls)
         {
-            foreach (var secretName in distinctSecretNames)
+            foreach (var secretRequirement in secretRequirements)
             {
-                await keyVaultSecretStore.GetSecretValueAsync(keyVaultUrl, secretName, cancellationToken);
+                var secretName = secretRequirement.Key;
+                var secretValue = await keyVaultSecretStore.GetSecretValueAsync(keyVaultUrl, secretName, cancellationToken);
+
+                if (secretRequirement.Value is not null
+                    && !string.Equals(secretValue, secretRequirement.Value, StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Key Vault {keyVaultUrl} contains unexpected value for secret {secretName} during Maskinporten rotation preflight.");
+                }
             }
         }
     }
@@ -385,9 +394,19 @@ public class MaskinportenJwkRotationService(
             throw new InvalidOperationException("Maskinporten JWK rotation admin Key Vault secret name is missing.");
         }
 
+        if (string.IsNullOrWhiteSpace(settings.AdminClientIdKeyVaultSecretName))
+        {
+            throw new InvalidOperationException("Maskinporten JWK rotation admin client id Key Vault secret name is missing.");
+        }
+
         if (string.IsNullOrWhiteSpace(settings.KeyVaultSecretName))
         {
             throw new InvalidOperationException("Maskinporten JWK rotation Key Vault secret name is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.TargetClientIdKeyVaultSecretName))
+        {
+            throw new InvalidOperationException("Maskinporten JWK rotation target client id Key Vault secret name is missing.");
         }
 
         if (string.IsNullOrWhiteSpace(settings.AdminNewKeyIdPrefix))
@@ -418,6 +437,16 @@ public class MaskinportenJwkRotationService(
         if (string.IsNullOrWhiteSpace(target.EncodedJwk))
         {
             throw new InvalidOperationException("Target Maskinporten private JWK is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(target.Scope))
+        {
+            throw new InvalidOperationException("Target Maskinporten scope is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(target.Environment))
+        {
+            throw new InvalidOperationException("Target Maskinporten environment is missing.");
         }
     }
 

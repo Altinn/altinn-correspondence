@@ -20,6 +20,8 @@ public class MaskinportenJwkRotationSettings
 
     public string AdminKeyVaultSecretName { get; set; } = "maskinporten-admin-jwk";
 
+    public string AdminClientIdKeyVaultSecretName { get; set; } = "maskinporten-admin-client-id";
+
     public string AdminNewKeyIdPrefix { get; set; } = "altinn-correspondence-maskinporten-admin";
 
     public string KeyVaultUrl { get; set; } = string.Empty;
@@ -27,6 +29,8 @@ public class MaskinportenJwkRotationSettings
     public string AdditionalKeyVaultUrls { get; set; } = string.Empty;
 
     public string KeyVaultSecretName { get; set; } = "maskinporten-jwk";
+
+    public string TargetClientIdKeyVaultSecretName { get; set; } = "maskinporten-client-id";
 
     public string NewKeyIdPrefix { get; set; } = "altinn-correspondence-maskinporten";
 }

@@ -84,6 +84,27 @@ public class MaskinportenJwkRotationServiceTests
     }
 
     [Fact]
+    public async Task RotateAsync_ThrowsBeforeAdminRotationWhenTargetScopeIsMissing()
+    {
+        var digdirAdminService = new Mock<IDigdirMaskinportenAdminService>();
+        var generator = new Mock<IMaskinportenJwkGenerator>();
+        var tokenService = new Mock<IMaskinportenTokenService>();
+        var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+
+        var service = CreateService(
+            digdirAdminService.Object,
+            generator.Object,
+            tokenService.Object,
+            keyVaultSecretStore.Object,
+            target: target => target.Scope = "");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RotateAsync(CancellationToken.None));
+
+        digdirAdminService.Verify(service => service.GetJwksAsync(It.IsAny<string>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()), Times.Never);
+        keyVaultSecretStore.Verify(store => store.GetSecretValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task RotateAsync_UsesNewAdminKeyForAdminVerificationAndCorrespondenceRotation()
     {
         var adminOriginalJwks = CreateJwks("admin-kid");
@@ -187,6 +208,37 @@ public class MaskinportenJwkRotationServiceTests
 
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-admin-jwk", "new-admin-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "new-target-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RotateAsync_ThrowsBeforeRotationWhenVaultClientIdsDoNotMatch()
+    {
+        var digdirAdminService = new Mock<IDigdirMaskinportenAdminService>();
+        var generator = new Mock<IMaskinportenJwkGenerator>();
+        var tokenService = new Mock<IMaskinportenTokenService>();
+        var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv.example", "maskinporten-admin-client-id", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("admin-client");
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv.example", "maskinporten-client-id", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("target-client");
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv.example", "maskinporten-admin-jwk", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("maskinporten-admin-jwk-old");
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv.example", "maskinporten-jwk", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("maskinporten-jwk-old");
+        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://kv-two.example", "maskinporten-admin-client-id", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("different-admin-client");
+
+        var service = CreateService(
+            digdirAdminService.Object,
+            generator.Object,
+            tokenService.Object,
+            keyVaultSecretStore.Object,
+            configureRotationSettings: settings => settings.AdditionalKeyVaultUrls = "https://kv-two.example");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RotateAsync(CancellationToken.None));
+
+        digdirAdminService.Verify(service => service.GetJwksAsync(It.IsAny<string>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()), Times.Never);
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -446,17 +498,20 @@ public class MaskinportenJwkRotationServiceTests
         IMaskinportenJwkGenerator generator,
         IMaskinportenTokenService tokenService,
         IKeyVaultSecretStore keyVaultSecretStore,
-        Action<MaskinportenJwkRotationSettings>? configureRotationSettings = null)
+        Action<MaskinportenJwkRotationSettings>? configureRotationSettings = null,
+        Action<MaskinportenSettings>? target = null)
     {
         var rotationSettingsValue = new MaskinportenJwkRotationSettings
         {
             AdminClientId = "admin-client",
             AdminEncodedJwk = CreateEncodedJwk("admin-kid"),
             AdminKeyVaultSecretName = "maskinporten-admin-jwk",
+            AdminClientIdKeyVaultSecretName = "maskinporten-admin-client-id",
             AdminNewKeyIdPrefix = "admin-rotation-prefix",
             KeyVaultUrl = "https://kv.example",
             AdditionalKeyVaultUrls = string.Empty,
             KeyVaultSecretName = "maskinporten-jwk",
+            TargetClientIdKeyVaultSecretName = "maskinporten-client-id",
             NewKeyIdPrefix = "target-rotation-prefix",
             VerificationMaxAttempts = 3,
             VerificationDelaySeconds = 0
@@ -464,13 +519,15 @@ public class MaskinportenJwkRotationServiceTests
         configureRotationSettings?.Invoke(rotationSettingsValue);
         var rotationSettings = Options.Create(rotationSettingsValue);
 
-        var targetSettings = Options.Create(new MaskinportenSettings
+        var targetSettingsValue = new MaskinportenSettings
         {
             ClientId = "target-client",
             EncodedJwk = CreateEncodedJwk("current-kid"),
             Scope = "scope:a scope:b",
             Environment = "test"
-        });
+        };
+        target?.Invoke(targetSettingsValue);
+        var targetSettings = Options.Create(targetSettingsValue);
 
         return new MaskinportenJwkRotationService(
             rotationSettings,
@@ -506,7 +563,12 @@ public class MaskinportenJwkRotationServiceTests
     private static void SetupAllSecretReads(Mock<IKeyVaultSecretStore> keyVaultSecretStore)
         => keyVaultSecretStore
             .Setup(store => store.GetSecretValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string _, string secretName, CancellationToken _) => $"{secretName}-old");
+            .ReturnsAsync((string _, string secretName, CancellationToken _) => secretName switch
+            {
+                "maskinporten-admin-client-id" => "admin-client",
+                "maskinporten-client-id" => "target-client",
+                _ => $"{secretName}-old"
+            });
 
     private static MaskinportenJwkSet CreateJwks(params string[] kids)
         => new()
