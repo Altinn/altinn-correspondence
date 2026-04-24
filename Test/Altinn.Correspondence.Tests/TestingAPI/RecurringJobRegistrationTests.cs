@@ -56,5 +56,9 @@ public class RecurringJobRegistrationTests
             invocation.Method.Name == nameof(IRecurringJobManager.AddOrUpdate)
             && invocation.Arguments.Count > 0
             && invocation.Arguments[0] as string == RecurringJobRegistration.MaskinportenJwkRotationJobId);
+        Assert.Contains(recurringJobManager.Invocations, invocation =>
+            invocation.Method.Name == nameof(IRecurringJobManager.RemoveIfExists)
+            && invocation.Arguments.Count > 0
+            && invocation.Arguments[0] as string == RecurringJobRegistration.MaskinportenJwkRotationJobId);
     }
 }

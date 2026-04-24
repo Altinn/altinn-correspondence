@@ -35,6 +35,7 @@ public static class RecurringJobRegistration
 
         if (!settings.Enabled)
         {
+            recurringJobManager.RemoveIfExists(MaskinportenJwkRotationJobId);
             logger.LogInformation("Maskinporten JWK rotation job is disabled.");
             return;
         }

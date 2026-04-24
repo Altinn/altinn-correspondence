@@ -86,6 +86,11 @@ var nonProdRotationKeyVaultUrlsArray = [for vaultName in nonProdRotationKeyVault
 var nonProdRotationKeyVaultUrls = join(nonProdRotationKeyVaultUrlsArray, ',')
 
 var additionalRotationKeyVaultUrls = contains(nonProdRotationEnvironments, environment) ? nonProdRotationKeyVaultUrls : ''
+var rotationLeaderEnvironments = [
+  'test'
+  'production'
+]
+var rotationEnabled = contains(rotationLeaderEnvironments, environment)
 
 var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
@@ -93,7 +98,7 @@ var containerAppEnvVarsComputed = [
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
-  { name: 'MaskinportenJwkRotationSettings__Enabled', value: 'true' }
+  { name: 'MaskinportenJwkRotationSettings__Enabled', value: string(rotationEnabled) }
   { name: 'MaskinportenJwkRotationSettings__CronExpression', value: '0 8 1 * 1-5' }
   { name: 'MaskinportenJwkRotationSettings__AdminKeyVaultSecretName', value: 'maskinporten-admin-jwk' }
   { name: 'MaskinportenJwkRotationSettings__AdminScope', value: 'idporten:dcr.write' }
