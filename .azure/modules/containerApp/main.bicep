@@ -63,13 +63,47 @@ var containerAppEnvVarsFromConfig = [for config in secretEnvVars: {
 }]
 
 // Additional computed environment variables (that need expressions)
+var nonProdRotationEnvironments = [
+  'test'
+  'at22'
+  'at23'
+  'at24'
+  'staging'
+  'yt01'
+]
+
+var nonProdRotationKeyVaultNames = [
+  'altinn-corr-test-kv'
+  'altinn-corr-at22-kv'
+  'altinn-corr-at23-kv'
+  'altinn-corr-at24-kv'
+  'altinn-corr-staging-kv'
+  'altinn-corr-yt01-kv'
+]
+
+var nonProdRotationKeyVaultUrlsArray = [for vaultName in nonProdRotationKeyVaultNames: 'https://${vaultName}${az.environment().suffixes.keyvaultDns}/']
+
+var nonProdRotationKeyVaultUrls = join(nonProdRotationKeyVaultUrlsArray, ',')
+
+var additionalRotationKeyVaultUrls = contains(nonProdRotationEnvironments, environment) ? nonProdRotationKeyVaultUrls : ''
+
 var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
+  { name: 'MaskinportenJwkRotationSettings__Enabled', value: 'true' }
+  { name: 'MaskinportenJwkRotationSettings__CronExpression', value: '0 8 1 * 1-5' }
+  { name: 'MaskinportenJwkRotationSettings__AdminKeyVaultSecretName', value: 'maskinporten-admin-jwk' }
+  { name: 'MaskinportenJwkRotationSettings__AdminScope', value: 'idporten:dcr.write' }
   { name: 'MaskinportenJwkRotationSettings__KeyVaultUrl', value: keyVaultUrl }
+  { name: 'MaskinportenJwkRotationSettings__AdditionalKeyVaultUrls', value: additionalRotationKeyVaultUrls }
+  { name: 'MaskinportenJwkRotationSettings__KeyVaultSecretName', value: 'maskinporten-jwk' }
+  { name: 'MaskinportenJwkRotationSettings__VerificationMaxAttempts', value: '6' }
+  { name: 'MaskinportenJwkRotationSettings__VerificationDelaySeconds', value: '15' }
+  { name: 'MaskinportenJwkRotationSettings__AdminNewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-admin' }
+  { name: 'MaskinportenJwkRotationSettings__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten' }
   ]
 
 // Combine all environment variables
