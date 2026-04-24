@@ -24,6 +24,11 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)
         {
+            if (!await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
+            {
+                logger.LogInformation("Not all attachments published for correspondence {correspondenceId}, skipping publish scheduling", correspondenceId);
+                return;
+            }
             var dialogJobId = await hybridCacheWrapper.GetAsync<string?>($"dialogJobId_{correspondenceId}", cancellationToken: cancellationToken);
             if (dialogJobId is null)
             {
