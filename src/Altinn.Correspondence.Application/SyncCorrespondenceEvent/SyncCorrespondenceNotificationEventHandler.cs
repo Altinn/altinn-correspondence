@@ -44,6 +44,7 @@ public class SyncCorrespondenceNotificationEventHandler(
         // EF Core's SaveChangesAsync() already provides transactional guarantees.
         await correspondenceMigrationEventHelper.ProcessNotificationEvents(
                 request.CorrespondenceId,
+                correspondence,
                 notificationsToExecute,
                 MigrationOperationType.Sync,
                 cancellationToken);

@@ -1525,6 +1525,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
 
+            VerifyDialogportenServiceAddNotificationEvent(correspondenceId, DialogportenTextType.NotificationReminderSent, new DateTimeOffset(new DateTime(2024, 1, 14)), "testemail@altinn.no", "Email");
+
             VerifyDialogportenServiceSetArchivedSystemLabelOnDialogEnqueued(correspondenceId, _defaultUserPartyIdentifier);
 
             _correspondenceRepositoryMock.Verify(x => x.ClearChangeTracker(), Times.Once);
@@ -1836,6 +1838,21 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             _backgroundJobClientMock.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.AddForwardingEvent) && (Guid)job.Args[0] == forwardingEventId),
+                It.IsAny<EnqueuedState>()));
+        }
+
+        private void VerifyDialogportenServiceAddNotificationEvent(Guid correspondenceId, DialogportenTextType dialogportenTextType, DateTimeOffset sentTime, string notificationAddress, string notificationChannel)
+        {
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateInformationActivity) 
+                    && (Guid)job.Args[0] == correspondenceId 
+                    && (DialogportenActorType)job.Args[1] == DialogportenActorType.ServiceOwner 
+                    && (DialogportenTextType)job.Args[2] == dialogportenTextType
+                    && (DateTimeOffset)job.Args[3] == sentTime
+                    && ((string[])job.Args[4]).Length == 2 
+                    && ((string[])job.Args[4])[0] == notificationAddress 
+                    && ((string[])job.Args[4])[1] == notificationChannel
+                    ),
                 It.IsAny<EnqueuedState>()));
         }
     }
