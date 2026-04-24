@@ -90,7 +90,8 @@ var containerAppEnvVarsComputed = [
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
   { name: 'MaskinportenJwkRotationSettings__Enabled', value: string(rotationEnabled) }
-  { name: 'MaskinportenJwkRotationSettings__CronExpression', value: '0 8 1 * 1-5' }
+  { name: 'MaskinportenJwkRotationSettings__CronExpression', value: '0 8 * * 1-5' }
+  { name: 'MaskinportenJwkRotationSettings__OnlyRunOnFirstWeekdayOfMonth', value: 'true' }
   { name: 'MaskinportenJwkRotationSettings__AdminKeyVaultSecretName', value: 'maskinporten-admin-jwk' }
   { name: 'MaskinportenJwkRotationSettings__AdminScope', value: 'idporten:dcr.write' }
   { name: 'MaskinportenJwkRotationSettings__KeyVaultUrl', value: keyVaultUrl }

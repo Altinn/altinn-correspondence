@@ -90,6 +90,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     var connectionString = GetConnectionString(config);
 
     services.AddHttpContextAccessor();
+    services.AddSingleton(TimeProvider.System);
     services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));

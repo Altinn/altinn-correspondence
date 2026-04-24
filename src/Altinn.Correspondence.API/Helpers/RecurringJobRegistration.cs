@@ -42,7 +42,7 @@ public static class RecurringJobRegistration
 
         recurringJobManager.AddOrUpdate<MaskinportenJwkRotationHandler>(
             MaskinportenJwkRotationJobId,
-            handler => handler.Process(CancellationToken.None),
+            handler => handler.ProcessScheduled(CancellationToken.None),
             settings.CronExpression);
 
         logger.LogInformation("Maskinporten JWK rotation job registered with cron {CronExpression}.", settings.CronExpression);

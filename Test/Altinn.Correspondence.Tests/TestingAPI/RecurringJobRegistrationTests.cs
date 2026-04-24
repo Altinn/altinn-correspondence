@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.Application.MaskinportenJwkRotation;
 using Altinn.Correspondence.Core.Options;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,11 @@ public class RecurringJobRegistrationTests
             && invocation.Arguments.Count > 2
             && invocation.Arguments[0] as string == RecurringJobRegistration.MaskinportenJwkRotationJobId
             && invocation.Arguments[2] as string == "0 0 1 * *");
+
+        Assert.Contains(recurringJobManager.Invocations, invocation =>
+            invocation.Method.Name == nameof(IRecurringJobManager.AddOrUpdate)
+            && invocation.Arguments.Count > 1
+            && invocation.Arguments[1]?.ToString()?.Contains(nameof(MaskinportenJwkRotationHandler.ProcessScheduled), StringComparison.Ordinal) == true);
     }
 
     [Fact]
