@@ -33,7 +33,6 @@ fi
 
 runner_prefix="${RUNNER_NAME_PREFIX:-aca-runner}"
 runner_name="${runner_prefix}-$(hostname)-${RANDOM}"
-runner_labels="${LABELS:-containerapps}"
 work_folder="${RUNNER_WORKDIR:-_work}"
 
 api_url="https://api.github.com/repos/${owner}/${repo}/actions/runners"
@@ -71,8 +70,7 @@ trap remove_runner EXIT INT TERM
   --name "${runner_name}" \
   --work "${work_folder}" \
   --url "${GITHUB_URL}" \
-  --token "${registration_token}" \
-  --labels "${runner_labels}"
+  --token "${registration_token}"
 
 echo "Runner ${runner_name} configured. Waiting for a single job..."
 ./run.sh

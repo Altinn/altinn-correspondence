@@ -63,7 +63,6 @@ module githubRunnerContainerApp '../../modules/githubRunnerContainerApp/main.bic
     runnerImage: runnerImage
     githubUrl: githubUrl
     githubTokenSecretName: 'github-runner-token'
-    runnerLabels: 'containerapps,altinn-correspondence'
     targetQueueLength: 1
     cooldownPeriodSeconds: 3600
     maxReplicas: 4

@@ -18,7 +18,6 @@ At startup, it:
 ## Optional Runtime Environment Variables
 
 - `RUNNER_NAME_PREFIX` (entrypoint default: `aca-runner`; this deployment overrides it to `${namePrefix}-runner`, so runner names will appear as `<namePrefix>-runner-*`)
-- `LABELS` (default: `containerapps`)
 - `RUNNER_WORKDIR` (default: `_work`)
 
 ## Build And Push (example)

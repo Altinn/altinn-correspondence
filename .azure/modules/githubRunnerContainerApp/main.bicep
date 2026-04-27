@@ -14,8 +14,6 @@ param runnerImage string = 'ghcr.io/altinn/altinn-correspondence-github-runner:l
 param githubUrl string
 @description('Key Vault secret name holding the GitHub PAT/token.')
 param githubTokenSecretName string = 'github-runner-token'
-@description('Additional runner labels added to this runner.')
-param runnerLabels string = 'containerapps,altinn-correspondence'
 @description('How many queued jobs each replica should target before scaling.')
 param targetQueueLength int = 1
 @description('Idle time in seconds before scaling down.')
@@ -44,7 +42,6 @@ var secrets = [
 var containerAppEnvVars = [
   { name: 'RUNNER_NAME_PREFIX', value: '${namePrefix}-runner' }
   { name: 'RUNNER_SCOPE', value: 'repo' }
-  { name: 'LABELS', value: runnerLabels }
   { name: 'GITHUB_URL', value: githubUrl }
   { name: 'DISABLE_AUTO_UPDATE', value: 'true' }
 ]
@@ -80,7 +77,6 @@ resource githubRunnerContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
                 githubApiURL: 'https://api.github.com'
                 owner: split(replace(githubUrl, 'https://github.com/', ''), '/')[0]
                 repos: split(replace(githubUrl, 'https://github.com/', ''), '/')[1]
-                labels: runnerLabels
                 targetWorkflowQueueLength: string(targetQueueLength)
                 runnerScope: 'repo'
               }
