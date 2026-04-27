@@ -39,7 +39,6 @@ public static class DependencyInjection
             options.SchedulePollingInterval = TimeSpan.FromSeconds(5);
             options.Queues = [ HangfireQueues.Default ];
             options.WorkerCount = generalSettings.WorkerCountPerReplica;
-            options.MaxDegreeOfParallelismForSchedulers = generalSettings.MaxDegreeOfParallelismForSchedulers;
         });
 
         if (generalSettings.MigrationWorkerCountPerReplica > 0)
@@ -49,7 +48,6 @@ public static class DependencyInjection
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(5);
                 options.WorkerCount = generalSettings.MigrationWorkerCountPerReplica;
                 options.Queues = [HangfireQueues.LiveMigration, HangfireQueues.Migration];
-                options.MaxDegreeOfParallelismForSchedulers = generalSettings.MaxDegreeOfParallelismForSchedulers;
             });
         };
 
