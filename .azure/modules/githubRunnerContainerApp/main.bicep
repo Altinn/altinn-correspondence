@@ -20,8 +20,8 @@ var cooldownPeriodSeconds = 3600
 var pollingIntervalSeconds = 30
 var maxReplicas = 4
 var containerAppResources = {
-  cpu: 4
-  memory: '8.0Gi'
+  cpu: 2
+  memory: '4.0Gi'
 }
 
 var secrets = [
