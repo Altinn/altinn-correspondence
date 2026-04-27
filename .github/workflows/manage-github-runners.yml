@@ -1,0 +1,110 @@
+name: Manage GitHub Runners
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        description: Choose runner mode
+        options:
+          - self-hosted
+          - github-hosted
+      imageTag:
+        type: string
+        required: false
+        description: Runner image tag (default: latest)
+
+run-name: Runner mode ${{ inputs.mode }}
+
+jobs:
+  enable-self-hosted:
+    name: Enable self-hosted runners
+    if: ${{ inputs.mode == 'self-hosted' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
+    env:
+      RUNNER_IMAGE_TAG: ${{ inputs.imageTag != '' && inputs.imageTag || 'latest' }}
+      RUNNER_IMAGE_NAME: ghcr.io/altinn/altinn-correspondence-github-runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push runner image
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="${RUNNER_IMAGE_NAME}:${RUNNER_IMAGE_TAG}"
+          docker build \
+            -f .azure/applications/githubRunner/Dockerfile \
+            -t "$IMAGE" \
+            .azure/applications/githubRunner
+          docker push "$IMAGE"
+          echo "PUBLISHED_RUNNER_IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: OIDC login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy GitHub runner Container App
+        uses: azure/arm-deploy@v2
+        env:
+          NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
+          ENVIRONMENT: ${{ secrets.AZURE_ENVIRONMENT }}
+          KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+          KEY_VAULT_URL: ${{ format('https://{0}.vault.azure.net', secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME) }}
+          GITHUB_URL: ${{ github.server_url }}/${{ github.repository }}
+          GITHUB_RUNNER_IMAGE: ${{ env.PUBLISHED_RUNNER_IMAGE }}
+        with:
+          scope: subscription
+          template: ./.azure/applications/githubRunner/main.bicep
+          parameters: ./.azure/applications/githubRunner/params.bicepparam
+          region: norwayeast
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          deploymentName: ${{ format('{0}-github-runner-{1}', secrets.AZURE_NAME_PREFIX, github.run_number) }}
+          failOnStdErr: false
+
+  enable-github-hosted:
+    name: Enable GitHub-hosted runners
+    if: ${{ inputs.mode == 'github-hosted' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: OIDC login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Scale self-hosted runner app to zero
+        shell: bash
+        run: |
+          set -euo pipefail
+          RG="${{ secrets.AZURE_NAME_PREFIX }}-rg"
+          APP="${{ secrets.AZURE_NAME_PREFIX }}-github-runner"
+          az extension add --name containerapp --upgrade --yes
+          if az containerapp show --resource-group "$RG" --name "$APP" >/dev/null 2>&1; then
+            az containerapp update \
+              --resource-group "$RG" \
+              --name "$APP" \
+              --min-replicas 0 \
+              --max-replicas 0
+            echo "Self-hosted runner app scaled to zero."
+          else
+            echo "Runner app not found ($APP). Nothing to disable."
+          fi
