@@ -76,11 +76,12 @@ var nonProdRotationKeyVaultUrlsArray = [for vaultName in nonProdRotationKeyVault
 var nonProdRotationKeyVaultUrls = join(nonProdRotationKeyVaultUrlsArray, ',')
 
 var rotationLeaderEnvironments = [
+  'test'
   'staging'
   'production'
 ]
 var rotationEnabled = contains(rotationLeaderEnvironments, environment)
-var additionalRotationKeyVaultUrls = rotationEnabled && environment == 'staging' ? nonProdRotationKeyVaultUrls : ''
+var additionalRotationKeyVaultUrls = rotationEnabled && environment == 'test' ? nonProdRotationKeyVaultUrls : ''
 
 var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }

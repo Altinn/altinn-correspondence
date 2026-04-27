@@ -143,7 +143,6 @@ jobs:
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
-          TEST_ROTATION_SUBSCRIPTION_ID: ${{ secrets.TEST_ROTATION_SUBSCRIPTION_ID }}
   deploy-production:
     name: Production
     runs-on: ubuntu-latest
