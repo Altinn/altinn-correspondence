@@ -29,14 +29,17 @@ var predefinedKeyvaultSecretEnvVars = [
   { name: 'AltinnOptions__AccessManagementSubscriptionKey', secretName: 'access-management-subscription-key' }
   { name: 'MaskinportenSettings__ClientId', secretName: 'maskinporten-client-id' }
   { name: 'MaskinportenSettings__EncodedJwk', secretName: 'maskinporten-jwk' }
-  { name: 'MaskinportenJwkRotationSettings__AdminClientId', secretName: 'maskinporten-admin-client-id' }
-  { name: 'MaskinportenJwkRotationSettings__AdminEncodedJwk', secretName: 'maskinporten-admin-jwk' }
   { name: 'GeneralSettings__SlackUrl', secretName: 'slack-url' }
   { name: 'AltinnIdProviderSettings__ClientId', secretName: 'altinn-idprovider-client-id' }
   { name: 'AltinnIdProviderSettings__ClientSecret', secretName: 'altinn-idprovider-client-secret' }
   { name: 'StatisticsApiKey', secretName: 'statistics-api-key' }
   { name: 'GeneralSettings__MalwareScanBypassWhiteList', secretName: 'malware-scan-bypass-white-list' }
 ]
+
+var rotationKeyvaultSecretEnvVars = rotationEnabled ? [
+  { name: 'MaskinportenJwkRotationSettings__AdminClientId', secretName: 'maskinporten-admin-client-id' }
+  { name: 'MaskinportenJwkRotationSettings__AdminEncodedJwk', secretName: 'maskinporten-admin-jwk' }
+] : []
 
 var setByPipelineSecretEnvVars = [
   { name: 'DatabaseOptions__ConnectionString', secretName: 'correspondence-ado-connection-string' }
@@ -47,7 +50,7 @@ var setByPipelineSecretEnvVars = [
 ]
 
 // Combine required and optional secrets
-var secretEnvVars = concat(predefinedKeyvaultSecretEnvVars, setByPipelineSecretEnvVars)
+var secretEnvVars = concat(predefinedKeyvaultSecretEnvVars, rotationKeyvaultSecretEnvVars, setByPipelineSecretEnvVars)
 
 // Extract secrets configuration from env var configs
 var secrets = [for config in secretEnvVars: {
@@ -62,26 +65,36 @@ var containerAppEnvVarsFromConfig = [for config in secretEnvVars: {
   secretRef: config.secretName
 }]
 
-// Additional computed environment variables (that need expressions)
-var nonProdRotationKeyVaultNames = [
-  'altinn-corr-test-kv'
-  'altinn-corr-at22-kv'
-  'altinn-corr-at23-kv'
-  'altinn-corr-at24-kv'
-  'altinn-corr-yt01-kv'
-]
-
-var nonProdRotationKeyVaultUrlsArray = [for vaultName in nonProdRotationKeyVaultNames: 'https://${vaultName}${az.environment().suffixes.keyvaultDns}/']
-
-var nonProdRotationKeyVaultUrls = join(nonProdRotationKeyVaultUrlsArray, ',')
-
 var rotationLeaderEnvironments = [
   'test'
   'staging'
   'production'
 ]
 var rotationEnabled = contains(rotationLeaderEnvironments, environment)
-var additionalRotationKeyVaultUrls = rotationEnabled && environment == 'test' ? nonProdRotationKeyVaultUrls : ''
+var containerAppName = '${namePrefix}-app'
+var containerAppResourceId = resourceId('Microsoft.App/containerApps', containerAppName)
+var testRotationTargetEnvVars = rotationEnabled && environment == 'test' ? [
+  { name: 'MaskinportenJwkRotationSettings__Targets__0__Name', value: 'at22' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__0__KeyVaultUrl', value: 'https://altinn-corr-at22-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__0__Environment', value: 'test' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__0__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-at22' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__0__ContainerAppResourceId', value: resourceId('altinn-corr-at22-rg', 'Microsoft.App/containerApps', 'altinn-corr-at22-app') }
+  { name: 'MaskinportenJwkRotationSettings__Targets__1__Name', value: 'at23' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__1__KeyVaultUrl', value: 'https://altinn-corr-at23-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__1__Environment', value: 'test' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__1__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-at23' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__1__ContainerAppResourceId', value: resourceId('altinn-corr-at23-rg', 'Microsoft.App/containerApps', 'altinn-corr-at23-app') }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__Name', value: 'at24' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__KeyVaultUrl', value: 'https://altinn-corr-at24-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__Environment', value: 'test' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-at24' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__ContainerAppResourceId', value: resourceId('altinn-corr-at24-rg', 'Microsoft.App/containerApps', 'altinn-corr-at24-app') }
+  { name: 'MaskinportenJwkRotationSettings__Targets__3__Name', value: 'yt01' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__3__KeyVaultUrl', value: 'https://altinn-corr-yt01-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__3__Environment', value: 'test' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__3__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-yt01' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__3__ContainerAppResourceId', value: resourceId('altinn-corr-yt01-rg', 'Microsoft.App/containerApps', 'altinn-corr-yt01-app') }
+] : []
 
 var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
@@ -95,7 +108,8 @@ var containerAppEnvVarsComputed = [
   { name: 'MaskinportenJwkRotationSettings__AdminKeyVaultSecretName', value: 'maskinporten-admin-jwk' }
   { name: 'MaskinportenJwkRotationSettings__AdminScope', value: 'idporten:dcr.write' }
   { name: 'MaskinportenJwkRotationSettings__KeyVaultUrl', value: keyVaultUrl }
-  { name: 'MaskinportenJwkRotationSettings__AdditionalKeyVaultUrls', value: additionalRotationKeyVaultUrls }
+  { name: 'MaskinportenJwkRotationSettings__ContainerAppResourceId', value: containerAppResourceId }
+  { name: 'MaskinportenJwkRotationSettings__RefreshContainerAppsAfterRotation', value: 'true' }
   { name: 'MaskinportenJwkRotationSettings__KeyVaultSecretName', value: 'maskinporten-jwk' }
   { name: 'MaskinportenJwkRotationSettings__VerificationMaxAttempts', value: '6' }
   { name: 'MaskinportenJwkRotationSettings__VerificationDelaySeconds', value: '15' }
@@ -106,7 +120,8 @@ var containerAppEnvVarsComputed = [
 // Combine all environment variables
 var containerAppEnvVars = concat(
   containerAppEnvVarsFromConfig,
-  containerAppEnvVarsComputed
+  containerAppEnvVarsComputed,
+  testRotationTargetEnvVars
 )
 
 // Scaling
@@ -170,7 +185,7 @@ var apimIpRestrictions = empty(apimIp)
 var ipSecurityRestrictions = concat(apimIpRestrictions, EventGridIpRestrictions)
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: '${namePrefix}-app'
+  name: containerAppName
   location: location
   tags: resourceGroup().tags
   identity: {

@@ -67,7 +67,11 @@ public class MaskinportenJwkRotationClientResult
 
     public string VerificationScope { get; init; } = string.Empty;
 
+    public string KeyVaultUrl { get; init; } = string.Empty;
+
     public string KeyVaultSecretName { get; init; } = string.Empty;
+
+    public string ContainerAppResourceId { get; init; } = string.Empty;
 }
 
 public class MaskinportenJwkRotationResult

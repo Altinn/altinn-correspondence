@@ -28,11 +28,34 @@ public class MaskinportenJwkRotationSettings
 
     public string KeyVaultUrl { get; set; } = string.Empty;
 
-    public string AdditionalKeyVaultUrls { get; set; } = string.Empty;
+    public string ContainerAppResourceId { get; set; } = string.Empty;
+
+    public bool RefreshContainerAppsAfterRotation { get; set; } = true;
 
     public string KeyVaultSecretName { get; set; } = "maskinporten-jwk";
 
     public string TargetClientIdKeyVaultSecretName { get; set; } = "maskinporten-client-id";
 
     public string NewKeyIdPrefix { get; set; } = "altinn-correspondence-maskinporten";
+
+    public List<MaskinportenJwkRotationTarget> Targets { get; set; } = [];
+}
+
+public class MaskinportenJwkRotationTarget
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string KeyVaultUrl { get; set; } = string.Empty;
+
+    public string ClientIdSecretName { get; set; } = string.Empty;
+
+    public string EncodedJwkSecretName { get; set; } = string.Empty;
+
+    public string VerificationScope { get; set; } = string.Empty;
+
+    public string Environment { get; set; } = string.Empty;
+
+    public string NewKeyIdPrefix { get; set; } = string.Empty;
+
+    public string ContainerAppResourceId { get; set; } = string.Empty;
 }

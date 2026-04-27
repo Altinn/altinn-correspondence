@@ -30,3 +30,8 @@ public interface IMaskinportenTokenService
 {
     Task<string> RequestTokenAsync(string clientId, string encodedPrivateJwk, string scope, string environment, CancellationToken cancellationToken);
 }
+
+public interface IContainerAppRefreshService
+{
+    Task RefreshAsync(string containerAppResourceId, string reason, CancellationToken cancellationToken);
+}

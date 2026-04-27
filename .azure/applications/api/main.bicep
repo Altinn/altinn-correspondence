@@ -20,6 +20,12 @@ param apimIp string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
+var rotationLeaderEnvironments = [
+  'test'
+  'staging'
+  'production'
+]
+var rotationEnabled = contains(rotationLeaderEnvironments, environment)
 var at22RotationVault = {
   environment: 'at22'
   resourceGroupName: 'altinn-corr-at22-rg'
@@ -81,7 +87,7 @@ module keyvaultAddReaderRolesAppIdentity '../../modules/keyvault/addReaderRoles.
   }
 }
 
-module keyvaultAddSecretsOfficerRoleAppIdentity '../../modules/keyvault/addSecretsOfficerRole.bicep' = {
+module keyvaultAddSecretsOfficerRoleAppIdentity '../../modules/keyvault/addSecretsOfficerRole.bicep' = if (rotationEnabled) {
   name: 'kvsecretsofficer-${namePrefix}-app'
   scope: resourceGroup
   params: {
