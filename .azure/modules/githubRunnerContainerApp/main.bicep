@@ -7,29 +7,22 @@ param userAssignedIdentityResourceId string
 param keyVaultUrl string
 @secure()
 param containerAppEnvId string
-
 @description('Container image for the self-hosted runner.')
-param runnerImage string = 'ghcr.io/altinn/altinn-correspondence-github-runner:latest'
+param runnerImage string
 @description('GitHub registration URL, e.g. https://github.com/Altinn/altinn-correspondence')
 param githubUrl string
-@description('Key Vault secret name holding the GitHub PAT/token.')
-param githubTokenSecretName string = 'github-runner-token'
-@description('How many queued jobs each replica should target before scaling.')
-param targetQueueLength int = 1
-@description('Idle time in seconds before scaling down.')
-param cooldownPeriodSeconds int = 3600
-@description('Polling interval in seconds for scaler.')
-param pollingIntervalSeconds int = 30
-@description('Maximum replica count during high load.')
-param maxReplicas int = 4
-@description('Runner resources.')
-param containerAppResources object = {
-  cpu: json('1.0')
-  memory: '2.0Gi'
-}
 
 var containerAppName = '${namePrefix}-github-runner'
 var githubTokenSecretRefName = 'github-runner-token'
+var githubTokenSecretName = 'github-runner-token'
+var targetQueueLength = 1
+var cooldownPeriodSeconds = 3600
+var pollingIntervalSeconds = 30
+var maxReplicas = 4
+var containerAppResources = {
+  cpu: json('1.0')
+  memory: '2.0Gi'
+}
 
 var secrets = [
   {

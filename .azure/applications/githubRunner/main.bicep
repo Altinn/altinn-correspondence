@@ -62,10 +62,6 @@ module githubRunnerContainerApp '../../modules/githubRunnerContainerApp/main.bic
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
     runnerImage: runnerImage
     githubUrl: githubUrl
-    githubTokenSecretName: 'github-runner-token'
-    targetQueueLength: 1
-    cooldownPeriodSeconds: 3600
-    maxReplicas: 4
   }
 }
 
