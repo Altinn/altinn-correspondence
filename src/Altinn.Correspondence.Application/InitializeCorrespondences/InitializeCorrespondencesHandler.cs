@@ -234,7 +234,7 @@ public class InitializeCorrespondencesHandler(
             }
             else
             {
-                await ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken);
+                backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>((handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
             }
         }
         else
@@ -245,16 +245,13 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            if (!string.IsNullOrEmpty(notificationJobId))
             {
-                if (!string.IsNullOrEmpty(notificationJobId))
-                {
-                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
-                }
-                else
-                {
-                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
-                }
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+            }
+            else
+            {
+                backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
             }
         }
 
