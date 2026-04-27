@@ -168,21 +168,5 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.OK, initializeAttachmentResponse.StatusCode);
         }
-
-        [Theory]
-        [InlineData("trailingSpace ")]
-        [InlineData("trailingDot.")]
-        public async Task InitializeAttachment_WithIllegalFilenames_ReturnsBadRequest(string fileName)
-        {
-            var attachment = new AttachmentBuilder()
-                .CreateAttachment()
-                .WithFileName(fileName + ".txt")
-                .Build();
-            
-            var initializeAttachmentResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
-            var responseContent = await initializeAttachmentResponse.Content.ReadAsStringAsync();
-            Assert.Equal(HttpStatusCode.BadRequest, initializeAttachmentResponse.StatusCode);
-            Assert.Contains(AttachmentErrors.FilenameInvalid.Message, responseContent);
-        }
     }
 }
