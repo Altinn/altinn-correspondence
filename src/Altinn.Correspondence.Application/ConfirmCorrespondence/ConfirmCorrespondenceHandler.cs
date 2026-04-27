@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
+using Altinn.Correspondence.Integrations.Hangfire;
 
 namespace Altinn.Correspondence.Application.ConfirmCorrespondence;
 
@@ -74,7 +75,7 @@ public class ConfirmCorrespondenceHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        var verifyJobId = backgroundJobClient.Schedule<VerifyCorrespondenceConfirmationHandler>(
+        var verifyJobId = backgroundJobClient.Schedule<VerifyCorrespondenceConfirmationHandler>(HangfireQueues.Default, 
             handler => handler.VerifyPatchAndCommitConfirmation(correspondence.Id, partyUuid, party.PartyId, operationTimestamp, caller, CancellationToken.None),
             TimeSpan.FromSeconds(4));
         
