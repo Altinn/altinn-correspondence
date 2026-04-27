@@ -730,7 +730,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
                 It.IsAny<IState>()), Times.Once);
         }
 
@@ -771,7 +771,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
                 It.IsAny<IState>()), Times.Once);
         }
 
@@ -841,7 +841,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.NotNull(uploadCorrespondenceResponse);
             Assert.True(uploadCorrespondenceResponse.StatusCode == HttpStatusCode.OK, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
                 It.IsAny<IState>()), Times.Once);
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "CreateDialogportenDialog"),
