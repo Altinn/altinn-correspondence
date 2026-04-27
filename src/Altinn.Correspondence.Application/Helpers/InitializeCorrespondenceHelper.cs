@@ -503,8 +503,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public static bool IsUploadTarget(AttachmentEntity attachment)
         {
-            return attachment.DataLocationType == AttachmentDataLocationType.AltinnCorrespondenceAttachment
-                && string.IsNullOrWhiteSpace(attachment.DataLocationUrl);
+            return string.IsNullOrWhiteSpace(attachment.DataLocationUrl);
         }
 
         private static Dictionary<string, int> BuildUniqueFileIndexByName(IReadOnlyList<IFormFile> files)
