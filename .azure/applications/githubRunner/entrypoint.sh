@@ -33,6 +33,7 @@ fi
 
 runner_name="runner-$(hostname)-${RANDOM}"
 work_folder="_work"
+DOCKERD_PID=""
 
 api_url="https://api.github.com/repos/${owner}/${repo}/actions/runners"
 common_headers=(
@@ -58,9 +59,27 @@ remove_runner() {
   if [[ -n "${remove_token}" && "${remove_token}" != "null" ]]; then
     ./config.sh remove --unattended --token "${remove_token}" >/dev/null 2>&1
   fi
+  if [[ -n "${DOCKERD_PID}" ]]; then
+    kill "${DOCKERD_PID}" >/dev/null 2>&1 || true
+  fi
 }
 
 trap remove_runner EXIT INT TERM
+
+echo "Starting Docker daemon..."
+dockerd --host=unix:///var/run/docker.sock >/tmp/dockerd.log 2>&1 &
+DOCKERD_PID=$!
+for i in {1..30}; do
+  if docker info >/dev/null 2>&1; then
+    break
+  fi
+  if [[ ${i} -eq 30 ]]; then
+    echo "Docker daemon failed to start. Last log lines:"
+    tail -n 50 /tmp/dockerd.log || true
+    exit 1
+  fi
+  sleep 1
+done
 
 ./config.sh \
   --unattended \

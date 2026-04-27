@@ -8,13 +8,24 @@ ENV RUNNER_ALLOW_RUNASROOT=1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        apt-transport-https \
         ca-certificates \
         curl \
         git \
+        gnupg \
         jq \
+        lsb-release \
+        docker.io \
         tar \
         unzip \
         wget \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null \
+    && SUITE=$(lsb_release -cs) \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $SUITE main" > /etc/apt/sources.list.d/azure-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends azure-cli \
+    && az aks install-cli --install-location /usr/local/bin/kubectl --kubelogin-install-location /usr/local/bin/kubelogin \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -d /home/runner -s /bin/bash runner
@@ -35,5 +46,4 @@ RUN case "${TARGETARCH}" in \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && chown -R runner:runner /home/runner
 
-USER runner
 ENTRYPOINT ["/entrypoint.sh"]

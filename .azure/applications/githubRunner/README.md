@@ -2,13 +2,14 @@
 
 This folder contains a container image for self-hosted GitHub Actions runners in Azure Container Apps.
 
-The image is built on Ubuntu and installs the official GitHub Actions runner binaries.  
+The image is built on Ubuntu and installs the official GitHub Actions runner binaries, Docker, Azure CLI, kubectl, and kubelogin.  
 At startup, it:
 
 1. Requests a temporary registration token from GitHub using `GITHUB_TOKEN`.
 2. Registers itself as an ephemeral runner for one repository (`GITHUB_URL`).
 3. Executes one job and then exits.
 4. Removes its runner registration on shutdown.
+5. Starts a Docker daemon so workflows can run `docker build/push` and `az` commands.
 
 ## Required GitHub Repository Secrets
 
