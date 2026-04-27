@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 using Altinn.Correspondence.API.Models.Enums;
+using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.API.Models
         /// Specifies the location type of the attachment data
         /// </summary>
         [JsonPropertyName("dataLocationType")]
-        [Required]
-        public InitializeAttachmentDataLocationTypeExt DataLocationType { get; set; }
+        [DefaultValue(InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment)]
+        public InitializeAttachmentDataLocationTypeExt DataLocationType { get; set; } = InitializeAttachmentDataLocationTypeExt.NewCorrespondenceAttachment;
     }
 }
