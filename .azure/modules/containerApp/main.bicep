@@ -68,7 +68,6 @@ var nonProdRotationKeyVaultNames = [
   'altinn-corr-at22-kv'
   'altinn-corr-at23-kv'
   'altinn-corr-at24-kv'
-  'altinn-corr-staging-kv'
   'altinn-corr-yt01-kv'
 ]
 
@@ -77,11 +76,11 @@ var nonProdRotationKeyVaultUrlsArray = [for vaultName in nonProdRotationKeyVault
 var nonProdRotationKeyVaultUrls = join(nonProdRotationKeyVaultUrlsArray, ',')
 
 var rotationLeaderEnvironments = [
-  'test'
+  'staging'
   'production'
 ]
 var rotationEnabled = contains(rotationLeaderEnvironments, environment)
-var additionalRotationKeyVaultUrls = rotationEnabled && environment == 'test' ? nonProdRotationKeyVaultUrls : ''
+var additionalRotationKeyVaultUrls = rotationEnabled && environment == 'staging' ? nonProdRotationKeyVaultUrls : ''
 
 var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }

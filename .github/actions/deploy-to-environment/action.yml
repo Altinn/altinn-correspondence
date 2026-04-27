@@ -42,6 +42,9 @@ inputs:
   GRAFANA_MONITORING_PRINCIPAL_ID:
     description: "Principal ID for Grafana monitoring service principal"
     required: true
+  TEST_ROTATION_SUBSCRIPTION_ID:
+    description: "Subscription ID for test Key Vault fan-out from staging rotation"
+    required: false
 
 runs:
   using: "composite"
@@ -91,6 +94,7 @@ runs:
         AZURE_TENANT_ID: ${{ inputs.AZURE_TENANT_ID }}
         STORAGE_ACCOUNT_NAME: ${{ inputs.AZURE_STORAGE_ACCOUNT_NAME }}
         APIM_IP: ${{ inputs.APIM_IP }}
+        TEST_ROTATION_SUBSCRIPTION_ID: ${{ inputs.TEST_ROTATION_SUBSCRIPTION_ID }}
 
     - name: Remediate standard tags
       uses: ./.github/actions/remediate-standard-tags

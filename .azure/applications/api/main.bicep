@@ -17,36 +17,46 @@ param namePrefix string
 param storageAccountName string
 @secure()
 param apimIp string
+@secure()
+param testRotationSubscriptionId string = ''
+
+var currentSubscriptionId = subscription().subscriptionId
+var resolvedTestRotationSubscriptionId = testRotationSubscriptionId == '' ? currentSubscriptionId : testRotationSubscriptionId
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
+var testRotationVault = {
+  environment: 'test'
+  resourceGroupName: 'altinn-corr-test-rg'
+  keyVaultName: 'altinn-corr-test-kv'
+  subscriptionId: resolvedTestRotationSubscriptionId
+}
 var at22RotationVault = {
   environment: 'at22'
   resourceGroupName: 'altinn-corr-at22-rg'
   keyVaultName: 'altinn-corr-at22-kv'
+  subscriptionId: resolvedTestRotationSubscriptionId
 }
 var at23RotationVault = {
   environment: 'at23'
   resourceGroupName: 'altinn-corr-at23-rg'
   keyVaultName: 'altinn-corr-at23-kv'
+  subscriptionId: resolvedTestRotationSubscriptionId
 }
 var at24RotationVault = {
   environment: 'at24'
   resourceGroupName: 'altinn-corr-at24-rg'
   keyVaultName: 'altinn-corr-at24-kv'
-}
-var stagingRotationVault = {
-  environment: 'staging'
-  resourceGroupName: 'altinn-corr-staging-rg'
-  keyVaultName: 'altinn-corr-staging-kv'
+  subscriptionId: resolvedTestRotationSubscriptionId
 }
 var yt01RotationVault = {
   environment: 'yt01'
   resourceGroupName: 'altinn-corr-yt01-rg'
   keyVaultName: 'altinn-corr-yt01-kv'
+  subscriptionId: resolvedTestRotationSubscriptionId
 }
-var additionalRotationVaults = environment == 'test'
-  ? [at22RotationVault, at23RotationVault, at24RotationVault, stagingRotationVault, yt01RotationVault]
+var additionalRotationVaults = environment == 'staging'
+  ? [testRotationVault, at22RotationVault, at23RotationVault, at24RotationVault, yt01RotationVault]
   : []
 
 var resourceGroupName = '${namePrefix}-rg'
@@ -98,6 +108,7 @@ module keyvaultAddSecretsOfficerRoleAppIdentity '../../modules/keyvault/addSecre
 
 resource additionalRotationVaultResourceGroups 'Microsoft.Resources/resourceGroups@2024-11-01' existing = [for vault in additionalRotationVaults: {
   name: vault.resourceGroupName
+  scope: subscription(vault.subscriptionId)
 }]
 
 module additionalRotationVaultReaderRoles '../../modules/keyvault/addReaderRoles.bicep' = [for (vault, i) in additionalRotationVaults: {
