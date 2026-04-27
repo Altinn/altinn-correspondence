@@ -25,3 +25,12 @@ The `manage-github-runners.yml` workflow expects these repository secrets:
 The Azure Key Vault referenced by `AZURE_ENVIRONMENT_KEY_VAULT_NAME` must also contain:
 
 - `github-runner-token` (GitHub PAT/app token with permissions to manage self-hosted runners)
+
+## Required GitHub Repository Variable
+
+Set repository variable `USE_SELF_HOSTED_RUNNERS` to control workflow runner selection:
+
+- `true`: workflows using the conditional `runs-on` expression run on `self-hosted`
+- any other value (or unset): workflows fall back to `ubuntu-latest`
+
+The `manage-github-runners.yml` workflow controls the runner infrastructure itself, while this variable controls whether eligible workflows actually target self-hosted runners.
