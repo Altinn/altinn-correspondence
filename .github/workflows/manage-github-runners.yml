@@ -30,6 +30,30 @@ jobs:
       RUNNER_IMAGE_TAG: ${{ inputs.imageTag != '' && inputs.imageTag || 'latest' }}
       RUNNER_IMAGE_NAME: ghcr.io/altinn/altinn-correspondence-github-runner
     steps:
+      - name: Validate required configuration
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
+          AZURE_ENVIRONMENT: ${{ secrets.AZURE_ENVIRONMENT }}
+          AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+        run: |
+          set -euo pipefail
+          missing=()
+          for var in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_NAME_PREFIX AZURE_ENVIRONMENT AZURE_ENVIRONMENT_KEY_VAULT_NAME; do
+            if [[ -z "${!var:-}" ]]; then
+              missing+=("$var")
+            fi
+          done
+
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Missing required repository secrets/environment variables: ${missing[*]}"
+            echo "::error::See setup instructions: https://github.com/Altinn/altinn-correspondence/blob/main/.azure/applications/githubRunner/README.md"
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v6
 
@@ -85,6 +109,28 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: Validate required configuration
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
+        run: |
+          set -euo pipefail
+          missing=()
+          for var in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_NAME_PREFIX; do
+            if [[ -z "${!var:-}" ]]; then
+              missing+=("$var")
+            fi
+          done
+
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Missing required repository secrets/environment variables: ${missing[*]}"
+            echo "::error::See setup instructions: https://github.com/Altinn/altinn-correspondence/blob/main/.azure/applications/githubRunner/README.md"
+            exit 1
+          fi
+
       - name: OIDC login to Azure
         uses: azure/login@v2
         with:
