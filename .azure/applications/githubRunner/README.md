@@ -10,21 +10,17 @@ At startup, it:
 3. Executes one job and then exits.
 4. Removes its runner registration on shutdown.
 
-## Required Runtime Environment Variables
+## Required GitHub Repository Secrets
 
-- `GITHUB_URL` (example: `https://github.com/Altinn/altinn-correspondence`)
-- `GITHUB_TOKEN` (PAT/app token with permissions to manage self-hosted runners)
+The `manage-github-runners.yml` workflow expects these repository secrets:
 
-## Optional Runtime Environment Variables
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+- `AZURE_NAME_PREFIX`
+- `AZURE_ENVIRONMENT`
+- `AZURE_ENVIRONMENT_KEY_VAULT_NAME`
 
-- `RUNNER_NAME_PREFIX` (entrypoint default: `aca-runner`; this deployment overrides it to `${namePrefix}-runner`, so runner names will appear as `<namePrefix>-runner-*`)
-- `RUNNER_WORKDIR` (default: `_work`)
+The Azure Key Vault referenced by `AZURE_ENVIRONMENT_KEY_VAULT_NAME` must also contain:
 
-## Build And Push (example)
-
-```bash
-docker build -f .azure/applications/githubRunner/Dockerfile -t ghcr.io/altinn/altinn-correspondence-github-runner:latest .azure/applications/githubRunner
-docker push ghcr.io/altinn/altinn-correspondence-github-runner:latest
-```
-
-Use the pushed image value in `GITHUB_RUNNER_IMAGE` for your Bicep deployment.
+- `github-runner-token` (GitHub PAT/app token with permissions to manage self-hosted runners)

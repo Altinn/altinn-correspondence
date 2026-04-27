@@ -31,9 +31,8 @@ if [[ ${#parts[@]} -ne 2 || -z "${owner}" || -z "${repo}" ]]; then
   exit 1
 fi
 
-runner_prefix="${RUNNER_NAME_PREFIX:-aca-runner}"
-runner_name="${runner_prefix}-$(hostname)-${RANDOM}"
-work_folder="${RUNNER_WORKDIR:-_work}"
+runner_name="runner-$(hostname)-${RANDOM}"
+work_folder="_work"
 
 api_url="https://api.github.com/repos/${owner}/${repo}/actions/runners"
 common_headers=(

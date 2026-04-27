@@ -33,7 +33,6 @@ var secrets = [
 ]
 
 var containerAppEnvVars = [
-  { name: 'RUNNER_NAME_PREFIX', value: '${namePrefix}-runner' }
   { name: 'RUNNER_SCOPE', value: 'repo' }
   { name: 'GITHUB_URL', value: githubUrl }
   { name: 'DISABLE_AUTO_UPDATE', value: 'true' }
