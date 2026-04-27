@@ -20,7 +20,13 @@ RUN apt-get update \
 RUN useradd -m -d /home/runner -s /bin/bash runner
 WORKDIR /home/runner
 
-RUN ARCHIVE_NAME="actions-runner-linux-${TARGETARCH}-${RUNNER_VERSION}.tar.gz" \
+RUN case "${TARGETARCH}" in \
+      amd64) RUNNER_ARCH="linux-x64" ;; \
+      arm64) RUNNER_ARCH="linux-arm64" ;; \
+      arm) RUNNER_ARCH="linux-arm" ;; \
+      *) echo "Unsupported TARGETARCH: ${TARGETARCH}" && exit 1 ;; \
+    esac \
+    && ARCHIVE_NAME="actions-runner-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz" \
     && curl -fsSL -o "${ARCHIVE_NAME}" "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/${ARCHIVE_NAME}" \
     && tar xzf "${ARCHIVE_NAME}" \
     && rm "${ARCHIVE_NAME}" \

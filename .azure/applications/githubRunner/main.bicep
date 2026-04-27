@@ -57,7 +57,7 @@ module githubRunnerContainerApp '../../modules/githubRunnerContainerApp/main.bic
   params: {
     namePrefix: namePrefix
     location: location
-    principalId: runnerIdentity.outputs.id
+    userAssignedIdentityResourceId: runnerIdentity.outputs.id
     keyVaultUrl: keyVaultUrl
     containerAppEnvId: keyvault.getSecret('container-app-env-id')
     runnerImage: runnerImage

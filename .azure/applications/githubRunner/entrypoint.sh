@@ -17,10 +17,16 @@ if [[ "${GITHUB_URL}" != https://github.com/* ]]; then
 fi
 
 repo_path="${GITHUB_URL#https://github.com/}"
-owner="$(echo "${repo_path}" | cut -d'/' -f1)"
-repo="$(echo "${repo_path}" | cut -d'/' -f2)"
+repo_path="${repo_path%/}"
+IFS='/' read -r -a parts <<< "${repo_path}"
+owner=""
+repo=""
+if [[ ${#parts[@]} -eq 2 ]]; then
+  owner="${parts[0]}"
+  repo="${parts[1]}"
+fi
 
-if [[ -z "${owner}" || -z "${repo}" ]]; then
+if [[ ${#parts[@]} -ne 2 || -z "${owner}" || -z "${repo}" ]]; then
   echo "GITHUB_URL must be in the format https://github.com/<owner>/<repo>."
   exit 1
 fi
@@ -69,4 +75,4 @@ trap remove_runner EXIT INT TERM
   --labels "${runner_labels}"
 
 echo "Runner ${runner_name} configured. Waiting for a single job..."
-exec ./run.sh
+./run.sh

@@ -12,7 +12,8 @@ on:
       imageTag:
         type: string
         required: false
-        description: Runner image tag (default: latest)
+        default: "latest"
+        description: "Runner image tag (default: latest)"
 
 run-name: Runner mode ${{ inputs.mode }}
 
@@ -97,12 +98,10 @@ jobs:
           set -euo pipefail
           RG="${{ secrets.AZURE_NAME_PREFIX }}-rg"
           APP="${{ secrets.AZURE_NAME_PREFIX }}-github-runner"
-          az extension add --name containerapp --upgrade --yes
           if az containerapp show --resource-group "$RG" --name "$APP" >/dev/null 2>&1; then
             az containerapp update \
               --resource-group "$RG" \
               --name "$APP" \
-              --min-replicas 0 \
               --max-replicas 0
             echo "Self-hosted runner app scaled to zero."
           else

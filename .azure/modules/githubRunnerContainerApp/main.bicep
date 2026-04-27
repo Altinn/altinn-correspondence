@@ -2,7 +2,7 @@ param location string
 @secure()
 param namePrefix string
 @secure()
-param principalId string
+param userAssignedIdentityResourceId string
 @secure()
 param keyVaultUrl string
 @secure()
@@ -35,7 +35,7 @@ var githubTokenSecretRefName = 'github-runner-token'
 
 var secrets = [
   {
-    identity: principalId
+    identity: userAssignedIdentityResourceId
     keyVaultUrl: '${keyVaultUrl}/secrets/${githubTokenSecretName}'
     name: githubTokenSecretRefName
   }
@@ -56,7 +56,7 @@ resource githubRunnerContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${principalId}': {}
+      '${userAssignedIdentityResourceId}': {}
     }
   }
   properties: {
@@ -77,9 +77,10 @@ resource githubRunnerContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
             custom: {
               type: 'github-runner'
               metadata: {
-                githubAPIURL: 'https://api.github.com'
+                githubApiURL: 'https://api.github.com'
                 owner: split(replace(githubUrl, 'https://github.com/', ''), '/')[0]
-                repo: split(replace(githubUrl, 'https://github.com/', ''), '/')[1]
+                repos: split(replace(githubUrl, 'https://github.com/', ''), '/')[1]
+                labels: runnerLabels
                 targetWorkflowQueueLength: string(targetQueueLength)
                 runnerScope: 'repo'
               }
