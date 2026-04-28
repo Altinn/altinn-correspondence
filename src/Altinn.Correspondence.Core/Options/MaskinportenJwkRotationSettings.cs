@@ -51,11 +51,5 @@ public class MaskinportenJwkRotationTarget
 
     public string EncodedJwkSecretName { get; set; } = string.Empty;
 
-    public string VerificationScope { get; set; } = string.Empty;
-
-    public string Environment { get; set; } = string.Empty;
-
-    public string NewKeyIdPrefix { get; set; } = string.Empty;
-
     public string ContainerAppResourceId { get; set; } = string.Empty;
 }

@@ -72,6 +72,8 @@ public class MaskinportenJwkRotationClientResult
     public string KeyVaultSecretName { get; init; } = string.Empty;
 
     public string ContainerAppResourceId { get; init; } = string.Empty;
+
+    public IReadOnlyList<string> ContainerAppResourceIds { get; init; } = [];
 }
 
 public class MaskinportenJwkRotationResult

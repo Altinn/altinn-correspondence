@@ -171,14 +171,12 @@ public class MaskinportenJwkRotationServiceTests
     }
 
     [Fact]
-    public async Task RotateAsync_RotatesConfiguredTargetWithSeparateClientAndKeyVault()
+    public async Task RotateAsync_RotatesClientOnceAndWritesGeneratedJwkToConfiguredTargetVault()
     {
         var adminOriginalJwks = CreateJwks("admin-kid");
         var adminUpdatedJwks = CreateJwks("admin-kid", "new-admin-kid");
         var targetOriginalJwks = CreateJwks("current-kid");
         var targetUpdatedJwks = CreateJwks("current-kid", "new-target-kid");
-        var at22OriginalJwks = CreateJwks("at22-current-kid");
-        var at22UpdatedJwks = CreateJwks("at22-current-kid", "new-at22-kid");
 
         var digdirAdminService = new Mock<IDigdirMaskinportenAdminService>();
         digdirAdminService.SetupSequence(service => service.GetJwksAsync("admin-client", It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
@@ -188,40 +186,26 @@ public class MaskinportenJwkRotationServiceTests
         digdirAdminService.SetupSequence(service => service.GetJwksAsync("target-client", It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(targetOriginalJwks)
             .ReturnsAsync(targetUpdatedJwks);
-        digdirAdminService.SetupSequence(service => service.GetJwksAsync("at22-client", It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(at22OriginalJwks)
-            .ReturnsAsync(at22UpdatedJwks);
         digdirAdminService.Setup(service => service.UpdateJwksAsync("admin-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(adminUpdatedJwks);
         digdirAdminService.Setup(service => service.UpdateJwksAsync("target-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(targetUpdatedJwks);
-        digdirAdminService.Setup(service => service.UpdateJwksAsync("at22-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(at22UpdatedJwks);
 
         var generator = new Mock<IMaskinportenJwkGenerator>();
         generator.Setup(service => service.GetPublicKey(CreateEncodedJwk("admin-kid")))
             .Returns(CreatePublicKey("admin-kid"));
         generator.Setup(service => service.GetPublicKey(CreateEncodedJwk("current-kid")))
             .Returns(CreatePublicKey("current-kid"));
-        generator.Setup(service => service.GetPublicKey(CreateEncodedJwk("at22-current-kid")))
-            .Returns(CreatePublicKey("at22-current-kid"));
         generator.SetupSequence(service => service.Generate(It.IsAny<string>()))
             .Returns(CreateGeneratedJwk("new-admin-kid", "new-admin-private-jwk"))
-            .Returns(CreateGeneratedJwk("new-target-kid", "new-target-private-jwk"))
-            .Returns(CreateGeneratedJwk("new-at22-kid", "new-at22-private-jwk"));
+            .Returns(CreateGeneratedJwk("new-target-kid", "new-target-private-jwk"));
 
         var tokenService = new Mock<IMaskinportenTokenService>();
         tokenService.Setup(service => service.RequestTokenAsync("target-client", "new-target-private-jwk", "scope:a", "test", It.IsAny<CancellationToken>()))
             .ReturnsAsync("token");
-        tokenService.Setup(service => service.RequestTokenAsync("at22-client", "new-at22-private-jwk", "scope:at22", "test", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("token");
 
         var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
         SetupAllSecretReads(keyVaultSecretStore);
-        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://at22-kv.example", "maskinporten-client-id", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("at22-client");
-        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://at22-kv.example", "maskinporten-jwk", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateEncodedJwk("at22-current-kid"));
 
         var service = CreateService(
             digdirAdminService.Object,
@@ -233,9 +217,7 @@ public class MaskinportenJwkRotationServiceTests
                 new MaskinportenJwkRotationTarget
                 {
                     Name = "at22",
-                    KeyVaultUrl = "https://at22-kv.example/",
-                    VerificationScope = "scope:at22",
-                    NewKeyIdPrefix = "at22-prefix"
+                    KeyVaultUrl = "https://at22-kv.example/"
                 }
             ]);
 
@@ -244,8 +226,9 @@ public class MaskinportenJwkRotationServiceTests
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-admin-jwk", "new-admin-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "new-target-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://at22-kv.example", "maskinporten-admin-jwk", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://at22-kv.example", "maskinporten-jwk", "new-at22-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
-        Assert.Contains(result.Clients, client => client.ClientName == "at22" && client.ClientId == "at22-client");
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://at22-kv.example", "maskinporten-jwk", "new-target-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+        digdirAdminService.Verify(service => service.UpdateJwksAsync("target-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Contains(result.Clients, client => client.ClientName == "Correspondence" && client.ClientId == "target-client");
     }
 
     [Fact]
@@ -455,14 +438,12 @@ public class MaskinportenJwkRotationServiceTests
     }
 
     [Fact]
-    public async Task RotateAsync_RestoresConfiguredTargetWhenSecretWriteFails()
+    public async Task RotateAsync_RestoresWrittenTargetVaultsWhenAdditionalVaultWriteFails()
     {
         var adminOriginalJwks = CreateJwks("admin-kid");
         var adminUpdatedJwks = CreateJwks("admin-kid", "new-admin-kid");
         var targetOriginalJwks = CreateJwks("current-kid");
         var targetUpdatedJwks = CreateJwks("current-kid", "new-target-kid");
-        var at22OriginalJwks = CreateJwks("at22-current-kid");
-        var at22UpdatedJwks = CreateJwks("at22-current-kid", "new-at22-kid");
 
         var digdirAdminService = new Mock<IDigdirMaskinportenAdminService>();
         digdirAdminService.SetupSequence(service => service.GetJwksAsync("admin-client", It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
@@ -472,44 +453,29 @@ public class MaskinportenJwkRotationServiceTests
         digdirAdminService.SetupSequence(service => service.GetJwksAsync("target-client", It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(targetOriginalJwks)
             .ReturnsAsync(targetUpdatedJwks);
-        digdirAdminService.SetupSequence(service => service.GetJwksAsync("at22-client", It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(at22OriginalJwks)
-            .ReturnsAsync(at22UpdatedJwks);
         digdirAdminService.SetupSequence(service => service.UpdateJwksAsync("admin-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(adminUpdatedJwks);
         digdirAdminService.SetupSequence(service => service.UpdateJwksAsync("target-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(targetUpdatedJwks);
-        digdirAdminService.SetupSequence(service => service.UpdateJwksAsync("at22-client", It.IsAny<MaskinportenJwkSet>(), It.IsAny<MaskinportenAdminApiCredentials>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(at22UpdatedJwks)
-            .ReturnsAsync(at22OriginalJwks);
+            .ReturnsAsync(targetUpdatedJwks)
+            .ReturnsAsync(targetOriginalJwks);
 
         var generator = new Mock<IMaskinportenJwkGenerator>();
         generator.Setup(service => service.GetPublicKey(CreateEncodedJwk("admin-kid")))
             .Returns(CreatePublicKey("admin-kid"));
         generator.Setup(service => service.GetPublicKey(CreateEncodedJwk("current-kid")))
             .Returns(CreatePublicKey("current-kid"));
-        generator.Setup(service => service.GetPublicKey(CreateEncodedJwk("at22-current-kid")))
-            .Returns(CreatePublicKey("at22-current-kid"));
         generator.SetupSequence(service => service.Generate(It.IsAny<string>()))
             .Returns(CreateGeneratedJwk("new-admin-kid", "new-admin-private-jwk"))
-            .Returns(CreateGeneratedJwk("new-target-kid", "new-target-private-jwk"))
-            .Returns(CreateGeneratedJwk("new-at22-kid", "new-at22-private-jwk"));
+            .Returns(CreateGeneratedJwk("new-target-kid", "new-target-private-jwk"));
 
         var tokenService = new Mock<IMaskinportenTokenService>();
         tokenService.Setup(service => service.RequestTokenAsync("target-client", "new-target-private-jwk", "scope:a", "test", It.IsAny<CancellationToken>()))
             .ReturnsAsync("token");
-        tokenService.Setup(service => service.RequestTokenAsync("at22-client", "new-at22-private-jwk", "scope:a", "test", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("token");
 
         var keyVaultSecretStore = new Mock<IKeyVaultSecretStore>();
         SetupAllSecretReads(keyVaultSecretStore);
-        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://at22-kv.example", "maskinporten-client-id", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("at22-client");
-        keyVaultSecretStore.Setup(store => store.GetSecretValueAsync("https://at22-kv.example", "maskinporten-jwk", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateEncodedJwk("at22-current-kid"));
         keyVaultSecretStore.SetupSequence(store => store.SetSecretAsync("https://at22-kv.example", "maskinporten-jwk", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("key vault write failed"))
-            .Returns(Task.CompletedTask);
+            .ThrowsAsync(new InvalidOperationException("key vault write failed"));
 
         var service = CreateService(
             digdirAdminService.Object,
@@ -528,13 +494,13 @@ public class MaskinportenJwkRotationServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.RotateAsync(CancellationToken.None));
 
         digdirAdminService.Verify(service => service.UpdateJwksAsync(
-            "at22-client",
-            It.Is<MaskinportenJwkSet>(jwks => jwks.Keys.Any(key => key.Kid == "new-at22-kid")),
+            "target-client",
+            It.Is<MaskinportenJwkSet>(jwks => jwks.Keys.Any(key => key.Kid == "new-target-kid")),
             It.IsAny<MaskinportenAdminApiCredentials>(),
             It.IsAny<CancellationToken>()), Times.Once);
         digdirAdminService.Verify(service => service.UpdateJwksAsync(
-            "at22-client",
-            It.Is<MaskinportenJwkSet>(jwks => jwks.Keys.Count == 1 && jwks.Keys[0].Kid == "at22-current-kid"),
+            "target-client",
+            It.Is<MaskinportenJwkSet>(jwks => jwks.Keys.Count == 1 && jwks.Keys[0].Kid == "current-kid"),
             It.IsAny<MaskinportenAdminApiCredentials>(),
             It.IsAny<CancellationToken>()), Times.Once);
         digdirAdminService.Verify(service => service.UpdateJwksAsync(
@@ -543,7 +509,8 @@ public class MaskinportenJwkRotationServiceTests
             It.IsAny<MaskinportenAdminApiCredentials>(),
             It.IsAny<CancellationToken>()), Times.Never);
         keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "new-target-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
-        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://at22-kv.example", "maskinporten-jwk", "new-at22-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://kv.example", "maskinporten-jwk", "maskinporten-jwk-old", It.IsAny<CancellationToken>()), Times.Once);
+        keyVaultSecretStore.Verify(store => store.SetSecretAsync("https://at22-kv.example", "maskinporten-jwk", "new-target-private-jwk", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -557,8 +524,6 @@ public class MaskinportenJwkRotationServiceTests
                 ["MaskinportenJwkRotationSettings:ContainerAppResourceId"] = "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.App/containerApps/test-app",
                 ["MaskinportenJwkRotationSettings:Targets:0:Name"] = "at22",
                 ["MaskinportenJwkRotationSettings:Targets:0:KeyVaultUrl"] = "https://at22-kv.example/",
-                ["MaskinportenJwkRotationSettings:Targets:0:Environment"] = "test",
-                ["MaskinportenJwkRotationSettings:Targets:0:NewKeyIdPrefix"] = "at22-prefix",
                 ["MaskinportenJwkRotationSettings:Targets:0:ContainerAppResourceId"] = "/subscriptions/sub/resourceGroups/at22-rg/providers/Microsoft.App/containerApps/at22-app"
             })
             .Build();
@@ -572,8 +537,6 @@ public class MaskinportenJwkRotationServiceTests
         var target = Assert.Single(settings.Targets);
         Assert.Equal("at22", target.Name);
         Assert.Equal("https://at22-kv.example/", target.KeyVaultUrl);
-        Assert.Equal("test", target.Environment);
-        Assert.Equal("at22-prefix", target.NewKeyIdPrefix);
         Assert.Equal("/subscriptions/sub/resourceGroups/at22-rg/providers/Microsoft.App/containerApps/at22-app", target.ContainerAppResourceId);
     }
 

@@ -76,23 +76,15 @@ var containerAppResourceId = resourceId('Microsoft.App/containerApps', container
 var testRotationTargetEnvVars = rotationEnabled && environment == 'test' ? [
   { name: 'MaskinportenJwkRotationSettings__Targets__0__Name', value: 'at22' }
   { name: 'MaskinportenJwkRotationSettings__Targets__0__KeyVaultUrl', value: 'https://altinn-corr-at22-kv${az.environment().suffixes.keyvaultDns}/' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__0__Environment', value: 'test' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__0__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-at22' }
   { name: 'MaskinportenJwkRotationSettings__Targets__0__ContainerAppResourceId', value: resourceId('altinn-corr-at22-rg', 'Microsoft.App/containerApps', 'altinn-corr-at22-app') }
   { name: 'MaskinportenJwkRotationSettings__Targets__1__Name', value: 'at23' }
   { name: 'MaskinportenJwkRotationSettings__Targets__1__KeyVaultUrl', value: 'https://altinn-corr-at23-kv${az.environment().suffixes.keyvaultDns}/' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__1__Environment', value: 'test' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__1__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-at23' }
   { name: 'MaskinportenJwkRotationSettings__Targets__1__ContainerAppResourceId', value: resourceId('altinn-corr-at23-rg', 'Microsoft.App/containerApps', 'altinn-corr-at23-app') }
   { name: 'MaskinportenJwkRotationSettings__Targets__2__Name', value: 'at24' }
   { name: 'MaskinportenJwkRotationSettings__Targets__2__KeyVaultUrl', value: 'https://altinn-corr-at24-kv${az.environment().suffixes.keyvaultDns}/' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__2__Environment', value: 'test' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__2__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-at24' }
   { name: 'MaskinportenJwkRotationSettings__Targets__2__ContainerAppResourceId', value: resourceId('altinn-corr-at24-rg', 'Microsoft.App/containerApps', 'altinn-corr-at24-app') }
   { name: 'MaskinportenJwkRotationSettings__Targets__3__Name', value: 'yt01' }
   { name: 'MaskinportenJwkRotationSettings__Targets__3__KeyVaultUrl', value: 'https://altinn-corr-yt01-kv${az.environment().suffixes.keyvaultDns}/' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__3__Environment', value: 'test' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__3__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-yt01' }
   { name: 'MaskinportenJwkRotationSettings__Targets__3__ContainerAppResourceId', value: resourceId('altinn-corr-yt01-rg', 'Microsoft.App/containerApps', 'altinn-corr-yt01-app') }
 ] : []
 
