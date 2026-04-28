@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -146,7 +147,7 @@ public class SendNotificationOrderHandler(
 
     private void ScheduleNotificationDeliveryCheck(CorrespondenceNotificationEntity notificationOrder)
     {
-        backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(
+        backgroundJobClient.Schedule<CheckNotificationDeliveryHandler>(HangfireQueues.Default,
             handler => handler.Process(notificationOrder.Id, CancellationToken.None),
             notificationOrder.RequestedSendTime.AddMinutes(NotificationDeliveryCheckDelayMinutes));
     }

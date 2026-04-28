@@ -381,6 +381,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 var attachment = attachmentMetadata.Attachment;
                 if (attachment is null)
                 {
+                    logger.LogDebug("Attachment metadata with id {AttachmentMetadataId} does not have an attachment. Attachment metadata list count: {AttachmentMetadataListCount}", attachmentMetadata.Id, attachments.Count);
                     return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 }
 
@@ -398,6 +399,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
             if (uploadTargetAttachments.Count != files.Count)
             {
+                logger.LogDebug("Number of upload target attachments does not match number of uploaded files. Upload target attachments: {UploadTargetAttachmentCount}, Uploaded files: {UploadedFileCount}", uploadTargetAttachments.Count, files.Count);
                 return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
             }
 
@@ -409,6 +411,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 var attachment = uploadTargetAttachments[i].Attachment!;
                 if (!TryResolveFileIndex(files, uniqueFileIndexByName, usedFileIndices, attachment.FileName, i, out var fileIndex))
                 {
+                    logger.LogDebug("Could not resolve file index for attachment with filename {AttachmentFileName}. Expected file index: {ExpectedFileIndex}", attachment.FileName, i);
                     return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
                 }
 
@@ -500,8 +503,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public static bool IsUploadTarget(AttachmentEntity attachment)
         {
-            return attachment.DataLocationType == AttachmentDataLocationType.AltinnCorrespondenceAttachment
-                && string.IsNullOrWhiteSpace(attachment.DataLocationUrl);
+            return string.IsNullOrWhiteSpace(attachment.DataLocationUrl);
         }
 
         private static Dictionary<string, int> BuildUniqueFileIndexByName(IReadOnlyList<IFormFile> files)

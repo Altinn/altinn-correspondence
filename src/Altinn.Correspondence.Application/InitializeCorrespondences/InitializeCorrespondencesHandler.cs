@@ -10,6 +10,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -136,7 +137,7 @@ public class InitializeCorrespondencesHandler(
             {
                 if (correspondence.DueDateTime is not null)
                 {
-                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
                 }
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             
@@ -164,7 +165,7 @@ public class InitializeCorrespondencesHandler(
                 }
 
                 backgroundJobClient.Schedule<ExpireAttachmentHandler>(
-                    (handler) => handler.Process(correspondenceAttachment.AttachmentId, null, CancellationToken.None),
+                    HangfireQueues.Default, (handler) => handler.Process(correspondenceAttachment.AttachmentId, null, CancellationToken.None),
                     scheduleAt);
             }
 
@@ -180,7 +181,7 @@ public class InitializeCorrespondencesHandler(
                 var unreadCheckDelay = hostEnvironment.IsProduction()
                     ? correspondence.RequestedPublishTime.AddDays(7)
                     : correspondence.RequestedPublishTime.AddMinutes(1);
-                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
+                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
             }
 
             initializedCorrespondences.Add(new InitializedCorrespondences()
@@ -234,7 +235,7 @@ public class InitializeCorrespondencesHandler(
             }
             else
             {
-                await ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken);
+                backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>((handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
             }
         }
         else
@@ -245,16 +246,13 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+            if (!string.IsNullOrEmpty(notificationJobId))
             {
-                if (!string.IsNullOrEmpty(notificationJobId))
-                {
-                    backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
-                }
-                else
-                {
-                    await hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken);
-                }
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+            }
+            else
+            {
+                backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
             }
         }
 

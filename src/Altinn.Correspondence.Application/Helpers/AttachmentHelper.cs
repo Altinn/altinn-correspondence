@@ -198,11 +198,6 @@ namespace Altinn.Correspondence.Application.Helpers
             {
                 return AttachmentErrors.FiletypeNotAllowed;
             }
-            var nameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
-            if (nameWithoutExtension.EndsWith(" ") || nameWithoutExtension.EndsWith("."))
-            {
-                return AttachmentErrors.FilenameInvalid;
-            }
             if (InvalidCharactersRegex.IsMatch(filename))
             {
                 return AttachmentErrors.FilenameInvalid;

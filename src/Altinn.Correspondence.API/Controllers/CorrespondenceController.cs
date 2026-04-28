@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Authorization.ProblemDetails;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -253,7 +254,8 @@ namespace Altinn.Correspondence.API.Controllers
         {
             LogContextHelpers.EnrichLogsWithInsertCorrespondence(request.Correspondence);
             _logger.LogInformation("Insert correspondences with attachment data");
-            
+            _logger.LogDebug("Request: " + JsonSerializer.Serialize(request));
+
             var result = InitializeCorrespondencesMapper.MapToRequest(request, attachments);
             if (result.IsT1)
                 return BadRequest(result.AsT1.Message); 

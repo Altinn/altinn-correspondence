@@ -43,7 +43,7 @@ public class SyncCorrespondenceNotificationEventHandler(
         // within a TransactionScope causes "operation in progress" errors with PostgreSQL.
         // EF Core's SaveChangesAsync() already provides transactional guarantees.
         await correspondenceMigrationEventHelper.ProcessNotificationEvents(
-                request.CorrespondenceId,
+                correspondence,
                 notificationsToExecute,
                 MigrationOperationType.Sync,
                 cancellationToken);

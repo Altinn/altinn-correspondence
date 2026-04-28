@@ -684,13 +684,14 @@ public class CorrespondenceMigrationEventHelper(
         return forwardingEventsToProcess;
     }
 
-    public async Task<int> ProcessNotificationEvents(Guid correspondenceId, List<CorrespondenceNotificationEntity> notificationEvents, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public async Task<int> ProcessNotificationEvents(CorrespondenceEntity correspondence, List<CorrespondenceNotificationEntity> notificationEvents, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         if (notificationEvents.Count == 0)
         {
             return 0;
         }
 
+        Guid correspondenceId = correspondence.Id;
         int savedCount = 0;
 
         foreach (var notification in notificationEvents)
@@ -704,20 +705,42 @@ public class CorrespondenceMigrationEventHelper(
                 IsolationLevel = IsolationLevel.ReadCommitted,
                 Timeout = TimeSpan.FromSeconds(30)
             }, TransactionScopeAsyncFlowOption.Enabled);
-            
+
             try
             {
                 notification.CorrespondenceId = correspondenceId;
                 notification.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
                 notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-                
+
                 var savedId = await correspondenceNotificationRepository.AddNotificationForSync(notification, cancellationToken);
-                
+
                 // Check if notification was actually saved (not a duplicate)
                 if (savedId != Guid.Empty)
                 {
                     savedCount++;
                     logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+
+                    if (correspondence.IsMigrating == false && notification.NotificationSent.HasValue)
+                    {  
+                        var textType = notification.IsReminder 
+                            ? DialogportenTextType.NotificationReminderSent 
+                            : DialogportenTextType.NotificationSent;
+                        string channelType = notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS";
+
+                        // Create activity with the same parameters used during initial migration
+                        backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, 
+                            (dialogportenService) => dialogportenService.CreateInformationActivity(
+                                correspondenceId,
+                                DialogportenActorType.ServiceOwner,
+                                textType,
+                                notification.NotificationSent.Value,
+                                notification.NotificationAddress ?? string.Empty,
+                                channelType));
+
+                        logger.LogInformation("Enqueued Dialogporten activity for {OperationName} notification {NotificationId} at {NotificationSent}", 
+                            operationName, savedId, notification.NotificationSent.Value);
+                    }
+
                     transaction.Complete();
                 }
                 else
@@ -915,7 +938,7 @@ public class CorrespondenceMigrationEventHelper(
             var filteredNotificationEvents = FilterNotificationEvents(correspondenceId, notificationEvents, correspondence);
             if (filteredNotificationEvents.Count > 0)
             {
-                var savedNotificationEventsCount = await ProcessNotificationEvents(correspondenceId, filteredNotificationEvents, operationName, cancellationToken);
+                var savedNotificationEventsCount = await ProcessNotificationEvents(correspondence, filteredNotificationEvents, operationName, cancellationToken);
                 totalEventsProcessed += savedNotificationEventsCount;
             }
         }
