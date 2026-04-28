@@ -12,10 +12,12 @@ public class ProblemDetailsSchemaFilter : ISchemaFilter
         if (!typeof(ProblemDetails).IsAssignableFrom(context.Type))
             return;
 
-        if (schema is OpenApiSchema concreteSchema)
-            concreteSchema.AdditionalPropertiesAllowed = false;
+        if (schema is not OpenApiSchema concreteSchema)
+            return;
 
-        var props = schema.Properties ?? new Dictionary<string, IOpenApiSchema>();
+        concreteSchema.AdditionalPropertiesAllowed = false;
+        concreteSchema.Properties ??= new Dictionary<string, IOpenApiSchema>();
+        var props = concreteSchema.Properties;
 
         if (props.ContainsKey("code"))
             props["code"] = StringSchema();
