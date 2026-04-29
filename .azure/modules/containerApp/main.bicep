@@ -103,7 +103,7 @@ var containerAppEnvVarsComputed = [
   { name: 'MaskinportenJwkRotationSettings__ContainerAppResourceId', value: containerAppResourceId }
   { name: 'MaskinportenJwkRotationSettings__RefreshContainerAppsAfterRotation', value: 'true' }
   { name: 'MaskinportenJwkRotationSettings__KeyVaultSecretName', value: 'maskinporten-jwk' }
-  { name: 'MaskinportenJwkRotationSettings__VerificationMaxAttempts', value: '6' }
+  { name: 'MaskinportenJwkRotationSettings__VerificationMaxAttempts', value: '12' }
   { name: 'MaskinportenJwkRotationSettings__VerificationDelaySeconds', value: '15' }
   { name: 'MaskinportenJwkRotationSettings__AdminNewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-admin' }
   { name: 'MaskinportenJwkRotationSettings__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten' }

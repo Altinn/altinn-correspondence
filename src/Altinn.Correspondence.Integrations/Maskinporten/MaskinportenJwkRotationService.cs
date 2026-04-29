@@ -279,19 +279,19 @@ public class MaskinportenJwkRotationService(
 
         for (var attempt = 1; attempt <= settings.VerificationMaxAttempts; attempt++)
         {
-            var currentJwks = await digdirMaskinportenAdminService.GetJwksAsync(targetClientId, adminCredentials, cancellationToken);
-            var kidPresent = currentJwks.Keys.Any(key => string.Equals(key.Kid, generated.Kid, StringComparison.Ordinal));
-
-            logger.LogInformation(
-                "Verifying Maskinporten JWK rotation for client {ClientId}. Attempt {Attempt}/{MaxAttempts}. New kid present in JWKS: {KidPresent}. Current kids: {Kids}.",
-                targetClientId,
-                attempt,
-                settings.VerificationMaxAttempts,
-                kidPresent,
-                FormatKids(currentJwks.Keys));
-
             try
             {
+                var currentJwks = await digdirMaskinportenAdminService.GetJwksAsync(targetClientId, adminCredentials, cancellationToken);
+                var kidPresent = currentJwks.Keys.Any(key => string.Equals(key.Kid, generated.Kid, StringComparison.Ordinal));
+
+                logger.LogInformation(
+                    "Verifying Maskinporten JWK rotation for client {ClientId}. Attempt {Attempt}/{MaxAttempts}. New kid present in JWKS: {KidPresent}. Current kids: {Kids}.",
+                    targetClientId,
+                    attempt,
+                    settings.VerificationMaxAttempts,
+                    kidPresent,
+                    FormatKids(currentJwks.Keys));
+
                 await verifyNewKey(generated);
 
                 logger.LogInformation(

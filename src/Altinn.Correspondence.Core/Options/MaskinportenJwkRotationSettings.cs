@@ -8,7 +8,7 @@ public class MaskinportenJwkRotationSettings
 
     public bool OnlyRunOnFirstWeekdayOfMonth { get; set; } = true;
 
-    public int VerificationMaxAttempts { get; set; } = 6;
+    public int VerificationMaxAttempts { get; set; } = 12;
 
     public int VerificationDelaySeconds { get; set; } = 15;
 
