@@ -5,6 +5,7 @@ using Altinn.Correspondence.Application.SendSlackNotification;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -13,6 +14,7 @@ using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OneOf;
 using System.Security.Claims;
 
@@ -21,6 +23,7 @@ namespace Altinn.Correspondence.Application.PublishCorrespondence;
 public class PublishCorrespondenceHandler(
     IAltinnRegisterService altinnRegisterService,
     ILogger<PublishCorrespondenceHandler> logger,
+    IOptions<GeneralSettings> generalSettings,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IContactReservationRegistryService contactReservationRegistryService,
@@ -148,7 +151,14 @@ public class PublishCorrespondenceHandler(
                     PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
-                backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
+                if (generalSettings.Value.DisableCallsToAltinn2)
+                {
+                    logger.LogInformation("Skipping calls to Altinn2 due to configuration setting DisableCallsToAltinn2 being true. CorrespondenceId: {CorrespondenceId}", correspondenceId);
+                }
+                else
+                {
+                    backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
+                }
                 backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
             }
 
