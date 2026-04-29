@@ -83,9 +83,9 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
-            await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, cancellationToken);
-            if (notificationDetailsV2.Status.Equals("Order_Completed")  || notificationDetailsV2.Status.Equals("Order_SendConditionNotMet"))
+            if (notificationDetailsV2.Status.Equals("Order_Completed")  || notificationDetailsV2.Status.Equals("Order_SendConditionNotMet") || notificationDetailsV2.Status.Equals("Cancelled"))
             {
+                await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, cancellationToken);
                 
                 var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
                 if (hasFailedStatus)
