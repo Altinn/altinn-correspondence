@@ -43,8 +43,6 @@ public static class PartyMapper
                 "person" => PartyType.Person,
                 "organization" => PartyType.Organization,
                 "self-identified-user" => PartyType.SelfIdentified,
-                "sub-unit" => PartyType.SubUnit,
-                "bankruptcy-estate" => PartyType.BankruptcyEstate,
                 _ => party.PartyTypeName
             };
         }
