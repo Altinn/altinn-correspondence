@@ -12,6 +12,7 @@ using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Altinn.Correspondence.Tests.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -19,6 +20,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
     {
         private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
         private readonly Mock<ILogger<PublishCorrespondenceHandler>> _loggerMock;
+        private readonly Mock<IOptions<GeneralSettings>> _generalSettingsMock;
         private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
         private readonly Mock<ICorrespondenceStatusRepository> _correspondenceStatusRepositoryMock;
         private readonly Mock<IContactReservationRegistryService> _contactReservationRegistryServiceMock;
@@ -30,6 +32,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         {
             _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
             _loggerMock = new Mock<ILogger<PublishCorrespondenceHandler>>();
+            _generalSettingsMock = new Mock<IOptions<GeneralSettings>>();
             _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
             _correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
             _contactReservationRegistryServiceMock = new Mock<IContactReservationRegistryService>();
@@ -48,6 +51,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _handler = new PublishCorrespondenceHandler(
                 _altinnRegisterServiceMock.Object,
                 _loggerMock.Object,
+                _generalSettingsMock.Object,
                 _correspondenceRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _contactReservationRegistryServiceMock.Object,
