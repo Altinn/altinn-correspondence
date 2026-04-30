@@ -38,13 +38,22 @@ public static class PartyMapper
 
         if (!string.IsNullOrWhiteSpace(partyV2.PartyType))
         {
-            party.PartyTypeName = partyV2.PartyType.ToLowerInvariant() switch
+            if (Enum.TryParse<PartyType>(partyV2.PartyType, true, out var parsedType))
+            {
+                party.PartyTypeName = parsedType;
+            }
+
+            PartyType? resolvedParty = partyV2.PartyType.ToLowerInvariant() switch
             {
                 "person" => PartyType.Person,
                 "organization" => PartyType.Organization,
                 "self-identified-user" => PartyType.SelfIdentified,
-                _ => party.PartyTypeName
+                _ => null
             };
+            if (resolvedParty != null)
+            {
+                party.PartyTypeName = resolvedParty.Value;
+            }
         }
 
         return party;
