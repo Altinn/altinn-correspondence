@@ -186,10 +186,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task AddExternalReference(Guid correspondenceId, ReferenceType referenceType, string referenceValue, CancellationToken cancellationToken = default)
         {
-            var correspondence = await _context.Correspondences.SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
+            var correspondence = await _context.Correspondences.Include(c => c.ExternalReferences).SingleOrDefaultAsync(c => c.Id == correspondenceId, cancellationToken);
             if (correspondence is null)
             {
                 throw new ArgumentException("Correspondence not found", nameof(correspondenceId));
+            }
+            if (referenceType == ReferenceType.DialogportenDialogId && correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
+            {
+                return;
             }
             correspondence.ExternalReferences.Add(new ExternalReferenceEntity
             {
