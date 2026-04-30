@@ -47,6 +47,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _idempotencyKeyRepositoryMock
                 .Setup(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+            _generalSettingsMock.SetupGet(g => g.Value).Returns(new GeneralSettings { DisableCallsToAltinn2 = false });
 
             _handler = new PublishCorrespondenceHandler(
                 _altinnRegisterServiceMock.Object,
