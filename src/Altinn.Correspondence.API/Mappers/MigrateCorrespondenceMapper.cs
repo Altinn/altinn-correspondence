@@ -18,8 +18,8 @@ internal static class MigrateCorrespondenceMapper
         {
             Altinn2CorrespondenceId = migrateCorrespondenceExt.Altinn2CorrespondenceId,
             Statuses = MapMigrateCorrespondenceStatusesExtToInternal(migrateCorrespondenceExt.EventHistory),
-            Notifications = [.. migrateCorrespondenceExt.NotificationHistory.Select(MapNotificationToInternal)],
-            ForwardingEvents = [.. migrateCorrespondenceExt.ForwardingHistory.Select(MapForwardingEventToInternal)],
+            Notifications = MapNotificationsToInternal(migrateCorrespondenceExt.NotificationHistory),
+            ForwardingEvents = MapForwardingEventsToInternal(migrateCorrespondenceExt.ForwardingHistory),
             SendersReference = migrateCorrespondenceExt.CorrespondenceData.Correspondence.SendersReference,
             Recipient = migrateCorrespondenceExt.CorrespondenceData.Recipients.First().ToLowerInvariant(),
             RecipientType = CorrespondenceEntity.ComputeRecipientType(migrateCorrespondenceExt.CorrespondenceData.Recipients.First()),
@@ -74,12 +74,38 @@ internal static class MigrateCorrespondenceMapper
     private static List<CorrespondenceStatusEntity> MapMigrateCorrespondenceStatusesExtToInternal(List<MigrateCorrespondenceStatusEventExt> eventHistory)
     {
         // Filter out delete events as these are represented as deletion events in the internal model, and should not be added as status events
+        // Also deduplicate status events based on Status, StatusChanged (truncated to second), and EventUserPartyUuid to handle duplicate source data
+        // Truncation to second is necessary because Altinn 2 uses multiple data sources with microsecond differences
         return eventHistory
             .Where(e => e.Status is not (MigrateCorrespondenceStatusExt.SoftDeletedByRecipient 
             or MigrateCorrespondenceStatusExt.RestoredByRecipient 
             or MigrateCorrespondenceStatusExt.PurgedByRecipient 
             or MigrateCorrespondenceStatusExt.PurgedByAltinn))
+            .GroupBy(e => new { e.Status, StatusChanged = e.StatusChanged.TruncateToSecondUtc(), e.EventUserPartyUuid })
+            .Select(g => g.First())
             .Select(MapCorrespondenceStatusEventToInternal)
+            .ToList();
+    }
+
+    private static List<CorrespondenceNotificationEntity> MapNotificationsToInternal(List<MigrateCorrespondenceNotificationExt> notificationHistory)
+    {
+        // Deduplicate notifications based on NotificationSent (truncated to second), NotificationChannel, Altinn2NotificationId, NotificationAddress, and IsReminder
+        // Truncation to second is necessary because Altinn 2 uses multiple data sources with microsecond differences
+        return notificationHistory
+            .GroupBy(n => new { NotificationSent = n.NotificationSent.TruncateToSecondUtc(), n.NotificationChannel, n.Altinn2NotificationId, n.NotificationAddress, n.IsReminder })
+            .Select(g => g.First())
+            .Select(MapNotificationToInternal)
+            .ToList();
+    }
+
+    private static List<CorrespondenceForwardingEventEntity> MapForwardingEventsToInternal(List<MigrateCorrespondenceForwardingEventExt> forwardingHistory)
+    {
+        // Deduplicate forwarding events based on ForwardedOnDate (truncated to second), ForwardedByPartyUuid, ForwardedToUserId, and ForwardedToUserUuid
+        // Truncation to second is necessary because Altinn 2 uses multiple data sources with microsecond differences
+        return forwardingHistory
+            .GroupBy(f => new { ForwardedOnDate = f.ForwardedOnDate.TruncateToSecondUtc(), f.ForwardedByPartyUuid, f.ForwardedToUserId, f.ForwardedToUserUuid })
+            .Select(g => g.First())
+            .Select(MapForwardingEventToInternal)
             .ToList();
     }
 
@@ -128,7 +154,13 @@ internal static class MigrateCorrespondenceMapper
             return requestInt;
         }
 
-        foreach (var syncedEvent in requestExt.SyncedEvents)
+        // Deduplicate events before mapping - Altinn 2 uses multiple data sources with microsecond differences
+        var deduplicatedEvents = requestExt.SyncedEvents
+            .GroupBy(e => new { e.Status, StatusChanged = e.StatusChanged.TruncateToSecondUtc(), e.EventUserPartyUuid })
+            .Select(g => g.First())
+            .ToList();
+
+        foreach (var syncedEvent in deduplicatedEvents)
         {
             if(syncedEvent.Status == MigrateCorrespondenceStatusExt.SoftDeletedByRecipient 
                 || syncedEvent.Status == MigrateCorrespondenceStatusExt.RestoredByRecipient
@@ -173,19 +205,29 @@ internal static class MigrateCorrespondenceMapper
 
     internal static SyncCorrespondenceForwardingEventRequest MapSyncForwardingEventToInternal(SyncCorrespondenceForwardingEventRequestExt requestExt)
     {
+        // Deduplicate forwarding events before mapping - Altinn 2 uses multiple data sources with microsecond differences
+        var deduplicatedEvents = requestExt.SyncedEvents
+            .GroupBy(f => new { ForwardedOnDate = f.ForwardedOnDate.TruncateToSecondUtc(), f.ForwardedByPartyUuid, f.ForwardedToUserId, f.ForwardedToUserUuid })
+            .Select(g => g.First());
+
         return new SyncCorrespondenceForwardingEventRequest()
         {
             CorrespondenceId = requestExt.CorrespondenceId,
-            SyncedEvents = [.. requestExt.SyncedEvents.Select(MapForwardingEventToInternal)]
+            SyncedEvents = [.. deduplicatedEvents.Select(MapForwardingEventToInternal)]
         };
     }
 
     internal static SyncCorrespondenceNotificationEventRequest MapSyncCorrespondenceNotificationEventToInternal(SyncCorrespondenceNotificationEventRequestExt requestExt)
     {
+        // Deduplicate notification events before mapping - Altinn 2 uses multiple data sources with microsecond differences
+        var deduplicatedEvents = requestExt.SyncedEvents
+            .GroupBy(n => new { NotificationSent = n.NotificationSent.TruncateToSecondUtc(), n.NotificationChannel, n.Altinn2NotificationId, n.NotificationAddress, n.IsReminder })
+            .Select(g => g.First());
+
         return new SyncCorrespondenceNotificationEventRequest()
         {
             CorrespondenceId = requestExt.CorrespondenceId,
-            SyncedEvents = [.. requestExt.SyncedEvents.Select(MapNotificationToInternal)]
+            SyncedEvents = [.. deduplicatedEvents.Select(MapNotificationToInternal)]
         };
     }
 

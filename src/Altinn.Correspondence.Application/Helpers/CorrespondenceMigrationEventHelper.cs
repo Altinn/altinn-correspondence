@@ -156,16 +156,9 @@ public class CorrespondenceMigrationEventHelper(
         }
     }
 
-    public async Task<List<CorrespondenceDeleteEventEntity>> FilterDeleteEvents(Guid correspondenceId, List<CorrespondenceDeleteEventEntity>? syncedDeleteEvents, CancellationToken cancellationToken)
+   public async Task<List<CorrespondenceDeleteEventEntity>> FilterDeleteEvents(Guid correspondenceId, List<CorrespondenceDeleteEventEntity>? syncedDeleteEvents, CancellationToken cancellationToken)
     {
-        if (syncedDeleteEvents is null)
-        {
-            return new List<CorrespondenceDeleteEventEntity>();
-        }
-
-        var deletionEventsFilteredForRequestDuplicates = FilterDuplicateDeleteEvents(syncedDeleteEvents);
-
-        if (deletionEventsFilteredForRequestDuplicates.Count == 0)
+        if (syncedDeleteEvents is null || syncedDeleteEvents.Count == 0)
         {
             return new List<CorrespondenceDeleteEventEntity>();
         }
@@ -173,9 +166,9 @@ public class CorrespondenceMigrationEventHelper(
         var deletionEventsToExecute = new List<CorrespondenceDeleteEventEntity>();
         var deletionEventsInDatabase = await correspondenceDeleteEventRepository.GetDeleteEventsForCorrespondenceId(correspondenceId, cancellationToken);
 
-        foreach (var deletionEventToSync in deletionEventsFilteredForRequestDuplicates)
-        {
-            // Remove duplicate delete events that are already present in the database, based on the unique constraint on (CorrespondenceId, EventType, EventOccurred, PartyUuid). We compare EventOccurred to nearest second to allow for diff in Altinn 2 ServiceEngine/Archive timestamps
+        // Remove duplicate delete events that are already present in the database, based on the unique constraint on (CorrespondenceId, EventType, EventOccurred, PartyUuid). We compare EventOccurred to nearest second to allow for diff in Altinn 2 ServiceEngine/Archive timestamps
+        foreach (var deletionEventToSync in syncedDeleteEvents)
+        {   
             bool isDuplicate = deletionEventsInDatabase.Any(
                 e => e.EventType == deletionEventToSync.EventType
                 && e.EventOccurred.EqualsToSecond(deletionEventToSync.EventOccurred)
@@ -218,20 +211,17 @@ public class CorrespondenceMigrationEventHelper(
                         correspondenceId, statusEventToSync.Status, statusEventToSync.StatusChanged, statusEventToSync.PartyUuid);
             }
         }
-        
+
         if (eventsFilteredForCorrectStatus.Count == 0)
         {
             logger.LogWarning("None of the Status Events for {CorrespondenceId} has been deemed valid and no sync will be performed.", correspondenceId);
             return new List<CorrespondenceStatusEntity>();
         }
 
-        // Remove possible duplicates from the request - This is because Altinn 2 uses two sets of data sources for status events, and we need to ensure that we only sync unique events.
-        var eventsFilteredForRequestDuplicates = FilterDuplicateStatusEvents(eventsFilteredForCorrectStatus);
-
         var filteredStatusEvents = new List<CorrespondenceStatusEntity>();
 
         // Remove duplicate status events that are already present in the correspondence in the database, based on the unique constraint on (CorrespondenceId, Status, StatusChanged, PartyUuid). We compare StatusChanged to nearest second to allow for diff in Altinn 2 ServiceEngine/Archive timestamps
-        foreach (var syncedEvent in eventsFilteredForRequestDuplicates)
+        foreach (var syncedEvent in eventsFilteredForCorrectStatus)
         {
             bool isDuplicate = correspondence.Statuses.Any(
                 s => s.Status == syncedEvent.Status
@@ -291,48 +281,6 @@ public class CorrespondenceMigrationEventHelper(
         }
 
         return enduserIdByPartyUuid;
-    }
-
-    public static List<CorrespondenceStatusEntity> FilterDuplicateStatusEvents(List<CorrespondenceStatusEntity> input)
-    {
-        var exists = new HashSet<(CorrespondenceStatus Status, DateTimeOffset TruncatedStatusChanged, Guid PartyUuid)>();
-        var result = new List<CorrespondenceStatusEntity>();
-
-        foreach (var item in input)
-        {
-            var key = (
-                item.Status,
-                item.StatusChanged.TruncateToSecondUtc(),
-                item.PartyUuid
-            );
-
-            if (exists.Add(key))
-            {
-                result.Add(item);
-            }
-        }
-        return result;
-    }
-
-    public static List<CorrespondenceDeleteEventEntity> FilterDuplicateDeleteEvents(List<CorrespondenceDeleteEventEntity> input)
-    {
-        var exists = new HashSet<(CorrespondenceDeleteEventType EventType, DateTimeOffset TruncatedEventOccurred, Guid PartyUuid)>();
-        var result = new List<CorrespondenceDeleteEventEntity>();
-
-        foreach (var item in input)
-        {
-            var key = (
-                item.EventType,
-                item.EventOccurred.TruncateToSecondUtc(),
-                item.PartyUuid
-            );
-
-            if (exists.Add(key))
-            {
-                result.Add(item);
-            }
-        }
-        return result;
     }
 
     /// <summary>
