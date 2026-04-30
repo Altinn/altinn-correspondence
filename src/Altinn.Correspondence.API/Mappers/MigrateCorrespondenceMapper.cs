@@ -62,11 +62,15 @@ internal static class MigrateCorrespondenceMapper
 
     private static List<CorrespondenceDeleteEventEntity> MapCorrespondenceStatusEventsToDeleteEvents(List<MigrateCorrespondenceStatusEventExt> eventHistory)
     {
+        // Deduplicate delete events based on Status, StatusChanged (truncated to second), and EventUserPartyUuid to handle duplicate source data
+        // Truncation to second is necessary because Altinn 2 uses multiple data sources with microsecond differences
         return eventHistory
             .Where(e => e.Status is MigrateCorrespondenceStatusExt.SoftDeletedByRecipient 
             or MigrateCorrespondenceStatusExt.RestoredByRecipient 
             or MigrateCorrespondenceStatusExt.PurgedByRecipient // Should never occur as we do not migrate hard deletes
             or MigrateCorrespondenceStatusExt.PurgedByAltinn)  // Should never occur as we do not migrate hard deletes
+            .GroupBy(e => new { e.Status, StatusChanged = e.StatusChanged.TruncateToSecondUtc(), e.EventUserPartyUuid })
+            .Select(g => g.First())
             .Select(MapCorrespondenceStatusEventToDeleteEvent)
             .ToList();
     }

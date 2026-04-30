@@ -157,6 +157,146 @@ public class MigrateCorrespondenceMapperTests
 
     #endregion
 
+    #region Migration Flow Tests - Delete Events
+
+    [Fact]
+    public void MapCorrespondenceStatusEventsToDeleteEvents_NoDuplicates_AllEventsReturned()
+    {
+        // Arrange
+        var eventHistory = new List<MigrateCorrespondenceStatusEventExt>
+        {
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime, EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.RestoredByRecipient, StatusChanged = _baseTime.AddMinutes(5), EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime.AddMinutes(10), EventUserPartyUuid = _defaultUserPartyUuid }
+        };
+
+        // Act
+        var result = InvokeMapCorrespondenceStatusEventsToDeleteEvents(eventHistory);
+
+        // Assert
+        Assert.Equal(3, result.Count);
+        Assert.Equal(2, result.Count(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.SoftDeletedByRecipient));
+        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.RestoredByRecipient));
+    }
+
+    [Fact]
+    public void MapCorrespondenceStatusEventsToDeleteEvents_ExactDuplicates_OnlyOneReturned()
+    {
+        // Arrange - Two events with identical timestamp
+        var eventHistory = new List<MigrateCorrespondenceStatusEventExt>
+        {
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime, EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime, EventUserPartyUuid = _defaultUserPartyUuid }
+        };
+
+        // Act
+        var result = InvokeMapCorrespondenceStatusEventsToDeleteEvents(eventHistory);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal(Core.Models.Enums.CorrespondenceDeleteEventType.SoftDeletedByRecipient, result[0].EventType);
+    }
+
+    [Fact]
+    public void MapCorrespondenceStatusEventsToDeleteEvents_DuplicatesWithinSameSecond_OnlyOneReturned()
+    {
+        // Arrange - Two events within same second (microsecond difference from different Altinn 2 data sources)
+        var eventHistory = new List<MigrateCorrespondenceStatusEventExt>
+        {
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime, EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime.AddMilliseconds(150), EventUserPartyUuid = _defaultUserPartyUuid }
+        };
+
+        // Act
+        var result = InvokeMapCorrespondenceStatusEventsToDeleteEvents(eventHistory);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal(Core.Models.Enums.CorrespondenceDeleteEventType.SoftDeletedByRecipient, result[0].EventType);
+    }
+
+    [Fact]
+    public void MapCorrespondenceStatusEventsToDeleteEvents_DuplicatesOneSecondApart_BothReturned()
+    {
+        // Arrange - Two events one second apart should NOT be considered duplicates
+        var eventHistory = new List<MigrateCorrespondenceStatusEventExt>
+        {
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime, EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime.AddSeconds(1), EventUserPartyUuid = _defaultUserPartyUuid }
+        };
+
+        // Act
+        var result = InvokeMapCorrespondenceStatusEventsToDeleteEvents(eventHistory);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public void MapCorrespondenceStatusEventsToDeleteEvents_SameStatusDifferentParty_BothReturned()
+    {
+        // Arrange - Same status and time but different party
+        var otherPartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000002");
+        var eventHistory = new List<MigrateCorrespondenceStatusEventExt>
+        {
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime, EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime, EventUserPartyUuid = otherPartyUuid }
+        };
+
+        // Act
+        var result = InvokeMapCorrespondenceStatusEventsToDeleteEvents(eventHistory);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public void MapCorrespondenceStatusEventsToDeleteEvents_MultipleDuplicatesOfEachStatus_OneOfEachReturned()
+    {
+        // Arrange - Multiple duplicates across different delete statuses
+        var eventHistory = new List<MigrateCorrespondenceStatusEventExt>
+        {
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime, EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime.AddMilliseconds(100), EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.RestoredByRecipient, StatusChanged = _baseTime.AddMinutes(5), EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.RestoredByRecipient, StatusChanged = _baseTime.AddMinutes(5).AddMilliseconds(250), EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.PurgedByRecipient, StatusChanged = _baseTime.AddMinutes(10), EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.PurgedByRecipient, StatusChanged = _baseTime.AddMinutes(10).AddMilliseconds(500), EventUserPartyUuid = _defaultUserPartyUuid }
+        };
+
+        // Act
+        var result = InvokeMapCorrespondenceStatusEventsToDeleteEvents(eventHistory);
+
+        // Assert
+        Assert.Equal(3, result.Count);
+        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.SoftDeletedByRecipient));
+        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.RestoredByRecipient));
+        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.HardDeletedByRecipient));
+    }
+
+    [Fact]
+    public void MapCorrespondenceStatusEventsToDeleteEvents_MixedDeleteAndNonDeleteStatuses_OnlyDeleteEventsReturned()
+    {
+        // Arrange - Mix of delete and non-delete events, only delete events should be mapped
+        var eventHistory = new List<MigrateCorrespondenceStatusEventExt>
+        {
+            new() { Status = MigrateCorrespondenceStatusExt.Read, StatusChanged = _baseTime, EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.SoftDeletedByRecipient, StatusChanged = _baseTime.AddMinutes(5), EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.Confirmed, StatusChanged = _baseTime.AddMinutes(10), EventUserPartyUuid = _defaultUserPartyUuid },
+            new() { Status = MigrateCorrespondenceStatusExt.RestoredByRecipient, StatusChanged = _baseTime.AddMinutes(15), EventUserPartyUuid = _defaultUserPartyUuid }
+        };
+
+        // Act
+        var result = InvokeMapCorrespondenceStatusEventsToDeleteEvents(eventHistory);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.SoftDeletedByRecipient));
+        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.RestoredByRecipient));
+    }
+
+    #endregion
+
     #region Migration Flow Tests - Notifications
 
     [Fact]
@@ -477,6 +617,18 @@ public class MigrateCorrespondenceMapperTests
         Assert.NotNull(method);
         var result = method.Invoke(null, new object[] { forwardingEvents });
         return (List<Core.Models.Entities.CorrespondenceForwardingEventEntity>)result!;
+    }
+
+    private List<Core.Models.Entities.CorrespondenceDeleteEventEntity> InvokeMapCorrespondenceStatusEventsToDeleteEvents(List<MigrateCorrespondenceStatusEventExt> eventHistory)
+    {
+        // Use reflection to call the private static method
+        var method = typeof(MigrateCorrespondenceMapper).GetMethod(
+            "MapCorrespondenceStatusEventsToDeleteEvents",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+        Assert.NotNull(method);
+        var result = method.Invoke(null, new object[] { eventHistory });
+        return (List<Core.Models.Entities.CorrespondenceDeleteEventEntity>)result!;
     }
 
     #endregion
