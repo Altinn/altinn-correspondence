@@ -1,0 +1,36 @@
+# GitHub Runner Image
+
+This folder contains a container image for self-hosted GitHub Actions runners in Azure Container Apps.
+
+The image is built on Ubuntu and installs the official GitHub Actions runner binaries, Docker, Azure CLI, kubectl, and kubelogin.  
+At startup, it:
+
+1. Requests a temporary registration token from GitHub using `GITHUB_TOKEN`.
+2. Registers itself as an ephemeral runner for one repository (`GITHUB_URL`).
+3. Executes one job and then exits.
+4. Removes its runner registration on shutdown.
+5. Starts a Docker daemon so workflows can run `docker build/push` and `az` commands.
+
+## Required GitHub Repository Secrets
+
+The `manage-github-runners.yml` workflow expects these repository secrets:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+- `AZURE_NAME_PREFIX`
+- `AZURE_ENVIRONMENT`
+- `AZURE_ENVIRONMENT_KEY_VAULT_NAME`
+
+The Azure Key Vault referenced by `AZURE_ENVIRONMENT_KEY_VAULT_NAME` must also contain:
+
+- `github-runner-token` (GitHub PAT/app token with permissions to manage self-hosted runners)
+
+## Required GitHub Repository Variable
+
+Set repository variable `USE_SELF_HOSTED_RUNNERS` to control workflow runner selection:
+
+- `true`: workflows using the conditional `runs-on` expression run on `self-hosted`
+- any other value (or unset): workflows fall back to `ubuntu-latest`
+
+The `manage-github-runners.yml` workflow controls the runner infrastructure itself, while this variable controls whether eligible workflows actually target self-hosted runners.

@@ -21,7 +21,7 @@ permissions:
 jobs:
   build:
     name: Build latest from main
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     environment: test
     steps:
       - name: Checkout
@@ -44,7 +44,7 @@ jobs:
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
   deploy_test:
     name: Deploy to test
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     needs: [ build ]
     environment: test
     steps:
@@ -67,7 +67,7 @@ jobs:
 
   deploy_staging:
     name: Deploy to staging
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     needs: [ deploy_test ]
     environment: staging
     steps:
@@ -90,7 +90,7 @@ jobs:
 
   deploy_production:
     name: Deploy to production
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     needs: [ deploy_staging ]
     environment: production
     steps:
@@ -113,7 +113,7 @@ jobs:
 
   deploy_other_environments:
     name: Deploy to other environments (${{ matrix.environment }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     needs: [ deploy_test ]
     strategy:
       max-parallel: 1
