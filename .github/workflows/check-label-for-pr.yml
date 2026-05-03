@@ -4,7 +4,7 @@ on:
     types: [opened, reopened, ready_for_review, labeled, unlabeled]
 jobs:
   label:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     permissions:
       pull-requests: write
     steps:

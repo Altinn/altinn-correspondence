@@ -24,7 +24,7 @@ run-name: Deploy to ${{ inputs.environment }}
 jobs:
   get-version: 
     name: Get version
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     outputs:
       imageTag: ${{ steps.get-version.outputs.imageTag }}
     permissions: 
@@ -36,7 +36,7 @@ jobs:
         id: get-version
   publish:
     name: Publish
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     needs: [get-version]
     permissions: 
       packages: write
@@ -59,7 +59,7 @@ jobs:
           context: .azure/applications/backup
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     needs: [get-version, publish]
     environment: ${{ inputs.environment }}
     permissions: 

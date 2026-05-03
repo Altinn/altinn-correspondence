@@ -113,7 +113,7 @@ permissions:
 run-name: ${{ inputs.tag }} ${{ inputs.vus }}/${{ inputs.duration }}/${{ inputs.parallelism }}
 jobs:
   k6-performance:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     environment: ${{ inputs.environment }}
     steps:
     - name: Checkout code
