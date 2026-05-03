@@ -181,8 +181,8 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
         {
             if (!request.AsyncProcessing)
             {
-                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
-                foreach (var correspondence in correspondences)
+                var correspondenceCandidates = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(request.BatchSize ?? 0, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
+                foreach (var correspondence in correspondenceCandidates)
                 {
                     try
                     {
@@ -199,7 +199,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
             var currentBatch = 999;
             var migrationQueueLimit = currentBatch * 20;
 
-            int enqueuedJobs;
+            long enqueuedJobs;
             while ((enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration)) > migrationQueueLimit)
             {
                 logger.LogInformation(
