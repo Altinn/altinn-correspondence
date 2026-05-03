@@ -197,47 +197,39 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                 return response;
             }
             var currentBatch = 999;
+            var migrationQueueLimit = currentBatch * 20;
 
-            var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
-            if (enqueuedJobs > currentBatch * 20)
+            int enqueuedJobs;
+            while ((enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration)) > migrationQueueLimit)
             {
-                var migrateRequest = new MakeCorrespondenceAvailableRequest()
-                {
-                    AsyncProcessing = true,
-                    BatchSize = request.BatchSize,
-                    CreateEvents = request.CreateEvents,
-                    CursorCreated = request.CursorCreated,
-                    CursorId = request.CursorId,
-                    CreatedFrom = request.CreatedFrom,
-                    CreatedTo = request.CreatedTo
-                };
-                logger.LogInformation("Delaying scheduling of migration jobs as there are currently {EnqueuedJobs} jobs in the queue", enqueuedJobs);
-                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None), TimeSpan.FromMinutes(1));
-            } 
-            else
-            {
-                logger.LogInformation("Querying db");
-                var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(currentBatch, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
-                logger.LogInformation("Found {count} correspondences", correspondences.Count);
-                var last = correspondences.Last();
-                var migrateRequest = new MakeCorrespondenceAvailableRequest()
-                {
-                    AsyncProcessing = true,
-                    BatchSize = request.BatchSize - correspondences.Count,
-                    CreateEvents = request.CreateEvents,
-                    CursorCreated = last.Created,
-                    CursorId = last.Id,
-                    CreatedFrom = request.CreatedFrom,
-                    CreatedTo = request.CreatedTo
-                };
-                logger.LogInformation("Enqueuing next batch for {id}", last.Id);
-                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
-                foreach (var correspondence in correspondences)
-                {
-                    backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, true, null, request.CreateEvents));
-                }
-                logger.LogInformation("Finished queuing {count} correspondences", correspondences.Count);
+                logger.LogInformation(
+                    "Waiting before scheduling next migration batch: {EnqueuedJobs} jobs in Migration queue (limit {Limit})",
+                    enqueuedJobs,
+                    migrationQueueLimit);
+                await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
             }
+
+            logger.LogInformation("Querying db");
+            var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(currentBatch, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
+            logger.LogInformation("Found {count} correspondences", correspondences.Count);
+            var last = correspondences.Last();
+            var migrateRequest = new MakeCorrespondenceAvailableRequest()
+            {
+                AsyncProcessing = true,
+                BatchSize = request.BatchSize - correspondences.Count,
+                CreateEvents = request.CreateEvents,
+                CursorCreated = last.Created,
+                CursorId = last.Id,
+                CreatedFrom = request.CreatedFrom,
+                CreatedTo = request.CreatedTo
+            };
+            logger.LogInformation("Enqueuing next batch for {id}", last.Id);
+            backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
+            foreach (var correspondence in correspondences)
+            {
+                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, true, null, request.CreateEvents));
+            }
+            logger.LogInformation("Finished queuing {count} correspondences", correspondences.Count);
         }
 
         return response;
