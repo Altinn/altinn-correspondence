@@ -23,6 +23,11 @@ public class AltinnStorageService : IAltinnStorageService
 
     public async Task<bool> AddPartyToSblBridge(int partyId, CancellationToken cancellationToken)
     {
+        if (_generalSettings.Value.DisableCallsToAltinn2)
+        {
+            _logger.LogInformation("AddPartyToSblBridge call skipped due to configuration setting DisableCallsToAltinn2 being true. PartyId: {PartyId}", partyId);
+            return true;
+        }
         if (partyId <= 0)
         {
             return false;
