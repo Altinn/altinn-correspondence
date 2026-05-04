@@ -130,16 +130,22 @@ public class CheckNotificationDeliveryHandler(
 
                             foreach (var recipient in sentRecipients)
                             {
-                                
-                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => 
-                            dialogportenService.CreateInformationActivity(
-                                correspondence.Id,
-                                DialogportenActorType.ServiceOwner, 
-                                textType,
-                                recipient.LastUpdate,
-                                recipient.Destination,
-                                recipient.Type.ToString()));
+                                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
+                                dialogportenService.CreateInformationActivity(
+                                    correspondence.Id,
+                                    DialogportenActorType.ServiceOwner,
+                                    textType,
+                                    recipient.LastUpdate,
+                                    recipient.Destination,
+                                    recipient.Type.ToString()));
                             }
+
+                            var sentEventType = notification.IsReminder
+                                ? AltinnEventType.CorrespondenceNotificationReminderSent
+                                : AltinnEventType.CorrespondenceNotificationSent;
+                            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
+                                sentEventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+
                             logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
                             return true;
                         }, cancellationToken);
