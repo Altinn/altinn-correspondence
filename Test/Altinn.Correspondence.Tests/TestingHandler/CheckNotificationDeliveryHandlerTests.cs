@@ -274,7 +274,7 @@ public class CheckNotificationDeliveryHandlerTests
     [InlineData(NotificationStatusV2.SMS_Failed)]
     [InlineData(NotificationStatusV2.SMS_Failed_TTL)]
     [InlineData(NotificationStatusV2.SMS_Failed_RecipientNotIdentified)]
-    public async Task Process_WhenNotificationFails_CreateFailedEvent(NotificationStatusV2 recipientStatus)
+    public async Task Process_WhenAllNotificationsFail_CreatesAllFailedEvent(NotificationStatusV2 recipientStatus)
     {
         // Arrange
         var notificationId = Guid.NewGuid();
@@ -306,17 +306,17 @@ public class CheckNotificationDeliveryHandlerTests
             Status = "Order_Completed",
             ShipmentId = shipmentId,
             Recipients = new List<RecipientStatus>
-        {
-            new()
             {
-                Type = recipientStatus >= NotificationStatusV2.SMS_New && recipientStatus < NotificationStatusV2.Unknown
-                    ? NotificationType.SMS
-                    : NotificationType.Email,
-                Destination = "test@example.com",
-                Status = recipientStatus,
-                LastUpdate = DateTimeOffset.UtcNow
+                new()
+                {
+                    Type = recipientStatus >= NotificationStatusV2.SMS_New && recipientStatus < NotificationStatusV2.Unknown
+                        ? NotificationType.SMS
+                        : NotificationType.Email,
+                    Destination = "test@example.com",
+                    Status = recipientStatus,
+                    LastUpdate = DateTimeOffset.UtcNow
+                }
             }
-        }
         };
         _notificationRepositoryMock.Setup(x => x.GetNotificationById(notificationId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(notification);
@@ -338,9 +338,85 @@ public class CheckNotificationDeliveryHandlerTests
             It.IsAny<CancellationToken>()), Times.Never);
         _backgroundJobClientMock.Verify(x => x.Create(
             It.Is<Job>(job =>
-                job.Type == typeof(IDialogportenService) &&
-                job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceNotificationAllFailed &&
+                (string)job.Args[1] == correspondence.ResourceId &&
+                (string)job.Args[2] == correspondence.Id.ToString() &&
+                (string)job.Args[3] == "correspondence" &&
+                (string)job.Args[4] == correspondence.Sender),
+            It.Is<IState>(state => state is EnqueuedState)), Times.Once);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceNotificationFailed),
             It.IsAny<IState>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Process_WhenSomeRecipientsFail_CreatesPartialFailedEvent()
+    {
+        // Arrange
+        var notificationId = Guid.NewGuid();
+        var correspondenceId = Guid.NewGuid();
+        var shipmentId = Guid.NewGuid();
+        var notification = new CorrespondenceNotificationEntity
+        {
+            Id = notificationId,
+            CorrespondenceId = correspondenceId,
+            ShipmentId = shipmentId,
+            NotificationChannel = NotificationChannel.Email,
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+            Created = DateTimeOffset.UtcNow,
+            RequestedSendTime = DateTimeOffset.UtcNow
+        };
+        var correspondence = new CorrespondenceEntity
+        {
+            Id = correspondenceId,
+            Recipient = "12345678901",
+            Sender = "test_sender",
+            ResourceId = "test_resource",
+            SendersReference = "test_reference",
+            RequestedPublishTime = DateTimeOffset.UtcNow,
+            Statuses = new List<CorrespondenceStatusEntity>(),
+            Created = DateTimeOffset.UtcNow
+        };
+        var notificationDetailsV2 = new NotificationStatusResponseV2
+        {
+            Status = "Order_Completed",
+            ShipmentId = shipmentId,
+            Recipients = new List<RecipientStatus>
+            {
+                new()
+                {
+                    Type = NotificationType.Email,
+                    Destination = "delivered@example.com",
+                    Status = NotificationStatusV2.Email_Delivered,
+                    LastUpdate = DateTimeOffset.UtcNow
+                },
+                new()
+                {
+                    Type = NotificationType.Email,
+                    Destination = "failed@example.com",
+                    Status = NotificationStatusV2.Email_Failed,
+                    LastUpdate = DateTimeOffset.UtcNow
+                }
+            }
+        };
+        _notificationRepositoryMock.Setup(x => x.GetNotificationById(notificationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notification);
+        _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(correspondence);
+        _notificationServiceMock.Setup(x => x.GetNotificationDetailsV2(shipmentId.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notificationDetailsV2);
+
+        // Act
+        var result = await _handler.Process(notificationId, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsT0);
+
         _backgroundJobClientMock.Verify(x => x.Create(
             It.Is<Job>(job =>
                 job.Type == typeof(IEventBus) &&
@@ -351,5 +427,161 @@ public class CheckNotificationDeliveryHandlerTests
                 (string)job.Args[3] == "correspondence" &&
                 (string)job.Args[4] == correspondence.Sender),
             It.Is<IState>(state => state is EnqueuedState)), Times.Once);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceNotificationAllFailed),
+            It.IsAny<IState>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Process_WhenMainNotificationSent_CreatesNotificationSentEvent()
+    {
+        // Arrange
+        var notificationId = Guid.NewGuid();
+        var correspondenceId = Guid.NewGuid();
+        var shipmentId = Guid.NewGuid();
+        var notification = new CorrespondenceNotificationEntity
+        {
+            Id = notificationId,
+            CorrespondenceId = correspondenceId,
+            ShipmentId = shipmentId,
+            IsReminder = false,
+            NotificationChannel = NotificationChannel.Email,
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+            Created = DateTimeOffset.UtcNow,
+            RequestedSendTime = DateTimeOffset.UtcNow
+        };
+        var correspondence = new CorrespondenceEntity
+        {
+            Id = correspondenceId,
+            Recipient = "12345678901",
+            Sender = "test_sender",
+            ResourceId = "test_resource",
+            SendersReference = "test_reference",
+            RequestedPublishTime = DateTimeOffset.UtcNow,
+            Statuses = new List<CorrespondenceStatusEntity>(),
+            Created = DateTimeOffset.UtcNow
+        };
+        var notificationDetailsV2 = new NotificationStatusResponseV2
+        {
+            Status = "Order_Completed",
+            ShipmentId = shipmentId,
+            Recipients = new List<RecipientStatus>
+            {
+                new()
+                {
+                    Type = NotificationType.Email,
+                    Destination = "test@example.com",
+                    Status = NotificationStatusV2.Email_Delivered,
+                    LastUpdate = DateTimeOffset.UtcNow
+                }
+            }
+        };
+        _notificationRepositoryMock.Setup(x => x.GetNotificationById(notificationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notification);
+        _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(correspondence);
+        _notificationServiceMock.Setup(x => x.GetNotificationDetailsV2(shipmentId.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notificationDetailsV2);
+
+        // Act
+        var result = await _handler.Process(notificationId, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsT0);
+
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceNotificationDelivered &&
+                (string)job.Args[1] == correspondence.ResourceId &&
+                (string)job.Args[2] == correspondence.Id.ToString() &&
+                (string)job.Args[3] == "correspondence" &&
+                (string)job.Args[4] == correspondence.Sender),
+            It.Is<IState>(state => state is EnqueuedState)), Times.Once);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceNotificationReminderDelivered),
+            It.IsAny<IState>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Process_WhenReminderNotificationSent_CreatesReminderSentEvent()
+    {
+        // Arrange
+        var notificationId = Guid.NewGuid();
+        var correspondenceId = Guid.NewGuid();
+        var shipmentId = Guid.NewGuid();
+        var notification = new CorrespondenceNotificationEntity
+        {
+            Id = notificationId,
+            CorrespondenceId = correspondenceId,
+            ShipmentId = shipmentId,
+            IsReminder = true,
+            NotificationChannel = NotificationChannel.Email,
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+            Created = DateTimeOffset.UtcNow,
+            RequestedSendTime = DateTimeOffset.UtcNow
+        };
+        var correspondence = new CorrespondenceEntity
+        {
+            Id = correspondenceId,
+            Recipient = "12345678901",
+            Sender = "test_sender",
+            ResourceId = "test_resource",
+            SendersReference = "test_reference",
+            RequestedPublishTime = DateTimeOffset.UtcNow,
+            Statuses = new List<CorrespondenceStatusEntity>(),
+            Created = DateTimeOffset.UtcNow
+        };
+        var notificationDetailsV2 = new NotificationStatusResponseV2
+        {
+            Status = "Order_Completed",
+            ShipmentId = shipmentId,
+            Recipients = new List<RecipientStatus>
+            {
+                new()
+                {
+                    Type = NotificationType.Email,
+                    Destination = "test@example.com",
+                    Status = NotificationStatusV2.Email_Delivered,
+                    LastUpdate = DateTimeOffset.UtcNow
+                }
+            }
+        };
+        _notificationRepositoryMock.Setup(x => x.GetNotificationById(notificationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notification);
+        _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(correspondence);
+        _notificationServiceMock.Setup(x => x.GetNotificationDetailsV2(shipmentId.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notificationDetailsV2);
+
+        // Act
+        var result = await _handler.Process(notificationId, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsT0);
+
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceNotificationReminderDelivered &&
+                (string)job.Args[1] == correspondence.ResourceId &&
+                (string)job.Args[2] == correspondence.Id.ToString() &&
+                (string)job.Args[3] == "correspondence" &&
+                (string)job.Args[4] == correspondence.Sender),
+            It.Is<IState>(state => state is EnqueuedState)), Times.Once);
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == AltinnEventType.CorrespondenceNotificationDelivered),
+            It.IsAny<IState>()), Times.Never);
     }
 }

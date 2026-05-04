@@ -87,20 +87,29 @@ public class CheckNotificationDeliveryHandler(
             {
                 
                 var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
+                var allFailed = hasFailedStatus && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
                 if (hasFailedStatus)
                 {
-                    logger.LogError("Notification {NotificationId} has failed status", notificationId);
+                    logger.LogError("Notification {NotificationId} has failed status (allFailed: {AllFailed})", notificationId, allFailed);
                     if (publishFailedEvent)
                     {
-                        SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                        if (allFailed)
+                        {
+                            SendAllFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                        }
+                        else
+                        {
+                            SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                        }
                     }
                     else
                     {
-                        logger.LogInformation("Skipping CorrespondenceNotificationFailed event publishing for notification {NotificationId}", notificationId);
+                        logger.LogInformation("Skipping notification failed event publishing for notification {NotificationId}", notificationId);
                     }
-                } else
+                }
+                else
                 {
-                    logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);   
+                    logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);
                 }
             
 
@@ -141,8 +150,8 @@ public class CheckNotificationDeliveryHandler(
                             }
 
                             var sentEventType = notification.IsReminder
-                                ? AltinnEventType.CorrespondenceNotificationReminderSent
-                                : AltinnEventType.CorrespondenceNotificationSent;
+                                ? AltinnEventType.CorrespondenceNotificationReminderDelivered
+                                : AltinnEventType.CorrespondenceNotificationDelivered;
                             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
                                 sentEventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
 
@@ -180,9 +189,15 @@ public class CheckNotificationDeliveryHandler(
         }
     }
 
-    private void SendFailedEvent(string resourceId, string correspondenceId, string sender) 
+    private void SendFailedEvent(string resourceId, string correspondenceId, string sender)
     {
         logger.LogInformation("Enqueuing CorrespondenceNotificationFailed event for correspondence {CorrespondenceId}", correspondenceId);
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationFailed, resourceId, correspondenceId, "correspondence", sender, CancellationToken.None));
+    }
+
+    private void SendAllFailedEvent(string resourceId, string correspondenceId, string sender)
+    {
+        logger.LogInformation("Enqueuing CorrespondenceNotificationAllFailed event for correspondence {CorrespondenceId}", correspondenceId);
+        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationAllFailed, resourceId, correspondenceId, "correspondence", sender, CancellationToken.None));
     }
 }
