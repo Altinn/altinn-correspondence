@@ -72,4 +72,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="TestingHelper\" />
+  </ItemGroup>
+
 </Project>
