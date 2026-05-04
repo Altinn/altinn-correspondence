@@ -195,6 +195,16 @@ public class DialogportenService(HttpClient _httpClient,
 
     public async Task CreateDownloadStartedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
     {
+        if (partyUrn?.WithUrnPrefix().StartsWith(UrnConstants.PartyUuid) == true)
+        {
+            var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, CancellationToken.None);
+            if (correspondence == null)
+            {
+                logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+                throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+            }
+            partyUrn = await GetDialogParty(correspondence);
+        }
         if (tokens.Length < 2 || !Guid.TryParse(tokens[1], out var attachmentId))
         {
             logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
