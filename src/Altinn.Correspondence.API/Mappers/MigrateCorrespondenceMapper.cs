@@ -209,6 +209,15 @@ internal static class MigrateCorrespondenceMapper
 
     internal static SyncCorrespondenceForwardingEventRequest MapSyncForwardingEventToInternal(SyncCorrespondenceForwardingEventRequestExt requestExt)
     {
+        if (requestExt.SyncedEvents == null || requestExt.SyncedEvents.Count == 0)
+        {
+            return new SyncCorrespondenceForwardingEventRequest
+            {
+                CorrespondenceId = requestExt.CorrespondenceId,
+                SyncedEvents = []
+            };
+        }
+
         // Deduplicate forwarding events before mapping - Altinn 2 uses multiple data sources with microsecond differences
         var deduplicatedEvents = requestExt.SyncedEvents
             .GroupBy(f => new { ForwardedOnDate = f.ForwardedOnDate.TruncateToSecondUtc(), f.ForwardedByPartyUuid, f.ForwardedToUserId, f.ForwardedToUserUuid })
@@ -223,6 +232,15 @@ internal static class MigrateCorrespondenceMapper
 
     internal static SyncCorrespondenceNotificationEventRequest MapSyncCorrespondenceNotificationEventToInternal(SyncCorrespondenceNotificationEventRequestExt requestExt)
     {
+        if (requestExt.SyncedEvents == null || requestExt.SyncedEvents.Count == 0)
+        {
+            return new SyncCorrespondenceNotificationEventRequest
+            {
+                CorrespondenceId = requestExt.CorrespondenceId,
+                SyncedEvents = []
+            };
+        }
+
         // Deduplicate notification events before mapping - Altinn 2 uses multiple data sources with microsecond differences
         var deduplicatedEvents = requestExt.SyncedEvents
             .GroupBy(n => new { NotificationSent = n.NotificationSent.TruncateToSecondUtc(), n.NotificationChannel, n.Altinn2NotificationId, n.NotificationAddress, n.IsReminder })

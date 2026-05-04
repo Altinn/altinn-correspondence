@@ -579,6 +579,86 @@ public class MigrateCorrespondenceMapperTests
         Assert.Single(result.SyncedEvents);
     }
 
+    [Fact]
+    public void MapSyncForwardingEvent_NullEvents_ReturnsEmptyList()
+    {
+        // Arrange
+        var request = new SyncCorrespondenceForwardingEventRequestExt
+        {
+            CorrespondenceId = _defaultCorrespondenceId,
+            SyncedEvents = null // Unlikely scenario but should be handled gracefully
+        };
+
+        // Act
+        var result = MigrateCorrespondenceMapper.MapSyncForwardingEventToInternal(request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.SyncedEvents);
+        Assert.Empty(result.SyncedEvents);
+        Assert.Equal(_defaultCorrespondenceId, result.CorrespondenceId);
+    }
+
+    [Fact]
+    public void MapSyncForwardingEvent_EmptyEvents_ReturnsEmptyList()
+    {
+        // Arrange
+        var request = new SyncCorrespondenceForwardingEventRequestExt
+        {
+            CorrespondenceId = _defaultCorrespondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceForwardingEventExt>() // Unlikely scenario but should be handled gracefully
+        };
+
+        // Act
+        var result = MigrateCorrespondenceMapper.MapSyncForwardingEventToInternal(request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.SyncedEvents);
+        Assert.Empty(result.SyncedEvents);
+        Assert.Equal(_defaultCorrespondenceId, result.CorrespondenceId);
+    }
+
+    [Fact]
+    public void MapSyncNotificationEvent_NullEvents_ReturnsEmptyList()
+    {
+        // Arrange
+        var request = new SyncCorrespondenceNotificationEventRequestExt
+        {
+            CorrespondenceId = _defaultCorrespondenceId,
+            SyncedEvents = null // Unlikely scenario but should be handled gracefully
+        };
+
+        // Act
+        var result = MigrateCorrespondenceMapper.MapSyncCorrespondenceNotificationEventToInternal(request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.SyncedEvents);
+        Assert.Empty(result.SyncedEvents);
+        Assert.Equal(_defaultCorrespondenceId, result.CorrespondenceId);
+    }
+
+    [Fact]
+    public void MapSyncNotificationEvent_EmptyEvents_ReturnsEmptyList()
+    {
+        // Arrange
+        var request = new SyncCorrespondenceNotificationEventRequestExt
+        {
+            CorrespondenceId = _defaultCorrespondenceId,
+            SyncedEvents = new List<MigrateCorrespondenceNotificationExt>() // Unlikely scenario but should be handled gracefully
+        };
+
+        // Act
+        var result = MigrateCorrespondenceMapper.MapSyncCorrespondenceNotificationEventToInternal(request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.SyncedEvents);
+        Assert.Empty(result.SyncedEvents);
+        Assert.Equal(_defaultCorrespondenceId, result.CorrespondenceId);
+    }
+
     #endregion
 
     #region Helper Methods
