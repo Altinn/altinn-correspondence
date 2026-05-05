@@ -31,7 +31,7 @@ public static class PartyMapper
             Resources = new List<string>(),
             SSN = partyV2.PersonIdentifier,
             OrgNumber = partyV2.OrganizationIdentifier,
-            ExternalUrn = partyV2.ExternalUrn,
+            ExternalUrn = partyV2.Urn,
             UserId = partyV2.User?.UserId,
             Username = Uri.EscapeDataString(partyV2.User?.Username?.ToLowerInvariant() ?? string.Empty)
         };
