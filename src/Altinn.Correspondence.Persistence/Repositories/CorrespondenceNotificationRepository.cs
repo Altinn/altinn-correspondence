@@ -67,6 +67,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw new ArgumentException($"Notification with id {notificationId} not found");
         }
 
+        public async Task UpdateNotificationStatus(Guid notificationId, string failedStatus, CancellationToken cancellationToken)
+        {
+            var rows = await _context.CorrespondenceNotifications
+            .Where(n => n.Id == notificationId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(n => n.NotificationOrderStatus, failedStatus),
+                cancellationToken);
+            if (rows == 0)
+            throw new ArgumentException($"Notification with id {notificationId} not found");
+        }
+
         public async Task UpdateOrderResponseData(Guid notificationId, Guid notificationOrderId, Guid shipmentId, CancellationToken cancellationToken)
         {
             var rows = await _context.CorrespondenceNotifications

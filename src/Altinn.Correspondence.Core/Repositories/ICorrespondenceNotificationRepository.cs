@@ -10,6 +10,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<CorrespondenceNotificationEntity?> GetPrimaryNotification(Guid correspondenceId, CancellationToken cancellationToken);
         Task<CorrespondenceNotificationEntity?> GetNotificationById(Guid notificationId, CancellationToken cancellationToken);
         Task UpdateNotificationSent(Guid notificationId, DateTimeOffset sentTime, string destination, CancellationToken cancellationToken);
+        Task UpdateNotificationStatus(Guid notificationId, string failedStatus, CancellationToken cancellationToken);
         Task UpdateOrderResponseData(Guid notificationId, Guid notificationOrderId, Guid shipmentId, CancellationToken cancellationToken);
         Task WipeOrder(Guid notificationId, CancellationToken cancellationToken);
         Task<List<CorrespondenceNotificationEntity>> GetPrimaryNotificationsByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken);
