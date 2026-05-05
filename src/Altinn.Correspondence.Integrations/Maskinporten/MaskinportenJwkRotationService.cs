@@ -207,6 +207,7 @@ public class MaskinportenJwkRotationService(
         catch (Exception ex)
         {
             List<Exception>? rollbackFailures = null;
+            var keyVaultRollbackFailed = false;
 
             foreach (var keyVaultTarget in updatedSecretTargets.AsEnumerable().Reverse())
             {
@@ -219,6 +220,7 @@ public class MaskinportenJwkRotationService(
                 {
                     var rollbackException = new InvalidOperationException(
                         $"Cannot restore Maskinporten JWK secret for vault {keyVaultTarget.KeyVaultUrl} because the original secret value was missing.");
+                    keyVaultRollbackFailed = true;
                     rollbackFailures ??= [];
                     rollbackFailures.Add(rollbackException);
                     logger.LogError(rollbackException, "Failed to restore Maskinporten JWK secret for vault {KeyVaultUrl}.", keyVaultTarget.KeyVaultUrl);
@@ -235,6 +237,7 @@ public class MaskinportenJwkRotationService(
                     }
                     catch (Exception rollbackEx)
                     {
+                        keyVaultRollbackFailed = true;
                         rollbackFailures ??= [];
                         rollbackFailures.Add(rollbackEx);
                         logger.LogError(rollbackEx, "Failed to restore Maskinporten JWK secret for vault {KeyVaultUrl}.", keyVaultTarget.KeyVaultUrl);
@@ -242,7 +245,13 @@ public class MaskinportenJwkRotationService(
                 }
             }
 
-            if (jwksUpdated)
+            if (jwksUpdated && keyVaultRollbackFailed)
+            {
+                logger.LogWarning(
+                    "Keeping updated JWKS for client {ClientId} because one or more Key Vault secret rollback operations failed.",
+                    rotationTarget.ClientId);
+            }
+            else if (jwksUpdated)
             {
                 logger.LogWarning("Maskinporten JWK rotation failed after JWKS update. Restoring original JWKS for client {ClientId}.", rotationTarget.ClientId);
                 try
