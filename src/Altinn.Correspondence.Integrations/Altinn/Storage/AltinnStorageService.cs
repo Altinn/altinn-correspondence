@@ -10,17 +10,24 @@ namespace Altinn.Correspondence.Integrations.Altinn.Storage;
 public class AltinnStorageService : IAltinnStorageService
 {
     private readonly HttpClient _httpClient;
+    private readonly IOptions<GeneralSettings> _generalSettings;
     private readonly ILogger<AltinnStorageService> _logger;
 
-    public AltinnStorageService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnStorageService> logger)
+    public AltinnStorageService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, IOptions<GeneralSettings> generalSettings, ILogger<AltinnStorageService> logger)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
+        _generalSettings = generalSettings;
         _logger = logger;
     }
 
     public async Task<bool> AddPartyToSblBridge(int partyId, CancellationToken cancellationToken)
     {
+        if (_generalSettings.Value.DisableCallsToAltinn2)
+        {
+            _logger.LogInformation("AddPartyToSblBridge call skipped due to configuration setting DisableCallsToAltinn2 being true. PartyId: {PartyId}", partyId);
+            return true;
+        }
         if (partyId <= 0)
         {
             return false;
@@ -40,6 +47,11 @@ public class AltinnStorageService : IAltinnStorageService
 
     public async Task<bool> SyncCorrespondenceEventToSblBridge(int altinn2CorrespondenceId, int partyId, DateTimeOffset utcEventTimestamp, SyncEventType eventType, CancellationToken cancellationToken)
     {
+        if (_generalSettings.Value.DisableCallsToAltinn2)
+        {
+            _logger.LogInformation("SyncCorrespondenceEventToSBLBridge call skipped due to configuration setting DisableCallsToAltinn2 being true. Altinn2Id: {Altinn2Id}, PartyId: {PartyId}, Timestamp: {Timestamp}", altinn2CorrespondenceId, partyId, utcEventTimestamp);
+            return true;
+        }
         if (partyId <= 0 || altinn2CorrespondenceId <= 0 || utcEventTimestamp == DateTimeOffset.MinValue)
         {
             _logger.LogWarning("Skipping SBL sync due to invalid input. altinn2Id: {Altinn2Id}, partyId: {PartyId}, ts: {Timestamp}", altinn2CorrespondenceId, partyId, utcEventTimestamp);

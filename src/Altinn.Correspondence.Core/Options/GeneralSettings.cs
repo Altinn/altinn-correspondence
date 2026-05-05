@@ -15,4 +15,5 @@ public class GeneralSettings
     public int MigrationWorkerCountPerReplica { get; set; } = 2;
     public int WorkerCountPerReplica { get; set; } = 50;
     public string ArbeidsflateBaseUrl { get; set; } = string.Empty;
+    public bool DisableCallsToAltinn2 { get; set; } = false;
 }
