@@ -195,16 +195,7 @@ public class DialogportenService(HttpClient _httpClient,
 
     public async Task CreateDownloadStartedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
     {
-        if (partyUrn?.WithUrnPrefix().StartsWith(UrnConstants.PartyUuid) == true)
-        {
-            var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, CancellationToken.None);
-            if (correspondence == null)
-            {
-                logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
-                throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
-            }
-            partyUrn = await GetDialogParty(correspondence);
-        }
+        partyUrn = await GetDialogActivityParty(partyUrn);
         if (tokens.Length < 2 || !Guid.TryParse(tokens[1], out var attachmentId))
         {
             logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
@@ -265,10 +256,7 @@ public class DialogportenService(HttpClient _httpClient,
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
-        if (partyUrn?.StartsWith(UrnConstants.PartyUuid) == true)
-        {
-            partyUrn = await GetDialogParty(correspondence);
-        }
+        partyUrn = await GetDialogActivityParty(partyUrn);
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, partyUrn, activityTimestamp, tokens);
 
         if (dialogActivityId is not null)
@@ -1191,7 +1179,7 @@ public class DialogportenService(HttpClient _httpClient,
         }
         else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
         {
-            forwardedByUrn = await GetDialogParty(correspondence);
+            forwardedByUrn = await GetDialogActivityParty(forwardedByParty.ExternalUrn);
         }
         else
         {
@@ -1303,6 +1291,25 @@ public class DialogportenService(HttpClient _httpClient,
             if (recipientParty == null || recipientParty.Username is null)
             {
                 throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {correspondence.Recipient.WithUrnPrefix()}");
+            }
+            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
+        }
+        return dialogParty;
+    }
+
+    private async Task<string?> GetDialogActivityParty(string? dialogParty)
+    {
+        if (dialogParty is null)
+        {
+            return null;
+        }
+        // Migrated self-identified
+        if (dialogParty.StartsWith(UrnConstants.PartyUuid) || dialogParty.StartsWith(UrnConstants.Party))
+        {
+            var recipientParty = await altinnRegisterService.LookUpPartyById(dialogParty, cancellationToken: CancellationToken.None);
+            if (recipientParty == null || recipientParty.Username is null)
+            {
+                throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {dialogParty}");
             }
             dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
         }
