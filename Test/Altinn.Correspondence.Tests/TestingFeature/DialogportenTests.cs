@@ -1,6 +1,7 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
+using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -70,6 +71,72 @@ public class DialogportenTests
         // Assert
         initializeCorrespondenceResponse.EnsureSuccessStatusCode();
         Assert.Contains(hangfireBackgroundJobClient.Invocations, invocation => invocation.Arguments[0].ToString() == "InitializeCorrespondencesHandler.CreateDialogportenDialog");
+    }
+
+    [Fact]
+    public async Task CreateDialogportenDialog_WhenJobIsReEntrant_DoesNotCreateDuplicateExternalReference()
+    {
+        // Arrange
+        var dialogId = "existing-dialog-id";
+        var mockDialogportenService = new Mock<IDialogportenService>();
+        mockDialogportenService
+            .Setup(x => x.CreateCorrespondenceDialog(It.IsAny<Guid>()))
+            .ReturnsAsync(dialogId);
+
+        using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            services.AddSingleton(mockDialogportenService.Object);
+        });
+
+        using var scope = testFactory.Services.CreateScope();
+        var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+        var correspondenceId = Guid.NewGuid();
+
+        await correspondenceRepository.CreateCorrespondence(new CorrespondenceEntity()
+        {
+            Id = correspondenceId,
+            Created = DateTimeOffset.UtcNow,
+            Recipient = $"{UrnConstants.PersonIdAttribute}:12345678901",
+            RequestedPublishTime = DateTimeOffset.UtcNow,
+            ResourceId = "urn:altinn:resource:test-resource",
+            Sender = "991825827",
+            SendersReference = "reentrant-test-reference",
+            Content = new CorrespondenceContentEntity
+            {
+                Id = Guid.NewGuid(),
+                CorrespondenceId = correspondenceId,
+                Language = "nb",
+                MessageTitle = "title",
+                MessageSummary = "summary",
+                MessageBody = "body",
+                Attachments = new List<CorrespondenceAttachmentEntity>()
+            },
+            Statuses = new List<CorrespondenceStatusEntity>()
+            {
+                new CorrespondenceStatusEntity
+                {
+                    Status = CorrespondenceStatus.Initialized,
+                    StatusChanged = DateTimeOffset.UtcNow
+                }
+            },
+            StatusFetched = new List<CorrespondenceStatusFetchedEntity>(),
+            ExternalReferences = new List<ExternalReferenceEntity>()
+        }, CancellationToken.None);
+
+        var handler = scope.ServiceProvider.GetRequiredService<InitializeCorrespondencesHandler>();
+
+        // Act - simulate the same Hangfire job running twice
+        await handler.CreateDialogportenDialog(correspondenceId);
+        await handler.CreateDialogportenDialog(correspondenceId);
+
+        var updatedCorrespondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, CancellationToken.None);
+        var dialogReferences = updatedCorrespondence!.ExternalReferences
+            .Where(er => er.ReferenceType == ReferenceType.DialogportenDialogId)
+            .ToList();
+
+        // Assert
+        Assert.Single(dialogReferences);
+        Assert.Equal(dialogId, dialogReferences[0].ReferenceValue);
     }
 
     [Fact]

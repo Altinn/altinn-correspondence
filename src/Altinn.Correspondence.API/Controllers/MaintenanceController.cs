@@ -15,6 +15,7 @@ using Altinn.Correspondence.Core.Services;
 using Hangfire;
 using Altinn.Correspondence.Application.MigrateForwardingEventsBatch;
 using Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
+using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -301,6 +302,27 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     )
     {
         _logger.LogInformation("Request to cleanup bulk fetch statuses received");
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+
+    [HttpPost]
+    [Route("manual-retry-not-published-correspondences")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> ManualRetryNotPublishedCorrespondences(
+        [FromServices] ManualRetryNotPublishedCorrespondencesHandler handler,
+        [FromBody] ManualRetryNotPublishedCorrespondencesRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to manually retry not published correspondences received");
         var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
