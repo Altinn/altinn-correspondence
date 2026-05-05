@@ -1,10 +1,14 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Application.CheckNotificationDelivery;
 
@@ -88,12 +92,13 @@ public class CheckNotificationDeliveryHandler(
                 
                 var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
                 var allFailed = hasFailedStatus && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
+                var isMainOrder = IsMainOrder(notification, correspondence.Recipient);
                 if (hasFailedStatus)
-                {
-                    logger.LogError("Notification {NotificationId} has failed status (allFailed: {AllFailed})", notificationId, allFailed);
+                { 
+                    logger.LogError("Notification {NotificationId} has failed status (allFailed: {AllFailed}, isMainOrder: {IsMainOrder})", notificationId, allFailed, isMainOrder);
                     if (publishFailedEvent)
                     {
-                        if (allFailed)
+                        if (allFailed && isMainOrder)
                         {
                             SendAllFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
                         }
@@ -187,6 +192,19 @@ public class CheckNotificationDeliveryHandler(
                 logger.LogError(ex, "Error checking delivery status for notification {NotificationId}", notificationId);
                 throw;
         }
+    }
+
+    private static bool IsMainOrder(CorrespondenceNotificationEntity notification, string correspondenceRecipient)
+    {
+        if (notification.OrderRequest == null) return true;
+        var order = JsonSerializer.Deserialize<NotificationOrderRequestV2>(notification.OrderRequest);
+        if (order == null) return true;
+        var recipientWithoutPrefix = correspondenceRecipient.WithoutPrefix();
+        var r = order.Recipient;
+        if (r.RecipientOrganization != null) return r.RecipientOrganization.OrgNumber == recipientWithoutPrefix;
+        if (r.RecipientPerson != null) return r.RecipientPerson.NationalIdentityNumber == recipientWithoutPrefix;
+        if (r.RecipientExternalIdentity != null) return r.RecipientExternalIdentity.ExternalIdentity == correspondenceRecipient;
+        return false;
     }
 
     private void SendFailedEvent(string resourceId, string correspondenceId, string sender)
