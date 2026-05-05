@@ -49,6 +49,20 @@ public class DialogportenService(HttpClient _httpClient,
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                if (errorContent.Contains("already exists"))
+                {
+                    logger.LogWarning("Dialog already exists for correspondence {correspondenceId}", correspondenceId);
+                    var existingDialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+                    if (existingDialogId is null)
+                    {
+                        return createDialogRequest.Id; // Return the dialog ID from the request if it's not yet stored on the correspondence, it will be stored when the dialog is created on Dialogporten
+                    }
+                    return existingDialogId;
+                }
+            }
             var errorMessage = await response.Content.ReadAsStringAsync();
             logger.LogError(errorMessage);
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
@@ -181,6 +195,16 @@ public class DialogportenService(HttpClient _httpClient,
 
     public async Task CreateDownloadStartedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
     {
+        if (partyUrn?.WithUrnPrefix().StartsWith(UrnConstants.PartyUuid) == true)
+        {
+            var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, CancellationToken.None);
+            if (correspondence == null)
+            {
+                logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+                throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+            }
+            partyUrn = await GetDialogParty(correspondence);
+        }
         if (tokens.Length < 2 || !Guid.TryParse(tokens[1], out var attachmentId))
         {
             logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
