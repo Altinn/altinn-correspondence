@@ -23,9 +23,14 @@ using System.Text;
 using System.Text.Json;
 using Altinn.Correspondence.Tests.TestingFeature;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.API.Models.Enums;
+using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Tests.Extensions;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Logging;
+using HangfireScheduleHelper = Altinn.Correspondence.Application.Helpers.HangfireScheduleHelper;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -2371,6 +2376,210 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             Assert.Contains(CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag.Message, body);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_WithNotification_NoExistingDialog_SchedulesContinuationWithOnAnyFinishedState()
+    {
+        var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+        hangfireBackgroundJobClient
+            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+            .Returns("notification-job-id");
+
+        using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            services.AddSingleton(hangfireBackgroundJobClient.Object);
+        });
+
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+            .WithNotificationChannel(NotificationChannelExt.Email)
+            .Build();
+
+        var senderClient = testFactory.CreateSenderClient();
+        var response = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        hangfireBackgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+            It.Is<IState>(s =>
+                s is AwaitingState &&
+                ((AwaitingState)s).Options == JobContinuationOptions.OnAnyFinishedState)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task InitializeCorrespondence_WithoutNotification_WithExistingDialog_EnqueuesTransmissionDirectly_NotContinuation()
+    {
+        var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+        hangfireBackgroundJobClient
+            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+            .Returns("some-job-id");
+
+        using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+        {
+            services.AddSingleton(hangfireBackgroundJobClient.Object);
+        });
+
+        var dialogId = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd";
+        var payload = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithExternalReferencesDialogId(dialogId)
+            .Build();
+
+        var senderClient = testFactory.CreateSenderClient();
+        var response = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        hangfireBackgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Method.Name == "ScheduleTransmissionAndPublishJobs"),
+            It.Is<IState>(s => s is EnqueuedState)),
+            Times.Once);
+
+        hangfireBackgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Method.Name == "ScheduleTransmissionAndPublishJobs"),
+            It.Is<IState>(s => s is AwaitingState)),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task WhenDialogCreationFails_PublishCorrespondenceHandlerIsStillScheduledAndSetsFailedStatus()
+    {
+        var correspondenceId = Guid.NewGuid();
+        const string senderOrgNo = "123456789";
+        const string recipientOrgNo = "987654321";
+        const string dialogJobId = "dialog-job-failed-123";
+
+        var scheduleClientMock = new Mock<IBackgroundJobClient>();
+        var hybridCacheWrapperMock = new Mock<IHybridCacheWrapper>();
+        var scheduleRepositoryMock = new Mock<ICorrespondenceRepository>();
+
+        scheduleClientMock
+            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+            .Returns(() => Guid.NewGuid().ToString());
+
+        scheduleRepositoryMock
+            .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        hybridCacheWrapperMock
+            .Setup(x => x.GetAsync<string?>(
+                $"dialogJobId_{correspondenceId}",
+                It.IsAny<HybridCacheEntryOptions?>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dialogJobId);
+        scheduleRepositoryMock
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(new CorrespondenceEntity
+            {
+                Id = correspondenceId,
+                Sender = $"urn:altinn:organization:identifier-no:{senderOrgNo}",
+                Recipient = $"urn:altinn:organization:identifier-no:{recipientOrgNo}",
+                ResourceId = "resource-123",
+                SendersReference = "ref-123",
+                RequestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(5),
+                Created = DateTimeOffset.UtcNow.AddMinutes(-30),
+                Statuses = new List<CorrespondenceStatusEntity>()
+            });
+
+        var helper = new HangfireScheduleHelper(
+            scheduleClientMock.Object,
+            hybridCacheWrapperMock.Object,
+            scheduleRepositoryMock.Object,
+            new Mock<ILogger<HangfireScheduleHelper>>().Object);
+
+        await helper.SchedulePublishAfterDialogCreated(correspondenceId, CancellationToken.None);
+
+        // SchedulePublishAtPublishTime is set as a continuation of the (failed) dialog job with
+        // it will fire regardless of whether dialog creation succeeded or failed and set the correspondenceStatus accordingly.
+        scheduleClientMock.Verify(x => x.Create(
+            It.Is<Job>(j =>
+                j.Type == typeof(HangfireScheduleHelper) &&
+                j.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
+            It.Is<IState>(s =>
+                s is AwaitingState &&
+                ((AwaitingState)s).Options == JobContinuationOptions.OnAnyFinishedState)),
+            Times.Once);
+
+        // When the continuation fires, SchedulePublishAtPublishTime schedules PublishCorrespondenceHandler.
+        await helper.SchedulePublishAtPublishTime(correspondenceId, CancellationToken.None);
+
+        scheduleClientMock.Verify(x => x.Create(
+            It.Is<Job>(j => j.Type == typeof(PublishCorrespondenceHandler)),
+            It.Is<IState>(s => s is ScheduledState)),
+            Times.Once);
+
+        var publishClientMock = new Mock<IBackgroundJobClient>();
+        var correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
+        var correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
+        var altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
+        var idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
+
+        publishClientMock
+            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+            .Returns(() => Guid.NewGuid().ToString());
+        idempotencyKeyRepositoryMock
+            .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IdempotencyKeyEntity key, CancellationToken _) => key);
+
+        altinnRegisterServiceMock.SetupPartyByIdLookup(senderOrgNo, Guid.NewGuid());
+        altinnRegisterServiceMock.SetupPartyByIdLookup(recipientOrgNo, Guid.NewGuid());
+
+        // Correspondence with failed dialog creation
+        var correspondenceWithNoDialog = new CorrespondenceEntity
+        {
+            Id = correspondenceId,
+            Sender = $"urn:altinn:organization:identifier-no:{senderOrgNo}",
+            Recipient = $"urn:altinn:organization:identifier-no:{recipientOrgNo}",
+            IsConfidential = false,
+            ResourceId = "resource-123",
+            SendersReference = "ref-123",
+            RequestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(-10),
+            Created = DateTimeOffset.UtcNow.AddMinutes(-30),
+            ExternalReferences = new List<ExternalReferenceEntity>(),
+            Statuses = new List<CorrespondenceStatusEntity>
+            {
+                new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondenceId,
+                    Status = Core.Models.Enums.CorrespondenceStatus.ReadyForPublish,
+                    StatusChanged = DateTimeOffset.UtcNow.AddMinutes(-5),
+                    StatusText = Core.Models.Enums.CorrespondenceStatus.ReadyForPublish.ToString()
+                }
+            }
+        };
+
+        correspondenceRepositoryMock
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(correspondenceWithNoDialog);
+        correspondenceRepositoryMock
+            .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var publishHandler = new PublishCorrespondenceHandler(
+            altinnRegisterServiceMock.Object,
+            new Mock<ILogger<PublishCorrespondenceHandler>>().Object,
+            correspondenceRepositoryMock.Object,
+            correspondenceStatusRepositoryMock.Object,
+            new Mock<IContactReservationRegistryService>().Object,
+            publishClientMock.Object,
+            idempotencyKeyRepositoryMock.Object);
+
+        await publishHandler.Process(correspondenceId, null, CancellationToken.None);
+
+        // PublishCorrespondenceHandler detects no DialogportenDialogId in ExternalReferences
+        // and sets the correspondence status to Failed.
+        correspondenceStatusRepositoryMock.Verify(
+            x => x.AddCorrespondenceStatus(
+                It.Is<CorrespondenceStatusEntity>(s =>
+                    s.CorrespondenceId == correspondenceId &&
+                    s.Status == Core.Models.Enums.CorrespondenceStatus.Failed &&
+                    s.StatusText.Contains("Dialogporten dialog not created")),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
     }
 }
