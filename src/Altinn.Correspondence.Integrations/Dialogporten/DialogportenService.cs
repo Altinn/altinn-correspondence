@@ -1307,11 +1307,18 @@ public class DialogportenService(HttpClient _httpClient,
         if (dialogParty.StartsWith(UrnConstants.PartyUuid) || dialogParty.StartsWith(UrnConstants.Party))
         {
             var recipientParty = await altinnRegisterService.LookUpPartyById(dialogParty, cancellationToken: CancellationToken.None);
-            if (recipientParty == null || recipientParty.Username is null)
+            if (recipientParty == null)
             {
                 throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {dialogParty}");
             }
-            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
+            if (recipientParty.Username is not null)
+            {
+                return $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
+            } else if (recipientParty.ExternalUrn is not null)
+            {
+                return recipientParty.ExternalUrn;
+            }
+            throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {dialogParty}");
         }
         return dialogParty;
     }
