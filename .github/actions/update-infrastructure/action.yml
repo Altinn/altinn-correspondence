@@ -125,7 +125,6 @@ runs:
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
-        BACKUP_IMAGE_TAG: ${{ steps.get-version.outputs.imageTag }}
         DEPLOYMENT_PRINCIPAL_ID: ${{ steps.get-sp-object-id.outputs.objectId }}
       with:
         scope: subscription

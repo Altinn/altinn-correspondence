@@ -13,6 +13,5 @@ param storageAccountSku = readEnvironmentVariable('STORAGE_ACCOUNT_SKU')
 param maintenanceAdGroupId = readEnvironmentVariable('MAINTENANCE_AD_GROUP_ID')
 param maintenanceAdGroupName = readEnvironmentVariable('MAINTENANCE_AD_GROUP_NAME')
 param grafanaMonitoringPrincipalId = readEnvironmentVariable('GRAFANA_MONITORING_PRINCIPAL_ID')
-param backupImageTag = readEnvironmentVariable('BACKUP_IMAGE_TAG')
 
 param deploymentPrincipalId = readEnvironmentVariable('DEPLOYMENT_PRINCIPAL_ID')

@@ -43,7 +43,7 @@ public class AltinnEventBus : IEventBus
 
     private CloudEvent CreateCloudEvent(AltinnEventType type, string resourceId, string itemId, string party, string eventSource)
     {
-        var alternativeSubjectFormated = handleAlternativeSubject(party);
+        var alternativeSubjectFormated = handleAlternativeSubject(party.WithoutPrefix());
         CloudEvent cloudEvent = new CloudEvent()
         {
             Id = Guid.NewGuid(),

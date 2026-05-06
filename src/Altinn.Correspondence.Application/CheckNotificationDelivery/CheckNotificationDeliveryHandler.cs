@@ -1,10 +1,14 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Application.CheckNotificationDelivery;
 
@@ -83,24 +87,35 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
-            if (notificationDetailsV2.Status.Equals("Order_Completed")  || notificationDetailsV2.Status.Equals("Order_SendConditionNotMet"))
+            if (notificationDetailsV2.Status.Equals("Order_Completed")  || notificationDetailsV2.Status.Equals("Order_SendConditionNotMet") || notificationDetailsV2.Status.Equals("Cancelled"))
             {
+                await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, cancellationToken);
                 
                 var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
+                var allFailed = hasFailedStatus && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
+                var isMainOrder = IsMainOrder(notification, correspondence.Recipient);
                 if (hasFailedStatus)
-                {
-                    logger.LogError("Notification {NotificationId} has failed status", notificationId);
+                { 
+                    logger.LogError("Notification {NotificationId} has failed status (allFailed: {AllFailed}, isMainOrder: {IsMainOrder})", notificationId, allFailed, isMainOrder);
                     if (publishFailedEvent)
                     {
-                        SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                        if (allFailed && isMainOrder)
+                        {
+                            SendAllFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                        }
+                        else
+                        {
+                            SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                        }
                     }
                     else
                     {
-                        logger.LogInformation("Skipping CorrespondenceNotificationFailed event publishing for notification {NotificationId}", notificationId);
+                        logger.LogInformation("Skipping notification failed event publishing for notification {NotificationId}", notificationId);
                     }
-                } else
+                }
+                else
                 {
-                    logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);   
+                    logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);
                 }
             
 
@@ -130,16 +145,22 @@ public class CheckNotificationDeliveryHandler(
 
                             foreach (var recipient in sentRecipients)
                             {
-                                
-                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => 
-                            dialogportenService.CreateInformationActivity(
-                                correspondence.Id,
-                                DialogportenActorType.ServiceOwner, 
-                                textType,
-                                recipient.LastUpdate,
-                                recipient.Destination,
-                                recipient.Type.ToString()));
+                                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
+                                dialogportenService.CreateInformationActivity(
+                                    correspondence.Id,
+                                    DialogportenActorType.ServiceOwner,
+                                    textType,
+                                    recipient.LastUpdate,
+                                    recipient.Destination,
+                                    recipient.Type.ToString()));
                             }
+
+                            var sentEventType = notification.IsReminder
+                                ? AltinnEventType.CorrespondenceNotificationReminderDelivered
+                                : AltinnEventType.CorrespondenceNotificationDelivered;
+                            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
+                                sentEventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+
                             logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
                             return true;
                         }, cancellationToken);
@@ -174,9 +195,28 @@ public class CheckNotificationDeliveryHandler(
         }
     }
 
-    private void SendFailedEvent(string resourceId, string correspondenceId, string sender) 
+    private static bool IsMainOrder(CorrespondenceNotificationEntity notification, string correspondenceRecipient)
+    {
+        if (notification.OrderRequest == null) return true;
+        var order = JsonSerializer.Deserialize<NotificationOrderRequestV2>(notification.OrderRequest);
+        if (order == null) return true;
+        var recipientWithoutPrefix = correspondenceRecipient.WithoutPrefix();
+        var r = order.Recipient;
+        if (r.RecipientOrganization != null) return r.RecipientOrganization.OrgNumber == recipientWithoutPrefix;
+        if (r.RecipientPerson != null) return r.RecipientPerson.NationalIdentityNumber == recipientWithoutPrefix;
+        if (r.RecipientExternalIdentity != null) return r.RecipientExternalIdentity.ExternalIdentity == correspondenceRecipient;
+        return false;
+    }
+
+    private void SendFailedEvent(string resourceId, string correspondenceId, string sender)
     {
         logger.LogInformation("Enqueuing CorrespondenceNotificationFailed event for correspondence {CorrespondenceId}", correspondenceId);
         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationFailed, resourceId, correspondenceId, "correspondence", sender, CancellationToken.None));
+    }
+
+    private void SendAllFailedEvent(string resourceId, string correspondenceId, string sender)
+    {
+        logger.LogInformation("Enqueuing CorrespondenceNotificationAllFailed event for correspondence {CorrespondenceId}", correspondenceId);
+        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceNotificationAllFailed, resourceId, correspondenceId, "correspondence", sender, CancellationToken.None));
     }
 }
