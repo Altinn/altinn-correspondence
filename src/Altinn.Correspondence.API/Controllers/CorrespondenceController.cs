@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Authorization.ProblemDetails;
 using System.Text.Json;
+using Altinn.Correspondence.Application.DownloadAllCorrespondenceAttachments;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -605,6 +606,35 @@ namespace Altinn.Correspondence.API.Controllers
                     }
 
                     return File(result.Stream, contentType, result.FileName);
+                },
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Downloads all attachments for a correspondence as a zip file
+        /// </summary>
+        [HttpGet]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/octet-stream")]
+        [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
+        [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status404NotFound, "application/json")]
+        [Route("{correspondenceId}/attachments/downloadall")]
+        [Authorize(Policy = AuthorizationConstants.DownloadAttachmentPolicy, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        public async Task<ActionResult> DownloadAllCorrespondenceAttachments(
+            Guid correspondenceId,
+            [FromServices] DownloadAllCorrespondenceAttachmentsHandler handler,
+            CancellationToken cancellationToken)
+        {
+            var commandResult = await handler.Process(new DownloadAllCorrespondenceAttachmentsRequest()
+            {
+                CorrespondenceId = correspondenceId
+            }, HttpContext.User, cancellationToken);
+            return commandResult.Match(
+                result =>
+                {                 
+                    var zipFileName = $"correspondence-{correspondenceId}-attachments.zip";
+                    return File(result.Stream, "application/zip", zipFileName);
                 },
                 Problem
             );
