@@ -36,6 +36,7 @@ using Altinn.Correspondence.Application.RepairNotificationDelivery;
 using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
+using Altinn.Correspondence.Application.DownloadAllCorrespondenceAttachments;
 
 namespace Altinn.Correspondence.Application;
 
@@ -51,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<DownloadAttachmentHandler>();
         services.AddScoped<PurgeAttachmentHandler>();
         services.AddScoped<ExpireAttachmentHandler>();
+        services.AddScoped<DownloadAllCorrespondenceAttachmentsHandler>();
 
         // Correspondence
         services.AddScoped<InitializeCorrespondencesHandler>();
