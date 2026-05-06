@@ -404,6 +404,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             return $"{baseUrl.Trim('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download";
         }
+
+        private static string GetDownloadAllAttachmentsEndpoint(string baseUrl, Guid correspondenceId)
+        {
+            return $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachments/downloadall";
+        }
         private static List<ApiAction> GetApiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
             var apiActions = new List<ApiAction>
@@ -458,6 +463,21 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         {
                             HttpMethod = "GET",
                             Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, attachment.AttachmentId)
+                        }
+                    }
+                });
+            }
+            if (correspondence.Content?.Attachments?.Count >= 2)
+            {
+                apiActions.Add(new ApiAction()
+                {
+                    Action = "read",
+                    Endpoints = new List<Endpoint>()
+                    {
+                        new Endpoint()
+                        {
+                            HttpMethod = "GET",
+                            Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
                         }
                     }
                 });
@@ -534,6 +554,38 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Url = $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondence.Id}/confirm",
                     HttpMethod = "POST",
                     Priority = "Primary"
+                });
+            }
+
+            if (correspondence.Content?.Attachments?.Count >= 2)
+            {
+                guiActions.Add(new GuiAction()
+                {
+                    Title = new List<Title>()
+                    {
+                        new Title()
+                        {
+                            LanguageCode = "nb",
+                            MediaType = "text/plain",
+                            Value = "Last ned alle vedlegg"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "nn",
+                            MediaType = "text/plain",
+                            Value = "Last ned alle vedlegg"
+                        },
+                        new Title()
+                        {
+                            LanguageCode = "en",
+                            MediaType = "text/plain",
+                            Value = "Download all attachments"
+                        }
+                    },
+                    Action = "read",
+                    Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id),
+                    HttpMethod = "GET",
+                    Priority = "Secondary"
                 });
             }
 
