@@ -15,9 +15,6 @@ param storageAccountSku string = 'Standard_LRS'
 @secure()
 param grafanaMonitoringPrincipalId string
 
-param backupImageTag string = 'latest'
-
-
 @secure()
 @description('Object ID (Principal ID) of the deployment service principal for storage account access')
 param deploymentPrincipalId string
@@ -153,19 +150,6 @@ module grafanaMonitoringReaderRole '../modules/subscription/addMonitoringReaderR
   name: 'grafana-monitoring-reader'
   params: {
     grafanaPrincipalId: grafanaMonitoringPrincipalId
-  }
-}
-
-module backupJob '../applications/backup/main.bicep' = {
-  scope: resourceGroup
-  name: 'correspondence-backup-job'
-  dependsOn: [containerAppEnv, maintenanceDbAccess]
-  params: {
-    namePrefix: namePrefix
-    location: location
-    tenantId: tenantId
-    storageAccountName: storageAccountName
-    backupImageTag: backupImageTag
   }
 }
 
