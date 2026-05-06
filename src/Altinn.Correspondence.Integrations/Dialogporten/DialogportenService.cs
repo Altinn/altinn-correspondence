@@ -45,7 +45,7 @@ public class DialogportenService(HttpClient _httpClient,
         // Create idempotency key for open dialog activity
         await CreateIdempotencyKeysForCorrespondence(correspondence, cancellationToken);
         var dialogParty = await GetDialogParty(correspondence);
-        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger, dialogParty: dialogParty);
+        var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, generalSettings.Value.CorrespondenceBaseUrl, false, logger, dialogParty: dialogParty, enableDownloadAll: generalSettings.Value.EnableDownloadAll);
         var response = await _httpClient.PostAsJsonAsync("dialogporten/api/v1/serviceowner/dialogs", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -934,7 +934,8 @@ public class DialogportenService(HttpClient _httpClient,
             confirmedActivityIdempotencyKey: ConfirmedId?.ToString(),
             isSoftDeleted: isSoftDeleted,
             dialogParty: dialogParty,
-            forwardingActivities: forwardingActivities);
+            forwardingActivities: forwardingActivities,
+            enableDownloadAll: generalSettings.Value.EnableDownloadAll);
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)

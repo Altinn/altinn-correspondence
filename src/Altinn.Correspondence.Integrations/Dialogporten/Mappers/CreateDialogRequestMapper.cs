@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, string? dialogParty = null, List<Activity>? forwardingActivities = null)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, string? dialogParty = null, List<Activity>? forwardingActivities = null, bool enableDownloadAll = false)
         {
             DateTimeOffset currentDateTimeUtcNow = currentUtcNow ?? DateTimeOffset.UtcNow;
             var dialogId = GetDialogId(correspondence, currentDateTimeUtcNow, logger);
@@ -58,8 +58,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ExternalReference = correspondence.SendersReference,
                 Content = CreateCorrespondenceContent(correspondence, baseUrl),
                 SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
-                ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
-                GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
+                ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
+                GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
                 Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty, forwardingActivities) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
@@ -409,7 +409,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             return $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachments/downloadall";
         }
-        private static List<ApiAction> GetApiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
+        private static List<ApiAction> GetApiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence, bool enableDownloadAll = false)
         {
             var apiActions = new List<ApiAction>
             {
@@ -467,7 +467,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 });
             }
-            if (correspondence.Content?.Attachments?.Count >= 2)
+            if (enableDownloadAll && correspondence.Content?.Attachments?.Count >= 2)
             {
                 apiActions.Add(new ApiAction()
                 {
@@ -485,7 +485,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return apiActions;
         }
 
-        private static List<GuiAction> GetGuiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
+        private static List<GuiAction> GetGuiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence, bool enableDownloadAll = false)
         {
             var guiActions = new List<GuiAction>();
 
@@ -557,7 +557,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 });
             }
 
-            if (correspondence.Content?.Attachments?.Count >= 2)
+            if (enableDownloadAll && correspondence.Content?.Attachments?.Count >= 2 && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 25000000) // Only show "Download all attachments" if there are 2 or more attachments and total size is less than 25MB
             {
                 guiActions.Add(new GuiAction()
                 {

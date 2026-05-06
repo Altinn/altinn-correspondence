@@ -24,6 +24,8 @@ using Microsoft.AspNetCore.Mvc;
 using Altinn.Authorization.ProblemDetails;
 using System.Text.Json;
 using Altinn.Correspondence.Application.DownloadAllCorrespondenceAttachments;
+using Altinn.Correspondence.Core.Options;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -624,8 +626,12 @@ namespace Altinn.Correspondence.API.Controllers
         public async Task<ActionResult> DownloadAllCorrespondenceAttachments(
             Guid correspondenceId,
             [FromServices] DownloadAllCorrespondenceAttachmentsHandler handler,
+            [FromServices] IOptions<GeneralSettings> generalSettings,
             CancellationToken cancellationToken)
         {
+            if (!generalSettings.Value.EnableDownloadAll)
+                return StatusCode(StatusCodes.Status404NotFound);
+
             var commandResult = await handler.Process(new DownloadAllCorrespondenceAttachmentsRequest()
             {
                 CorrespondenceId = correspondenceId
