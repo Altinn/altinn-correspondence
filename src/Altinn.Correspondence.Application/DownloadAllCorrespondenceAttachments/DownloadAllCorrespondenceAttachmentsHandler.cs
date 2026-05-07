@@ -50,6 +50,13 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             return AttachmentErrors.AttachmentNotFound;
         }
 
+        var latestStatus = correspondence.GetHighestStatus();
+        if (!latestStatus.Status.IsAvailableForRecipient())
+        {
+            _logger.LogWarning("Correspondence {CorrespondenceId} is not available for recipient - current status: {Status}", request.CorrespondenceId, latestStatus.Status);
+            return CorrespondenceErrors.CorrespondenceNotFound;
+        }
+
         foreach (var attachment in attachments)
         {
             if (attachment.ResourceId != correspondence.ResourceId)
@@ -68,13 +75,6 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
                 _logger.LogError("Attachment {AttachmentId} in correspondence {CorrespondenceId} cannot be downloaded due to its status", attachment.Id, request.CorrespondenceId);
                 return cannotDownloadAttachmentError;
             }
-        }
-
-        var latestStatus = correspondence.GetHighestStatus();
-        if (!latestStatus.Status.IsAvailableForRecipient())
-        {
-            _logger.LogWarning("Correspondence {CorrespondenceId} is not available for recipient - current status: {Status}", request.CorrespondenceId, latestStatus.Status);
-            return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
         var existingKeys = new List<IdempotencyKeyEntity?>();
@@ -121,11 +121,22 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         var zipStream = new MemoryStream();
         using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
         {
+            var usedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var attachment in attachments)
             {
-                var entry = archive.CreateEntry(attachment.FileName ?? attachment.Id.ToString());
+                var baseName = attachment.FileName ?? attachment.Id.ToString();
+                var uniqueName = baseName;
+                var counter = 1;
+                while (!usedEntryNames.Add(uniqueName))
+                {
+                    var ext = Path.GetExtension(baseName);
+                    var nameWithoutExt = Path.GetFileNameWithoutExtension(baseName);
+                    uniqueName = $"{nameWithoutExt} ({counter}){ext}";
+                    counter++;
+                }
+                var entry = archive.CreateEntry(uniqueName);
                 using var entryStream = entry.Open();
-                var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
+                using var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
                 await attachmentStream.CopyToAsync(entryStream, cancellationToken);
             }
         }
