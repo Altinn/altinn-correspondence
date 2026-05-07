@@ -95,18 +95,8 @@ var containerAppEnvVarsComputed = [
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
   { name: 'MaskinportenJwkRotationSettings__Enabled', value: string(rotationEnabled) }
-  { name: 'MaskinportenJwkRotationSettings__CronExpression', value: '0 8 * * 1-5' }
-  { name: 'MaskinportenJwkRotationSettings__OnlyRunOnFirstWeekdayOfMonth', value: 'true' }
-  { name: 'MaskinportenJwkRotationSettings__AdminKeyVaultSecretName', value: 'maskinporten-admin-jwk' }
-  { name: 'MaskinportenJwkRotationSettings__AdminScope', value: 'idporten:dcr.write' }
   { name: 'MaskinportenJwkRotationSettings__KeyVaultUrl', value: keyVaultUrl }
   { name: 'MaskinportenJwkRotationSettings__ContainerAppResourceId', value: containerAppResourceId }
-  { name: 'MaskinportenJwkRotationSettings__RefreshContainerAppsAfterRotation', value: 'true' }
-  { name: 'MaskinportenJwkRotationSettings__KeyVaultSecretName', value: 'maskinporten-jwk' }
-  { name: 'MaskinportenJwkRotationSettings__VerificationMaxAttempts', value: '12' }
-  { name: 'MaskinportenJwkRotationSettings__VerificationDelaySeconds', value: '15' }
-  { name: 'MaskinportenJwkRotationSettings__AdminNewKeyIdPrefix', value: 'altinn-correspondence-maskinporten-admin' }
-  { name: 'MaskinportenJwkRotationSettings__NewKeyIdPrefix', value: 'altinn-correspondence-maskinporten' }
   ]
 
 // Combine all environment variables
