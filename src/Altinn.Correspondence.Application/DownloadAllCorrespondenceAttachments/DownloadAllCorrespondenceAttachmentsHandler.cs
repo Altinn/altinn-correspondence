@@ -131,7 +131,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
                 {
                     var ext = Path.GetExtension(baseName);
                     var nameWithoutExt = Path.GetFileNameWithoutExtension(baseName);
-                    uniqueName = $"{nameWithoutExt} ({counter}){ext}";
+                    uniqueName = $"{nameWithoutExt}({counter}){ext}";
                     counter++;
                 }
                 var entry = archive.CreateEntry(uniqueName);

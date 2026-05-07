@@ -617,7 +617,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Downloads all attachments for a correspondence as a zip file
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/octet-stream")]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/zip")]
         [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
         [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status404NotFound, "application/json")]
         [Route("{correspondenceId}/attachments/downloadall")]
@@ -630,7 +630,9 @@ namespace Altinn.Correspondence.API.Controllers
             CancellationToken cancellationToken)
         {
             if (!generalSettings.Value.EnableDownloadAll)
-                return StatusCode(StatusCodes.Status404NotFound);
+                return Problem(
+                    detail: "Download all attachments is not available in this environment.",
+                    statusCode: StatusCodes.Status404NotFound);
 
             var commandResult = await handler.Process(new DownloadAllCorrespondenceAttachmentsRequest()
             {
