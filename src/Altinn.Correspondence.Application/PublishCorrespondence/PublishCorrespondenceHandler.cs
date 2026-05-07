@@ -30,7 +30,7 @@ public class PublishCorrespondenceHandler(
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
-        var operationTimestamp = DateTimeOffset.UtcNow;        
+        var operationTimestamp = DateTimeOffset.UtcNow;
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         var expectedPublishTime = correspondence?.RequestedPublishTime > correspondence?.Created ? correspondence.RequestedPublishTime : correspondence?.Created;
         logger.LogInformation("Publishing correspondence {CorrespondenceId}. It was expected {expectedPublishTime} and actually executed at {actualPublishTime}.", correspondenceId, expectedPublishTime, operationTimestamp);
@@ -65,10 +65,6 @@ public class PublishCorrespondenceHandler(
         else if (recipientPartyUuid is not Guid)
         {
             errorMessage = $"Party for recipient {correspondence.Recipient} not found in Altinn Register when publishing";
-        }
-        else if (!await IsCorrespondenceReadyForPublish(correspondence, senderPartyUuid.Value, operationTimestamp, cancellationToken))
-        {
-            errorMessage = $"Correspondence {correspondenceId} not ready for publish";
         }
         else if (!hasDialogportenDialog)
         {
@@ -132,6 +128,17 @@ public class PublishCorrespondenceHandler(
             }
             else
             {
+                if (correspondence!.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
+                {
+                    await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                    {
+                        CorrespondenceId = correspondenceId,
+                        Status = CorrespondenceStatus.ReadyForPublish,
+                        StatusChanged = operationTimestamp,
+                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
+                        PartyUuid = senderPartyUuid ?? Guid.Empty
+                    }, cancellationToken);
+                }
                 status = new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = correspondenceId,
@@ -141,6 +148,7 @@ public class PublishCorrespondenceHandler(
                     PartyUuid = senderPartyUuid ?? Guid.Empty
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
+                
                 backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
                 backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
             }
@@ -154,32 +162,6 @@ public class PublishCorrespondenceHandler(
             logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
             return Task.CompletedTask;
         }, logger, cancellationToken);
-    }
-
-    private async Task<bool> IsCorrespondenceReadyForPublish(CorrespondenceEntity correspondence, Guid partyUuid, DateTimeOffset operationTimestamp, CancellationToken cancellationToken)
-    {
-        if (correspondence.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
-        {
-            if (await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
-            {
-                await correspondenceStatusRepository.AddCorrespondenceStatus(
-                    new CorrespondenceStatusEntity
-                    {
-                        CorrespondenceId = correspondence.Id,
-                        Status = CorrespondenceStatus.ReadyForPublish,
-                        StatusChanged = operationTimestamp.AddMilliseconds(-1),
-                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
-                        PartyUuid = partyUuid
-                    },
-                    cancellationToken
-                );
-            }
-            else 
-            {
-                return false;
-            }
-        }
-        return true;
     }
 
     private async Task<bool> HasRecipientBeenSetToReservedInKRR(CorrespondenceEntity correspondence, CancellationToken cancellationToken)

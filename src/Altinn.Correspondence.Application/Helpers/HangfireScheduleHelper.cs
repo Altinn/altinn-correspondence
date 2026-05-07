@@ -24,6 +24,11 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)
         {
+            if (!await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
+            {
+                logger.LogInformation("Not all attachments published for correspondence {correspondenceId}, skipping publish scheduling", correspondenceId);
+                return;
+            }
             var dialogJobId = await hybridCacheWrapper.GetAsync<string?>($"dialogJobId_{correspondenceId}", cancellationToken: cancellationToken);
             if (dialogJobId is null)
             {
@@ -62,7 +67,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
-            backgroundJobClient.Schedule<PublishCorrespondenceHandler>((handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
+            backgroundJobClient.Schedule<PublishCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
         }
 
         private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now

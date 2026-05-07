@@ -42,6 +42,18 @@ public static class PartyMapper
             {
                 party.PartyTypeName = parsedType;
             }
+
+            PartyType? resolvedParty = partyV2.PartyType.ToLowerInvariant() switch
+            {
+                "person" => PartyType.Person,
+                "organization" => PartyType.Organization,
+                "self-identified-user" => PartyType.SelfIdentified,
+                _ => null
+            };
+            if (resolvedParty != null)
+            {
+                party.PartyTypeName = resolvedParty.Value;
+            }
         }
 
         return party;

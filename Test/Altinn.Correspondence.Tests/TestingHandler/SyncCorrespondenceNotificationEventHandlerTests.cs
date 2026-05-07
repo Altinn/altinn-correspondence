@@ -5,8 +5,11 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Factories;
 using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -131,6 +134,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotificationForSync(It.Is<CorrespondenceNotificationEntity>(n => 
                 n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -190,6 +195,19 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotificationForSync(It.Is<CorrespondenceNotificationEntity>(n =>
                 n.Altinn2NotificationId == 2 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)
+                    && (Guid)job.Args[0] == correspondenceId
+                    && (DialogportenActorType)job.Args[1] == DialogportenActorType.ServiceOwner
+                    && (DialogportenTextType)job.Args[2] == DialogportenTextType.NotificationReminderSent
+                    && (DateTimeOffset)job.Args[3] == new DateTimeOffset(new DateTime(2024, 1, 14))
+                    && ((string[])job.Args[4]).Length == 2
+                    && ((string[])job.Args[4])[0] == "testemail@altinn.no"
+                    && ((string[])job.Args[4])[1] == "Email"
+                    ),
+                It.IsAny<EnqueuedState>()), Times.Once);
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -260,6 +278,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceNotificationRepositoryMock.Verify(x => x.AddNotificationForSync(It.Is<CorrespondenceNotificationEntity>(n =>
                 n.Altinn2NotificationId == 3 && n.SyncedFromAltinn2 != null && n.CorrespondenceId == correspondenceId), It.IsAny<CancellationToken>()), Times.Once);
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -316,6 +335,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             // Verify that no new notification was added
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -372,6 +392,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.VerifyNoOtherCalls();
             // Verify that no new notification was added
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -411,9 +432,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Verify correct calls to Correspondence repository
             _correspondenceRepositoryMock.Verify(x => x.GetCorrespondenceByIdForSync(correspondenceId, CorrespondenceSyncType.NotificationEvents, It.IsAny<CancellationToken>()), Times.Once);
-            _correspondenceRepositoryMock.VerifyNoOtherCalls();
+            _correspondenceRepositoryMock.VerifyNoOtherCalls();            
+
             // Verify that no new notification was added
             _correspondenceNotificationRepositoryMock.VerifyNoOtherCalls();
+            _backgroundJobClientMock.VerifyNoOtherCalls();
         }
     }
 } 

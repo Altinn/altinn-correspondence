@@ -1,6 +1,7 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
@@ -806,5 +807,177 @@ public class MigrationControllerTests : MigrationTestBase
                 IsReminder = true
             }
         ];
+    }
+
+    [Fact]
+    public async Task InitializeMigrateCorrespondence_WithDuplicatesOfAllTypesInRequest_DeduplicatesCorrectly()
+    {
+        // Arrange - Create correspondence with duplicate events of all types (status, notifications, forwarding)
+        var baseTime = new DateTime(2024, 1, 6, 10, 30, 0);
+        var userPartyUuid = new Guid("25C6E04A-4A1E-4122-A929-0168255B7E99");
+        var userUuid = new Guid("9ECDE07C-CF64-42B0-BEBD-035F195FB77E");
+
+        var migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
+            .CreateMigrateCorrespondence()
+            .WithIsMigrating(false)
+            .Build();
+
+        // Add duplicate status events within same second (should be deduplicated)
+        migrateCorrespondenceExt.EventHistory.Add(new MigrateCorrespondenceStatusEventExt
+        {
+            Status = MigrateCorrespondenceStatusExt.Read,
+            StatusChanged = new DateTimeOffset(baseTime),
+            StatusText = "Read event 1",
+            EventUserPartyUuid = userPartyUuid,
+            EventUserUuid = userUuid
+        });
+        migrateCorrespondenceExt.EventHistory.Add(new MigrateCorrespondenceStatusEventExt
+        {
+            Status = MigrateCorrespondenceStatusExt.Read,
+            StatusChanged = new DateTimeOffset(baseTime.AddMilliseconds(500)), // Same second, different milliseconds
+            StatusText = "Read event 2 - duplicate",
+            EventUserPartyUuid = userPartyUuid,
+            EventUserUuid = userUuid
+        });
+        migrateCorrespondenceExt.EventHistory.Add(new MigrateCorrespondenceStatusEventExt
+        {
+            Status = MigrateCorrespondenceStatusExt.Archived,
+            StatusChanged = new DateTimeOffset(baseTime.AddMinutes(5)),
+            StatusText = "Archived event 1",
+            EventUserPartyUuid = userPartyUuid,
+            EventUserUuid = userUuid
+        });
+        migrateCorrespondenceExt.EventHistory.Add(new MigrateCorrespondenceStatusEventExt
+        {
+            Status = MigrateCorrespondenceStatusExt.Archived,
+            StatusChanged = new DateTimeOffset(baseTime.AddMinutes(5).AddMilliseconds(750)), // Same second, different milliseconds
+            StatusText = "Archived event 2 - duplicate",
+            EventUserPartyUuid = userPartyUuid,
+            EventUserUuid = userUuid
+        });
+
+        // Add duplicate notification events within same second (should be deduplicated)
+        migrateCorrespondenceExt.NotificationHistory = new List<MigrateCorrespondenceNotificationExt>
+        {
+            new MigrateCorrespondenceNotificationExt
+            {
+                Altinn2NotificationId = 101,
+                NotificationAddress = "test1@example.com",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(baseTime.AddMinutes(1)),
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt
+            {
+                Altinn2NotificationId = 101, // Same as above - duplicate
+                NotificationAddress = "test1@example.com",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(baseTime.AddMinutes(1).AddMilliseconds(300)), // Same second, different milliseconds
+                IsReminder = false
+            },
+            new MigrateCorrespondenceNotificationExt
+            {
+                Altinn2NotificationId = 103,
+                NotificationAddress = "123456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(baseTime.AddMinutes(2)),
+                IsReminder = true
+            },
+            new MigrateCorrespondenceNotificationExt
+            {
+                Altinn2NotificationId = 103, // Same as above - duplicate
+                NotificationAddress = "123456789",
+                NotificationChannel = NotificationChannelExt.Sms,
+                NotificationSent = new DateTimeOffset(baseTime.AddMinutes(2).AddMilliseconds(600)), // Same second, different milliseconds
+                IsReminder = true
+            },
+            new MigrateCorrespondenceNotificationExt
+            {
+                Altinn2NotificationId = 105,
+                NotificationAddress = "test2@example.com",
+                NotificationChannel = NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(baseTime.AddMinutes(3)),
+                IsReminder = false
+            }
+        };
+
+        // Add duplicate forwarding events within same second (should be deduplicated)
+        migrateCorrespondenceExt.ForwardingHistory = new List<MigrateCorrespondenceForwardingEventExt>
+        {
+            new MigrateCorrespondenceForwardingEventExt
+            {
+                ForwardedOnDate = new DateTimeOffset(baseTime.AddMinutes(10)),
+                ForwardedByPartyUuid = userPartyUuid,
+                ForwardedByUserId = 123,
+                ForwardedByUserUuid = userUuid,
+                ForwardedToEmail = "forward1@example.com",
+                ForwardingText = "Forward 1"
+            },
+            new MigrateCorrespondenceForwardingEventExt
+            {
+                ForwardedOnDate = new DateTimeOffset(baseTime.AddMinutes(10).AddMilliseconds(400)), // Same second, different milliseconds - duplicate
+                ForwardedByPartyUuid = userPartyUuid,
+                ForwardedByUserId = 123,
+                ForwardedByUserUuid = userUuid,
+                ForwardedToEmail = "forward1@example.com",
+                ForwardingText = "Forward 1 duplicate"
+            },
+            new MigrateCorrespondenceForwardingEventExt
+            {
+                ForwardedOnDate = new DateTimeOffset(baseTime.AddMinutes(15)),
+                ForwardedByPartyUuid = userPartyUuid,
+                ForwardedByUserId = 123,
+                ForwardedByUserUuid = userUuid,
+                ForwardedToUserId = 456,
+                ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
+                ForwardingText = "Instance delegation 1"
+            },
+            new MigrateCorrespondenceForwardingEventExt
+            {
+                ForwardedOnDate = new DateTimeOffset(baseTime.AddMinutes(15).AddMilliseconds(800)), // Same second, different milliseconds - duplicate
+                ForwardedByPartyUuid = userPartyUuid,
+                ForwardedByUserId = 123,
+                ForwardedByUserUuid = userUuid,
+                ForwardedToUserId = 456,
+                ForwardedToUserUuid = new Guid("1D5FD16E-2905-414A-AC97-844929975F17"),
+                ForwardingText = "Instance delegation 1 duplicate"
+            }
+        };
+
+        // Act - Post to migration endpoint
+        var response = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
+        var result = await response.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+
+        // Assert - Verify successful response
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+        Assert.NotNull(result);
+        Assert.NotEqual(Guid.Empty, result.CorrespondenceId);
+
+        // Verify deduplication occurred correctly by querying via API endpoints
+        var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{result.CorrespondenceId}/details");
+        var details = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+        Assert.NotNull(details);
+        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
+
+        // Verify status events via StatusHistory - Should have 5 total (Initialized, Published from builder + Read + Archived + Fetched from API call)
+        // Duplicates within same second should be filtered out
+        // Note: The GetCorrespondenceDetails endpoint automatically adds a "Fetched" status when accessed
+        Assert.Equal(5, details.StatusHistory.Count);
+        Assert.Single(details.StatusHistory.Where(s => s.Status == CorrespondenceStatusExt.Read));
+        Assert.Single(details.StatusHistory.Where(s => s.Status == CorrespondenceStatusExt.Archived));
+        Assert.Single(details.StatusHistory.Where(s => s.Status == CorrespondenceStatusExt.Fetched));
+
+        // Verify notifications - Should have 3 unique (5 input - 2 duplicates)
+        // The mapper deduplicates notifications with same channel, address, isReminder, and sent time (within same second)
+        Assert.Equal(3, details.Notifications.Count);
+        Assert.Equal(2, details.Notifications.Where(n => n.IsReminder == false).Count()); // 2 unique email notifications
+        Assert.Single(details.Notifications.Where(n => n.IsReminder == true)); // 1 unique SMS reminder
+
+        // Verify forwarding events via legacy history endpoint - Should have 2 unique (4 input - 2 duplicates)
+        var getLegacyHistoryResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{result.CorrespondenceId}/history");
+        var history = await getLegacyHistoryResponse.Content.ReadFromJsonAsync<List<LegacyCorrespondenceHistoryExt>>(_responseSerializerOptions);
+        Assert.NotNull(history);
+        Assert.Equal(HttpStatusCode.OK, getLegacyHistoryResponse.StatusCode);
+        Assert.Equal(2, history.Where(h => h.ForwardingEvent != null).Count());
     }
 }

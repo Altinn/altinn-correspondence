@@ -36,6 +36,7 @@ using Altinn.Correspondence.Application.MaskinportenJwkRotation;
 using Altinn.Correspondence.Application.RepairNotificationDelivery;
 using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
+using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 
 namespace Altinn.Correspondence.Application;
 
@@ -83,6 +84,7 @@ public static class DependencyInjection
         services.AddScoped<CleanupConfirmedMigratedCorrespondences.CleanupConfirmedMigratedCorrespondencesHandler>();
         services.AddScoped<EnqueueMissingNotificationSentChecksHandler>();
         services.AddScoped<CleanupBulkFetchStatuses.CleanupBulkFetchStatusesHandler>();
+        services.AddScoped<ManualRetryNotPublishedCorrespondencesHandler>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();
@@ -97,6 +99,7 @@ public static class DependencyInjection
         services.AddScoped<HangfireScheduleHelper>();
         services.AddScoped<NotificationMapper>();
         services.AddScoped<CorrespondenceMigrationEventHelper>();
+        services.AddScoped<InitializeCorrespondenceValidationHelper>();
 
         // Legacy
         services.AddScoped<LegacyGetCorrespondencesHandler>();
