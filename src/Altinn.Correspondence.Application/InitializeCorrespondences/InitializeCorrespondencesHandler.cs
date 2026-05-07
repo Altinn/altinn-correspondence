@@ -241,19 +241,14 @@ public class InitializeCorrespondencesHandler(
         else
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
+            string dialogJob = !string.IsNullOrEmpty(notificationJobId)
+                ? backgroundJobClient.ContinueJobWith(notificationJobId, () => CreateDialogportenDialog(correspondence.Id))
+                : backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
             await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            if (!string.IsNullOrEmpty(notificationJobId))
-            {
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
-            }
-            else
-            {
-                backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
-            }
+            backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
         }
 
         return Task.CompletedTask;
