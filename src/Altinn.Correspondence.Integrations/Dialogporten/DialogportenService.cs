@@ -1103,7 +1103,7 @@ public class DialogportenService(HttpClient _httpClient,
                     return;
                 }
             }
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            logger.LogError($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"); // Only log as we will run again for those that don't pass DP validation
         }
     }
 
