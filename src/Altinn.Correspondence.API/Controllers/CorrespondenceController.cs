@@ -639,7 +639,7 @@ namespace Altinn.Correspondence.API.Controllers
             return commandResult.Match(
                 result =>
                 {                 
-                    var zipFileName = $"correspondence-{correspondenceId}-attachments.zip";
+                    var zipFileName = result.zipFileName;
                     return File(result.Stream, "application/zip", zipFileName);
                 },
                 Problem
