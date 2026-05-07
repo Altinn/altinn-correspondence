@@ -131,7 +131,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         }
         zipStream.Position = 0;
 
-        return await TransactionWithRetriesPolicy.Execute<DownloadAllCorrespondenceAttachmentsResponse>(async (cancellationToken) =>
+        await TransactionWithRetriesPolicy.Execute<bool>(async (cancellationToken) =>
         {
             try
             {
@@ -148,20 +148,21 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             {
                 _logger.LogError(e, "Error when adding status to correspondence {CorrespondenceId}", request.CorrespondenceId);
             }
-
-            foreach (var attachment in attachments)
-            {
-                _backgroundJobClient.Enqueue<IDialogportenService>(s => s.CreateDownloadStartedActivity(
-                    request.CorrespondenceId,
-                    DialogportenActorType.Recipient,
-                    operationTimestamp,
-                    party.ExternalUrn ?? caller,
-                    attachment.DisplayName ?? attachment.FileName,
-                    attachment.Id.ToString()));
-            }
-
-            _logger.LogInformation("Successfully processed download of all attachments for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream, zipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence) };
+            return true;
         }, logger, cancellationToken);
+
+        foreach (var attachment in attachments)
+        {
+            _backgroundJobClient.Enqueue<IDialogportenService>(s => s.CreateDownloadStartedActivity(
+                request.CorrespondenceId,
+                DialogportenActorType.Recipient,
+                operationTimestamp,
+                party.ExternalUrn ?? caller,
+                attachment.DisplayName ?? attachment.FileName ?? string.Empty,
+                attachment.Id.ToString()));
+        }
+
+        _logger.LogInformation("Successfully processed download of all attachments for correspondence {CorrespondenceId}", request.CorrespondenceId);
+        return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream, zipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence) };
     }
 }
