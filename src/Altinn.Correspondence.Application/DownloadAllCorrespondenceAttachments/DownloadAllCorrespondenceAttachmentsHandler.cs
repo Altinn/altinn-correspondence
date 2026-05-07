@@ -118,6 +118,13 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }   
 
+        const long maxAttachmentSizeForZip = 25_000_000; // 25 MB
+        var totalSize = attachments.Sum(a => a.AttachmentSize);
+        if (totalSize > maxAttachmentSizeForZip)
+        {
+            _logger.LogError("Total size of attachments for correspondence {CorrespondenceId} exceeds the maximum allowed for zip download: {TotalSize} bytes", request.CorrespondenceId, totalSize);
+            return AttachmentErrors.TotalAttachmentSizeExceedsLimit;
+        }
         var zipStream = new MemoryStream();
         using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
         {
