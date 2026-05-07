@@ -1172,7 +1172,7 @@ public class DialogportenService(HttpClient _httpClient,
             throw new Exception($"Could not find party for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
         }
 
-        string forwardedByUrn;
+        string? forwardedByUrn;
         if (forwardedByParty.PartyTypeName == PartyType.Person)
         {
             forwardedByUrn = UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN;
@@ -1180,6 +1180,10 @@ public class DialogportenService(HttpClient _httpClient,
         else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
         {
             forwardedByUrn = await GetDialogActivityParty(forwardedByParty.ExternalUrn);
+            if (string.IsNullOrWhiteSpace(forwardedByUrn))
+            {
+                forwardedByUrn = forwardedByParty.ExternalUrn;
+            }
         }
         else
         {
@@ -1247,17 +1251,22 @@ public class DialogportenService(HttpClient _httpClient,
             forwardingEvent.DialogActivityId = dialogActivityId;
         }
 
+        var performedBy = new PerformedBy
+        {
+            // ActorType is always "PartyRepresentative" for forwarding events since they are
+            // performed by a user forwarding on behalf of a party.
+            ActorType = "PartyRepresentative"
+        };
+        if (!string.IsNullOrWhiteSpace(forwardedByUrn))
+        {
+            performedBy.ActorId = forwardedByUrn;
+        }
+
         // Build and return the Activity object
         return new Activity
         {
             Id = dialogActivityId.ToString(),
-            PerformedBy = new PerformedBy
-            {
-                ActorId = forwardedByUrn,
-                // ActorType is always "PartyRepresentative" for forwarding events since they are
-                // performed by a user forwarding on behalf of a party.                
-                ActorType = "PartyRepresentative"
-            },
+            PerformedBy = performedBy,
             CreatedAt = forwardingEvent.ForwardedOnDate,
             Type = "Information",
             Description = new List<Description>
