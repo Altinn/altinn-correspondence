@@ -24,5 +24,8 @@ public enum AltinnEventType
     CorrespondenceReceiverNeverRead,
     NotificationCreated,
     CorrespondenceNotificationCreationFailed,
-    CorrespondenceNotificationFailed
+    CorrespondenceNotificationFailed,
+    CorrespondenceNotificationAllFailed,
+    CorrespondenceNotificationDelivered,
+    CorrespondenceNotificationReminderDelivered
 }

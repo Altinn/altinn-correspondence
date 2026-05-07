@@ -37,7 +37,9 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             else
             {
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+                #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                #pragma warning restore CS4014
             }
         }
 
@@ -50,7 +52,9 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             else
             {
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(transmissionJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+                #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(transmissionJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                #pragma warning restore CS4014
             }
         }
 
