@@ -161,7 +161,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             }
 
             _logger.LogInformation("Successfully processed download of all attachments for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream };
+            return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream, CorrespondenceTitle = correspondence.Content?.MessageTitle ?? "Correspondence Attachments" };
         }, logger, cancellationToken);
     }
 }
