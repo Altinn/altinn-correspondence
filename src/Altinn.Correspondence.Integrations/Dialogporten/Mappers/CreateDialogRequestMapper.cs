@@ -668,9 +668,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Id = Guid.CreateVersion7(baseTimestamp).ToString(),
                     DisplayName = new List<DisplayName>
                     {
-                        new DisplayName { LanguageCode = "nb", Value = "Last ned alle vedlegg" },
-                        new DisplayName { LanguageCode = "nn", Value = "Last ned alle vedlegg" },
-                        new DisplayName { LanguageCode = "en", Value = "Download all attachments" }
+                        new DisplayName { LanguageCode = "nb", Value = "Alle vedlegg" },
+                        new DisplayName { LanguageCode = "nn", Value = "Alle vedlegg" },
+                        new DisplayName { LanguageCode = "en", Value = "All attachments" }
                     },
                     Urls = new List<DialogUrl>
                     {
