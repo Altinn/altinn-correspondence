@@ -114,9 +114,9 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
         {
-            _logger.LogError("Could not find party UUID for caller {Caller}", caller);
+            _logger.LogError("Could not find party UUID for caller {Caller}", caller.SanitizeForLogging());
             return AuthorizationErrors.CouldNotFindPartyUuid;
-        }
+        }   
 
         var zipStream = new MemoryStream();
         using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
@@ -161,7 +161,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             }
 
             _logger.LogInformation("Successfully processed download of all attachments for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream, CorrespondenceTitle = correspondence.Content?.MessageTitle ?? "Correspondence Attachments" };
+            return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream, zipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence) };
         }, logger, cancellationToken);
     }
 }
