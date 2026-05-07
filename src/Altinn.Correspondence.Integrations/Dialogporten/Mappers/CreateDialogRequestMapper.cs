@@ -58,8 +58,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ExternalReference = correspondence.SendersReference,
                 Content = CreateCorrespondenceContent(correspondence, baseUrl),
                 SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
-                ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
-                GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
+                ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
+                GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
                 Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty, forwardingActivities) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
@@ -409,7 +409,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             return $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachments/downloadall";
         }
-        private static List<ApiAction> GetApiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence, bool enableDownloadAll = false)
+        private static List<ApiAction> GetApiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
             var apiActions = new List<ApiAction>
             {
@@ -467,25 +467,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 });
             }
-            // if (enableDownloadAll && correspondence.Content?.Attachments?.Count >= 2)
-            // {
-            //     apiActions.Add(new ApiAction()
-            //     {
-            //         Action = "read",
-            //         Endpoints = new List<Endpoint>()
-            //         {
-            //             new Endpoint()
-            //             {
-            //                 HttpMethod = "GET",
-            //                 Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
-            //             }
-            //         }
-            //     });
-            // }
             return apiActions;
         }
 
-        private static List<GuiAction> GetGuiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence, bool enableDownloadAll = false)
+        private static List<GuiAction> GetGuiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
             var guiActions = new List<GuiAction>();
 
@@ -556,38 +541,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Priority = "Primary"
                 });
             }
-
-            // if (enableDownloadAll && correspondence.Content?.Attachments?.Count >= 2 && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 25000000) // Only show "Download all attachments" if there are 2 or more attachments and total size is less than 25MB
-            // {
-            //     guiActions.Add(new GuiAction()
-            //     {
-            //         Title = new List<Title>()
-            //         {
-            //             new Title()
-            //             {
-            //                 LanguageCode = "nb",
-            //                 MediaType = "text/plain",
-            //                 Value = "Last ned alle vedlegg"
-            //             },
-            //             new Title()
-            //             {
-            //                 LanguageCode = "nn",
-            //                 MediaType = "text/plain",
-            //                 Value = "Last ned alle vedlegg"
-            //             },
-            //             new Title()
-            //             {
-            //                 LanguageCode = "en",
-            //                 MediaType = "text/plain",
-            //                 Value = "Download all attachments"
-            //             }
-            //         },
-            //         Action = "read",
-            //         Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id),
-            //         HttpMethod = "GET",
-            //         Priority = "Secondary"
-            //     });
-            // }
+        
             guiActions.Add(new GuiAction()
             {
                 Title = new List<Title>()
