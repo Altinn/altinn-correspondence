@@ -631,7 +631,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
                 var attachment = new Attachment
                 {
-                    Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
+                    Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index + 1)).ToString(),
                     DisplayName = new List<DisplayName>
                     {
                         new DisplayName
@@ -663,9 +663,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 && correspondence.Content?.Attachments?.Count >= 2
                 && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 25_000_000)
             {
-                attachments.Add(new Attachment
+                attachments.Insert(0, new Attachment
                 {
-                    Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(attachments.Count)).ToString(),
+                    Id = Guid.CreateVersion7(baseTimestamp).ToString(),
                     DisplayName = new List<DisplayName>
                     {
                         new DisplayName { LanguageCode = "nb", Value = "Last ned alle vedlegg" },
