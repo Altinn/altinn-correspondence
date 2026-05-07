@@ -15,6 +15,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using Altinn.Correspondence.Application;
+using Altinn.Correspondence.Application.Settings;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -805,5 +806,53 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var data = await downloadResponse.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.Equal(AttachmentErrors.CannotDownloadExpiredAttachment.Message, data?.Detail);
         }
+
+        [Fact]
+        public async Task DownloadAllCorrespondenceAttachments_WithOneOfEachAllowedFileType_ReturnsZipWithAllFiles()
+        {
+            // Arrange — upload one attachment per allowed file type
+            var attachmentIds = new List<Guid>();
+            foreach (var fileType in ApplicationConstants.AllowedFileTypes)
+            {
+                var attachment = new AttachmentBuilder()
+                    .CreateAttachment()
+                    .WithFileName($"test-file{fileType}")
+                    .Build();
+                var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
+                Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
+                var id = await initResponse.Content.ReadFromJsonAsync<Guid>();
+                var uploadResponse = await AttachmentHelper.UploadAttachment(id, _senderClient);
+                Assert.Equal(HttpStatusCode.OK, uploadResponse.StatusCode);
+                await AttachmentHelper.WaitForAttachmentStatusUpdate(_senderClient, _responseSerializerOptions, id, AttachmentStatusExt.Published);
+                attachmentIds.Add(id);
+            }
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments(attachmentIds)
+                .Build();
+
+            var correspondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Published);
+
+            // Act
+            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.CorrespondenceId}/attachments/downloadall");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
+            Assert.Equal("application/zip", downloadResponse.Content.Headers.ContentType?.MediaType);
+
+            var zipBytes = await downloadResponse.Content.ReadAsByteArrayAsync();
+            Assert.NotEmpty(zipBytes);
+
+            using var zipStream = new System.IO.MemoryStream(zipBytes);
+            using var archive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read);
+            Assert.Equal(ApplicationConstants.AllowedFileTypes.Count, archive.Entries.Count);
+            foreach (var fileType in ApplicationConstants.AllowedFileTypes)
+            {
+                Assert.Contains(archive.Entries, e => e.Name.EndsWith(fileType, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
     }
 }
