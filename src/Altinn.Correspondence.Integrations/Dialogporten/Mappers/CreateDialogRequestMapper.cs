@@ -60,7 +60,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
-                Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
+                Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
                 Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty, forwardingActivities) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted),
@@ -85,7 +85,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = new List<ApiAction>(),
                 GuiActions = new List<GuiAction>(),
                 Attachments = new List<Attachment>(),
-                Activities =  new List<Activity>(),
+                Activities = new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = SystemLabel.Default
             };
@@ -278,7 +278,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var list = new List<SearchTag>();
             foreach (var property in correspondence.PropertyList)
             {
-                list = AddSearchTagIfValid(list, property.Value, correspondence, logger);    
+                list = AddSearchTagIfValid(list, property.Value, correspondence, logger);
             }
             list = list.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
             return list;
@@ -371,7 +371,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             // Choose the appropriate text type based on whether this is a reminder notification
             var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
-            
+
             string[] tokens = [];
             if (notification.NotificationAddress != null)
             {
@@ -467,21 +467,21 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
                 });
             }
-            if (enableDownloadAll && correspondence.Content?.Attachments?.Count >= 2)
-            {
-                apiActions.Add(new ApiAction()
-                {
-                    Action = "read",
-                    Endpoints = new List<Endpoint>()
-                    {
-                        new Endpoint()
-                        {
-                            HttpMethod = "GET",
-                            Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
-                        }
-                    }
-                });
-            }
+            // if (enableDownloadAll && correspondence.Content?.Attachments?.Count >= 2)
+            // {
+            //     apiActions.Add(new ApiAction()
+            //     {
+            //         Action = "read",
+            //         Endpoints = new List<Endpoint>()
+            //         {
+            //             new Endpoint()
+            //             {
+            //                 HttpMethod = "GET",
+            //                 Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
+            //             }
+            //         }
+            //     });
+            // }
             return apiActions;
         }
 
@@ -557,38 +557,37 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 });
             }
 
-            if (enableDownloadAll && correspondence.Content?.Attachments?.Count >= 2 && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 25000000) // Only show "Download all attachments" if there are 2 or more attachments and total size is less than 25MB
-            {
-                guiActions.Add(new GuiAction()
-                {
-                    Title = new List<Title>()
-                    {
-                        new Title()
-                        {
-                            LanguageCode = "nb",
-                            MediaType = "text/plain",
-                            Value = "Last ned alle vedlegg"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "nn",
-                            MediaType = "text/plain",
-                            Value = "Last ned alle vedlegg"
-                        },
-                        new Title()
-                        {
-                            LanguageCode = "en",
-                            MediaType = "text/plain",
-                            Value = "Download all attachments"
-                        }
-                    },
-                    Action = "read",
-                    Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id),
-                    HttpMethod = "GET",
-                    Priority = "Secondary"
-                });
-            }
-
+            // if (enableDownloadAll && correspondence.Content?.Attachments?.Count >= 2 && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 25000000) // Only show "Download all attachments" if there are 2 or more attachments and total size is less than 25MB
+            // {
+            //     guiActions.Add(new GuiAction()
+            //     {
+            //         Title = new List<Title>()
+            //         {
+            //             new Title()
+            //             {
+            //                 LanguageCode = "nb",
+            //                 MediaType = "text/plain",
+            //                 Value = "Last ned alle vedlegg"
+            //             },
+            //             new Title()
+            //             {
+            //                 LanguageCode = "nn",
+            //                 MediaType = "text/plain",
+            //                 Value = "Last ned alle vedlegg"
+            //             },
+            //             new Title()
+            //             {
+            //                 LanguageCode = "en",
+            //                 MediaType = "text/plain",
+            //                 Value = "Download all attachments"
+            //             }
+            //         },
+            //         Action = "read",
+            //         Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id),
+            //         HttpMethod = "GET",
+            //         Priority = "Secondary"
+            //     });
+            // }
             guiActions.Add(new GuiAction()
             {
                 Title = new List<Title>()
@@ -622,10 +621,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return guiActions;
         }
 
-        private static List<Attachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
+        private static List<Attachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence, bool enableDownloadAll = false)
         {
             var baseTimestamp = DateTimeOffset.UtcNow;
-            return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
+            var attachments = correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
             {
                 var attachmentFileName = correspondenceAttachment?.Attachment?.FileName;
                 var mediaType = DialogportenAttachmentMediaTypeMapper.GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
@@ -659,6 +658,33 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
                 return attachment;
             }).ToList() ?? new List<Attachment>();
+
+            if (enableDownloadAll
+                && correspondence.Content?.Attachments?.Count >= 2
+                && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 25_000_000)
+            {
+                attachments.Add(new Attachment
+                {
+                    Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(attachments.Count)).ToString(),
+                    DisplayName = new List<DisplayName>
+                    {
+                        new DisplayName { LanguageCode = "nb", Value = "Last ned alle vedlegg" },
+                        new DisplayName { LanguageCode = "nn", Value = "Last ned alle vedlegg" },
+                        new DisplayName { LanguageCode = "en", Value = "Download all attachments" }
+                    },
+                    Urls = new List<DialogUrl>
+                    {
+                        new DialogUrl
+                        {
+                            ConsumerType = "Gui",
+                            MediaType = "application/zip",
+                            Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
+                        }
+                    }
+                });
+            }
+
+            return attachments;
         }
 
         private static ServiceOwnerContext GetServiceOwnerContextForCorrespondence(CorrespondenceEntity correspondence)
@@ -671,6 +697,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     new ServiceOwnerLabel { Value = corrUrn }
                 }
             };
+        }
     }
-}
 }
