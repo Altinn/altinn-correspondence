@@ -312,7 +312,9 @@ namespace Altinn.Correspondence.Application.Helpers
             if (sanitized.Length > 100)
                 sanitized = sanitized[..100].TrimEnd('-');
             if (string.IsNullOrEmpty(sanitized))
-                sanitized = "correspondence_attachments";
+                sanitized = "correspondence-attachments";
+            if (WindowsReservedNamesRegex.IsMatch(sanitized))
+                sanitized = $"correspondence-attachments-{sanitized}";
             return $"{sanitized}.zip";
         }
     }
