@@ -37,5 +37,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public string? OrderRequest { get; set; }
 
         public DateTimeOffset? SyncedFromAltinn2 { get; set; }
+
+        public string? NotificationOrderStatus { get; set; }
     }
 }
