@@ -2379,7 +2379,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithNotification_NoExistingDialog_SchedulesContinuationWithOnAnyFinishedState()
+        public async Task InitializeCorrespondence_WithNotification_NoExistingDialog_EnqueuesSchedulePublishAfterDialogCreated()
         {
             var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             hangfireBackgroundJobClient
@@ -2404,9 +2404,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
-                It.Is<IState>(s =>
-                    s is AwaitingState &&
-                    ((AwaitingState)s).Options == JobContinuationOptions.OnAnyFinishedState)),
+                It.Is<IState>(s => s is EnqueuedState)),
                 Times.Once);
         }
 
