@@ -41,7 +41,8 @@ public class MaskinportenJwkRotationHandler(
                     $"Client {client.ClientName} ({client.ClientId}) rotated to kid {client.NewKid}. Keys before: {client.PreviousKeyCount}, keys after: {client.CurrentKeyCount}. Secret updated: {client.KeyVaultSecretName}. Verification scope: {client.VerificationScope}."));
             await slackNotificationHandler.Process(
                 "Maskinporten JWK rotation completed",
-                summary);
+                summary,
+                ":white_check_mark:");
         }
         catch (Exception ex)
         {
