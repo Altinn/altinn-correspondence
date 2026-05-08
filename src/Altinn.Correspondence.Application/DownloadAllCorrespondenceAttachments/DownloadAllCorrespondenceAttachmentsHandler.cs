@@ -43,6 +43,13 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
+        var hasAccessToCorrespondence = await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken);
+        if (!hasAccessToCorrespondence)
+        {
+            _logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
+            return AuthorizationErrors.NoAccessToResource;
+        }
+
         var attachments = await _attachmentRepository.GetAttachmentsByCorrespondence(request.CorrespondenceId, cancellationToken);
         if (attachments is null || !attachments.Any())
         {
