@@ -119,7 +119,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         XacmlJsonRequestRoot jsonRequest = CreateDecisionRequestForLegacy(user, subjectUserId, actionIds, resourceId, resolvedRecipient);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
-        _logger.LogInformation(JsonSerializer.Serialize(responseContent));
         if (!validationResult)
         {
             return null;
@@ -223,7 +222,6 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         var actionIds = rights.Select(GetActionId).ToList();
         XacmlJsonRequestRoot jsonRequest = await CreateDecisionRequest(user, resourceId, party, correspondenceId, actionIds, cancellationToken);
         var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
-        _logger.LogInformation(JsonSerializer.Serialize(jsonRequest));
         var validationResult = ValidateAuthorizationResponse(responseContent, user);
         return validationResult;
     }
