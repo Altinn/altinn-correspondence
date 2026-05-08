@@ -1,14 +1,11 @@
 using Altinn.Correspondence.Application.SendSlackNotification;
-using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Hangfire;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.Application.MaskinportenJwkRotation;
 
 public class MaskinportenJwkRotationHandler(
-    IOptions<MaskinportenJwkRotationSettings> rotationOptions,
     IMaskinportenJwkRotationService rotationService,
     SendSlackNotificationHandler slackNotificationHandler,
     TimeProvider timeProvider,
@@ -18,10 +15,9 @@ public class MaskinportenJwkRotationHandler(
     [DisableConcurrentExecution(timeoutInSeconds: 1800)]
     public async Task ProcessScheduled(CancellationToken cancellationToken)
     {
-        var settings = rotationOptions.Value;
         var todayUtc = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime.Date);
 
-        if (settings.OnlyRunOnFirstWeekdayOfMonth && !IsFirstWeekdayOfMonth(todayUtc))
+        if (!IsFirstWeekdayOfMonth(todayUtc))
         {
             logger.LogInformation(
                 "Skipping scheduled Maskinporten JWK rotation on {Date} because it is not the first weekday of the month.",
@@ -32,6 +28,8 @@ public class MaskinportenJwkRotationHandler(
         await Process(cancellationToken);
     }
 
+    [AutomaticRetry(Attempts = 0)]
+    [DisableConcurrentExecution(timeoutInSeconds: 1800)]
     public async Task Process(CancellationToken cancellationToken)
     {
         try
