@@ -77,39 +77,6 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             }
         }
 
-        var existingKeys = new List<IdempotencyKeyEntity?>();
-        foreach (var a in attachments)
-        {
-            var key = await _idempotencyKeyRepository.GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
-                request.CorrespondenceId,
-                a.Id,
-                null,
-                StatusAction.AttachmentDownloaded,
-                IdempotencyType.DialogportenActivity,
-                cancellationToken);
-            existingKeys.Add(key);
-        }
-
-        var existingKeysByAttachmentId = existingKeys
-            .Where(k => k != null)
-            .ToDictionary(k => k!.AttachmentId!.Value, k => k!.Id);
-
-        var newKeys = attachments
-            .Where(a => !existingKeysByAttachmentId.ContainsKey(a.Id))
-            .Select(a => new IdempotencyKeyEntity
-            {
-                Id = Guid.NewGuid(),
-                CorrespondenceId = request.CorrespondenceId,
-                AttachmentId = a.Id,
-                StatusAction = StatusAction.AttachmentDownloaded
-            }).ToList();
-
-        await _idempotencyKeyRepository.CreateRangeAsync(newKeys, cancellationToken);
-
-        var activityIdByAttachmentId = existingKeysByAttachmentId
-            .Concat(newKeys.ToDictionary(k => k.AttachmentId!.Value, k => k.Id))
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
         var caller = user.GetCallerPartyUrn();
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.PartyUuid is not Guid partyUuid)
