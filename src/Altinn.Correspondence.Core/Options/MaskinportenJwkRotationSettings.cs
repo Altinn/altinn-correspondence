@@ -4,10 +4,6 @@ public class MaskinportenJwkRotationSettings
 {
     public bool Enabled { get; set; }
 
-    public string CronExpression { get; set; } = "0 8 * * 1-5";
-
-    public bool OnlyRunOnFirstWeekdayOfMonth { get; set; } = true;
-
     public int VerificationMaxAttempts { get; set; } = 12;
 
     public int VerificationDelaySeconds { get; set; } = 15;

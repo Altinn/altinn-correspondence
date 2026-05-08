@@ -5,7 +5,6 @@ using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 using Slack.Webhooks;
 
@@ -81,8 +80,7 @@ public class MaskinportenJwkRotationHandlerTests
     private static MaskinportenJwkRotationHandler CreateHandler(
         IMaskinportenJwkRotationService rotationService,
         ISlackClient slackClient,
-        DateTimeOffset utcNow,
-        bool onlyRunOnFirstWeekdayOfMonth = true)
+        DateTimeOffset utcNow)
     {
         var slackHandler = new SendSlackNotificationHandler(
             slackClient,
@@ -91,10 +89,6 @@ public class MaskinportenJwkRotationHandlerTests
             NullLogger<SendSlackNotificationHandler>.Instance);
 
         return new MaskinportenJwkRotationHandler(
-            Options.Create(new MaskinportenJwkRotationSettings
-            {
-                OnlyRunOnFirstWeekdayOfMonth = onlyRunOnFirstWeekdayOfMonth
-            }),
             rotationService,
             slackHandler,
             new FixedTimeProvider(utcNow),
