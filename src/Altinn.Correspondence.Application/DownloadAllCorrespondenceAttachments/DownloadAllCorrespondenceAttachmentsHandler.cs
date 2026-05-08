@@ -59,15 +59,15 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
 
         foreach (var attachment in attachments)
         {
-            if (attachment.ResourceId != correspondence.ResourceId)
-            {
+            // if (attachment.ResourceId != correspondence.ResourceId)
+            // {
                 var hasAccess = await altinnAuthorizationService.CheckAttachmentAccessAsRecipient(user, correspondence, attachment, cancellationToken);
                 if (!hasAccess)
                 {
                     _logger.LogWarning("Access denied for attachment {AttachmentId} in correspondence {CorrespondenceId}", attachment.Id, request.CorrespondenceId);
                     return AuthorizationErrors.NoAccessToResource;
                 }
-            }
+            // }
             var correspondenceAttachment = correspondence.Content?.Attachments?.FirstOrDefault(a => a.AttachmentId == attachment.Id);
             var cannotDownloadAttachmentError = attachmentHelper.ValidateDownloadCorrespondenceAttachment(attachment, correspondenceAttachment?.ExpirationTime);
             if (cannotDownloadAttachmentError is not null)
