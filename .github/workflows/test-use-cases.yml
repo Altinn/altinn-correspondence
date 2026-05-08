@@ -25,6 +25,8 @@ jobs:
   usecase-test:
     environment: ${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}
     runs-on: ubuntu-latest
+    env:
+      OPSGENIE_API_KEY: ${{ secrets.OPSGENIE_API_KEY }}
     outputs:
       tests-enabled: ${{ steps.check-enable.outputs.enabled }}
     steps:
@@ -76,9 +78,8 @@ jobs:
           }
 
     - name: Report failure to Opsgenie
-      if: failure() && steps.check-enable.outputs.enabled == 'true' && steps.usecase-test.outcome == 'failure' && secrets.OPSGENIE_API_KEY != ''
+      if: failure() && steps.check-enable.outputs.enabled == 'true' && steps.usecase-test.outcome == 'failure' && env.OPSGENIE_API_KEY != ''
       env:
-        OPSGENIE_API_KEY: ${{ secrets.OPSGENIE_API_KEY }}
         OPSGENIE_API_URL: https://api.eu.opsgenie.com
       run: |
         payload=$(cat <<EOF
