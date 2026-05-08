@@ -15,6 +15,7 @@ using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
 using Altinn.Correspondence.Integrations.Azure;
 using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Integrations.Maskinporten;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,12 @@ public static class DependencyInjection
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
         services.AddScoped<IResourceManager, AzureResourceManagerService>();
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
+        services.AddScoped<IMaskinportenJwkRotationService, MaskinportenJwkRotationService>();
+        services.AddScoped<IDigdirMaskinportenAdminService, DigdirMaskinportenAdminService>();
+        services.AddSingleton<IMaskinportenJwkGenerator, MaskinportenJwkGenerator>();
+        services.AddSingleton<IMaskinportenTokenService, MaskinportenTokenService>();
+        services.AddSingleton<IKeyVaultSecretStore, KeyVaultSecretStore>();
+        services.AddSingleton<IContainerAppRefreshService, AzureContainerAppRefreshService>();
 
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {

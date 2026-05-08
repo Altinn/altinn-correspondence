@@ -20,6 +20,35 @@ param apimIp string
 
 var image = 'ghcr.io/altinn/altinn-correspondence:${imageTag}'
 var containerAppName = '${namePrefix}-app'
+var rotationLeaderEnvironments = [
+  'test'
+  'staging'
+  'production'
+]
+var rotationEnabled = contains(rotationLeaderEnvironments, environment)
+var at22RotationVault = {
+  environment: 'at22'
+  resourceGroupName: 'altinn-corr-at22-rg'
+  keyVaultName: 'altinn-corr-at22-kv'
+}
+var at23RotationVault = {
+  environment: 'at23'
+  resourceGroupName: 'altinn-corr-at23-rg'
+  keyVaultName: 'altinn-corr-at23-kv'
+}
+var at24RotationVault = {
+  environment: 'at24'
+  resourceGroupName: 'altinn-corr-at24-rg'
+  keyVaultName: 'altinn-corr-at24-kv'
+}
+var yt01RotationVault = {
+  environment: 'yt01'
+  resourceGroupName: 'altinn-corr-yt01-rg'
+  keyVaultName: 'altinn-corr-yt01-kv'
+}
+var additionalRotationVaults = environment == 'test'
+  ? [at22RotationVault, at23RotationVault, at24RotationVault, yt01RotationVault]
+  : []
 
 var resourceGroupName = '${namePrefix}-rg'
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' existing = {
@@ -58,11 +87,45 @@ module keyvaultAddReaderRolesAppIdentity '../../modules/keyvault/addReaderRoles.
   }
 }
 
+module keyvaultAddSecretsOfficerRoleAppIdentity '../../modules/keyvault/addSecretsOfficerRole.bicep' = if (rotationEnabled) {
+  name: 'kvsecretsofficer-${namePrefix}-app'
+  scope: resourceGroup
+  params: {
+    keyvaultName: sourceKeyVaultName
+    principalType: 'ServicePrincipal'
+    principalObjectId: appIdentity.outputs.principalId
+  }
+}
+
+resource additionalRotationVaultResourceGroups 'Microsoft.Resources/resourceGroups@2024-11-01' existing = [for vault in additionalRotationVaults: {
+  name: vault.resourceGroupName
+}]
+
+module additionalRotationVaultReaderRoles '../../modules/keyvault/addReaderRoles.bicep' = [for (vault, i) in additionalRotationVaults: {
+  name: 'kvreader-${vault.environment}-${namePrefix}-app'
+  scope: additionalRotationVaultResourceGroups[i]
+  params: {
+    keyvaultName: vault.keyVaultName
+    principals: [{ objectId: appIdentity.outputs.principalId, principalType: 'ServicePrincipal'}]
+  }
+}]
+
+module additionalRotationVaultSecretsOfficerRoles '../../modules/keyvault/addSecretsOfficerRole.bicep' = [for (vault, i) in additionalRotationVaults: {
+  name: 'kvsecretsofficer-${vault.environment}-${namePrefix}-app'
+  scope: additionalRotationVaultResourceGroups[i]
+  params: {
+    keyvaultName: vault.keyVaultName
+    principalType: 'ServicePrincipal'
+    principalObjectId: appIdentity.outputs.principalId
+  }
+}]
+
 module databaseAccess '../../modules/postgreSql/addAdminAccess.bicep' = {
   name: 'databaseAccess'
   scope: resourceGroup
   dependsOn: [
     keyvaultAddReaderRolesAppIdentity // Timing issue
+    keyvaultAddSecretsOfficerRoleAppIdentity
   ]
   params: {
     principalType: 'ServicePrincipal'
@@ -91,7 +154,13 @@ module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bic
 module containerApp '../../modules/containerApp/main.bicep' = {
   name: containerAppName
   scope: resourceGroup
-  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess]
+  dependsOn: [
+    keyvaultAddReaderRolesAppIdentity
+    keyvaultAddSecretsOfficerRoleAppIdentity
+    additionalRotationVaultReaderRoles
+    additionalRotationVaultSecretsOfficerRoles
+    databaseAccess
+  ]
   params: {
     eventGridIps: fetchEventGridIpsScript.outputs.eventGridIps!
     namePrefix: namePrefix
