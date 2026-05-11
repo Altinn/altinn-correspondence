@@ -58,7 +58,7 @@ public class GetCorrespondencesHandler(
             logger.LogInformation("Retrieving correspondence for resource {ResourceId} with altinn2CorrespondenceId {Altinn2CorrespondenceId}",
                 request.ResourceId.SanitizeForLogging(),
                 request.Altinn2CorrespondenceId);
-            var correspondence = await correspondenceRepository.GetCorrespondenceByAltinn2CorrespondenceId(request.Altinn2CorrespondenceId.Value, cancellationToken);
+            var correspondence = await correspondenceRepository.GetCorrespondenceByAltinn2CorrespondenceId(request.Altinn2CorrespondenceId.Value, request.ResourceId, onBehalfOf, request.Role, cancellationToken);
             if (correspondence == null)
             {
                 return new GetCorrespondencesResponse { Ids = new List<Guid>() };

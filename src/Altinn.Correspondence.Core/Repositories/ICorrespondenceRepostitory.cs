@@ -101,7 +101,7 @@ namespace Altinn.Correspondence.Core.Repositories
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);
 
-        Task<CorrespondenceEntity?> GetCorrespondenceByAltinn2CorrespondenceId(int altinn2CorrespondenceId, CancellationToken cancellationToken);
+        Task<CorrespondenceEntity?> GetCorrespondenceByAltinn2CorrespondenceId(int altinn2CorrespondenceId, string resourceId, string orgNo, CorrespondencesRoleType role, CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity?>> GetCorrespondencesByNoAltinn2IdAndExistingDialog(List<Guid> windowIds, ReferenceType referenceType, CancellationToken cancellationToken);
         Task<List<CorrespondenceEntity>> GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(List<Guid> windowIds, CancellationToken cancellationToken);

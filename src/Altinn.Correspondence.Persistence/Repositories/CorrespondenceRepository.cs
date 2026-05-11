@@ -621,11 +621,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return correspondence;
         }
 
-        public async Task<CorrespondenceEntity?> GetCorrespondenceByAltinn2CorrespondenceId(int altinn2CorrespondenceId, CancellationToken cancellationToken)
+        public async Task<CorrespondenceEntity?> GetCorrespondenceByAltinn2CorrespondenceId(int altinn2CorrespondenceId, string resourceId, string orgNo, CorrespondencesRoleType role, CancellationToken cancellationToken)
         {
             return await _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId == altinn2CorrespondenceId)
+                .Where(c => c.ResourceId == resourceId)
                 .Where(c => c.IsMigrating == false)
+                .FilterBySenderOrRecipient(orgNo, role)
                 .SingleOrDefaultAsync(cancellationToken);
         }
 
