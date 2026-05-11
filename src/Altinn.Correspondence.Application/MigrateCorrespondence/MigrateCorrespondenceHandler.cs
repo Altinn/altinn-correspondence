@@ -200,7 +200,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
             var migrationQueueLimit = currentBatch * 20;
 
             var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
-            if (enqueuedJobs > migrationQueueLimit)
+            if (enqueuedJobs >= migrationQueueLimit)
             {
                 logger.LogInformation(
                     "Migration queue has {EnqueuedJobs} jobs (limit {Limit}), rescheduling in 1 minute",
