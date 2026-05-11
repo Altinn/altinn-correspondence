@@ -19,4 +19,6 @@ public class GetCorrespondencesRequest
     public string? SendersReference { get; set; }
 
     public Guid? IdempotentKey { get; set; }
+
+    public int? Altinn2CorrespondenceId { get; set; }
 }

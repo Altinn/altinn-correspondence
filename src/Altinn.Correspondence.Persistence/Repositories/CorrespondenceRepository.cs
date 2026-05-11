@@ -621,6 +621,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return correspondence;
         }
 
+        public async Task<CorrespondenceEntity?> GetCorrespondenceByAltinn2CorrespondenceId(int altinn2CorrespondenceId, CancellationToken cancellationToken)
+        {
+            return await _context.Correspondences
+                .Where(c => c.Altinn2CorrespondenceId == altinn2CorrespondenceId)
+                .Where(c => c.IsMigrating == false)
+                .SingleOrDefaultAsync(cancellationToken);
+        }
+
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesByNoAltinn2IdAndExistingDialog(
             List<Guid> correspondenceIds,
             ReferenceType referenceType,

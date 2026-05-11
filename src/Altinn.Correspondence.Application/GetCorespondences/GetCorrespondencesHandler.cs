@@ -53,6 +53,18 @@ public class GetCorrespondencesHandler(
             }
                 return new GetCorrespondencesResponse { Ids = new List<Guid> { correspondence.Id } };
         }
+        if (request.Altinn2CorrespondenceId.HasValue)
+        {
+            logger.LogInformation("Retrieving correspondence for resource {ResourceId} with altinn2CorrespondenceId {Altinn2CorrespondenceId}",
+                request.ResourceId.SanitizeForLogging(),
+                request.Altinn2CorrespondenceId);
+            var correspondence = await correspondenceRepository.GetCorrespondenceByAltinn2CorrespondenceId(request.Altinn2CorrespondenceId.Value, cancellationToken);
+            if (correspondence == null)
+            {
+                return new GetCorrespondencesResponse { Ids = new List<Guid>() };
+            }
+            return new GetCorrespondencesResponse { Ids = new List<Guid> { correspondence.Id } };
+        }
 
         logger.LogInformation("Retrieving correspondences for resource {ResourceId} with filters: from={From}, to={To}, limit={Limit} status={Status}, onBehalfOf={onBehalfOf}, role={Role}",
                 request.ResourceId.SanitizeForLogging(),
