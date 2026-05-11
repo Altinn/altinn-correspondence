@@ -195,16 +195,7 @@ public class DialogportenService(HttpClient _httpClient,
 
     public async Task CreateDownloadStartedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
     {
-        if (partyUrn?.WithUrnPrefix().StartsWith(UrnConstants.PartyUuid) == true)
-        {
-            var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, CancellationToken.None);
-            if (correspondence == null)
-            {
-                logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
-                throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
-            }
-            partyUrn = await GetDialogParty(correspondence);
-        }
+        partyUrn = await GetDialogActivityParty(partyUrn);
         if (tokens.Length < 2 || !Guid.TryParse(tokens[1], out var attachmentId))
         {
             logger.LogError("Invalid attachment ID token for download activity on correspondence {correspondenceId}", correspondenceId);
@@ -265,10 +256,7 @@ public class DialogportenService(HttpClient _httpClient,
             }
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
-        if (partyUrn?.StartsWith(UrnConstants.PartyUuid) == true)
-        {
-            partyUrn = await GetDialogParty(correspondence);
-        }
+        partyUrn = await GetDialogActivityParty(partyUrn);
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, textType, ActivityType.Information, partyUrn, activityTimestamp, tokens);
 
         if (dialogActivityId is not null)
@@ -1116,7 +1104,7 @@ public class DialogportenService(HttpClient _httpClient,
                     return;
                 }
             }
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            logger.LogError($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"); // Only log as we will run again for those that don't pass DP validation
         }
     }
 
@@ -1185,14 +1173,18 @@ public class DialogportenService(HttpClient _httpClient,
             throw new Exception($"Could not find party for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
         }
 
-        string forwardedByUrn;
+        string? forwardedByUrn;
         if (forwardedByParty.PartyTypeName == PartyType.Person)
         {
             forwardedByUrn = UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN;
         }
         else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
         {
-            forwardedByUrn = await GetDialogParty(correspondence);
+            forwardedByUrn = await GetDialogActivityParty(forwardedByParty.ExternalUrn);
+            if (string.IsNullOrWhiteSpace(forwardedByUrn))
+            {
+                forwardedByUrn = forwardedByParty.ExternalUrn;
+            }
         }
         else
         {
@@ -1260,17 +1252,22 @@ public class DialogportenService(HttpClient _httpClient,
             forwardingEvent.DialogActivityId = dialogActivityId;
         }
 
+        var performedBy = new PerformedBy
+        {
+            // ActorType is always "PartyRepresentative" for forwarding events since they are
+            // performed by a user forwarding on behalf of a party.
+            ActorType = "PartyRepresentative"
+        };
+        if (!string.IsNullOrWhiteSpace(forwardedByUrn))
+        {
+            performedBy.ActorId = forwardedByUrn;
+        }
+
         // Build and return the Activity object
         return new Activity
         {
             Id = dialogActivityId.ToString(),
-            PerformedBy = new PerformedBy
-            {
-                ActorId = forwardedByUrn,
-                // ActorType is always "PartyRepresentative" for forwarding events since they are
-                // performed by a user forwarding on behalf of a party.                
-                ActorType = "PartyRepresentative"
-            },
+            PerformedBy = performedBy,
             CreatedAt = forwardingEvent.ForwardedOnDate,
             Type = "Information",
             Description = new List<Description>
@@ -1306,6 +1303,32 @@ public class DialogportenService(HttpClient _httpClient,
                 throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {correspondence.Recipient.WithUrnPrefix()}");
             }
             dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
+        }
+        return dialogParty;
+    }
+
+    private async Task<string?> GetDialogActivityParty(string? dialogParty)
+    {
+        if (dialogParty is null)
+        {
+            return null;
+        }
+        // Migrated self-identified
+        if (dialogParty.StartsWith(UrnConstants.PartyUuid) || dialogParty.StartsWith(UrnConstants.Party))
+        {
+            var recipientParty = await altinnRegisterService.LookUpPartyById(dialogParty, cancellationToken: CancellationToken.None);
+            if (recipientParty == null)
+            {
+                throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {dialogParty}");
+            }
+            if (recipientParty.Username is not null)
+            {
+                return $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
+            } else if (recipientParty.ExternalUrn is not null)
+            {
+                return recipientParty.ExternalUrn;
+            }
+            throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {dialogParty}");
         }
         return dialogParty;
     }

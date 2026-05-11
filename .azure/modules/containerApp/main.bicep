@@ -36,6 +36,11 @@ var predefinedKeyvaultSecretEnvVars = [
   { name: 'GeneralSettings__MalwareScanBypassWhiteList', secretName: 'malware-scan-bypass-white-list' }
 ]
 
+var rotationKeyvaultSecretEnvVars = rotationEnabled ? [
+  { name: 'MaskinportenJwkRotationSettings__AdminClientId', secretName: 'maskinporten-admin-client-id' }
+  { name: 'MaskinportenJwkRotationSettings__AdminEncodedJwk', secretName: 'maskinporten-admin-jwk' }
+] : []
+
 var setByPipelineSecretEnvVars = [
   { name: 'DatabaseOptions__ConnectionString', secretName: 'correspondence-ado-connection-string' }
   { name: 'AttachmentStorageOptions__ConnectionString', secretName: 'storage-connection-string' }
@@ -45,7 +50,7 @@ var setByPipelineSecretEnvVars = [
 ]
 
 // Combine required and optional secrets
-var secretEnvVars = concat(predefinedKeyvaultSecretEnvVars, setByPipelineSecretEnvVars)
+var secretEnvVars = concat(predefinedKeyvaultSecretEnvVars, rotationKeyvaultSecretEnvVars, setByPipelineSecretEnvVars)
 
 // Extract secrets configuration from env var configs
 var secrets = [for config in secretEnvVars: {
@@ -60,19 +65,45 @@ var containerAppEnvVarsFromConfig = [for config in secretEnvVars: {
   secretRef: config.secretName
 }]
 
-// Additional computed environment variables (that need expressions)
+var rotationLeaderEnvironments = [
+  'test'
+  'staging'
+  'production'
+]
+var rotationEnabled = contains(rotationLeaderEnvironments, environment)
+var containerAppName = '${namePrefix}-app'
+var containerAppResourceId = resourceId('Microsoft.App/containerApps', containerAppName)
+var testRotationTargetEnvVars = rotationEnabled && environment == 'test' ? [
+  { name: 'MaskinportenJwkRotationSettings__Targets__0__Name', value: 'at22' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__0__KeyVaultUrl', value: 'https://altinn-corr-at22-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__0__ContainerAppResourceId', value: resourceId('altinn-corr-at22-rg', 'Microsoft.App/containerApps', 'altinn-corr-at22-app') }
+  { name: 'MaskinportenJwkRotationSettings__Targets__1__Name', value: 'at23' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__1__KeyVaultUrl', value: 'https://altinn-corr-at23-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__1__ContainerAppResourceId', value: resourceId('altinn-corr-at23-rg', 'Microsoft.App/containerApps', 'altinn-corr-at23-app') }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__Name', value: 'at24' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__KeyVaultUrl', value: 'https://altinn-corr-at24-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__ContainerAppResourceId', value: resourceId('altinn-corr-at24-rg', 'Microsoft.App/containerApps', 'altinn-corr-at24-app') }
+  { name: 'MaskinportenJwkRotationSettings__Targets__3__Name', value: 'yt01' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__3__KeyVaultUrl', value: 'https://altinn-corr-yt01-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__3__ContainerAppResourceId', value: resourceId('altinn-corr-yt01-rg', 'Microsoft.App/containerApps', 'altinn-corr-yt01-app') }
+] : []
+
 var containerAppEnvVarsComputed = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: environment }
   { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'true' }
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
+  { name: 'MaskinportenJwkRotationSettings__Enabled', value: string(rotationEnabled) }
+  { name: 'MaskinportenJwkRotationSettings__KeyVaultUrl', value: keyVaultUrl }
+  { name: 'MaskinportenJwkRotationSettings__ContainerAppResourceId', value: containerAppResourceId }
   ]
 
 // Combine all environment variables
 var containerAppEnvVars = concat(
   containerAppEnvVarsFromConfig,
-  containerAppEnvVarsComputed
+  containerAppEnvVarsComputed,
+  testRotationTargetEnvVars
 )
 
 // Scaling
@@ -136,7 +167,7 @@ var apimIpRestrictions = empty(apimIp)
 var ipSecurityRestrictions = concat(apimIpRestrictions, EventGridIpRestrictions)
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: '${namePrefix}-app'
+  name: containerAppName
   location: location
   tags: resourceGroup().tags
   identity: {

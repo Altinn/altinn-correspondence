@@ -40,14 +40,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           dockerImageBaseName: ghcr.io/altinn/altinn-correspondence
           imageTag: ${{ needs.get-version.outputs.imageTag }}
-      - name: "Publish backup image"
-        uses: ./.github/actions/publish-image
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          dockerImageBaseName: ghcr.io/altinn/altinn-correspondence-backup
-          imageTag: ${{ needs.get-version.outputs.imageTag }}
-          dockerfile: .azure/applications/backup/Dockerfile
-          context: .azure/applications/backup
 
   deploy-test:
     name: Internal test
@@ -79,36 +71,6 @@ jobs:
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
-          GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
-  deploy-at22:
-    name: deploy at22
-    runs-on: ubuntu-latest
-    environment: test
-    if: always() && !failure() && !cancelled() 
-    needs: [get-version, publish, test, deploy-test]
-    permissions: 
-      id-token: write
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Deploy to environment
-        uses: ./.github/actions/deploy-to-environment
-        with:
-          environment: at22
-          imageTag: ${{ needs.get-version.outputs.imageTag }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_ENVIRONMENT_KEY_VAULT_NAME: ${{ secrets.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
-          AZURE_NAME_PREFIX: ${{ secrets.AZURE_NAME_PREFIX }}
-          AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_TEST_ACCESS_CLIENT_ID: ${{ secrets.AZURE_TEST_ACCESS_CLIENT_ID }}
-          APIM_IP: ${{ secrets.APIM_IP }}
-          MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
-          MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
   deploy-staging:
     name: Internal staging

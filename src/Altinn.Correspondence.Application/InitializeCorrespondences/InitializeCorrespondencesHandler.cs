@@ -231,7 +231,9 @@ public class InitializeCorrespondencesHandler(
 
             if (!string.IsNullOrEmpty(notificationJobId))
             {
-                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
+                #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
+                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                #pragma warning restore CS4014
             }
             else
             {
@@ -248,7 +250,9 @@ public class InitializeCorrespondencesHandler(
             });
             if (!string.IsNullOrEmpty(notificationJobId))
             {
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+                #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                #pragma warning restore CS4014
             }
             else
             {
