@@ -229,13 +229,12 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                 CreatedFrom = request.CreatedFrom,
                 CreatedTo = request.CreatedTo
             };
-            logger.LogInformation("Enqueuing next batch for {id}", last.Id);
-            backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
             foreach (var correspondence in correspondences)
             {
                 backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, true, null, request.CreateEvents));
             }
-            logger.LogInformation("Finished queuing {count} correspondences", correspondences.Count);
+            logger.LogInformation("Finished queuing {count} correspondences, enqueuing next batch for {id}", correspondences.Count, last.Id);
+            backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
         }
 
         return response;
