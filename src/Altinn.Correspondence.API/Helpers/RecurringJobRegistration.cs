@@ -10,6 +10,8 @@ namespace Altinn.Correspondence.API.Helpers;
 public static class RecurringJobRegistration
 {
     public const string MaskinportenJwkRotationJobId = "Rotate Maskinporten JWK and update Key Vault";
+    // The first weekday of a month can only fall on day 1, 2 or 3. The handler validates the exact date.
+    public const string MaskinportenJwkRotationCronExpression = "0 8 1-3 * *";
 
     public static void Register(IServiceProvider services, IConfiguration configuration, ILogger logger)
     {
@@ -43,8 +45,8 @@ public static class RecurringJobRegistration
         recurringJobManager.AddOrUpdate<MaskinportenJwkRotationHandler>(
             MaskinportenJwkRotationJobId,
             handler => handler.ProcessScheduled(CancellationToken.None),
-            settings.CronExpression);
+            MaskinportenJwkRotationCronExpression);
 
-        logger.LogInformation("Maskinporten JWK rotation job registered with cron {CronExpression}.", settings.CronExpression);
+        logger.LogInformation("Maskinporten JWK rotation job registered with cron {CronExpression}.", MaskinportenJwkRotationCronExpression);
     }
 }
