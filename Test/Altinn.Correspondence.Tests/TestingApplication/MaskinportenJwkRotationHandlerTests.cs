@@ -5,7 +5,6 @@ using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 using Slack.Webhooks;
 
@@ -75,14 +74,14 @@ public class MaskinportenJwkRotationHandlerTests
         await handler.ProcessScheduled(CancellationToken.None);
 
         rotationService.Verify(service => service.RotateAsync(It.IsAny<CancellationToken>()), Times.Once);
-        slackClient.Verify(client => client.PostAsync(It.IsAny<SlackMessage>()), Times.Once);
+        slackClient.Verify(client => client.PostAsync(It.Is<SlackMessage>(message =>
+            message.Text.StartsWith(":white_check_mark: *Maskinporten JWK rotation completed*"))), Times.Once);
     }
 
     private static MaskinportenJwkRotationHandler CreateHandler(
         IMaskinportenJwkRotationService rotationService,
         ISlackClient slackClient,
-        DateTimeOffset utcNow,
-        bool onlyRunOnFirstWeekdayOfMonth = true)
+        DateTimeOffset utcNow)
     {
         var slackHandler = new SendSlackNotificationHandler(
             slackClient,
@@ -91,10 +90,6 @@ public class MaskinportenJwkRotationHandlerTests
             NullLogger<SendSlackNotificationHandler>.Instance);
 
         return new MaskinportenJwkRotationHandler(
-            Options.Create(new MaskinportenJwkRotationSettings
-            {
-                OnlyRunOnFirstWeekdayOfMonth = onlyRunOnFirstWeekdayOfMonth
-            }),
             rotationService,
             slackHandler,
             new FixedTimeProvider(utcNow),

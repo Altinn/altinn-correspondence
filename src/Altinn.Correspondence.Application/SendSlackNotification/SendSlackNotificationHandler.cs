@@ -14,10 +14,10 @@ public class SendSlackNotificationHandler(
     IHostEnvironment hostEnvironment,
     ILogger<SendSlackNotificationHandler> logger)
 {
-    public async Task Process(string title, string message)
+    public async Task Process(string title, string message, string emoji = ":warning:")
     {
         var text =
-            $":warning: *{title}*\n" +
+            $"{emoji} *{title}*\n" +
             $"*Environment:* {hostEnvironment.EnvironmentName}\n" +
             $"*System:* Correspondence\n" +
             $"*Message:* {message}\n" +
