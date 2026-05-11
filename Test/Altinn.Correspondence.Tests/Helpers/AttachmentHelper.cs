@@ -55,9 +55,14 @@ namespace Altinn.Correspondence.Tests.Helpers
             return attachmentId;
         }
 
-        public async static Task<Guid> GetPublishedAttachment(HttpClient client, JsonSerializerOptions responseSerializerOptions)
+        public async static Task<Guid> GetPublishedAttachment(HttpClient client, JsonSerializerOptions responseSerializerOptions, string? resourceId = null)
         {
-            var attachment = new AttachmentBuilder().CreateAttachment().Build();
+            var attachmentBuilder = new AttachmentBuilder().CreateAttachment();
+            if (resourceId != null)
+            {
+                attachmentBuilder.WithResourceId(resourceId);
+            }
+            var attachment = attachmentBuilder.Build();
             var initializeAttachmentResponse = await client.PostAsJsonAsync("correspondence/api/v1/attachment", attachment);
             Assert.Equal(HttpStatusCode.OK, initializeAttachmentResponse.StatusCode);
             var attachmentId = await initializeAttachmentResponse.Content.ReadFromJsonAsync<Guid>();

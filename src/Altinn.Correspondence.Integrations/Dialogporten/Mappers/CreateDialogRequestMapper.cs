@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, string? dialogParty = null, List<Activity>? forwardingActivities = null)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, string? dialogParty = null, List<Activity>? forwardingActivities = null, bool enableDownloadAll = false)
         {
             DateTimeOffset currentDateTimeUtcNow = currentUtcNow ?? DateTimeOffset.UtcNow;
             var dialogId = GetDialogId(correspondence, currentDateTimeUtcNow, logger);
@@ -60,7 +60,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 SearchTags = GetSearchTagsForCorrespondence(correspondence, logger),
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
-                Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence),
+                Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
                 Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty, forwardingActivities) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted),
@@ -85,7 +85,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = new List<ApiAction>(),
                 GuiActions = new List<GuiAction>(),
                 Attachments = new List<Attachment>(),
-                Activities =  new List<Activity>(),
+                Activities = new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = SystemLabel.Default
             };
@@ -278,7 +278,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var list = new List<SearchTag>();
             foreach (var property in correspondence.PropertyList)
             {
-                list = AddSearchTagIfValid(list, property.Value, correspondence, logger);    
+                list = AddSearchTagIfValid(list, property.Value, correspondence, logger);
             }
             list = list.DistinctBy(tag => tag.Value).ToList(); // Remove duplicates
             return list;
@@ -371,7 +371,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             // Choose the appropriate text type based on whether this is a reminder notification
             var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
 
-            
+
             string[] tokens = [];
             if (notification.NotificationAddress != null)
             {
@@ -403,6 +403,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static string GetDownloadAttachmentEndpoint(string baseUrl, Guid correspondenceId, Guid attachmentId)
         {
             return $"{baseUrl.Trim('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachment/{attachmentId}/download";
+        }
+
+        private static string GetDownloadAllAttachmentsEndpoint(string baseUrl, Guid correspondenceId)
+        {
+            return $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachments/downloadall";
         }
         private static List<ApiAction> GetApiActionsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
@@ -536,7 +541,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     Priority = "Primary"
                 });
             }
-
+        
             guiActions.Add(new GuiAction()
             {
                 Title = new List<Title>()
@@ -570,17 +575,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return guiActions;
         }
 
-        private static List<Attachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
+        private static List<Attachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence, bool enableDownloadAll = false)
         {
             var baseTimestamp = DateTimeOffset.UtcNow;
-            return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
+            var attachments = correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
             {
                 var attachmentFileName = correspondenceAttachment?.Attachment?.FileName;
                 var mediaType = DialogportenAttachmentMediaTypeMapper.GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
 
                 var attachment = new Attachment
                 {
-                    Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)).ToString(),
+                    Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index + 1)).ToString(),
                     DisplayName = new List<DisplayName>
                     {
                         new DisplayName
@@ -607,6 +612,33 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
                 return attachment;
             }).ToList() ?? new List<Attachment>();
+
+            if (enableDownloadAll
+                && correspondence.Content?.Attachments?.Count >= 2
+                && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 25_000_000)
+            {
+                attachments.Insert(0, new Attachment
+                {
+                    Id = Guid.CreateVersion7(baseTimestamp).ToString(),
+                    DisplayName = new List<DisplayName>
+                    {
+                        new DisplayName { LanguageCode = "nb", Value = "Alle vedlegg" },
+                        new DisplayName { LanguageCode = "nn", Value = "Alle vedlegg" },
+                        new DisplayName { LanguageCode = "en", Value = "All attachments" }
+                    },
+                    Urls = new List<DialogUrl>
+                    {
+                        new DialogUrl
+                        {
+                            ConsumerType = "Gui",
+                            MediaType = "application/zip",
+                            Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
+                        }
+                    }
+                });
+            }
+
+            return attachments;
         }
 
         private static ServiceOwnerContext GetServiceOwnerContextForCorrespondence(CorrespondenceEntity correspondence)
@@ -619,6 +651,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     new ServiceOwnerLabel { Value = corrUrn }
                 }
             };
+        }
     }
-}
 }
