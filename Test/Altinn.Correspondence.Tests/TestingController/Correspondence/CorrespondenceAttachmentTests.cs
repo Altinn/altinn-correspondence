@@ -688,6 +688,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             {
                 var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
                 mockAltinnAuthorization
+                    .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+                mockAltinnAuthorization
                     .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<AttachmentEntity>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(true);
 
@@ -727,6 +730,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
+                mockAltinnAuthorization
+                    .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
                 mockAltinnAuthorization
                     .Setup(x => x.CheckAttachmentAccessAsRecipient(
                         It.IsAny<ClaimsPrincipal?>(),
