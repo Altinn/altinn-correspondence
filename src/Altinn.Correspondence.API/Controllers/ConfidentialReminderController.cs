@@ -30,8 +30,8 @@ public class ConfidentialReminderController(ILogger<ConfidentialReminderControll
     [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
     public async Task<ActionResult> GetUnreadConfidentialCorrespondences(
         [FromServices] GetUnreadConfidentialCorrespondencesHandler handler,
-        [FromQuery] string languageCode,
-        CancellationToken cancellationToken)
+        [FromQuery] string languageCode = "nb",
+        CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Getting unread confidential correspondences");
         var commandResult = await handler.Process(HttpContext.User, languageCode, cancellationToken);
