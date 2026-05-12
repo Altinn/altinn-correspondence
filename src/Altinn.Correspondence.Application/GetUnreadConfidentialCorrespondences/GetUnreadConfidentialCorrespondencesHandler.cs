@@ -12,6 +12,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
+    IResourceRegistryService resourceRegistryService,
     IHostEnvironment hostEnvironment
     )
 {
@@ -70,9 +71,16 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         })
     );
 
+    var uniqueResourceIds = sortedCorrespondences.Select(c => c.ResourceId).Distinct().ToList();
+    var resourceTitles = new Dictionary<string, string?>();
+    foreach (var resourceId in uniqueResourceIds)
+    {
+        resourceTitles[resourceId] = await resourceRegistryService.GetResourceTitle(resourceId, "nb", cancellationToken);
+    }
+
     var lines = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Melding fra avsender {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til {c.ResourceId}")
-        .ToList();
+        .Select((c, i) => $"{i + 1}. Melding fra avsender {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til tjenesten: {resourceTitles[c.ResourceId]}")
+        .ToArray();
 
     var ending = "NB! Dette varselet forsvinner når alle uleste taushetsbelagte meldinger er åpnet.";
 
