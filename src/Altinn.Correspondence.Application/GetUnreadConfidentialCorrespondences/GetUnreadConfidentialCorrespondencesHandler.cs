@@ -91,7 +91,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         .ToList();
 
     var linesEn = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Message from sender {senderNames[i] ?? c.Sender.WithoutPrefix()} dated {c.Published:dd.MM.yyyy}, this requires access to {c.ResourceId}")
+        .Select((c, i) => $"{i + 1}. Correspondence from sender {senderNames[i] ?? c.Sender.WithoutPrefix()} dated {c.Published:dd.MM.yyyy}, this requires access to {c.ResourceId}")
         .ToList();
 
     var lines = languageCode switch
