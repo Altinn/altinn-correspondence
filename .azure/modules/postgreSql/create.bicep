@@ -79,7 +79,7 @@ resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/
   parent: postgres
   dependsOn: [database, extensionsConfiguration]
   properties: {
-    value: prodLikeEnvironment ? '1000' : '50'
+    value: prodLikeEnvironment ? '1000' : '200'
     source: 'user-override'
   }
 }
