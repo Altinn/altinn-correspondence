@@ -59,7 +59,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         var user = new ClaimsPrincipal();
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT1);
@@ -79,7 +79,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(false);
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT1);
@@ -108,7 +108,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(new List<CorrespondenceEntity> { correspondence });
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT0);
@@ -136,7 +136,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(new List<CorrespondenceEntity> { newer, older });
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT0);
@@ -161,7 +161,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(new List<CorrespondenceEntity>());
 
         // Act
-        await _handler.Process(user, CancellationToken.None);
+        await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.Equal(TimeSpan.FromMinutes(1), capturedMinAge);
@@ -180,7 +180,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(new List<CorrespondenceEntity>());
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT1);
