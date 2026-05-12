@@ -188,7 +188,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     }
 
     [Fact]
-    public async Task Process_WithCorrespondences_NorwegianBokmål_ReturnsBokmålText()
+    public async Task Process_UserLanguageNorwegianBokmål_ReturnsBokmålText()
     {
         // Arrange
         var user = CreateOrgUser();
@@ -218,7 +218,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     }
 
     [Fact]
-    public async Task Process_WithCorrespondences_NorwegianNynorsk_ReturnsNynorskText()
+    public async Task Process_UserLanguageNorwegianNynorsk_ReturnsNynorskText()
     {
         // Arrange
         var user = CreateOrgUser();
@@ -248,7 +248,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     }
 
     [Fact]
-    public async Task Process_WithCorrespondences_English_ReturnsEnglishText()
+    public async Task Process_UserLanguageEnglish_ReturnsEnglishText()
     {
         // Arrange
         var user = CreateOrgUser();
