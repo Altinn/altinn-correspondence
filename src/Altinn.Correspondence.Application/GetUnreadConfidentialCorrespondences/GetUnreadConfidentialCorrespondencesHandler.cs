@@ -105,7 +105,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
 
     var endingNb = "NB! Dette varselet forsvinner når alle uleste taushetsbelagte meldinger er åpnet.";
     var endingNn = "NB! Dette varselet forsvinn når alle ulesne tausheitsbelagte meldingar er opna.";
-    var endingEn = "NB! This notice will disappear when all unread confidential correspondences have been opened.";
+    var endingEn = "N.B. This notice will disappear when all unread confidential correspondences have been opened.";
 
     var ending = languageCode switch
     {
