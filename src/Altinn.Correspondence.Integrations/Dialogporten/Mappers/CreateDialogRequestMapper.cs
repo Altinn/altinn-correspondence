@@ -233,7 +233,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     },
                     new DialogValue()
                     {
-                        Value =  "Your organization has unopened confidential message",
+                        Value =  "Your organization has unopened confidential mail",
                         LanguageCode = "en"
                     }
                 }
