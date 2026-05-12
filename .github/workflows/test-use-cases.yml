@@ -25,6 +25,8 @@ jobs:
   usecase-test:
     environment: ${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}
     runs-on: ubuntu-latest
+    env:
+      OPSGENIE_API_KEY: ${{ secrets.OPSGENIE_API_KEY }}
     outputs:
       tests-enabled: ${{ steps.check-enable.outputs.enabled }}
     steps:
@@ -74,3 +76,62 @@ jobs:
           {
             "text": "${{ env.stepreport }}"
           }
+
+    - name: Report failure to Opsgenie
+      if: failure() && steps.check-enable.outputs.enabled == 'true' && steps.usecase-test.outcome == 'failure' && env.OPSGENIE_API_KEY != ''
+      env:
+        OPSGENIE_API_URL: https://api.eu.opsgenie.com
+      run: |
+        ENV="${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}"
+        NOW="$(date -u +%Y-%m-%dT%H:%M:%S.%7NZ)"
+        ALERT_ID="$(cat /proc/sys/kernel/random/uuid)"
+
+        payload=$(cat <<EOF
+        {
+          "schemaId": "azureMonitorCommonAlertSchema",
+          "data": {
+            "essentials": {
+              "alertId": "${ALERT_ID}",
+              "alertRule": "Correspondence Use Case Test",
+              "severity": "Sev1",
+              "signalType": "Metric",
+              "monitorCondition": "Fired",
+              "monitoringService": "Platform",
+              "alertTargetIDs": ["/correspondence/${ENV}"],
+              "firedDateTime": "${NOW}",
+              "description": "Correspondence use case test failed (${ENV}) - ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "essentialsVersion": "1.0",
+              "alertContextVersion": "1.0"
+            },
+            "alertContext": {
+              "properties": {
+                "repository": "${{ github.repository }}",
+                "workflow": "${{ github.workflow }}",
+                "run_id": "${{ github.run_id }}",
+                "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "environment": "${ENV}"
+              },
+              "conditionType": "SingleResourceMultipleMetricCriteria",
+              "condition": {
+                "windowSize": "PT5M",
+                "allOf": [
+                  {
+                    "metricName": "UseCaseTestFailure",
+                    "operator": "GreaterThan",
+                    "threshold": "0",
+                    "timeAggregation": "Count",
+                    "metricValue": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+        EOF
+        )
+
+        curl --fail-with-body --show-error --silent \
+          --request POST \
+          --url "${OPSGENIE_API_URL}/v1/json/azure?apiKey=${OPSGENIE_API_KEY}" \
+          --header "Content-Type: application/json" \
+          --data "${payload}"
