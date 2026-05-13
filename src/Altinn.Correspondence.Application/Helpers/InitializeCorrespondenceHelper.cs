@@ -22,7 +22,7 @@ namespace Altinn.Correspondence.Application.Helpers
         ServiceOwnerHelper serviceOwnerHelper,
         ILogger<InitializeCorrespondenceHelper> logger)
     {
-        private static readonly Regex emailRegex = new Regex(@"((""[^\\""]+"")|(([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+(\.([a-zA-Z0-9!#$%&'*+\-=?\^_`{|}~])+)*))@((((([a-zA-Z0-9æøåÆØÅ]([a-zA-Z0-9\-æøåÆØÅ]{0,61})[a-zA-Z0-9æøåÆØÅ]\.)|[a-zA-Z0-9æøåÆØÅ]\.){1,9})([a-zA-Z]{2,14}))|((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})))");
+        private static readonly Regex emailRegex = new Regex(@"^((&quot;[^&quot;]+&quot;)|(([a-zA-Z0-9æøåÆØÅ!#$%&amp;'*+\-=?\^_`{|}~])+(\.([a-zA-Z0-9æøåÆØÅ!#$%&amp;'*+\-=?\^_`{|}~])+)*))@((((([a-zA-Z0-9æøåÆØÅ]([a-zA-Z0-9\-æøåÆØÅ]{0,61})[a-zA-Z0-9æøåÆØÅ]\.)|[a-zA-Z0-9æøåÆØÅ]\.){1,9})([a-zA-Z]{2,14}))|((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})))$");
 
         public Error? ValidateDateConstraints(CorrespondenceEntity correspondence)
         {
@@ -238,7 +238,7 @@ namespace Altinn.Correspondence.Application.Helpers
             }
 
             // Validate that the email address is valid
-            if (customRecipient.EmailAddress is not null && !emailRegex.IsMatch(customRecipient.EmailAddress))
+            if (customRecipient.EmailAddress is not null && !emailRegex.IsMatch(customRecipient.EmailAddress) && customRecipient.EmailAddress.Split(';').Count() == 1)
             {
                 return NotificationErrors.InvalidEmailProvided;
             }
