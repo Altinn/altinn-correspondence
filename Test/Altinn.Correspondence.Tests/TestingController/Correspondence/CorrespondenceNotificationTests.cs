@@ -385,6 +385,32 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(NotificationErrors.CustomRecipientWithNumberOrEmailNotAllowedWithKeyWordRecipientName.Message, problemDetails?.Detail);
         }
 
+
+        [Theory]
+        [InlineData("test@example.com;test2@example.com")]
+        public async Task Correspondence_CustomRecipient_WithSemicolonSeparatedEmail_GivesBadRequest(string? email)
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipient = new NotificationRecipientExt()
+            {
+                EmailAddress = email
+            };
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithCustomNotificationRecipient(customRecipient)
+                .Build();
+
+            payload.Correspondence.Notification.EmailBody = email != null ? "Test $recipientName$" : null;
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var problemDetails = await initResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+            Assert.Equal(NotificationErrors.CustomRecipientWithNumberOrEmailNotAllowedWithKeyWordRecipientName.Message, problemDetails?.Detail);
+        }
+
         [Fact]
         public async Task Correspondence_CustomRecipient_RecipientLookupNull_Returns_Success()
         {
