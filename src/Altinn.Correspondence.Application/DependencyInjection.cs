@@ -32,10 +32,12 @@ using Altinn.Correspondence.Application.ExpireAttachment;
 using Altinn.Correspondence.Application.CleanupBruksmonster;
 using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 using Altinn.Correspondence.Application.SendSlackNotification;
+using Altinn.Correspondence.Application.MaskinportenJwkRotation;
 using Altinn.Correspondence.Application.RepairNotificationDelivery;
 using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
+using Altinn.Correspondence.Application.DownloadAllCorrespondenceAttachments;
 
 namespace Altinn.Correspondence.Application;
 
@@ -51,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<DownloadAttachmentHandler>();
         services.AddScoped<PurgeAttachmentHandler>();
         services.AddScoped<ExpireAttachmentHandler>();
+        services.AddScoped<DownloadAllCorrespondenceAttachmentsHandler>();
 
         // Correspondence
         services.AddScoped<InitializeCorrespondencesHandler>();
@@ -79,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<CleanupMarkdownAndHTMLInSummary.CleanupMarkdownAndHTMLInSummaryHandler>();
         services.AddScoped<RestoreSoftDeletedDialogsHandler>();
         services.AddScoped<CleanupBruksmonsterHandler>();
+        services.AddScoped<MaskinportenJwkRotationHandler>();
         services.AddScoped<CleanupConfirmedMigratedCorrespondences.CleanupConfirmedMigratedCorrespondencesHandler>();
         services.AddScoped<EnqueueMissingNotificationSentChecksHandler>();
         services.AddScoped<CleanupBulkFetchStatuses.CleanupBulkFetchStatusesHandler>();

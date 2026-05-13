@@ -199,14 +199,20 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
             var currentBatch = 999;
             var migrationQueueLimit = currentBatch * 20;
 
-            long enqueuedJobs;
-            while ((enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration)) > migrationQueueLimit)
+            var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
+            if (enqueuedJobs >= migrationQueueLimit)
             {
                 logger.LogInformation(
-                    "Waiting before scheduling next migration batch: {EnqueuedJobs} jobs in Migration queue (limit {Limit})",
+                    "Migration queue has {EnqueuedJobs} jobs (limit {Limit}), rescheduling in 1 minute",
                     enqueuedJobs,
                     migrationQueueLimit);
-                await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+
+                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(
+                    HangfireQueues.LiveMigration,
+                    handler => handler.MakeCorrespondenceAvailable(request, CancellationToken.None),
+                    TimeSpan.FromMinutes(1));
+
+                return response;
             }
 
             logger.LogInformation("Querying db");

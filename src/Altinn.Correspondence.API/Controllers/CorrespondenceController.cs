@@ -23,6 +23,9 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Authorization.ProblemDetails;
 using System.Text.Json;
+using Altinn.Correspondence.Application.DownloadAllCorrespondenceAttachments;
+using Altinn.Correspondence.Core.Options;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.API.Controllers
 {
@@ -415,6 +418,7 @@ namespace Altinn.Correspondence.API.Controllers
             [FromQuery, OnBehalfOf] string? onBehalfOf,
             [FromQuery] string? sendersReference,
             [FromQuery] Guid? idempotentKey,
+            [FromQuery] int? altinn2CorrespondenceId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Get correspondences for receiver");
@@ -428,7 +432,8 @@ namespace Altinn.Correspondence.API.Controllers
                 Role = role,
                 OnBehalfOf = onBehalfOf,
                 SendersReference = sendersReference,
-                IdempotentKey = idempotentKey
+                IdempotentKey = idempotentKey,
+                Altinn2CorrespondenceId = altinn2CorrespondenceId
             }, HttpContext.User, cancellationToken);
 
             return commandResult.Match(
@@ -605,6 +610,41 @@ namespace Altinn.Correspondence.API.Controllers
                     }
 
                     return File(result.Stream, contentType, result.FileName);
+                },
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Downloads all attachments for a correspondence as a zip file
+        /// </summary>
+        [HttpGet]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, "application/zip")]
+        [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
+        [ProducesResponseType(typeof(AltinnProblemDetails), StatusCodes.Status404NotFound, "application/json")]
+        [Route("{correspondenceId}/attachments/downloadall")]
+        [Authorize(Policy = AuthorizationConstants.DownloadAttachmentPolicy, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        public async Task<ActionResult> DownloadAllCorrespondenceAttachments(
+            Guid correspondenceId,
+            [FromServices] DownloadAllCorrespondenceAttachmentsHandler handler,
+            [FromServices] IOptions<GeneralSettings> generalSettings,
+            CancellationToken cancellationToken)
+        {
+            if (!generalSettings.Value.EnableDownloadAll)
+                return Problem(
+                    detail: "Download all attachments is not available in this environment.",
+                    statusCode: StatusCodes.Status404NotFound);
+
+            var commandResult = await handler.Process(new DownloadAllCorrespondenceAttachmentsRequest()
+            {
+                CorrespondenceId = correspondenceId
+            }, HttpContext.User, cancellationToken);
+            return commandResult.Match(
+                result =>
+                {                 
+                    var zipFileName = result.zipFileName;
+                    return File(result.Stream, "application/zip", zipFileName);
                 },
                 Problem
             );

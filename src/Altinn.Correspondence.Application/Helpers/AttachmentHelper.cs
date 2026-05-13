@@ -298,5 +298,24 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogError("Error in simulated malware scan result for attachment {attachmentId}: {Error}", attachmentId, error.Message);
             }
         }
+
+        public string GetZipFileNameForCorrespondence(CorrespondenceEntity correspondence)
+        {
+            var title = correspondence.Content?.MessageTitle ?? "correspondence";
+            var sanitized = title
+                .Trim()
+                .ToLowerInvariant()
+                .Replace(" ", "-");
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"[^a-z0-9\-]", "");
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"-+", "-");
+            sanitized = sanitized.Trim('-');
+            if (sanitized.Length > 100)
+                sanitized = sanitized[..100].TrimEnd('-');
+            if (string.IsNullOrEmpty(sanitized))
+                sanitized = "correspondence-attachments";
+            if (WindowsReservedNamesRegex.IsMatch(sanitized))
+                sanitized = $"correspondence-attachments-{sanitized}";
+            return $"{sanitized}.zip";
+        }
     }
 }

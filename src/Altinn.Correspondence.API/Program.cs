@@ -2,9 +2,7 @@ using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Application;
-using Altinn.Correspondence.Application.CleanupBruksmonster;
-using Altinn.Correspondence.Application.GenerateReport;
-using Altinn.Correspondence.Application.IpSecurityRestrictionsUpdater;
+using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Options;
@@ -17,7 +15,6 @@ using Altinn.Correspondence.Integrations.Slack;
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Azure.Identity;
-using Hangfire;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -83,12 +80,7 @@ static void BuildAndRun(string[] args)
         }
     }
 
-    app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<IpSecurityRestrictionUpdater>("Update IP restrictions to apimIp and current EventGrid IPs", handler => handler.UpdateIpRestrictions(), Cron.Daily());
-    app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<GenerateDailySummaryReportHandler>("Generate daily summary report", handler => handler.Process(new GenerateDailySummaryReportRequest() { Altinn2Included = false }, CancellationToken.None), Cron.Daily());
-    app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<CleanupBruksmonsterHandler>(
-        "Cleanup bruksmonster test data older than 1 day",
-        handler => handler.Process(new CleanupBruksmonsterRequest() { MinAgeDays = 1 }, null, CancellationToken.None),
-        Cron.Daily());
+    RecurringJobRegistration.Register(app.Services, app.Configuration, bootstrapLogger);
 
     app.Run();
 }
@@ -98,14 +90,17 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     var connectionString = GetConnectionString(config);
 
     services.AddHttpContextAccessor();
+    services.AddSingleton(TimeProvider.System);
     services.AddHostedService<EdDsaSecurityKeysCacheService>();
     services.Configure<AttachmentStorageOptions>(config.GetSection(key: nameof(AttachmentStorageOptions)));
     services.Configure<AltinnOptions>(config.GetSection(key: nameof(AltinnOptions)));
     services.Configure<AzureResourceManagerOptions>(config.GetSection(key: nameof(AzureResourceManagerOptions)));
     services.Configure<DialogportenSettings>(config.GetSection(key: nameof(DialogportenSettings)));
     services.Configure<IdportenSettings>(config.GetSection(key: nameof(IdportenSettings)));
+    services.Configure<MaskinportenSettings>(config.GetSection(key: nameof(MaskinportenSettings)));
     services.Configure<AltinnIdProviderSettings>(config.GetSection(key: nameof(AltinnIdProviderSettings)));
     services.Configure<GeneralSettings>(config.GetSection(key: nameof(GeneralSettings)));
+    services.Configure<MaskinportenJwkRotationSettings>(config.GetSection(key: nameof(MaskinportenJwkRotationSettings)));
 
     services.AddControllers().AddJsonOptions(options =>
     {
