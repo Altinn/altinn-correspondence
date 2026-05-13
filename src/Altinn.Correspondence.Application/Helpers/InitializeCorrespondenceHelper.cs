@@ -238,7 +238,7 @@ namespace Altinn.Correspondence.Application.Helpers
             }
 
             // Validate that the email address is valid
-            if (customRecipient.EmailAddress is not null && !emailRegex.IsMatch(customRecipient.EmailAddress) && customRecipient.EmailAddress.Split(';').Count() == 1)
+            if (customRecipient.EmailAddress is not null && (!emailRegex.IsMatch(customRecipient.EmailAddress) || customRecipient.EmailAddress.Contains(';')))
             {
                 return NotificationErrors.InvalidEmailProvided;
             }

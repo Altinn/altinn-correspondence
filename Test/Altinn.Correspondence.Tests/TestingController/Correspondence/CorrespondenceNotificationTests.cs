@@ -1,4 +1,4 @@
-﻿using Altinn.Correspondence.API.Models;
+using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -403,12 +403,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithCustomNotificationRecipient(customRecipient)
                 .Build();
 
-            payload.Correspondence.Notification.EmailBody = email != null ? "Test $recipientName$" : null;
+            payload.Correspondence.Notification.EmailBody = email != null ? "Test message" : null;
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var problemDetails = await initResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
-            Assert.Equal(NotificationErrors.CustomRecipientWithNumberOrEmailNotAllowedWithKeyWordRecipientName.Message, problemDetails?.Detail);
+            Assert.Equal(NotificationErrors.InvalidEmailProvided.Message, problemDetails?.Detail);
         }
 
         [Fact]
