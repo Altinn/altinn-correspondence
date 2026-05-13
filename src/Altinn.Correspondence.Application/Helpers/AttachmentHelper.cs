@@ -196,6 +196,7 @@ namespace Altinn.Correspondence.Application.Helpers
             }
             if (fileType == null || !ApplicationConstants.AllowedFileTypes.Contains(fileType))
             {
+                logger.LogInformation("Attachment upload rejected: filetype {FileType} is not in the allowed list", fileType);
                 return AttachmentErrors.FiletypeNotAllowed;
             }
             if (InvalidCharactersRegex.IsMatch(filename))
