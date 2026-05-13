@@ -58,7 +58,7 @@ public sealed class HangfireQueueMetricsService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        try { _ = GetSnapshot(); } catch { }
+        _ = GetSnapshot();
         return Task.CompletedTask;
     }
 
@@ -90,22 +90,18 @@ public sealed class HangfireQueueMetricsService : IHostedService
                 return _lastSnapshot;
             }
 
-            try
-            {
-                var monitoringApi = JobStorage.Current.GetMonitoringApi();
-                var activeServers = GetActiveServerCount(monitoringApi);
-                var snapshot = new HangfireMetricsSnapshot(
-                    EnqueuedByQueue: GetEnqueuedByQueue(monitoringApi),
-                    Processing: monitoringApi.ProcessingCount(),
-                    Scheduled: monitoringApi.ScheduledCount(),
-                    Failed: monitoringApi.FailedCount(),
-                    ActiveServers: activeServers,
-                    ComponentHealthy: activeServers > 0 ? 1 : 0);
+            var monitoringApi = JobStorage.Current.GetMonitoringApi();
+            var activeServers = GetActiveServerCount(monitoringApi);
+            var snapshot = new HangfireMetricsSnapshot(
+                EnqueuedByQueue: GetEnqueuedByQueue(monitoringApi),
+                Processing: monitoringApi.ProcessingCount(),
+                Scheduled: monitoringApi.ScheduledCount(),
+                Failed: monitoringApi.FailedCount(),
+                ActiveServers: activeServers,
+                ComponentHealthy: activeServers > 0 ? 1 : 0);
 
-                _lastSnapshot = snapshot;
-                _lastSnapshotAtUtc = now;
-            }
-            catch { }
+            _lastSnapshot = snapshot;
+            _lastSnapshotAtUtc = now;
 
             return _lastSnapshot;
         }
