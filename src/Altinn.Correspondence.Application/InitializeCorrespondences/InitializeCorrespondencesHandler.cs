@@ -243,21 +243,16 @@ public class InitializeCorrespondencesHandler(
         else
         {
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
-            var dialogJob = backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
+            #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
+            string dialogJob = !string.IsNullOrEmpty(notificationJobId)
+                ? backgroundJobClient.ContinueJobWith(notificationJobId, () => CreateDialogportenDialog(correspondence.Id), JobContinuationOptions.OnAnyFinishedState)
+                : backgroundJobClient.Enqueue(() => CreateDialogportenDialog(correspondence.Id));
+            #pragma warning restore CS4014
             await hybridCacheWrapper.SetAsync($"dialogJobId_{correspondence.Id}", dialogJob, new HybridCacheEntryOptions
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            if (!string.IsNullOrEmpty(notificationJobId))
-            {
-                #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(notificationJobId, (helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
-                #pragma warning restore CS4014
-            }
-            else
-            {
-                backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
-            }
+            backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
         }
 
         return Task.CompletedTask;

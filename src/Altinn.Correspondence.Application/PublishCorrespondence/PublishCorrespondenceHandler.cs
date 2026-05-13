@@ -32,6 +32,19 @@ public class PublishCorrespondenceHandler(
         logger.LogInformation("Starting publish process with lock for correspondence {CorrespondenceId}", correspondenceId);
         var operationTimestamp = DateTimeOffset.UtcNow;
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+
+        if (correspondence != null && (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed)))
+        {
+            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
+            return Task.CompletedTask;
+        }
+
+        if (correspondence != null && !await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+        {
+            logger.LogInformation("Skipping this publish job for correspondence {CorrespondenceId} - not all attachments are published yet - the final attachment publish will enqueue this job again", correspondenceId);
+            return Task.CompletedTask;
+        }
+
         var expectedPublishTime = correspondence?.RequestedPublishTime > correspondence?.Created ? correspondence.RequestedPublishTime : correspondence?.Created;
         logger.LogInformation("Publishing correspondence {CorrespondenceId}. It was expected {expectedPublishTime} and actually executed at {actualPublishTime}.", correspondenceId, expectedPublishTime, operationTimestamp);
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence!.Sender, cancellationToken);
@@ -40,18 +53,6 @@ public class PublishCorrespondenceHandler(
         var recipientPartyUuid = recipientParty?.PartyUuid;
         bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
-
-        if (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
-        {
-            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
-            return Task.CompletedTask;
-        }
-
-        if (!await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
-        {
-            logger.LogInformation("Skipping this publish job for correspondence {CorrespondenceId} - not all attachments are published yet - the final attachment publish will enqueue this job again", correspondenceId);
-            return Task.CompletedTask;
-        }
 
         var errorMessage = "";
         if (correspondence == null)
