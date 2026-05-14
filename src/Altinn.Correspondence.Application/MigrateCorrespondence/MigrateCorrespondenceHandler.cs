@@ -142,7 +142,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
             throw;
         }
     }
-    [DisableConcurrentExecution(timeoutInSeconds: 120)]
+    [AutomaticRetry(Attempts = 0)]
     public async Task<OneOf<MakeCorrespondenceAvailableResponse, Error>> MakeCorrespondenceAvailable(MakeCorrespondenceAvailableRequest request, CancellationToken cancellationToken)
     {
         string? dialogId;
@@ -206,8 +206,6 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                     "Migration queue has {EnqueuedJobs} jobs (limit {Limit}), rescheduling in 1 minute",
                     enqueuedJobs,
                     migrationQueueLimit);
-
-                JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.LiveMigration);
 
                 backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(
                     HangfireQueues.LiveMigration,
