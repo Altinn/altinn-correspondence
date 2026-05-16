@@ -304,10 +304,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     {
         _logger.LogInformation("Request to cleanup bulk fetch statuses received");
         var result = await handler.Process(request, HttpContext.User, cancellationToken);
-        return result.Match(
-            Ok,
-            Problem
-        );
+        return result ? Ok() : Problem();
     }
 
 
