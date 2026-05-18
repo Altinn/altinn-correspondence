@@ -11,7 +11,7 @@ param auditLogAnalyticsWorkspaceId string = ''
 param environment string
 
 var databaseName = 'correspondence'
-var poolSize = prodLikeEnvironment ? 50 : 25
+var poolSize = prodLikeEnvironment ? 50 : 35
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: '${namePrefix}-dbserver'
@@ -79,7 +79,7 @@ resource maxConnectionsConfiguration 'Microsoft.DBforPostgreSQL/flexibleServers/
   parent: postgres
   dependsOn: [database, extensionsConfiguration]
   properties: {
-    value: prodLikeEnvironment ? '1000' : '50'
+    value: prodLikeEnvironment ? '1000' : '200'
     source: 'user-override'
   }
 }
