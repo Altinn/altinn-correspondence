@@ -17,6 +17,7 @@ using System.Security.Claims;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.Settings;
 using System.IO.Compression;
+using System.Text;
 
 namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 {
@@ -910,6 +911,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var truncatedEntry = archive.Entries.FirstOrDefault(e => e.Name != originalFileName && e.Name.EndsWith(".pdf"));
             Assert.NotNull(truncatedEntry);
             Assert.True(truncatedEntry!.Name.Length < originalFileName.Length);
+            Assert.True(Encoding.UTF8.GetByteCount(truncatedEntry.Name) <= 255);
         }
 
     }
