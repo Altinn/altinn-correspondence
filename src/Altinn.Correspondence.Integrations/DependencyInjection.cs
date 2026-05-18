@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddSingleton<IMaskinportenTokenService, MaskinportenTokenService>();
         services.AddSingleton<IKeyVaultSecretStore, KeyVaultSecretStore>();
         services.AddSingleton<IContainerAppRefreshService, AzureContainerAppRefreshService>();
+        services.AddScoped<PartyUrnHelper>();
 
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
         {

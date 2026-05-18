@@ -21,7 +21,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
     internal static class CreateDialogRequestMapper
     {
-        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, string? dialogParty = null, List<Activity>? forwardingActivities = null, bool enableDownloadAll = false)
+        internal static CreateDialogRequest CreateCorrespondenceDialog(CorrespondenceEntity correspondence, string baseUrl, bool includeActivities = false, ILogger? logger = null, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, bool isSoftDeleted = false, DateTimeOffset? currentUtcNow = null, string? dialogParty = null, List<Activity>? forwardingActivities = null, bool enableDownloadAll = false, Dictionary<Guid, string>? partyUrnsByPartyUuid = null)
         {
             DateTimeOffset currentDateTimeUtcNow = currentUtcNow ?? DateTimeOffset.UtcNow;
             var dialogId = GetDialogId(correspondence, currentDateTimeUtcNow, logger);
@@ -61,7 +61,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
-                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty, forwardingActivities) : new List<Activity>(),
+                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty, forwardingActivities, partyUrnsByPartyUuid) : new List<Activity>(),
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted),
                 ServiceOwnerContext = GetServiceOwnerContextForCorrespondence(correspondence)
@@ -301,7 +301,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         }
 
 
-        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, string? dialogParty = null, List<Activity>? forwardingActivities = null)
+        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, string? dialogParty = null, List<Activity>? forwardingActivities = null, Dictionary<Guid, string>? partyUrnsByPartyUuid = null)
         {
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
@@ -309,13 +309,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var readStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Read);
             if (readStatus != null && !string.IsNullOrWhiteSpace(openedActivityIdempotencyKey))
             {
-                activities.Add(GetActivityFromStatus(correspondence, readStatus, openedActivityIdempotencyKey, dialogParty));
+                activities.Add(GetActivityFromStatus(correspondence, readStatus, openedActivityIdempotencyKey, dialogParty, partyUrnsByPartyUuid));
             }
 
             var confirmedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed);
             if (confirmedStatus != null && !string.IsNullOrWhiteSpace(confirmedActivityIdempotencyKey))
             {
-                activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, confirmedActivityIdempotencyKey, dialogParty));
+                activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, confirmedActivityIdempotencyKey, dialogParty, partyUrnsByPartyUuid));
             }
 
             activities.AddRange(GetActivitiesFromNotifications(correspondence));
@@ -328,15 +328,24 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return activities.OrderBy(a => a.CreatedAt).ToList();
         }
 
-        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? activityId = null, string? dialogParty = null)
+        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? activityId = null, string? dialogParty = null, Dictionary<Guid, string>? partyUrnsByPartyUuid = null)
         {
             bool isConfirmation = status.Status == CorrespondenceStatus.Confirmed;
 
             Activity activity = new Activity();
             activity.Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId;
+
+            // Use the actual person who performed the action from the lookup dictionary
+            // Fall back to dialogParty/recipient if not found (shouldn't happen for migrated data with correct PartyUuid)
+            string actorId = dialogParty ?? correspondence.GetRecipientUrn();
+            if (partyUrnsByPartyUuid != null && partyUrnsByPartyUuid.TryGetValue(status.PartyUuid, out var partyUrn))
+            {
+                actorId = partyUrn;
+            }
+
             activity.PerformedBy = new PerformedBy()
             {
-                ActorId = dialogParty ?? correspondence.GetRecipientUrn(),
+                ActorId = actorId,
                 ActorType = "PartyRepresentative"
             };
             activity.CreatedAt = status.StatusChanged;
