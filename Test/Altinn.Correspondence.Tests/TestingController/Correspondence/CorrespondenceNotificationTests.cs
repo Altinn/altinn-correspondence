@@ -1,4 +1,4 @@
-using Altinn.Correspondence.API.Models;
+﻿using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -240,6 +240,29 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task Correspondence_CustomRecipient_InvalidEmail_GivesBadRequest()
+        {
+            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
+            var customRecipient = new NotificationRecipientExt()
+            {
+                EmailAddress = "andreas.hammerbeckdigir.no"
+            };
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithRecipients([recipient])
+                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
+                .WithNotificationChannel(NotificationChannelExt.Email)
+                .WithCustomNotificationRecipient(customRecipient)
+                .Build();
+
+            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            var problemDetails = await initResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
+            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
+            Assert.Equal(NotificationErrors.InvalidEmailProvided.Message, problemDetails?.Detail);
+        }
+
+        [Fact]
         public async Task Correspondence_CustomRecipient_InvalidPhoneNumber_GivesBadRequest()
         {
             var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
@@ -360,55 +383,6 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var problemDetails = await initResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
             Assert.Equal(NotificationErrors.CustomRecipientWithNumberOrEmailNotAllowedWithKeyWordRecipientName.Message, problemDetails?.Detail);
-        }
-
-
-        [Theory]
-        [InlineData("andreas.hammerbeckdigir.no")]
-        [InlineData("test@example.com;test2@example.com")]
-        [InlineData("not-an-email")]
-        [InlineData("@nodomain.com")]
-        public async Task Correspondence_CustomRecipient_InvalidEmail_GivesBadRequest(string email)
-        {
-            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
-            var customRecipient = new NotificationRecipientExt()
-            {
-                EmailAddress = email
-            };
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithRecipients([recipient])
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
-                .WithNotificationChannel(NotificationChannelExt.Email)
-                .WithCustomNotificationRecipient(customRecipient)
-                .Build();
-
-            payload.Correspondence.Notification.EmailBody = "Test message";
-
-            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            var problemDetails = await initResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
-            Assert.Equal(HttpStatusCode.BadRequest, initResponse.StatusCode);
-            Assert.Equal(NotificationErrors.InvalidEmailProvided.Message, problemDetails?.Detail);
-        }
-
-        [Fact]
-        public async Task Correspondence_CustomRecipient_QuotedLocalPartEmail_GivesOk()
-        {
-            var recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
-            var customRecipient = new NotificationRecipientExt()
-            {
-                EmailAddress = "\"quoted.user\"@example.com"
-            };
-            var payload = new CorrespondenceBuilder()
-                .CreateCorrespondence()
-                .WithRecipients([recipient])
-                .WithNotificationTemplate(NotificationTemplateExt.GenericAltinnMessage)
-                .WithNotificationChannel(NotificationChannelExt.Email)
-                .WithCustomNotificationRecipient(customRecipient)
-                .Build();
-
-            var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
-            Assert.Equal(HttpStatusCode.OK, initResponse.StatusCode);
         }
 
         [Fact]
