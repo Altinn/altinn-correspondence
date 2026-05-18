@@ -114,19 +114,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
                     _logger.LogInformation("Attachment {AttachmentId} in correspondence {CorrespondenceId} has a filename that exceeds the maximum length for zip entries. It will be truncated to fit within the limit.", attachment.Id, request.CorrespondenceId);
                     var ext = Path.GetExtension(originalFileName);
                     var nameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
-                    var maxBaseBytes = 255 - Encoding.UTF8.GetByteCount(ext);
-                    var byteCount = 0;
-                    var sb = new StringBuilder();
-                    foreach (var c in nameWithoutExt)
-                    {
-                        var charBytes = Encoding.UTF8.GetByteCount(new[] { c });
-                        if (byteCount + charBytes > maxBaseBytes)
-                            break;
-                        sb.Append(c);
-                        byteCount += charBytes;
-                    }
-                    sb.Append(ext);
-                    zipEntryName = sb.ToString();
+                    zipEntryName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext)) + ext;
                 }
                 var baseName = zipEntryName;
                 var uniqueName = baseName;
@@ -135,7 +123,9 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
                 {
                     var ext = Path.GetExtension(baseName);
                     var nameWithoutExt = Path.GetFileNameWithoutExtension(baseName);
-                    uniqueName = $"{nameWithoutExt}({counter}){ext}";
+                    var suffix = $"({counter})";
+                    var truncatedName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext) - Encoding.UTF8.GetByteCount(suffix));
+                    uniqueName = $"{truncatedName}{suffix}{ext}";
                     counter++;
                 }
                 var entry = archive.CreateEntry(uniqueName);
@@ -179,5 +169,20 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
 
         _logger.LogInformation("Successfully processed download of all attachments for correspondence {CorrespondenceId}", request.CorrespondenceId);
         return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream, zipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence) };
+    }
+
+    private static string TruncateToUtf8Bytes(string text, int maxBytes)
+    {
+        var byteCount = 0;
+        var sb = new StringBuilder();
+        foreach (var c in text)
+        {
+            var charBytes = Encoding.UTF8.GetByteCount(new[] { c });
+            if (byteCount + charBytes > maxBytes)
+                break;
+            sb.Append(c);
+            byteCount += charBytes;
+        }
+        return sb.ToString();
     }
 }
