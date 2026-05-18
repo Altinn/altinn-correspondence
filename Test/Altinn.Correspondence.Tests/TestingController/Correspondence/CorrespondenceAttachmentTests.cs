@@ -914,5 +914,54 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.True(Encoding.UTF8.GetByteCount(truncatedEntry.Name) <= 255);
         }
 
+        [Fact]
+        public async Task DownloadAllCorrespondenceAttachments_WithDuplicateFileNames_ReturnsSuffixedEntries()
+        {
+            using var customFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var mockAltinnAuthorization = new Mock<IAltinnAuthorizationService>();
+                mockAltinnAuthorization
+                    .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+                mockAltinnAuthorization
+                    .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<AttachmentEntity>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+
+                var existing = services.FirstOrDefault(d => d.ServiceType == typeof(IAltinnAuthorizationService));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped(_ => mockAltinnAuthorization.Object);
+            });
+
+            var recipientClient = customFactory.CreateClientWithAddedClaims(("notSender", "true"), ("scope", AuthorizationConstants.RecipientScope));
+
+            // Arrange
+            const string sharedFileName = "duplicate.pdf";
+            var attachmentId1 = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions, fileName: sharedFileName);
+            var attachmentId2 = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions, fileName: sharedFileName);
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExistingAttachments([attachmentId1, attachmentId2])
+                .Build();
+
+            var initializeResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
+            initializeResponse.EnsureSuccessStatusCode();
+            var initializeContent = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var correspondenceId = initializeContent!.Correspondences.First().CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            // Act
+            var downloadResponse = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/attachments/downloadall");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, downloadResponse.StatusCode);
+            var zipStream = await downloadResponse.Content.ReadAsStreamAsync();
+            using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+
+            Assert.Equal(2, archive.Entries.Count);
+            Assert.Contains(archive.Entries, e => e.Name == sharedFileName);
+            Assert.Contains(archive.Entries, e => e.Name == "duplicate(1).pdf");
+        }
+
     }
 }
