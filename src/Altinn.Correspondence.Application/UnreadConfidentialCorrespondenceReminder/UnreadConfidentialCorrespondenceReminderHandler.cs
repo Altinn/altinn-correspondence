@@ -30,7 +30,8 @@ public class UnreadConfidentialCorrespondenceHandler(
             logger.LogError("Correspondence with id {correspondenceId} not found when processing unread confidential correspondence", correspondenceId);
             return;
         }
-        if (correspondence.StatusHasBeen(CorrespondenceStatus.Read))
+        var latestStatus = correspondence.GetHighestStatus();
+        if (correspondence.StatusHasBeen(CorrespondenceStatus.Read) || !latestStatus.Status.IsAvailableForRecipient())
         {
             return;
         }
