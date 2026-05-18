@@ -61,7 +61,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 ApiActions = GetApiActionsForCorrespondence(baseUrl, correspondence),
                 GuiActions = GetGuiActionsForCorrespondence(baseUrl, correspondence),
                 Attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence, enableDownloadAll),
-                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, dialogParty, forwardingActivities, partyUrnsByPartyUuid) : new List<Activity>(),
+                Activities = includeActivities ? GetActivitiesForMigratedCorrespondence(correspondence, partyUrnsByPartyUuid!, openedActivityIdempotencyKey, confirmedActivityIdempotencyKey, forwardingActivities) : new List<Activity>(), // Only happens for Migrated Correspondences, and we only want to include activities for those, as they are used to backfill the activity history in Dialogporten.
                 Transmissions = new List<Transmission>(),
                 SystemLabel = GetSystemLabelForCorrespondence(correspondence, isSoftDeleted),
                 ServiceOwnerContext = GetServiceOwnerContextForCorrespondence(correspondence)
@@ -301,7 +301,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         }
 
 
-        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, string? dialogParty = null, List<Activity>? forwardingActivities = null, Dictionary<Guid, string>? partyUrnsByPartyUuid = null)
+        private static List<Activity> GetActivitiesForMigratedCorrespondence(CorrespondenceEntity correspondence, Dictionary<Guid, string> partyUrnsByPartyUuid, string? openedActivityIdempotencyKey = null, string? confirmedActivityIdempotencyKey = null, List<Activity>? forwardingActivities = null)
         {
             List<Activity> activities = new();
             var orderedStatuses = correspondence.Statuses.OrderBy(s => s.StatusChanged);
