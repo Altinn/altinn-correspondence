@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Claims;
+using System.Text;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -105,6 +106,28 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             var usedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var attachment in attachments)
             {
+                var fileNameBytes = Encoding.UTF8.GetByteCount(attachment.FileName ?? string.Empty);
+                if (fileNameBytes > 255)                {
+                    _logger.LogInformation("Attachment {AttachmentId} in correspondence {CorrespondenceId} has a filename that exceeds the maximum length for zip entries. It will be truncated to fit within the limit.", attachment.Id, request.CorrespondenceId);
+                    var ext = Path.GetExtension(attachment.FileName ?? string.Empty);
+                    var nameWithoutExt = Path.GetFileNameWithoutExtension(attachment.FileName ?? string.Empty);
+                    var maxBaseBytes = 255 - Encoding.UTF8.GetByteCount(ext);
+                    
+                    var byteCount = 0;
+                    var sb = new StringBuilder();
+                    foreach (var c in nameWithoutExt)
+                    {
+                        var charBytes = Encoding.UTF8.GetByteCount(new[] { c });
+                        if (byteCount + charBytes > maxBaseBytes)
+                        {
+                            break;
+                        }
+                        sb.Append(c);
+                        byteCount += charBytes;
+                    }
+                    sb.Append(ext);
+                    attachment.FileName = sb.ToString();
+                }
                 var baseName = attachment.FileName ?? attachment.Id.ToString();
                 var uniqueName = baseName;
                 var counter = 1;
