@@ -309,13 +309,13 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             var readStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Read);
             if (readStatus != null && !string.IsNullOrWhiteSpace(openedActivityIdempotencyKey))
             {
-                activities.Add(GetActivityFromStatus(correspondence, readStatus, openedActivityIdempotencyKey, dialogParty, partyUrnsByPartyUuid));
+                activities.Add(GetActivityFromStatus(correspondence, readStatus, partyUrnsByPartyUuid, openedActivityIdempotencyKey));
             }
 
             var confirmedStatus = orderedStatuses.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed);
             if (confirmedStatus != null && !string.IsNullOrWhiteSpace(confirmedActivityIdempotencyKey))
             {
-                activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, confirmedActivityIdempotencyKey, dialogParty, partyUrnsByPartyUuid));
+                activities.Add(GetActivityFromStatus(correspondence, confirmedStatus, partyUrnsByPartyUuid, confirmedActivityIdempotencyKey));
             }
 
             activities.AddRange(GetActivitiesFromNotifications(correspondence));
@@ -328,19 +328,20 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return activities.OrderBy(a => a.CreatedAt).ToList();
         }
 
-        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, string? activityId = null, string? dialogParty = null, Dictionary<Guid, string>? partyUrnsByPartyUuid = null)
+        private static Activity GetActivityFromStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity status, Dictionary<Guid, string> partyUrnsByPartyUuid, string? activityId = null)
         {
             bool isConfirmation = status.Status == CorrespondenceStatus.Confirmed;
 
             Activity activity = new Activity();
             activity.Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId;
 
-            // Use the actual person who performed the action from the lookup dictionary
-            // Fall back to dialogParty/recipient if not found (shouldn't happen for migrated data with correct PartyUuid)
-            string actorId = dialogParty ?? correspondence.GetRecipientUrn();
-            if (partyUrnsByPartyUuid != null && partyUrnsByPartyUuid.TryGetValue(status.PartyUuid, out var partyUrn))
+            // Look up the correct actor URN for the party who performed this action
+            if (!partyUrnsByPartyUuid.TryGetValue(status.PartyUuid, out var actorId))
             {
-                actorId = partyUrn;
+                throw new InvalidOperationException(
+                    $"Failed to find party URN for PartyUuid {status.PartyUuid} in activity for correspondence {correspondence.Id}. " +
+                    $"Status: {status.Status}, StatusChanged: {status.StatusChanged}. " +
+                    "This indicates a data inconsistency - the party should have been looked up before creating the dialog.");
             }
 
             activity.PerformedBy = new PerformedBy()

@@ -25,7 +25,7 @@ public class PartyUrnHelper
     /// </summary>
     /// <param name="party">The party to convert</param>
     /// <returns>URN string in format "urn:altinn:person:identifier-no:123..." or similar</returns>
-    /// <exception cref="ArgumentException">If party type is not supported</exception>
+    /// <exception cref="ArgumentException">If party type is not supported or required identifier is missing</exception>
     public string ConvertPartyToUrn(Party party)
     {
         if (party is null)
@@ -35,9 +35,15 @@ public class PartyUrnHelper
 
         return party.PartyTypeName switch
         {
-            PartyType.Person => $"{UrnConstants.PersonIdAttribute}:{party.SSN}",
-            PartyType.Organization => $"{UrnConstants.OrganizationNumberAttribute}:{party.OrgNumber}",
-            PartyType.SelfIdentified => $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{party.Username}",
+            PartyType.Person => string.IsNullOrEmpty(party.SSN)
+                ? throw new ArgumentException($"Party of type {party.PartyTypeName} is missing required SSN field", nameof(party))
+                : $"{UrnConstants.PersonIdAttribute}:{party.SSN}",
+            PartyType.Organization => string.IsNullOrEmpty(party.OrgNumber)
+                ? throw new ArgumentException($"Party of type {party.PartyTypeName} is missing required OrgNumber field", nameof(party))
+                : $"{UrnConstants.OrganizationNumberAttribute}:{party.OrgNumber}",
+            PartyType.SelfIdentified => string.IsNullOrEmpty(party.Username)
+                ? throw new ArgumentException($"Party of type {party.PartyTypeName} is missing required Username field", nameof(party))
+                : $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{party.Username}",
             _ => throw new ArgumentException($"Unsupported party type: {party.PartyTypeName}", nameof(party))
         };
     }
