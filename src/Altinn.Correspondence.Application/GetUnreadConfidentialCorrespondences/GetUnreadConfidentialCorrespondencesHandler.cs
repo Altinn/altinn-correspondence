@@ -46,9 +46,9 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     }
 
 
-    var defaultTextNb = "Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tjeneste som kreves. Hovedadministrator må delegere tilgang til denne tjenesten for at noen i din virksomhet skal kunne se meldingene. Se mer informasjon på våre hjelpesider: https://info.altinn.no/help/ny-tilgangsstyring/enkelttjenester/";
-    var defaultTextNn = "Under ligg ein oversikt over kva meldingar som er uopna og viser til avsendar, dato meldinga blei publisert og kva teneste som krevst. Hovudadministrator må delegere tilgang til denne tenesta for at nokon i verksemda di skal kunne sjå meldingane. Sjå meir informasjon på våre hjelpesider: https://info.altinn.no/nn/help/ny-tilgangsstyring/enkelttjenester/";
-    var defaultTextEn = "Below is an overview of which correspondences are unopened and shows the sender, the date the correspondence was published and which service is required. The main administrator must delegate access to this service for someone in your organization to be able to see the messages. See more information on our support pages: https://info.altinn.no/en/help/ny-tilgangsstyring/enkelttjenester/";
+    var defaultTextNb = "Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tjeneste som kreves. Hovedadministrator må delegere tilgang til denne tjenesten for at noen i din virksomhet skal kunne se meldingene. Se mer informasjon på våre hjelpesider: https://info.altinn.no/hjelp/ny-tilgangsstyring/taushetsbelagt-post/";
+    var defaultTextNn = "Under ligg ein oversikt over kva meldingar som er uopna og viser til avsendar, dato meldinga blei publisert og kva teneste som krevst. Hovudadministrator må delegere tilgang til denne tenesta for at nokon i verksemda di skal kunne sjå meldingane. Sjå meir informasjon på våre hjelpesider: https://info.altinn.no/nn/hjelp/ny-tilgangsstyring/taushetsbelagt-post/";
+    var defaultTextEn = "Below is an overview of which correspondences are unopened and shows the sender, the date the correspondence was published and which service is required. The main administrator must delegate access to this service for someone in your organization to be able to see the messages. See more information on our support pages: https://info.altinn.no/en/help/ny-tilgangsstyring/taushetsbelagt-post/";
 
     var defaultText = languageCode switch
     {
