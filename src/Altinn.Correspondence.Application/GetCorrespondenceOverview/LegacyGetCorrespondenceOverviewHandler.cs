@@ -157,26 +157,20 @@ public class LegacyGetCorrespondenceOverviewHandler(
                 InstanceOwnerPartyId = resourceOwnerParty.PartyId
             };
 
-            logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} for party {PartyId}", correspondence.Id, partyId);
-            logger.LogInformation("IsConfidential: {IsConfidential}. Has access as recipient: {HasAccessAsRecipient}. Calling as sender: {CallingAsSender}. Has confidential reminder: {HasConfidentialReminder}", correspondence.IsConfidential, await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken), user?.CallingAsSender() ?? false, await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken));
             if (correspondence.IsConfidential 
                 && await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken)
                 && !(user?.CallingAsSender() ?? false) 
                 && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
             {
-                logger.LogInformation("Processing confidential reminder for correspondence {CorrespondenceId} for party {PartyId}", correspondence.Id, partyId);
                 if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
                 {
                     var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
                     if (reminderDialogId.HasValue)
                     {
-                        logger.LogInformation("Soft deleting dialog {DialogId} for confidential reminder for party {PartyId}", reminderDialogId.Value, partyId);
                         await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
-                        logger.LogInformation("Soft deleted dialog {DialogId} for confidential reminder for party {PartyId}", reminderDialogId.Value, partyId);
                     }
                 }
                 await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
-                logger.LogInformation("Removed confidential reminder for correspondence {CorrespondenceId} for party {PartyId}", correspondence.Id, partyId);
             }
             return response;
         }, logger, cancellationToken);
