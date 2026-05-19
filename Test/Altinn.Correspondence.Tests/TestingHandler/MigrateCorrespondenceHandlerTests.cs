@@ -75,6 +75,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _idempotencyKeyRepositoryMock.Object,
                 new Mock<ILogger<PurgeCorrespondenceHelper>>().Object);
 
+            var mockPartyUrnHelper = new Mock<Core.Services.PartyUrnHelper>(_altinnRegisterServiceMock.Object, Mock.Of<ILogger<Core.Services.PartyUrnHelper>>());
+
             var correspondenceEventHelper = new CorrespondenceMigrationEventHelper(
                 _correspondenceStatusRepositoryMock.Object,
                 _correspondenceDeleteRepositoryMock.Object,
@@ -84,6 +86,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 purgeCorrespondenceHelper,
                 _idempotencyKeyRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
+                mockPartyUrnHelper.Object,
                 _eventHelperLoggerMock.Object);
 
             // Ensure Create returns a non-null job id by default (needed for continuations)

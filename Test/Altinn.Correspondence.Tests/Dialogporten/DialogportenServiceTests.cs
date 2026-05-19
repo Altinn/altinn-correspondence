@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -62,6 +63,7 @@ public class DialogportenServiceTests
         var mockResourceRegistryService = new Mock<IResourceRegistryService>();
         var mockCorrespondenceForwardingEventRepository = new Mock<ICorrespondenceForwardingEventRepository>();
         var mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
+        var mockPartyUrnHelper = new Mock<Core.Services.PartyUrnHelper>(mockAltinnRegisterService.Object, Mock.Of<ILogger<Core.Services.PartyUrnHelper>>());
         var options = Options.Create(new GeneralSettings { CorrespondenceBaseUrl = "https://correspondence.example" });
 
         var service = new DialogportenService(httpClient,
@@ -71,7 +73,8 @@ public class DialogportenServiceTests
                                               options,
                                               mockLogger.Object,
                                               mockIdem.Object,
-                                              mockResourceRegistryService.Object);
+                                              mockResourceRegistryService.Object,
+                                              mockPartyUrnHelper.Object);
         return (service, () => capturedRequestBody);
     }
 
@@ -119,6 +122,8 @@ public class DialogportenServiceTests
         var mockResourceRegistryService = new Mock<IResourceRegistryService>();
         var mockCorrespondenceForwardingEventRepository = new Mock<ICorrespondenceForwardingEventRepository>();
         var mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
+        var mockPartyUrnHelperLogger = new Mock<ILogger<Core.Services.PartyUrnHelper>>();
+        var mockPartyUrnHelper = new Mock<Core.Services.PartyUrnHelper>(mockAltinnRegisterService.Object, mockPartyUrnHelperLogger.Object);
         var options = Options.Create(new GeneralSettings { CorrespondenceBaseUrl = "https://correspondence.example" });
 
         // Setup forwarding event repository to track DialogActivityId assignments
@@ -133,7 +138,8 @@ public class DialogportenServiceTests
                                               options,
                                               mockLogger.Object,
                                               mockIdem.Object,
-                                              mockResourceRegistryService.Object);
+                                              mockResourceRegistryService.Object,
+                                              mockPartyUrnHelper.Object);
         return (service, mockCorrespondenceForwardingEventRepository, mockAltinnRegisterService, () => capturedRequestBody);
     }
 
@@ -629,5 +635,219 @@ public class DialogportenServiceTests
 
         Assert.NotNull(forwardingActivity);
         Assert.Equal(existingDialogActivityId.ToString(), forwardingActivity!.Id);
+    }
+
+    [Fact]
+    public async Task CreateCorrespondenceDialogForMigratedCorrespondence_WithReadStatus_ShouldUsePersonActorIdNotOrganization()
+    {
+        // Arrange - Reproduces Issue #1951
+        var correspondenceId = Guid.NewGuid();
+        var personPartyUuid = new Guid("b96ca314-021d-49b8-a267-376d55acd01f");
+        var readTimestamp = new DateTimeOffset(new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc));
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithRecipient($"{UrnConstants.OrganizationNumberAttribute}:910000001") // Fabricated test organization
+            .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow)
+            .Build();
+
+        // Add Read status with correct PartyUuid
+        correspondence.Statuses.Add(new CorrespondenceStatusEntity
+        {
+            Status = CorrespondenceStatus.Read,
+            StatusChanged = readTimestamp,
+            PartyUuid = personPartyUuid
+        });
+
+        var (service, forwardingRepoMock, altinnRegisterMock, getBody) = CreateServiceWithForwardingEventSupport(correspondence);
+
+        // Setup party lookup to return the person who actually performed the read action
+        altinnRegisterMock
+            .Setup(a => a.LookUpPartyByPartyUuid(personPartyUuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Party
+            {
+                PartyUuid = personPartyUuid,
+                SSN = "12345678901",
+                PartyTypeName = PartyType.Person,
+                Name = "Test Person"
+            });
+
+        // Act
+        var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
+
+        // Assert
+        Assert.Equal("dialog-id", resultId);
+
+        var capturedRequestBody = getBody();
+        var deserialized = JsonSerializer.Deserialize<CreateDialogRequest>(capturedRequestBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        Assert.NotNull(deserialized);
+        Assert.NotNull(deserialized!.Activities);
+
+        // Find the Read activity
+        var readActivity = deserialized.Activities.FirstOrDefault(a => a.Type == "CorrespondenceOpened");
+
+        Assert.NotNull(readActivity);
+        Assert.Equal("PartyRepresentative", readActivity!.PerformedBy.ActorType);
+
+        // ActorId should be the person URN, NOT the organization URN
+        Assert.Contains("urn:altinn:person:identifier-no:12345678901", readActivity.PerformedBy.ActorId);
+        Assert.DoesNotContain("urn:altinn:organizationnumber:910000001", readActivity.PerformedBy.ActorId);
+    }
+
+    [Fact]
+    public async Task CreateCorrespondenceDialogForMigratedCorrespondence_WithConfirmedStatus_ShouldUsePersonActorIdNotOrganization()
+    {
+        // Arrange - Reproduces Issue #1951
+        var correspondenceId = Guid.NewGuid();
+        var personPartyUuid = new Guid("b96ca314-021d-49b8-a267-376d55acd01f");
+        var readTimestamp = new DateTimeOffset(new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc));
+        var confirmTimestamp = new DateTimeOffset(new DateTime(2024, 1, 15, 10, 35, 0, DateTimeKind.Utc));
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithRecipient($"{UrnConstants.OrganizationNumberAttribute}:910000001") // Fabricated test organization
+            .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow)
+            .Build();
+
+        correspondence.IsConfirmationNeeded = true;
+
+        // Add Read and Confirmed statuses with correct PartyUuids
+        correspondence.Statuses.Add(new CorrespondenceStatusEntity
+        {
+            Status = CorrespondenceStatus.Read,
+            StatusChanged = readTimestamp,
+            PartyUuid = personPartyUuid
+        });
+        correspondence.Statuses.Add(new CorrespondenceStatusEntity
+        {
+            Status = CorrespondenceStatus.Confirmed,
+            StatusChanged = confirmTimestamp,
+            PartyUuid = personPartyUuid
+        });
+
+        var (service, forwardingRepoMock, altinnRegisterMock, getBody) = CreateServiceWithForwardingEventSupport(correspondence);
+
+        // Setup party lookup
+        altinnRegisterMock
+            .Setup(a => a.LookUpPartyByPartyUuid(personPartyUuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Party
+            {
+                PartyUuid = personPartyUuid,
+                SSN = "12345678901",
+                PartyTypeName = PartyType.Person,
+                Name = "Test Person"
+            });
+
+        // Act
+        var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
+
+        // Assert
+        Assert.Equal("dialog-id", resultId);
+
+        var capturedRequestBody = getBody();
+        var deserialized = JsonSerializer.Deserialize<CreateDialogRequest>(capturedRequestBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        Assert.NotNull(deserialized);
+        Assert.NotNull(deserialized!.Activities);
+
+        // Find the Confirmed activity
+        var confirmedActivity = deserialized.Activities.FirstOrDefault(a => a.Type == "CorrespondenceConfirmed");
+
+        Assert.NotNull(confirmedActivity);
+        Assert.Equal("PartyRepresentative", confirmedActivity!.PerformedBy.ActorType);
+
+        // ActorId should be the person URN, NOT the organization URN
+        Assert.Contains("urn:altinn:person:identifier-no:12345678901", confirmedActivity.PerformedBy.ActorId);
+        Assert.DoesNotContain("urn:altinn:organizationnumber:910000001", confirmedActivity.PerformedBy.ActorId);
+    }
+
+    [Fact]
+    public async Task CreateCorrespondenceDialogForMigratedCorrespondence_WithBothReadAndConfirmedStatus_ShouldUseCorrectActorForEach()
+    {
+        // Arrange - Test case where different persons read and confirmed
+        var correspondenceId = Guid.NewGuid();
+        var personWhoReadUuid = new Guid("b96ca314-021d-49b8-a267-376d55acd01f");
+        var personWhoConfirmedUuid = new Guid("c86ea314-021d-49b8-a267-376d55acd02a");
+        var readTimestamp = new DateTimeOffset(new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc));
+        var confirmTimestamp = new DateTimeOffset(new DateTime(2024, 1, 15, 11, 00, 0, DateTimeKind.Utc));
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithRecipient($"{UrnConstants.OrganizationNumberAttribute}:910000001") // Fabricated test organization
+            .WithStatus(CorrespondenceStatus.Published, DateTimeOffset.UtcNow)
+            .Build();
+
+        correspondence.IsConfirmationNeeded = true;
+
+        // Add Read and Confirmed statuses with different PartyUuids
+        correspondence.Statuses.Add(new CorrespondenceStatusEntity
+        {
+            Status = CorrespondenceStatus.Read,
+            StatusChanged = readTimestamp,
+            PartyUuid = personWhoReadUuid
+        });
+        correspondence.Statuses.Add(new CorrespondenceStatusEntity
+        {
+            Status = CorrespondenceStatus.Confirmed,
+            StatusChanged = confirmTimestamp,
+            PartyUuid = personWhoConfirmedUuid
+        });
+
+        var (service, forwardingRepoMock, altinnRegisterMock, getBody) = CreateServiceWithForwardingEventSupport(correspondence);
+
+        // Setup party lookups for both persons
+        altinnRegisterMock
+            .Setup(a => a.LookUpPartyByPartyUuid(personWhoReadUuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Party
+            {
+                PartyUuid = personWhoReadUuid,
+                SSN = "11111111111",
+                PartyTypeName = PartyType.Person,
+                Name = "Person One"
+            });
+
+        altinnRegisterMock
+            .Setup(a => a.LookUpPartyByPartyUuid(personWhoConfirmedUuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Party
+            {
+                PartyUuid = personWhoConfirmedUuid,
+                SSN = "22222222222",
+                PartyTypeName = PartyType.Person,
+                Name = "Person Two"
+            });
+
+        // Act
+        var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
+
+        // Assert
+        Assert.Equal("dialog-id", resultId);
+
+        var capturedRequestBody = getBody();
+        var deserialized = JsonSerializer.Deserialize<CreateDialogRequest>(capturedRequestBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        Assert.NotNull(deserialized);
+        Assert.NotNull(deserialized!.Activities);
+
+        var readActivity = deserialized.Activities.FirstOrDefault(a => a.Type == "CorrespondenceOpened");
+        var confirmedActivity = deserialized.Activities.FirstOrDefault(a => a.Type == "CorrespondenceConfirmed");
+
+        Assert.NotNull(readActivity);
+        Assert.NotNull(confirmedActivity);
+
+        // Verify read activity uses the person who read
+        Assert.Contains("urn:altinn:person:identifier-no:11111111111", readActivity!.PerformedBy.ActorId);
+
+        // Verify confirmed activity uses the person who confirmed
+        Assert.Contains("urn:altinn:person:identifier-no:22222222222", confirmedActivity!.PerformedBy.ActorId);
     }
 }

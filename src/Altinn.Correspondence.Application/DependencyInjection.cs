@@ -38,6 +38,7 @@ using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 using Altinn.Correspondence.Application.DownloadAllCorrespondenceAttachments;
+using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.Application;
 
@@ -102,6 +103,7 @@ public static class DependencyInjection
         services.AddScoped<NotificationMapper>();
         services.AddScoped<CorrespondenceMigrationEventHelper>();
         services.AddScoped<InitializeCorrespondenceValidationHelper>();
+        services.AddScoped<PartyUrnHelper>();
 
         // Legacy
         services.AddScoped<LegacyGetCorrespondencesHandler>();
