@@ -17,6 +17,8 @@ public class LegacyGetCorrespondenceOverviewHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
+    IConfidentialReminderRepository confidentialReminderRepository,
+    IDialogportenService dialogportenService,
     UserClaimsHelper userClaimsHelper,
     IBackgroundJobClient backgroundJobClient,
     ILogger<LegacyGetCorrespondenceOverviewHandler> logger) : IHandler<Guid, LegacyGetCorrespondenceOverviewResponse>
@@ -154,6 +156,22 @@ public class LegacyGetCorrespondenceOverviewHandler(
                 PropertyList = correspondence.PropertyList ?? new Dictionary<string, string>(),
                 InstanceOwnerPartyId = resourceOwnerParty.PartyId
             };
+
+            if (correspondence.IsConfidential 
+                && await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken) == false
+                && !(user?.CallingAsSender() ?? false) 
+                && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
+            {
+                if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
+                {
+                    var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
+                    if (reminderDialogId.HasValue)
+                    {
+                        await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
+                    }
+                }
+                await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
+            }
             return response;
         }, logger, cancellationToken);
     }
