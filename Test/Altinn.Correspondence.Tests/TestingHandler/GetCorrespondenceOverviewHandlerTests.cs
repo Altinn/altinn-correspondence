@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
+using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -53,6 +54,15 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Returns((string key, Func<CancellationToken, ValueTask<bool>> factory, HybridCacheEntryOptions opts, IEnumerable<string> tags, CancellationToken ct) =>
                     factory(ct).AsTask());
 
+            var publishCorrespondenceHandler = new PublishCorrespondenceHandler(
+                _altinnRegisterServiceMock.Object,
+                Mock.Of<ILogger<PublishCorrespondenceHandler>>(),
+                _correspondenceRepositoryMock.Object,
+                _correspondenceStatusRepositoryMock.Object,
+                Mock.Of<IContactReservationRegistryService>(),
+                _backgroundJobClientMock.Object,
+                Mock.Of<IIdempotencyKeyRepository>());
+
             _handler = new GetCorrespondenceOverviewHandler(
                 _altinnAuthorizationServiceMock.Object,
                 _altinnRegisterServiceMock.Object,
@@ -62,6 +72,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _backgroundJobClientMock.Object,
                 _dialogportenServiceMock.Object,
                 _cacheMock.Object,
+                publishCorrespondenceHandler,
                 _loggerMock.Object);
         }
 

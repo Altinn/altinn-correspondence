@@ -27,7 +27,8 @@ public class DialogportenService(HttpClient _httpClient,
                                  IOptions<GeneralSettings> generalSettings,
                                  ILogger<DialogportenService> logger,
                                  IIdempotencyKeyRepository _idempotencyKeyRepository,
-                                 IResourceRegistryService _resourceRegistryService) : IDialogportenService
+                                 IResourceRegistryService _resourceRegistryService,
+                                 PartyUrnHelper partyUrnHelper) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
     {
@@ -890,7 +891,13 @@ public class DialogportenService(HttpClient _httpClient,
     }
 
 
-    #region MigrationRelated    
+    #region MigrationRelated
+   
+    private async Task<Dictionary<Guid, string>> GetDialogPortenActorIdsForStatusEvents(List<CorrespondenceStatusEntity> statusEvents, CancellationToken cancellationToken)
+    {
+        return await partyUrnHelper.GetDialogPortenActorIdsForStatusEvents(statusEvents, cancellationToken);
+    }
+
     /// <summary>
     /// Create Dialog in Dialogportern without creating any events. Used in regards to old correspondences being migrated from Altinn 2 to Altinn 3.
     /// </summary>
@@ -913,6 +920,9 @@ public class DialogportenService(HttpClient _httpClient,
 
         var forwardingActivities = await BuildForwardingActivities(correspondence, cancellationToken);
 
+        // Get party URNs for status events (Read and Confirmed) to use correct actor IDs
+        var partyUrnsByPartyUuid = await GetDialogPortenActorIdsForStatusEvents(correspondence.Statuses, cancellationToken);
+
         var createDialogRequest = CreateDialogRequestMapper.CreateCorrespondenceDialog(
             correspondence: correspondence,
             baseUrl: generalSettings.Value.CorrespondenceBaseUrl,
@@ -923,7 +933,8 @@ public class DialogportenService(HttpClient _httpClient,
             isSoftDeleted: isSoftDeleted,
             dialogParty: dialogParty,
             forwardingActivities: forwardingActivities,
-            enableDownloadAll: generalSettings.Value.EnableDownloadAll);
+            enableDownloadAll: generalSettings.Value.EnableDownloadAll,
+            partyUrnsByPartyUuid: partyUrnsByPartyUuid);
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -1174,12 +1185,9 @@ public class DialogportenService(HttpClient _httpClient,
         }
 
         string? forwardedByUrn;
-        if (forwardedByParty.PartyTypeName == PartyType.Person)
+        if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
         {
-            forwardedByUrn = UrnConstants.PersonIdAttribute + ":" + forwardedByParty.SSN;
-        }
-        else if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
-        {
+            // Special handling for self-identified users in dialog activities
             forwardedByUrn = await GetDialogActivityParty(forwardedByParty.ExternalUrn);
             if (string.IsNullOrWhiteSpace(forwardedByUrn))
             {
@@ -1188,7 +1196,15 @@ public class DialogportenService(HttpClient _httpClient,
         }
         else
         {
-            throw new Exception($"Unsupported party type {forwardedByParty.PartyTypeName} for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
+            // Use the common helper for Person and Organization types
+            try
+            {
+                forwardedByUrn = partyUrnHelper.ConvertPartyToUrn(forwardedByParty);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new Exception($"Unsupported party type {forwardedByParty.PartyTypeName} for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}", ex);
+            }
         }
 
         // Determine forwarding type and create appropriate activity
