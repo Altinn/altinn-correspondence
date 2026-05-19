@@ -160,7 +160,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} for party {PartyId}", correspondence.Id, partyId);
             logger.LogInformation("IsConfidential: {IsConfidential}. Has access as recipient: {HasAccessAsRecipient}. Calling as sender: {CallingAsSender}. Has confidential reminder: {HasConfidentialReminder}", correspondence.IsConfidential, await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken), user?.CallingAsSender() ?? false, await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken));
             if (correspondence.IsConfidential 
-                && await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken) == false
+                && await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken)
                 && !(user?.CallingAsSender() ?? false) 
                 && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
             {
