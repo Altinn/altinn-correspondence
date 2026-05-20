@@ -59,7 +59,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         var user = new ClaimsPrincipal();
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT1);
@@ -79,7 +79,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(false);
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT1);
@@ -108,7 +108,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(new List<CorrespondenceEntity> { correspondence });
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT0);
@@ -136,7 +136,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(new List<CorrespondenceEntity> { newer, older });
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT0);
@@ -161,7 +161,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(new List<CorrespondenceEntity>());
 
         // Act
-        await _handler.Process(user, CancellationToken.None);
+        await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.Equal(TimeSpan.FromMinutes(1), capturedMinAge);
@@ -180,10 +180,100 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             .ReturnsAsync(new List<CorrespondenceEntity>());
 
         // Act
-        var result = await _handler.Process(user, CancellationToken.None);
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
         Assert.True(result.IsT1);
         Assert.Equal(CorrespondenceErrors.UnreadConfidentialCorrespondencesNotFound.ErrorCode, result.AsT1.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Process_UserLanguageNorwegianBokmål_ReturnsBokmålText()
+    {
+        // Arrange
+        var user = CreateOrgUser();
+        var published = new DateTimeOffset(2026, 1, 15, 0, 0, 0, TimeSpan.Zero);
+        var correspondence = CreateCorrespondenceForListing(
+            "urn:altinn:organization:identifier-no:310300942",
+            published,
+            "some-resource-id");
+
+        _altinnAuthorizationServiceMock
+            .Setup(x => x.CheckAccessAsAny(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _correspondenceRepositoryMock
+            .Setup(x => x.GetUnopenedConfidentialCorrespondencesForParty(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { correspondence });
+
+        // Act
+        var result = await _handler.Process(user, "nb", CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsT0);
+        var text = result.AsT0.Text;
+
+        Assert.Contains("Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tjeneste som kreves.", text);
+        Assert.DoesNotContain("Under ligg ein oversikt over kva meldingar som er uopna og viser til avsendar, dato meldinga blei publisert og kva teneste som krevst.", text);
+        Assert.DoesNotContain("Below is an overview of which correspondences are unopened and shows the sender, the date the correspondence was published and which service is required.", text);
+    }
+
+    [Fact]
+    public async Task Process_UserLanguageNorwegianNynorsk_ReturnsNynorskText()
+    {
+        // Arrange
+        var user = CreateOrgUser();
+        var published = new DateTimeOffset(2026, 1, 15, 0, 0, 0, TimeSpan.Zero);
+        var correspondence = CreateCorrespondenceForListing(
+            "urn:altinn:organization:identifier-no:310300942",
+            published,
+            "some-resource-id");
+
+        _altinnAuthorizationServiceMock
+            .Setup(x => x.CheckAccessAsAny(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _correspondenceRepositoryMock
+            .Setup(x => x.GetUnopenedConfidentialCorrespondencesForParty(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { correspondence });
+
+        // Act
+        var result = await _handler.Process(user, "nn", CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsT0);
+        var text = result.AsT0.Text;
+
+        Assert.Contains("Under ligg ein oversikt over kva meldingar som er uopna og viser til avsendar, dato meldinga blei publisert og kva teneste som krevst.", text);
+        Assert.DoesNotContain("Below is an overview of which correspondences are unopened and shows the sender, the date the correspondence was published and which service is required.", text);
+        Assert.DoesNotContain("Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tjeneste som kreves.", text);
+    }
+
+    [Fact]
+    public async Task Process_UserLanguageEnglish_ReturnsEnglishText()
+    {
+        // Arrange
+        var user = CreateOrgUser();
+        var published = new DateTimeOffset(2026, 1, 15, 0, 0, 0, TimeSpan.Zero);
+        var correspondence = CreateCorrespondenceForListing(
+            "urn:altinn:organization:identifier-no:310300942",
+            published,
+            "some-resource-id");
+
+        _altinnAuthorizationServiceMock
+            .Setup(x => x.CheckAccessAsAny(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _correspondenceRepositoryMock
+            .Setup(x => x.GetUnopenedConfidentialCorrespondencesForParty(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { correspondence });
+
+        // Act
+        var result = await _handler.Process(user, "en", CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsT0);
+        var text = result.AsT0.Text;
+
+        Assert.Contains("Below is an overview of which correspondences are unopened and shows the sender, the date the correspondence was published and which service is required.", text);
+        Assert.DoesNotContain("Under ligg ein oversikt over kva meldingar som er uopna og viser til avsendar, dato meldinga blei publisert og kva teneste som krevst.", text);
+        Assert.DoesNotContain("Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tjeneste som kreves.", text);
     }
 }
