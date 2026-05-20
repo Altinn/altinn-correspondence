@@ -8,6 +8,7 @@ namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[ApiExplorerSettings(IgnoreApi = true)]
 public class SlackTestController : ControllerBase
 {
     private readonly ISlackClient _slackClient;
