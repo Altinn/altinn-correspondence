@@ -13,8 +13,14 @@ public class SecurityHeadersMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         context.Response.Headers.Append("X-Content-Type-Options", new StringValues("nosniff"));
-        context.Response.Headers.Append("Cache-Control", new StringValues("no-store"));
+        if (!IsSwaggerPath(context.Request.Path))
+        {
+            context.Response.Headers.Append("Cache-Control", new StringValues("no-store"));
+        }
 
         await _next(context);
     }
+
+    private static bool IsSwaggerPath(PathString path) =>
+        path.StartsWithSegments("/correspondence/swagger", StringComparison.OrdinalIgnoreCase);
 }
