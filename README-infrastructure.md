@@ -72,6 +72,8 @@ We run on Platform's shared APIM. It is configured in [Azure Devops/altinn-studi
 
 https://pedia.altinn.cloud/altinn-3/ops/release-and-deploy/api-management/
 
+When you run the app locally you will get Swagger documents that include all the endpoints and that can be used directly with the APIM deployment pipeline in altinn-studio-ops.
+
 ### Exposing Swagger / OpenAPI through APIM
 
 The API serves Swagger UI and the OpenAPI document from the application:
