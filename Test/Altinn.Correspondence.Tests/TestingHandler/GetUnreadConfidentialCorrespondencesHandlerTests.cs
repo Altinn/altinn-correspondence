@@ -15,6 +15,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
     private readonly Mock<IAltinnAuthorizationService> _altinnAuthorizationServiceMock;
     private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
+    private readonly Mock<IResourceRegistryService> _resourceRegistryServiceMock;
     private readonly Mock<IHostEnvironment> _hostEnvironmentMock;
     private readonly GetUnreadConfidentialCorrespondencesHandler _handler;
 
@@ -23,6 +24,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
         _altinnAuthorizationServiceMock = new Mock<IAltinnAuthorizationService>();
         _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
+        _resourceRegistryServiceMock = new Mock<IResourceRegistryService>();
         _hostEnvironmentMock = new Mock<IHostEnvironment>();
         _hostEnvironmentMock.Setup(x => x.EnvironmentName).Returns("Development");
 
@@ -30,6 +32,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             _correspondenceRepositoryMock.Object,
             _altinnAuthorizationServiceMock.Object,
             _altinnRegisterServiceMock.Object,
+            _resourceRegistryServiceMock.Object,
             _hostEnvironmentMock.Object);
     }
 
@@ -114,7 +117,6 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         Assert.True(result.IsT0);
         var text = result.AsT0.Text;
         Assert.Contains("310300942", text);
-        Assert.Contains("some-resource-id", text);
         Assert.Contains("15.01.2026", text);
         Assert.Contains("1.", text);
     }
@@ -141,8 +143,8 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         // Assert
         Assert.True(result.IsT0);
         var text = result.AsT0.Text;
-        var olderIndex = text.IndexOf("older-resource", StringComparison.Ordinal);
-        var newerIndex = text.IndexOf("newer-resource", StringComparison.Ordinal);
+        var olderIndex = text.IndexOf("111111111", StringComparison.Ordinal);
+        var newerIndex = text.IndexOf("222222222", StringComparison.Ordinal);
         Assert.True(olderIndex < newerIndex, "Older correspondence should appear before newer in the formatted text");
     }
 
