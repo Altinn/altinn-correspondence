@@ -175,6 +175,10 @@ public class LegacyGetCorrespondenceOverviewHandler(
                     await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception e)
             {
                 logger.LogError(e, "Failed to clean up confidential reminder for correspondence {CorrespondenceId}", correspondence.Id);
