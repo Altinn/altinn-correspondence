@@ -82,3 +82,5 @@ The API serves Swagger UI and the OpenAPI document from the application:
 | Staging (TT02) | `https://platform.tt02.altinn.no/correspondence/swagger/index.html` | `https://platform.tt02.altinn.no/correspondence/swagger/v1/swagger.json` |
 | Production | `https://platform.altinn.no/correspondence/swagger/index.html` | `https://platform.altinn.no/correspondence/swagger/v1/swagger.json` |
 
+Each deployment uses `GeneralSettings:CorrespondenceBaseUrl` so the generated specification contains the correct `servers` URL for that environment.
+
