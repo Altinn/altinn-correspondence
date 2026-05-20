@@ -40,19 +40,6 @@ public static class ApplicationConstants
         ".gif",
         ".bmp"
     ];
-    public static readonly List<string> RequiredOrganizationRolesForCorrespondenceRecipient = 
-    [
-        "bestyrende-reder",
-        "daglig-leder",
-        "deltaker-delt-ansvar",
-        "deltaker-fullt-ansvar",
-        "innehaver",
-        "styreleder",
-        "komplementar",
-        "bostyrer",
-        "kontaktperson-ados",
-        "norsk-representant",
-    ];
 
     public static readonly List<string> RequiredOrganizationRolesForConfidentialCorrespondenceRecipient = 
     [
