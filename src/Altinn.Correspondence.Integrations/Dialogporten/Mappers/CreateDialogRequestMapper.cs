@@ -223,8 +223,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Value = new List<DialogValue> {
                     new DialogValue()
                     {
-                        Value =  reminderDto.Title ?? "",
+                        Value =  "Din virksomhet har uåpnet taushetsbelagt post",
                         LanguageCode = "nb"
+                    },
+                    new DialogValue()
+                    {
+                        Value =  "Din verksemd har uopna tausheitsbelagt post",
+                        LanguageCode = "nn"
+                    },
+                    new DialogValue()
+                    {
+                        Value =  "Your organization has unopened confidential mail",
+                        LanguageCode = "en"
                     }
                 }
             };
@@ -235,8 +245,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Value = new List<DialogValue> {
                     new DialogValue()
                     {
-                        Value = reminderDto.Summary ?? "",
+                        Value = "Din virksomhet har mottatt en eller flere meldinger som er taushetsbelagte og som ikke er åpnet. Dette varselet inneholder informasjon om hvordan du kan lese disse",
                         LanguageCode = "nb"
+                    },
+                    new DialogValue()
+                    {
+                        Value = "Din verksemd har mottatt ein eller fleire meldingar som er tausheitsbelagte og som ikkje er opna. Dette varselet inneheld informasjon om korleis du kan lese desse",
+                        LanguageCode = "nn"
+                    },
+                    new DialogValue()
+                    {
+                        Value = "Your organization has received one or more correspondences that are confidential and have not been opened. This notice contains information on how you can read them",
+                        LanguageCode = "en"
                     }
                 }
             };
@@ -248,7 +268,17 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     new DialogValue()
                     {
                         LanguageCode = "nb",
-                        Value = $"{(baseUrl ?? "").TrimEnd('/')}/correspondence/api/v1/confidential-reminders"
+                        Value = $"{(baseUrl ?? "").TrimEnd('/')}/correspondence/api/v1/confidential-reminders?languageCode=nb"
+                    },
+                    new DialogValue()
+                    {
+                        LanguageCode = "nn",
+                        Value = $"{(baseUrl ?? "").TrimEnd('/')}/correspondence/api/v1/confidential-reminders?languageCode=nn"
+                    },
+                    new DialogValue()
+                    {
+                        LanguageCode = "en",
+                        Value = $"{(baseUrl ?? "").TrimEnd('/')}/correspondence/api/v1/confidential-reminders?languageCode=en"
                     }
                 }
             };

@@ -41,8 +41,8 @@ public class UnreadConfidentialCorrespondenceHandler(
         var reminder = new ConfidentialReminderDialogDto
         {
             Id = Guid.CreateVersion7(),
-            Title = "Din virksomhet har en uåpnet taushetsbelagt post",
-            Summary = "Din virksomhet har mottatt ett eller flere brev som er taushetsbelagte og som ikke er åpnet. Dette varselet inneholder informasjon om hvordan du kan lese disse",
+            Title = "", // Value for title and summary is assigned in the mapper based on the users language
+            Summary = "",
             Recipient = correspondence.Recipient.WithUrnPrefix(),
             ResourceId = "ttd-reminder-unopened-confidential-correspondences",
             SendersReference = "Digdir",
