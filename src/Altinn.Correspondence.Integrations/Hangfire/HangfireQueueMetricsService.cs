@@ -102,7 +102,8 @@ public sealed class HangfireQueueMetricsService : IHostedService
 
             _lastSnapshot = snapshot;
             _lastSnapshotAtUtc = now;
-            return snapshot;
+
+            return _lastSnapshot;
         }
     }
 

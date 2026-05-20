@@ -99,6 +99,37 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
             Times.Never);
     }
 
+    [Theory]
+    [InlineData(CorrespondenceStatus.Initialized)]
+    [InlineData(CorrespondenceStatus.ReadyForPublish)]
+    [InlineData(CorrespondenceStatus.Failed)]
+    public async Task Process_CorrespondenceNotAvailableForRecipient_ReturnsEarlyWithoutCreatingReminder(CorrespondenceStatus status)
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithStatus(status)
+            .Build();
+        _correspondenceRepositoryMock
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(correspondence);
+
+        // Act
+        await _handler.Process(correspondenceId, CancellationToken.None);
+
+        // Assert
+        _backgroundJobClientMock.Verify(
+            x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()),
+            Times.Never);
+        _confidentialReminderRepositoryMock.Verify(
+            x => x.AddConfidentialReminder(It.IsAny<ConfidentialReminderEntity>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _dialogportenServiceMock.Verify(
+            x => x.CreateConfidentialReminderDialog(It.IsAny<ConfidentialReminderDialogDto>()),
+            Times.Never);
+    }
+
     [Fact]
     public async Task Process_NoExistingRemindersForRecipient_CreatesNewDialogAndSavesReminder()
     {

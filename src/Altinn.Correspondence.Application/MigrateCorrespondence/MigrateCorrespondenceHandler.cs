@@ -142,7 +142,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
             throw;
         }
     }
-
+    [AutomaticRetry(Attempts = 0)]
     public async Task<OneOf<MakeCorrespondenceAvailableResponse, Error>> MakeCorrespondenceAvailable(MakeCorrespondenceAvailableRequest request, CancellationToken cancellationToken)
     {
         string? dialogId;

@@ -28,11 +28,12 @@ public class CorrespondenceMigrationEventHelper(
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IBackgroundJobClient backgroundJobClient,
+    PartyUrnHelper partyUrnHelper,
     ILogger<CorrespondenceMigrationEventHelper> logger)
 {
-    private static readonly CorrespondenceStatus[] _validSyncStatuses = { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };    
+    private static readonly CorrespondenceStatus[] _validSyncStatuses = { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };
 
-    public async Task<bool> ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public async Task<bool> ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> actorIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         logger.LogDebug("Process {OperationName} status event {Status} for {CorrespondenceId}", operationName, eventToExecute.Status, correspondenceId);
         
@@ -74,13 +75,13 @@ public class CorrespondenceMigrationEventHelper(
                     case CorrespondenceStatus.Confirmed:
                         {
                             var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId, CancellationToken.None));
-                            if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
+                            if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
                             {
-                                logger.LogWarning("Skipping updating dialog for Confirm for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                                logger.LogWarning("Skipping updating dialog for Confirm for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
                             }
                             else
                             {
-                                backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: patchJobId, queue: HangfireQueues.LiveMigration, methodCall: (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId), options: JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2                            
+                                backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: patchJobId, queue: HangfireQueues.LiveMigration, methodCall: (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, actorId), options: JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2                            
                             }                        
                             backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
                             break;
@@ -88,14 +89,14 @@ public class CorrespondenceMigrationEventHelper(
 
                     case CorrespondenceStatus.Read:
                         {
-                        
-                            if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
+
+                            if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
                             {
-                                logger.LogWarning("Skipping updating dialog for Read for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                                logger.LogWarning("Skipping updating dialog for Read for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
                             }
                             else
                             {
-                                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, endUserId));
+                                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, actorId));
                             }
                             backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
                             break;
@@ -103,13 +104,13 @@ public class CorrespondenceMigrationEventHelper(
 
                     case CorrespondenceStatus.Archived:
                         {
-                            if (!enduserIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var endUserId))
+                            if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
                             {
-                                logger.LogWarning("Skipping updating dialog for Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten enduserId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                                logger.LogWarning("Skipping updating dialog for Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
                             }
                             else
                             {
-                                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondence.Id, endUserId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondence.Id, actorId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
                             }                        
                             break;
                         }
@@ -131,7 +132,7 @@ public class CorrespondenceMigrationEventHelper(
         }
     }
 
-    public async Task<bool> ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> enduserIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public async Task<bool> ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> actorIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         logger.LogDebug("Process {OperationName} delete event {EventType} for {CorrespondenceId}", operationName, deletionEvent.EventType, correspondenceId);
 
@@ -141,8 +142,8 @@ public class CorrespondenceMigrationEventHelper(
             case CorrespondenceDeleteEventType.HardDeletedByRecipient:
                 if (ValidatePerformPurge(correspondence))
                 {
-                    enduserIdByPartyUuid.TryGetValue(deletionEvent.PartyUuid, out var endUserId);
-                    return await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken, endUserId);
+                    actorIdByPartyUuid.TryGetValue(deletionEvent.PartyUuid, out var actorId);
+                    return await PurgeCorrespondence(correspondence, deletionEvent, operationName, cancellationToken, actorId);
                 }
                 else
                 {
@@ -150,7 +151,7 @@ public class CorrespondenceMigrationEventHelper(
                 }
             case CorrespondenceDeleteEventType.SoftDeletedByRecipient:
             case CorrespondenceDeleteEventType.RestoredByRecipient:
-                return await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, enduserIdByPartyUuid, cancellationToken);                
+                return await SoftDeleteOrRestoreCorrespondence(correspondence, deletionEvent, actorIdByPartyUuid, cancellationToken);
             default:
                 throw new ArgumentException($"Unknown Deletion Event Type {deletionEvent.EventType} for Correspondence {correspondenceId}");
         }
@@ -242,45 +243,9 @@ public class CorrespondenceMigrationEventHelper(
         return filteredStatusEvents;
     }
 
-    public async Task<Dictionary<Guid, string>> GetDialogPortenEndUserIdsForEvents(List<CorrespondenceStatusEntity>? statusEventsToExecute, List<CorrespondenceDeleteEventEntity>? deletionEventsToExecute, CancellationToken cancellationToken)
+    public async Task<Dictionary<Guid, string>> GetDialogPortenActorIdsForEvents(List<CorrespondenceStatusEntity>? statusEventsToExecute, List<CorrespondenceDeleteEventEntity>? deletionEventsToExecute, CancellationToken cancellationToken)
     {
-        var enduserIdByPartyUuid = new Dictionary<Guid, string>();
-        
-        var partyUuidsToLookup = (statusEventsToExecute ?? Enumerable.Empty<CorrespondenceStatusEntity>())            
-            .Select(e => e.PartyUuid)
-            .Distinct();
-
-        partyUuidsToLookup = partyUuidsToLookup
-           .Concat((deletionEventsToExecute ?? Enumerable.Empty<CorrespondenceDeleteEventEntity>())               
-               .Select(e => e.PartyUuid))
-           .Distinct(); // Handles all duplicates
-        
-        foreach (var uuid in partyUuidsToLookup)
-        {
-            var party = await altinnRegisterService.LookUpPartyByPartyUuid(uuid, cancellationToken);
-            if (party is null)
-            {
-                logger.LogWarning("Party with UUID {PartyUuid} not found in Altinn Register. Skipping Dialogporten mapping, which may lead to issues later on.", uuid);
-                continue;
-            }
-            switch (party.PartyTypeName)
-            {
-                case PartyType.Person:
-                    enduserIdByPartyUuid[uuid] = $"{UrnConstants.PersonIdAttribute}:{party.SSN}";
-                    break;
-                case PartyType.Organization:
-                    enduserIdByPartyUuid[uuid] = $"{UrnConstants.OrganizationNumberAttribute}:{party.OrgNumber}";
-                    break;
-                case PartyType.SelfIdentified:
-                    enduserIdByPartyUuid[uuid] = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{party.Username}";
-                    break;
-                default:
-                    logger.LogWarning("Party with UUID {PartyUuid} has unsupported PartyType {PartyTypeName}. Cannot map to Dialogporten enduserId.", uuid, party.PartyTypeName);
-                    break;
-            }
-        }
-
-        return enduserIdByPartyUuid;
+        return await partyUrnHelper.GetDialogPortenActorIdsForEvents(statusEventsToExecute, deletionEventsToExecute, cancellationToken);
     }
 
     /// <summary>
@@ -410,7 +375,7 @@ public class CorrespondenceMigrationEventHelper(
         }
     }
 
-    public async Task<bool> SoftDeleteOrRestoreCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, Dictionary<Guid, string> enduserIdByPartyUuid, CancellationToken cancellationToken)
+    public async Task<bool> SoftDeleteOrRestoreCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, Dictionary<Guid, string> actorIdByPartyUuid, CancellationToken cancellationToken)
     {
         if (CorrespondenceDeleteEventType.SoftDeletedByRecipient != deleteEventToSync.EventType && CorrespondenceDeleteEventType.RestoredByRecipient != deleteEventToSync.EventType)
         {
@@ -442,15 +407,15 @@ public class CorrespondenceMigrationEventHelper(
                 {
                     logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to the Correspondence being purged.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
                 }
-                else if (!enduserIdByPartyUuid.TryGetValue(deleteEventToSync.PartyUuid, out var endUserId))
+                else if (!actorIdByPartyUuid.TryGetValue(deleteEventToSync.PartyUuid, out var actorId))
                 {
-                    logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to missing Dialogporten enduserId for party {PartyUuid}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred, deleteEventToSync.PartyUuid);
+                    logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to missing Dialogporten actorId for party {PartyUuid}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred, deleteEventToSync.PartyUuid);
                 }
                 else
                 {
                     // Enqueue SoftDelete or Restore in Dialogporten
                     bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
-                    SetSoftDeleteOrRestoreOnDialog(correspondence.Id, endUserId, deleteEventToSync.EventType, isArchived);
+                    SetSoftDeleteOrRestoreOnDialog(correspondence.Id, actorId, deleteEventToSync.EventType, isArchived);
                 }
             }
             
@@ -793,8 +758,8 @@ public class CorrespondenceMigrationEventHelper(
         MigrationOperationType operationName,
         CancellationToken cancellationToken)
     {
-        // Get dialog porten end user IDs for the events that need them
-        var enduserIdsByPartyUuids = await GetDialogPortenEndUserIdsForEvents(statusEvents, deleteEvents, cancellationToken);
+        // Get dialog porten actor IDs for the events that need them
+        var actorIdsByPartyUuids = await GetDialogPortenActorIdsForEvents(statusEvents, deleteEvents, cancellationToken);
 
         // After filtering both collections, combine them into a single sorted collection, sorted by timestamp they occurred
         var allEventsToProcess = statusEvents
@@ -817,11 +782,11 @@ public class CorrespondenceMigrationEventHelper(
                 bool wasSaved = false;
                 if (evt.EventType == "Status")
                 {
-                    wasSaved = await ProcessStatusEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, operationName, cancellationToken);
+                    wasSaved = await ProcessStatusEvent(correspondenceId, correspondence, actorIdsByPartyUuids, (CorrespondenceStatusEntity)evt.Event, operationName, cancellationToken);
                 }
                 else if (evt.EventType == "Delete")
                 {
-                    wasSaved = await ProcessDeleteEvent(correspondenceId, correspondence, enduserIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, operationName, cancellationToken);
+                    wasSaved = await ProcessDeleteEvent(correspondenceId, correspondence, actorIdsByPartyUuids, (CorrespondenceDeleteEventEntity)evt.Event, operationName, cancellationToken);
                 }
 
                 if (wasSaved)

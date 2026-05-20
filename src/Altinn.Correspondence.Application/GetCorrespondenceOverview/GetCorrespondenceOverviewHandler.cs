@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -23,6 +24,7 @@ public class GetCorrespondenceOverviewHandler(
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
     IHybridCacheWrapper cache,
+    PublishCorrespondenceHandler publishCorrespondenceHandler,
     ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -51,6 +53,13 @@ public class GetCorrespondenceOverviewHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
 
+        var didAttemptInlinePublish = await AttemptImmediatePublishIfDelayed(correspondence, hasAccessAsRecipient, user, operationTimestamp, cancellationToken);
+        if (didAttemptInlinePublish)
+        {
+            correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, includeStatus: true, includeContent: true, includeForwardingEvents: false, cancellationToken) ?? correspondence;
+            operationTimestamp = DateTimeOffset.UtcNow;
+        }
+        
         var latestStatus = correspondence.GetHighestStatus();
         if (latestStatus == null)
         {
@@ -191,22 +200,70 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
                 request.CorrespondenceId, 
                 latestStatus.Status);
-            if (correspondence.IsConfidential 
-                && hasAccessAsRecipient 
-                && !(user?.CallingAsSender() ?? false) 
-                && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
+            try
             {
-                if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
+                if (correspondence.IsConfidential 
+                    && hasAccessAsRecipient 
+                    && !(user?.CallingAsSender() ?? false) 
+                    && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
                 {
-                    var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
-                    if (reminderDialogId.HasValue)
+                    if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
                     {
-                        await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
+                        var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
+                        if (reminderDialogId.HasValue)
+                        {
+                            await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
+                        }
                     }
+                    await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
                 }
-                await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to clean up confidential reminder for correspondence {CorrespondenceId}", correspondence.Id);
             }
             return response;
         }, logger, cancellationToken);
+    }
+
+    private async Task<bool> AttemptImmediatePublishIfDelayed(
+        CorrespondenceEntity correspondence,
+        bool hasAccessAsRecipient,
+        ClaimsPrincipal? user,
+        DateTimeOffset operationTimestamp,
+        CancellationToken cancellationToken)
+    {
+        var isRecipientFetch = hasAccessAsRecipient && !(user?.CallingAsSender() ?? false);
+        var isPastRequestedPublishTime = correspondence.RequestedPublishTime <= operationTimestamp;
+        var isAwaitingPublish = !correspondence.StatusHasBeen(CorrespondenceStatus.Published)
+            && !correspondence.StatusHasBeen(CorrespondenceStatus.Failed);
+        if (!isRecipientFetch || !isPastRequestedPublishTime || !isAwaitingPublish)
+        {
+            return false;
+        }
+
+        var hasDialogReference = correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
+        if (!hasDialogReference)
+        {
+            return false;
+        }
+
+        logger.LogInformation("Publish for correspondence {CorrespondenceId} appears delayed; running inline before serving recipient", correspondence.Id);
+        await cache.GetOrCreateAsync(
+            $"InlinePublish:{correspondence.Id}",
+            async ct =>
+            {
+                await publishCorrespondenceHandler.Process(correspondence.Id, null, ct);
+                return true;
+            },
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromSeconds(30) },
+            null,
+            cancellationToken);
+
+        return true;
     }
 }
