@@ -13,6 +13,11 @@ namespace Altinn.Correspondence.Controllers
         [HttpGet]
         public async Task<ActionResult> HealthCheckAsync()
         {
+            return Ok(new
+            {
+                Status = "Healthy",
+                Message = "Process is responsive"
+            });
             try
             {
                 await _dbContext.Database.CanConnectAsync();
