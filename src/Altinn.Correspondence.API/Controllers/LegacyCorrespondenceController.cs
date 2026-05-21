@@ -9,6 +9,7 @@ using Altinn.Correspondence.Application.PurgeCorrespondence;
 using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +21,7 @@ namespace Altinn.Correspondence.API.Controllers
     /// As such it overrides some standad authentication mechanisms
     /// </summary>
     [ApiController]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ExcludeFromPublicOpenApi]
     [Route("correspondence/api/v1/legacy/correspondence")]
     [Authorize(Policy = AuthorizationConstants.Legacy)]
     public class LegacyCorrespondenceController : Controller

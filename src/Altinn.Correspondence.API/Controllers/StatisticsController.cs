@@ -2,12 +2,13 @@ using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.API.Swagger;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
-[ApiExplorerSettings(IgnoreApi = true)]  // Hide from public API documentation for now
+[ExcludeFromPublicOpenApi]
 [Route("correspondence/api/v1/statistics")]
 [ServiceFilter(typeof(StatisticsApiKeyFilter))]
 public class StatisticsController(ILogger<StatisticsController> logger) : Controller

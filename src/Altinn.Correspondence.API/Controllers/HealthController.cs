@@ -1,11 +1,12 @@
 using Altinn.Correspondence.Persistence;
+using Altinn.Correspondence.API.Swagger;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Correspondence.Controllers
 {
     [ApiController]
     [Route("health")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ExcludeFromPublicOpenApi]
     public class HealthController(ApplicationDbContext dbContext) : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext = dbContext;

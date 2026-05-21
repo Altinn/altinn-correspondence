@@ -17,6 +17,7 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -362,7 +363,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Produces("text/plain")]
         [Authorize(Policy = AuthorizationConstants.Recipient)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
-        [ApiExplorerSettings(IgnoreApi = true)]
+        [ExcludeFromPublicOpenApi]
         public async Task<ActionResult> GetCorrespondenceContent(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceOverviewHandler handler,
@@ -656,7 +657,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/notification/check")]
         [Authorize(Policy = AuthorizationConstants.NotificationCheck)]
-        [ApiExplorerSettings(IgnoreApi = true)]
+        [ExcludeFromPublicOpenApi]
         public async Task<ActionResult> CheckNotification(
             Guid correspondenceId,
             [FromServices] CheckNotificationHandler handler,

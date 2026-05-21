@@ -4,6 +4,7 @@ using Altinn.Correspondence.Application.CleanupPerishingDialogs;
 using Altinn.Correspondence.Application.CleanupMarkdownAndHTMLInSummary;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.API.Swagger;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
@@ -21,7 +22,7 @@ using Altinn.Correspondence.Application.MaskinportenJwkRotation;
 namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
-[ApiExplorerSettings(IgnoreApi = true)]
+[ExcludeFromPublicOpenApi]
 [Route("correspondence/api/v1/maintenance")]
 [Authorize]
 public class MaintenanceController(ILogger<MaintenanceController> logger) : Controller
