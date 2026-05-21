@@ -71,3 +71,18 @@ az account get-access-token --resource=https://ossrdbms-aad.database.windows.net
 We run on Platform's shared APIM. It is configured in [Azure Devops/altinn-studio-ops](https://dev.azure.com/brreg/altinn-studio-ops/_git/altinn-studio-ops) See:
 
 https://pedia.altinn.cloud/altinn-3/ops/release-and-deploy/api-management/
+
+When you run the app locally you will get Swagger documents that include all the endpoints and that can be used directly with the APIM deployment pipeline in altinn-studio-ops.
+
+### Exposing Swagger / OpenAPI through APIM
+
+The API serves Swagger UI and the OpenAPI document from the application:
+
+| Environment | Swagger UI | OpenAPI JSON |
+| --- | --- | --- |
+| Test | `https://altinn-dev-api.azure-api.net/correspondence/api/v1/swagger/index.html` | `https://altinn-dev-api.azure-api.net/correspondence/api/v1/swagger/v1/swagger.json` |
+| Staging (TT02) | `https://platform.tt02.altinn.no/correspondence/api/v1/swagger/index.html` | `https://platform.tt02.altinn.no/correspondence/api/v1/swagger/v1/swagger.json` |
+| Production | `https://platform.altinn.no/correspondence/api/v1/swagger/index.html` | `https://platform.altinn.no/correspondence/api/v1/swagger/v1/swagger.json` |
+
+Each deployment uses `GeneralSettings:CorrespondenceBaseUrl` so the generated specification contains the correct `servers` URL for that environment.
+

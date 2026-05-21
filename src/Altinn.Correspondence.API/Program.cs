@@ -1,6 +1,8 @@
 using Altinn.Correspondence.API.Auth;
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.API.Helpers;
+using Altinn.Correspondence.API.Middleware;
+using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Application;
 using Altinn.ApiClients.Maskinporten.Config;
 using Altinn.Correspondence.Common.Caching;
@@ -21,7 +23,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Npgsql;
 using StackExchange.Redis;
-using System.Reflection;
 using System.Text.Json.Serialization;
 
 BuildAndRun(args);
@@ -57,11 +58,8 @@ static void BuildAndRun(string[] args)
     bootstrapLogger.LogInformation("Application built");
 
     app.UseExceptionHandler();
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+    app.UseMiddleware<SwaggerDocumentCacheMiddleware>();
+    app.UseCorrespondenceOpenApi();
     app.UseCors(AuthorizationConstants.ArbeidsflateCors);
     app.UseAuthentication();
     app.UseAuthorization();
@@ -102,7 +100,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.Configure<GeneralSettings>(config.GetSection(key: nameof(GeneralSettings)));
     services.Configure<MaskinportenJwkRotationSettings>(config.GetSection(key: nameof(MaskinportenJwkRotationSettings)));
 
-    services.AddControllers().AddJsonOptions(options =>
+    services.AddControllers(options =>
+    {
+        options.Conventions.Add(new ShowInternalApisInDevelopmentApplicationModelConvention(hostEnvironment));
+    }).AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
@@ -145,14 +146,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.ConfigureAuthentication(config, hostEnvironment);
     services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
-    services.AddSwaggerGen(options =>
-    {
-        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-        options.IncludeXmlComments(xmlPath);
-        options.SchemaFilter<ProblemDetailsSchemaFilter>();
-        options.OperationFilter<BadRequestOneOfOperationFilter>();
-    });
+    services.AddCorrespondenceOpenApi(config);
 
     services.AddApplicationHandlers();
     services.AddPersistence(config, bootstrapLogger);

@@ -1,5 +1,4 @@
-﻿using Altinn.Correspondence.API.Models.Enums;
-using Altinn.Correspondence.Application.GetCorrespondenceOverview;
+using Altinn.Correspondence.API.Models.Enums;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -55,7 +54,7 @@ namespace Altinn.Correspondence.API.Models
         /// An overview of the notifications for this correspondence
         /// </summary>
         [JsonPropertyName("notifications")]
-        public List<CorrespondenceNotificationOverview> Notifications { get; set; } = new List<CorrespondenceNotificationOverview>();
+        public List<CorrespondenceNotificationOverviewExt> Notifications { get; set; } = new List<CorrespondenceNotificationOverviewExt>();
 
         /// <summary>
         /// The identifier/reference from Altinn 2 for migrated correspondence. Will be null for correspondence created in Altinn 3.
