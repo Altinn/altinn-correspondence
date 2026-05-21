@@ -1,4 +1,3 @@
-using Altinn.Correspondence.API.Swagger;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Slack.Webhooks;
@@ -9,7 +8,7 @@ namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[ExcludeFromPublicOpenApi]
+[ApiExplorerSettings(IgnoreApi = true)]
 public class SlackTestController : ControllerBase
 {
     private readonly ISlackClient _slackClient;

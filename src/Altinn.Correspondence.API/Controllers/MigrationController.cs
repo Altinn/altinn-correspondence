@@ -10,7 +10,6 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Helpers;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.Mappers;
-using Altinn.Correspondence.API.Swagger;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,7 +17,7 @@ namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [SetJobOrigin("migrate")]
-    [ExcludeFromPublicOpenApi]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [Route("correspondence/api/v1/migration")]
     [Authorize]
     public class MigrationController : Controller

@@ -22,6 +22,5 @@ public class SecurityHeadersMiddleware
     }
 
     private static bool IsSwaggerPath(PathString path) =>
-        path.StartsWithSegments("/correspondence/swagger", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWithSegments("/swagger", StringComparison.OrdinalIgnoreCase);
+        path.StartsWithSegments("/correspondence/swagger", StringComparison.OrdinalIgnoreCase);
 }

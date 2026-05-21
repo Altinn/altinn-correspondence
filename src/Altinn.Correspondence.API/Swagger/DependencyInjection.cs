@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Filters;
+using Altinn.Correspondence.Core.Options;
 using Microsoft.OpenApi;
 using System.Reflection;
 
@@ -8,30 +9,18 @@ internal static class DependencyInjection
 {
     public static IServiceCollection AddCorrespondenceOpenApi(
         this IServiceCollection services,
-        IConfiguration configuration,
-        IHostEnvironment hostEnvironment)
+        IConfiguration configuration)
     {
-        var registry = CorrespondenceOpenApiDocumentSetup.BuildRegistry(configuration, hostEnvironment);
-        services.AddSingleton(registry);
+        var generalSettings = new GeneralSettings();
+        configuration.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
 
         services.AddSwaggerGen(options =>
         {
-            foreach (var descriptor in registry.Descriptors)
+            options.SwaggerDoc(CorrespondenceOpenApiConstants.DocumentName, new OpenApiInfo
             {
-                options.SwaggerDoc(descriptor.Name, descriptor.Info);
-            }
-
-            options.DocInclusionPredicate((documentName, apiDesc) =>
-            {
-                if (string.Equals(
-                        documentName,
-                        CorrespondenceOpenApiConstants.DocumentName,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    return !OpenApiDocumentationHelper.IsExcludedFromPublicOpenApi(apiDesc);
-                }
-
-                return true;
+                Title = CorrespondenceOpenApiConstants.Title,
+                Version = CorrespondenceOpenApiConstants.DocumentName,
+                Description = CorrespondenceOpenApiConstants.Description
             });
 
             options.AddSecurityDefinition(CorrespondenceOpenApiConstants.SecuritySchemeId, new OpenApiSecurityScheme
