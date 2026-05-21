@@ -92,15 +92,15 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     }
 
     var linesNb = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Melding fra avsender {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til tjenesten: {resourceTitles[c.ResourceId]}")
+        .Select((c, i) => $"{i + 1}. Melding fra avsender {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til tjenesten: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
         .ToList();
 
     var linesNn = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Melding frå avsendar {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krev tilgang til tenesta: {resourceTitles[c.ResourceId]}")
+        .Select((c, i) => $"{i + 1}. Melding frå avsendar {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krev tilgang til tenesta: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
         .ToList();
 
     var linesEn = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Correspondence from sender {senderNames[i] ?? c.Sender.WithoutPrefix()} dated {c.Published:dd.MM.yyyy}, this requires access to the service: {resourceTitles[c.ResourceId]}")
+        .Select((c, i) => $"{i + 1}. Correspondence from sender {senderNames[i] ?? c.Sender.WithoutPrefix()} dated {c.Published:dd.MM.yyyy}, this requires access to the service: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
         .ToList();
 
     var lines = languageCode switch

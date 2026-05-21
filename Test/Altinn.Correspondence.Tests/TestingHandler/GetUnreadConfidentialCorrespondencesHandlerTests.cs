@@ -93,7 +93,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     }
 
     [Fact]
-    public async Task Process_WithCorrespondences_ReturnsFormattedTextContainingSenderAndResourceId()
+    public async Task Process_WithCorrespondences_ReturnsFormattedTextContainingSenderAndResourceTitle()
     {
         // Arrange
         var user = CreateOrgUser();
@@ -109,6 +109,9 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         _correspondenceRepositoryMock
             .Setup(x => x.GetUnopenedConfidentialCorrespondencesForParty(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { correspondence });
+        _resourceRegistryServiceMock
+            .Setup(x => x.GetResourceTitle("some-resource-id", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("My Resolved Service Title");
 
         // Act
         var result = await _handler.Process(user, "nb", CancellationToken.None);
@@ -119,10 +122,12 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         Assert.Contains("310300942", text);
         Assert.Contains("15.01.2026", text);
         Assert.Contains("1.", text);
+        Assert.Contains("My Resolved Service Title", text);
+        Assert.DoesNotContain("some-resource-id", text);
     }
 
     [Fact]
-    public async Task Process_WithMultipleCorrespondences_OrdersResultsByPublishDate()
+    public async Task Process_WithMultipleCorrespondences_OrdersResultsByPublishDate_NoResourceTitleFallsBackToResourceId()
     {
         // Arrange
         var user = CreateOrgUser();
@@ -132,10 +137,12 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         _altinnAuthorizationServiceMock
             .Setup(x => x.CheckAccessAsAny(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-
         _correspondenceRepositoryMock
             .Setup(x => x.GetUnopenedConfidentialCorrespondencesForParty(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { newer, older });
+        _resourceRegistryServiceMock
+            .Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
 
         // Act
         var result = await _handler.Process(user, "nb", CancellationToken.None);
@@ -146,6 +153,9 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         var olderIndex = text.IndexOf("111111111", StringComparison.Ordinal);
         var newerIndex = text.IndexOf("222222222", StringComparison.Ordinal);
         Assert.True(olderIndex < newerIndex, "Older correspondence should appear before newer in the formatted text");
+        // null title → fallback to raw resource id
+        Assert.Contains("older-resource", text);
+        Assert.Contains("newer-resource", text);
     }
 
     [Fact]
