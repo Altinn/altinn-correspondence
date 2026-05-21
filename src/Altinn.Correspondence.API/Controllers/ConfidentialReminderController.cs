@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.API.Helpers;
@@ -11,7 +12,7 @@ using Microsoft.AspNetCore.Cors;
 namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
-[ApiExplorerSettings(IgnoreApi = true)]
+[HideFromPublicApi]
 [Route("correspondence/api/v1/confidential-reminders")]
 [Authorize]
 public class ConfidentialReminderController(ILogger<ConfidentialReminderController> logger) : Controller

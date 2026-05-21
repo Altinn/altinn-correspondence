@@ -100,7 +100,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.Configure<GeneralSettings>(config.GetSection(key: nameof(GeneralSettings)));
     services.Configure<MaskinportenJwkRotationSettings>(config.GetSection(key: nameof(MaskinportenJwkRotationSettings)));
 
-    services.AddControllers().AddJsonOptions(options =>
+    services.AddControllers(options =>
+    {
+        options.Conventions.Add(new ShowInternalApisInDevelopmentApplicationModelConvention(hostEnvironment));
+    }).AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });

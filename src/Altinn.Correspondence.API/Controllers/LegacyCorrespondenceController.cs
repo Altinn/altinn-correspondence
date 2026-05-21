@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Common.Constants;
@@ -20,7 +21,7 @@ namespace Altinn.Correspondence.API.Controllers
     /// As such it overrides some standad authentication mechanisms
     /// </summary>
     [ApiController]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [HideFromPublicApi]
     [Route("correspondence/api/v1/legacy/correspondence")]
     [Authorize(Policy = AuthorizationConstants.Legacy)]
     public class LegacyCorrespondenceController : Controller
