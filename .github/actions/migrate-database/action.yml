@@ -92,7 +92,6 @@ runs:
         export DOTNET_ROOT="${DOTNET_INSTALL_DIR}"
         export PATH="${DOTNET_INSTALL_DIR}:${HOME}/.dotnet/tools:${PATH}"
         "${DOTNET_INSTALL_DIR}/dotnet" tool install --global dotnet-ef --version 10.0.*
-        "${DOTNET_INSTALL_DIR}/dotnet" tool restore
 
     - name: Create migration script
       shell: bash
@@ -100,6 +99,7 @@ runs:
         DOTNET_INSTALL_DIR="${GITHUB_WORKSPACE}/.dotnet"
         export DOTNET_ROOT="${DOTNET_INSTALL_DIR}"
         export PATH="${DOTNET_INSTALL_DIR}:${HOME}/.dotnet/tools:${PATH}"
+        "${DOTNET_INSTALL_DIR}/dotnet" restore Altinn.Correspondence.sln
         "${DOTNET_INSTALL_DIR}/dotnet" ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --force
 
     # azure/CLI@v2 runs inside Docker; use host az CLI on self-hosted runners without Docker
