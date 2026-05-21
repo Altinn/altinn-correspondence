@@ -80,9 +80,9 @@ The API serves Swagger UI and the OpenAPI document from the application:
 
 | Environment | Swagger UI | OpenAPI JSON |
 | --- | --- | --- |
-| Test | `https://altinn-dev-api.azure-api.net/correspondence/swagger/index.html` | `https://altinn-dev-api.azure-api.net/correspondence/swagger/v1/swagger.json` |
-| Staging (TT02) | `https://platform.tt02.altinn.no/correspondence/swagger/index.html` | `https://platform.tt02.altinn.no/correspondence/swagger/v1/swagger.json` |
-| Production | `https://platform.altinn.no/correspondence/swagger/index.html` | `https://platform.altinn.no/correspondence/swagger/v1/swagger.json` |
+| Test | `https://altinn-dev-api.azure-api.net/correspondence/api/v1/swagger/index.html` | `https://altinn-dev-api.azure-api.net/correspondence/api/v1/swagger/v1/swagger.json` |
+| Staging (TT02) | `https://platform.tt02.altinn.no/correspondence/api/v1/swagger/index.html` | `https://platform.tt02.altinn.no/correspondence/api/v1/swagger/v1/swagger.json` |
+| Production | `https://platform.altinn.no/correspondence/api/v1/swagger/index.html` | `https://platform.altinn.no/correspondence/api/v1/swagger/v1/swagger.json` |
 
 Each deployment uses `GeneralSettings:CorrespondenceBaseUrl` so the generated specification contains the correct `servers` URL for that environment.
 
