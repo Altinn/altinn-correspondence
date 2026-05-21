@@ -143,7 +143,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.ConfigureAuthentication(config, hostEnvironment);
     services.ConfigureAuthorization(config);
     services.AddEndpointsApiExplorer();
-    services.AddCorrespondenceOpenApi(config);
+    services.AddCorrespondenceOpenApi(config, hostEnvironment);
 
     services.AddApplicationHandlers();
     services.AddPersistence(config, bootstrapLogger);
