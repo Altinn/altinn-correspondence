@@ -15,6 +15,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
     private readonly Mock<IAltinnAuthorizationService> _altinnAuthorizationServiceMock;
     private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock;
+    private readonly Mock<IResourceRegistryService> _resourceRegistryServiceMock;
     private readonly Mock<IHostEnvironment> _hostEnvironmentMock;
     private readonly GetUnreadConfidentialCorrespondencesHandler _handler;
 
@@ -23,6 +24,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
         _altinnAuthorizationServiceMock = new Mock<IAltinnAuthorizationService>();
         _altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
+        _resourceRegistryServiceMock = new Mock<IResourceRegistryService>();
         _hostEnvironmentMock = new Mock<IHostEnvironment>();
         _hostEnvironmentMock.Setup(x => x.EnvironmentName).Returns("Development");
 
@@ -30,6 +32,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             _correspondenceRepositoryMock.Object,
             _altinnAuthorizationServiceMock.Object,
             _altinnRegisterServiceMock.Object,
+            _resourceRegistryServiceMock.Object,
             _hostEnvironmentMock.Object);
     }
 
@@ -90,7 +93,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     }
 
     [Fact]
-    public async Task Process_WithCorrespondences_ReturnsFormattedTextContainingSenderAndResourceId()
+    public async Task Process_WithCorrespondences_ReturnsFormattedTextContainingSenderAndResourceTitle()
     {
         // Arrange
         var user = CreateOrgUser();
@@ -106,6 +109,9 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         _correspondenceRepositoryMock
             .Setup(x => x.GetUnopenedConfidentialCorrespondencesForParty(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { correspondence });
+        _resourceRegistryServiceMock
+            .Setup(x => x.GetResourceTitle("some-resource-id", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("My Resolved Service Title");
 
         // Act
         var result = await _handler.Process(user, "nb", CancellationToken.None);
@@ -114,13 +120,14 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         Assert.True(result.IsT0);
         var text = result.AsT0.Text;
         Assert.Contains("310300942", text);
-        Assert.Contains("some-resource-id", text);
         Assert.Contains("15.01.2026", text);
         Assert.Contains("1.", text);
+        Assert.Contains("My Resolved Service Title", text);
+        Assert.DoesNotContain("some-resource-id", text);
     }
 
     [Fact]
-    public async Task Process_WithMultipleCorrespondences_OrdersResultsByPublishDate()
+    public async Task Process_WithMultipleCorrespondences_OrdersResultsByPublishDate_NoResourceTitleFallsBackToResourceId()
     {
         // Arrange
         var user = CreateOrgUser();
@@ -130,10 +137,12 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         _altinnAuthorizationServiceMock
             .Setup(x => x.CheckAccessAsAny(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-
         _correspondenceRepositoryMock
             .Setup(x => x.GetUnopenedConfidentialCorrespondencesForParty(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { newer, older });
+        _resourceRegistryServiceMock
+            .Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
 
         // Act
         var result = await _handler.Process(user, "nb", CancellationToken.None);
@@ -141,9 +150,12 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         // Assert
         Assert.True(result.IsT0);
         var text = result.AsT0.Text;
-        var olderIndex = text.IndexOf("older-resource", StringComparison.Ordinal);
-        var newerIndex = text.IndexOf("newer-resource", StringComparison.Ordinal);
+        var olderIndex = text.IndexOf("111111111", StringComparison.Ordinal);
+        var newerIndex = text.IndexOf("222222222", StringComparison.Ordinal);
         Assert.True(olderIndex < newerIndex, "Older correspondence should appear before newer in the formatted text");
+        // null title → fallback to raw resource id
+        Assert.Contains("older-resource", text);
+        Assert.Contains("newer-resource", text);
     }
 
     [Fact]
