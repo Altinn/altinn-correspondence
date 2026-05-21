@@ -5,7 +5,7 @@ namespace Altinn.Correspondence.API.Middleware;
 /// </summary>
 internal sealed class SwaggerDocumentCacheMiddleware(RequestDelegate next)
 {
-    private static readonly PathString SwaggerPathPrefix = new("/correspondence/swagger");
+    private static readonly PathString SwaggerPathPrefix = new("/correspondence/api/v1/swagger");
 
     public async Task InvokeAsync(HttpContext context)
     {

@@ -15,5 +15,5 @@ internal static class CorrespondenceOpenApiConstants
         "JWT bearer token from Maskinporten (service owner), Altinn token exchange, or Dialogporten (recipient). " +
         "Paste the token to authorize requests from this UI.";
 
-    public const string RoutePrefix = "correspondence/swagger";
+    public const string RoutePrefix = "correspondence/api/v1/swagger";
 }
