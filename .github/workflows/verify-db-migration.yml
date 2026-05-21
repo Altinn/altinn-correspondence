@@ -25,7 +25,7 @@ on:
 jobs:
   determine-commits:
     name: Determine commits to test
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       old_commit: ${{ steps.set-commits.outputs.old_commit }}
       new_commit: ${{ steps.set-commits.outputs.new_commit }}
