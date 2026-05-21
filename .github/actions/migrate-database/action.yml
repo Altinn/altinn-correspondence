@@ -34,8 +34,9 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: "Checkout repository"
-      uses: actions/checkout@v6
+    - name: Get version
+      id: get-version
+      uses: ./.github/actions/get-current-version
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
@@ -45,18 +46,16 @@ runs:
         dotnet-version: |
           10.0.x
 
-    # setup-dotnet addPath does not propagate in composite actions on self-hosted runners
     - name: Configure .NET environment
       shell: bash
-      env:
-        DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
       run: |
+        DOTNET_INSTALL_DIR="${GITHUB_WORKSPACE}/.dotnet"
+        if [ ! -x "${DOTNET_INSTALL_DIR}/dotnet" ]; then
+          echo "::error::dotnet not found at ${DOTNET_INSTALL_DIR}/dotnet after setup-dotnet"
+          exit 1
+        fi
         echo "${DOTNET_INSTALL_DIR}" >> "$GITHUB_PATH"
         echo "DOTNET_ROOT=${DOTNET_INSTALL_DIR}" >> "$GITHUB_ENV"
-
-    - name: Get version
-      id: get-version
-      uses: ./.github/actions/get-current-version
 
     - name: OIDC Login to Azure Public Cloud
       uses: azure/login@v2
@@ -88,20 +87,20 @@ runs:
 
     - name: Install EF Core CLI
       shell: bash
-      env:
-        DOTNET_ROOT: ${{ github.workspace }}/.dotnet
       run: |
-        export PATH="${DOTNET_ROOT}:${HOME}/.dotnet/tools:${PATH}"
-        dotnet tool install --global dotnet-ef --version 9.0.*
-        dotnet tool restore
+        DOTNET_INSTALL_DIR="${GITHUB_WORKSPACE}/.dotnet"
+        export DOTNET_ROOT="${DOTNET_INSTALL_DIR}"
+        export PATH="${DOTNET_INSTALL_DIR}:${HOME}/.dotnet/tools:${PATH}"
+        "${DOTNET_INSTALL_DIR}/dotnet" tool install --global dotnet-ef --version 9.0.*
+        "${DOTNET_INSTALL_DIR}/dotnet" tool restore
 
     - name: Create migration script
       shell: bash
-      env:
-        DOTNET_ROOT: ${{ github.workspace }}/.dotnet
       run: |
-        export PATH="${DOTNET_ROOT}:${HOME}/.dotnet/tools:${PATH}"
-        dotnet ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --force
+        DOTNET_INSTALL_DIR="${GITHUB_WORKSPACE}/.dotnet"
+        export DOTNET_ROOT="${DOTNET_INSTALL_DIR}"
+        export PATH="${DOTNET_INSTALL_DIR}:${HOME}/.dotnet/tools:${PATH}"
+        "${DOTNET_INSTALL_DIR}/dotnet" ef migrations bundle --project ./src/Altinn.Correspondence.Persistence --startup-project ./src/Altinn.Correspondence.API --self-contained -r linux-x64 -o ./src/Altinn.Correspondence.Persistence/Migrations/bundle.exe --force
 
     - name: Upload Migration Files to Azure File Share
       uses: azure/CLI@v2
