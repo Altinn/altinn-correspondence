@@ -61,6 +61,8 @@ jobs:
 
     # Set up .NET SDK version 10
     - name: Setup .NET SDK
+      env:
+        DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
