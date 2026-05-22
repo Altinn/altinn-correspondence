@@ -13,7 +13,7 @@ jobs:
 
   get-version: 
     name: Get version
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       imageTag: ${{ steps.get-version.outputs.imageTag }}
       version: ${{ steps.get-version.outputs.version }}
@@ -43,7 +43,7 @@ jobs:
 
   deploy-test:
     name: Internal test
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: test
     if: always() && !failure() && !cancelled() 
     needs: [get-version, publish, test]
@@ -74,7 +74,7 @@ jobs:
           GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
   deploy-staging:
     name: Internal staging
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: staging
     if: always() && !failure() && !cancelled() 
     needs: [ 
@@ -107,7 +107,7 @@ jobs:
           GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
   deploy-production:
     name: Production
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: production
     if: (!failure() && !cancelled())
     needs: [
@@ -140,7 +140,7 @@ jobs:
           GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
   check-version-bump:
     name: Check if version was bumped
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [get-version, deploy-production]
     if: ${{ !failure() && !cancelled()}}
     outputs:
@@ -170,7 +170,7 @@ jobs:
 
   release-to-git:  
     name: Release to git
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [check-version-bump]
     if: ${{ needs.check-version-bump.outputs.should-release == 'true' }}
     permissions: 

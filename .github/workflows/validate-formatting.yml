@@ -8,12 +8,14 @@ on:
 
 jobs:
   check-formatting:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
         - uses: actions/checkout@v6
 
         - name: Setup .NET
           uses: actions/setup-dotnet@v5
+          env:
+            DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
           with:
            dotnet-version: |
             10.0.x
