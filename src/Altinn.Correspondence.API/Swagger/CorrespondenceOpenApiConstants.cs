@@ -16,4 +16,24 @@ internal static class CorrespondenceOpenApiConstants
         "Paste the token to authorize requests from this UI.";
 
     public const string RoutePrefix = "correspondence/api/v1/swagger";
+
+    /// <summary>
+    /// Swagger UI path in the exported OpenAPI document (relative to the correspondence API v1 base in APIM).
+    /// </summary>
+    public const string SwaggerUiIndexPath = "/swagger/index.html";
+
+    /// <summary>
+    /// OpenAPI JSON path in the exported document (relative to the correspondence API v1 base in APIM).
+    /// </summary>
+    public const string SwaggerJsonPath = $"/swagger/{DocumentName}/swagger.json";
+
+    /// <summary>
+    /// Application route where Swagger UI is served.
+    /// </summary>
+    public static string ApplicationSwaggerUiPath => $"/{RoutePrefix}/index.html";
+
+    /// <summary>
+    /// Application route where the OpenAPI JSON document is served.
+    /// </summary>
+    public static string ApplicationSwaggerJsonPath => $"/{RoutePrefix}/{DocumentName}/swagger.json";
 }

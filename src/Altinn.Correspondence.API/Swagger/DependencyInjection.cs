@@ -43,7 +43,10 @@ internal static class DependencyInjection
             options.SchemaFilter<CorrespondenceSchemaFilter>();
             options.OperationFilter<BadRequestOneOfOperationFilter>();
             options.OperationFilter<CorrespondenceAuthorizeOperationFilter>();
+            options.OperationFilter<CorrespondenceCorsOperationFilter>();
             options.DocumentFilter<CorrespondenceServerDocumentFilter>();
+            options.DocumentFilter<CorrespondenceSwaggerUiDocumentFilter>();
+            options.DocumentFilter<CorrespondenceCorsDocumentFilter>();
         });
 
         return services;

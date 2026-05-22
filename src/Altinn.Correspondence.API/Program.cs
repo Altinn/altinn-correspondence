@@ -58,9 +58,10 @@ static void BuildAndRun(string[] args)
     bootstrapLogger.LogInformation("Application built");
 
     app.UseExceptionHandler();
+    app.UseCors(AuthorizationConstants.ArbeidsflateCors);
+    app.UseMiddleware<SwaggerCorsMiddleware>();
     app.UseMiddleware<SwaggerDocumentCacheMiddleware>();
     app.UseCorrespondenceOpenApi();
-    app.UseCors(AuthorizationConstants.ArbeidsflateCors);
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
@@ -115,6 +116,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
     var altinnOptions = new AltinnOptions();
     config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+    var generalSettings = new GeneralSettings();
+    config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
+    var corsMetadata = CorrespondenceCorsOrigins.CreateMetadata(altinnOptions, generalSettings);
+    services.AddSingleton(corsMetadata);
     services.AddSingleton<SlackExceptionNotificationHandler>();
     services.AddExceptionHandler<SlackExceptionNotificationHandler>();
     services.AddCors(options =>
@@ -122,14 +127,12 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         options.AddPolicy(name: AuthorizationConstants.ArbeidsflateCors,
                           policy =>
                           {
-                              policy.WithOrigins(altinnOptions.ArbeidsflateOriginsCommaSeparated.Split(',')).SetIsOriginAllowedToAllowWildcardSubdomains();
-                              policy.WithMethods("GET", "POST", "DELETE", "OPTIONS");
-                              policy.WithHeaders("Authorization", "request-id", "request-context", "traceparent");
+                              policy.WithOrigins([.. corsMetadata.AllowedOrigins]).SetIsOriginAllowedToAllowWildcardSubdomains();
+                              policy.WithMethods([.. corsMetadata.AllowedMethods]);
+                              policy.WithHeaders([.. corsMetadata.AllowedHeaders]);
                               policy.AllowCredentials();
                           });
     });
-    var generalSettings = new GeneralSettings();
-    config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
     services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = generalSettings.RedisConnectionString;
