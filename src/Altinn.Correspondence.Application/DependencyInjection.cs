@@ -38,6 +38,7 @@ using Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 using Altinn.Correspondence.Application.DownloadAllCorrespondenceAttachments;
+using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 
 namespace Altinn.Correspondence.Application;
 
@@ -87,6 +88,7 @@ public static class DependencyInjection
         services.AddScoped<EnqueueMissingNotificationSentChecksHandler>();
         services.AddScoped<CleanupBulkFetchStatuses.CleanupBulkFetchStatusesHandler>();
         services.AddScoped<ManualRetryNotPublishedCorrespondencesHandler>();
+        services.AddScoped<SmsNotificationLengthStatisticsHandler>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();
