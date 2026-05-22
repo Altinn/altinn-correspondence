@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.Controllers
 {
     [ApiController]
     [Route("health")]
-    [HideFromPublicApi]
+    [ExcludeFromSwagger]
     public class HealthController(ApplicationDbContext dbContext) : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext = dbContext;
