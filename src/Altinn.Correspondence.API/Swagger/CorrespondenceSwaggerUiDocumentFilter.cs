@@ -4,16 +4,21 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 namespace Altinn.Correspondence.API.Swagger;
 
 /// <summary>
-/// Adds Swagger UI and OpenAPI document routes to the specification for APIM import.
-/// Paths are relative to the correspondence API v1 base (for example /swagger/index.html).
+/// Adds Swagger UI and OpenAPI document routes to the specification when running locally (Development).
+/// Paths are relative to the correspondence API v1 base (for example /swagger/index.html) and are omitted from the public APIM spec.
 /// </summary>
-internal sealed class CorrespondenceSwaggerUiDocumentFilter : IDocumentFilter
+internal sealed class CorrespondenceSwaggerUiDocumentFilter(IHostEnvironment environment) : IDocumentFilter
 {
     public const string DocumentationTag = "Documentation";
     public const string StaticAssetsExtensionName = "x-altinn-swagger-static-assets";
 
     public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
     {
+        if (!environment.IsDevelopment())
+        {
+            return;
+        }
+
         swaggerDoc.Paths ??= new OpenApiPaths();
 
         AddPathIfMissing(swaggerDoc.Paths, CorrespondenceOpenApiConstants.SwaggerUiIndexPath, CreateSwaggerUiOperation());
