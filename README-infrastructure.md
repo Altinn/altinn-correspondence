@@ -99,4 +99,9 @@ The specification also lists documentation routes under the **Documentation** ta
 | --- | --- |
 | `/swagger/index.html` | `/correspondence/api/v1/swagger/index.html` |
 | `/swagger/v1/swagger.json` | `/correspondence/api/v1/swagger/v1/swagger.json` |
+| `/swagger/{asset}` | `/correspondence/api/v1/swagger/{asset}` (css, js, png, and other static files) |
+
+OpenAPI has no true `*` wildcard. The `{asset}` path parameter is the supported way to cover Swagger UI static files (for example `swagger-ui-bundle.js`, `index.css`, `favicon-32x32.png`) in one operation. The document extension `x-altinn-swagger-static-assets` lists typical file names for reference when configuring APIM.
+
+If APIM still blocks an asset after import, add or verify a catch-all forward for `/correspondence/api/v1/swagger/*` in [altinn-studio-ops](https://dev.azure.com/brreg/altinn-studio-ops/_git/altinn-studio-ops) (outside this OpenAPI file).
 

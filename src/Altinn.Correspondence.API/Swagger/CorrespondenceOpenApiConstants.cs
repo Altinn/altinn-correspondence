@@ -28,9 +28,35 @@ internal static class CorrespondenceOpenApiConstants
     public const string SwaggerJsonPath = $"/swagger/{DocumentName}/swagger.json";
 
     /// <summary>
+    /// Catch-all for Swagger UI static files (css, js, images) relative to the APIM API base.
+    /// OpenAPI has no true wildcard; this path parameter matches a single file name segment.
+    /// </summary>
+    public const string SwaggerStaticAssetPath = "/swagger/{asset}";
+
+    public const string SwaggerStaticAssetParameterName = "asset";
+
+    /// <summary>
+    /// Typical Swagger UI static files served under <see cref="RoutePrefix"/> (for APIM documentation).
+    /// </summary>
+    public static readonly string[] KnownSwaggerStaticAssets =
+    [
+        "index.html",
+        "index.css",
+        "index.js",
+        "swagger-ui.css",
+        "swagger-ui-bundle.js",
+        "swagger-ui-standalone-preset.js",
+        "favicon-16x16.png",
+        "favicon-32x32.png",
+        "oauth2-redirect.html"
+    ];
+
+    /// <summary>
     /// Application route where Swagger UI is served.
     /// </summary>
     public static string ApplicationSwaggerUiPath => $"/{RoutePrefix}/index.html";
+
+    public static string ApplicationSwaggerStaticAssetPath(string asset) => $"/{RoutePrefix}/{asset}";
 
     /// <summary>
     /// Application route where the OpenAPI JSON document is served.
