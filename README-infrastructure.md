@@ -86,14 +86,7 @@ The API serves Swagger UI and the OpenAPI document from the application:
 
 Each deployment uses `GeneralSettings:CorrespondenceBaseUrl` so the generated specification contains the correct `servers` URL for that environment.
 
-The OpenAPI document also includes CORS metadata for APIM and hosted Swagger UI:
-
-- Document extension `x-altinn-cors`: allowed origins (platform gateway + Arbeidsflate), methods, headers, and credentials flag.
-- Operation extension `x-cors-enabled`: set on endpoints that use `[EnableCors]` for browser clients (Arbeidsflate and Try it out from the hosted Swagger UI).
-
-Allowed origins are `AltinnOptions:ArbeidsflateOriginsCommaSeparated` plus the origin derived from `GeneralSettings:CorrespondenceBaseUrl` (for example `https://platform.tt02.altinn.no`).
-
-The specification also lists documentation routes under the **Documentation** tag as they are exposed through APIM:
+When running locally (`Development`), the generated specification also lists documentation routes under the **Documentation** tag (for testing APIM-style routing). These paths are **not** included in the public OpenAPI document used by deployed environments:
 
 | OpenAPI path | Application route |
 | --- | --- |
