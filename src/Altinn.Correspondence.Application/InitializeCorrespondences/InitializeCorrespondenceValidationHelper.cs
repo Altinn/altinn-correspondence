@@ -318,10 +318,13 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 }
 
                 if (string.IsNullOrEmpty(recipientParty.OrgNumber)) continue;
-                var hasRequired = await altinnRegisterService.HasPartyRequiredRoles(recipient, recipientParty.PartyUuid.Value, request.Correspondence.IsConfidential, cancellationToken);
-                if (!hasRequired)
+                if (request.Correspondence.IsConfidential)
                 {
-                    recipientsWithoutRequiredRoles.Add(recipient);
+                    var hasRequired = await altinnRegisterService.HasPartyRequiredRolesForConfidential(recipient, recipientParty.PartyUuid.Value, cancellationToken);
+                    if (!hasRequired)
+                    {
+                        recipientsWithoutRequiredRoles.Add(recipient);
+                    }
                 }
             }
 

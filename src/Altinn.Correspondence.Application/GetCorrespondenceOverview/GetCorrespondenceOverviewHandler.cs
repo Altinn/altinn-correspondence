@@ -200,20 +200,31 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
                 request.CorrespondenceId, 
                 latestStatus.Status);
-            if (correspondence.IsConfidential 
-                && hasAccessAsRecipient 
-                && !(user?.CallingAsSender() ?? false) 
-                && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
+            try
             {
-                if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
+                if (correspondence.IsConfidential 
+                    && hasAccessAsRecipient 
+                    && !(user?.CallingAsSender() ?? false) 
+                    && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
                 {
-                    var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
-                    if (reminderDialogId.HasValue)
+                    if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
                     {
-                        await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
+                        var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
+                        if (reminderDialogId.HasValue)
+                        {
+                            await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
+                        }
                     }
+                    await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
                 }
-                await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to clean up confidential reminder for correspondence {CorrespondenceId}", correspondence.Id);
             }
             return response;
         }, logger, cancellationToken);

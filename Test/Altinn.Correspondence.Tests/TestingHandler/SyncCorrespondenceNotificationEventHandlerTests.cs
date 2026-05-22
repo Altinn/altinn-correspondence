@@ -62,6 +62,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _idempotencyKeyRepositoryMock.Object,
                 _purgeLoggerMock.Object);
 
+            var mockPartyUrnHelper = new Mock<Core.Services.PartyUrnHelper>(_altinnRegisterServiceMock.Object, Mock.Of<ILogger<Core.Services.PartyUrnHelper>>());
+
             var correspondenceMigrationEventHelper = new CorrespondenceMigrationEventHelper(
                 _correspondenceStatusRepositoryMock.Object,
                 _correspondenceDeleteRepositoryMock.Object,
@@ -71,6 +73,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 purgeCorrespondenceHelper,
                 _idempotencyKeyRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
+                mockPartyUrnHelper.Object,
                 _eventHelperLoggerMock.Object);
 
             _handler = new SyncCorrespondenceNotificationEventHandler(

@@ -7,14 +7,12 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Tests.Factories;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
-using ReverseMarkdown.Converters;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -71,6 +69,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceRepositoryMock.Object,
                 _idempotencyKeyRepositoryMock.Object,
                 new Mock<ILogger<PurgeCorrespondenceHelper>>().Object);
+            var _partyUrnHelper = new Core.Services.PartyUrnHelper(
+                _altinnRegisterServiceMock.Object,
+                new Mock<ILogger<Core.Services.PartyUrnHelper>>().Object);
             var correspondenceEventHelper = new CorrespondenceMigrationEventHelper(
                 _correspondenceStatusRepositoryMock.Object,
                 _correspondenceDeleteEventRepositoryMock.Object,
@@ -80,6 +81,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _purgeHelper,
                 _idempotencyKeyRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
+                _partyUrnHelper,
                 new Mock<ILogger<CorrespondenceMigrationEventHelper>>().Object);
             _loggerMock = new Mock<ILogger<SyncCorrespondenceStatusEventHandler>>();
 

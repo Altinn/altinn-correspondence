@@ -12,10 +12,11 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
+    IResourceRegistryService resourceRegistryService,
     IHostEnvironment hostEnvironment
     )
 {
-    public async Task<OneOf<GetUnreadConfidentialCorrespondencesResponse, Error>> Process(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    public async Task<OneOf<GetUnreadConfidentialCorrespondencesResponse, Error>> Process(ClaimsPrincipal user, string languageCode, CancellationToken cancellationToken = default)
 {
     var recipientOrg = user.GetCallerOrganizationId();
     if (string.IsNullOrEmpty(recipientOrg))
@@ -24,7 +25,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     }
     var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
-            "ttd-reminder-unopened-confidential-correspondences",
+            "digdir-reminder-unopened-confidential-correspondences",
             recipientOrg,
             cancellationToken);
 
@@ -45,7 +46,19 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         return CorrespondenceErrors.UnreadConfidentialCorrespondencesNotFound;
     }
 
-    var defaultText = "Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tilgang som kreves. Hovedadministrator må delegere denne tilgangen for at noen i din virksomhet skal kunne se meldingene. Se mer informasjon på våre hjelpesider: https://info.altinn.no/nyheter/tilgang-til-taushetsbelagt-post/";
+
+    var defaultTextNb = "Under ligger en oversikt over hvilke meldinger som er uåpnet og viser til avsender, dato meldingen ble publisert og hvilken tjeneste som kreves. Hovedadministrator må delegere tilgang til denne tjenesten for at noen i din virksomhet skal kunne se meldingene. Se mer informasjon på våre hjelpesider: https://info.altinn.no/hjelp/ny-tilgangsstyring/taushetsbelagt-post/";
+    var defaultTextNn = "Under ligg ein oversikt over kva meldingar som er uopna og viser til avsendar, dato meldinga blei publisert og kva teneste som krevst. Hovudadministrator må delegere tilgang til denne tenesta for at nokon i verksemda di skal kunne sjå meldingane. Sjå meir informasjon på våre hjelpesider: https://info.altinn.no/nn/hjelp/ny-tilgangsstyring/taushetsbelagt-post/";
+    var defaultTextEn = "Below is an overview of which correspondences are unopened and shows the sender, the date the correspondence was published and which service is required. The main administrator must delegate access to this service for someone in your organization to be able to see the messages. See more information on our support pages: https://info.altinn.no/en/help/ny-tilgangsstyring/taushetsbelagt-post/";
+
+    var defaultText = languageCode switch
+    {
+        "nb" => defaultTextNb,
+        "nn" => defaultTextNn,
+        "en" => defaultTextEn,
+        _ => defaultTextNb
+    };
+
 
     var sortedCorrespondences = correspondences.OrderBy(c => c.Published).ToList();
     var senderNames = await Task.WhenAll(
@@ -70,12 +83,46 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         })
     );
 
-    var lines = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Melding fra avsender {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til {c.ResourceId}")
+
+    var uniqueResourceIds = sortedCorrespondences.Select(c => c.ResourceId).Distinct().ToList();
+    var resourceTitles = new Dictionary<string, string?>();
+    foreach (var resourceId in uniqueResourceIds)
+    {
+        resourceTitles[resourceId] = await resourceRegistryService.GetResourceTitle(resourceId, languageCode, cancellationToken);
+    }
+
+    var linesNb = sortedCorrespondences
+        .Select((c, i) => $"{i + 1}. Melding fra avsender {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til tjenesten: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
         .ToList();
 
-    var ending = "NB! Dette varselet forsvinner når alle uleste taushetsbelagte meldinger er åpnet.";
+    var linesNn = sortedCorrespondences
+        .Select((c, i) => $"{i + 1}. Melding frå avsendar {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krev tilgang til tenesta: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
+        .ToList();
 
+    var linesEn = sortedCorrespondences
+        .Select((c, i) => $"{i + 1}. Correspondence from sender {senderNames[i] ?? c.Sender.WithoutPrefix()} dated {c.Published:dd.MM.yyyy}, this requires access to the service: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
+        .ToList();
+
+    var lines = languageCode switch
+    {
+        "nb" => linesNb,
+        "nn" => linesNn,
+        "en" => linesEn,
+        _ => linesNb
+    };
+
+
+    var endingNb = "NB! Dette varselet forsvinner når alle uleste taushetsbelagte meldinger er åpnet.";
+    var endingNn = "NB! Dette varselet forsvinn når alle ulesne tausheitsbelagte meldingar er opna.";
+    var endingEn = "N.B. This notice will disappear when all unread confidential correspondences have been opened.";
+
+    var ending = languageCode switch
+    {
+        "nb" => endingNb,
+        "nn" => endingNn,
+        "en" => endingEn,
+        _ => endingNb
+    };
     var fullText = defaultText + "\n\n" + string.Join("\n\n", lines) + "\n\n" + ending;
 
     var response = new GetUnreadConfidentialCorrespondencesResponse
