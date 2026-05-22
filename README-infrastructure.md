@@ -72,29 +72,8 @@ We run on Platform's shared APIM. It is configured in [Azure Devops/altinn-studi
 
 https://pedia.altinn.cloud/altinn-3/ops/release-and-deploy/api-management/
 
-When you run the app locally you will get Swagger documents that include all the endpoints and that can be used directly with the APIM deployment pipeline in altinn-studio-ops.
 
 ### Exposing Swagger / OpenAPI through APIM
+When you run the app locally you will get a Swagger that include all the endpoints, including ones not part of public API, and can be used directly with the APIM deployment pipeline in altinn-studio-ops when we add or remove endpoints.
 
-The API serves Swagger UI and the OpenAPI document from the application:
-
-| Environment | Swagger UI | OpenAPI JSON |
-| --- | --- | --- |
-| Test | `https://altinn-dev-api.azure-api.net/correspondence/api/v1/swagger/index.html` | `https://altinn-dev-api.azure-api.net/correspondence/api/v1/swagger/v1/swagger.json` |
-| Staging (TT02) | `https://platform.tt02.altinn.no/correspondence/api/v1/swagger/index.html` | `https://platform.tt02.altinn.no/correspondence/api/v1/swagger/v1/swagger.json` |
-| Production | `https://platform.altinn.no/correspondence/api/v1/swagger/index.html` | `https://platform.altinn.no/correspondence/api/v1/swagger/v1/swagger.json` |
-
-Each deployment uses `GeneralSettings:CorrespondenceBaseUrl` so the generated specification contains the correct `servers` URL for that environment.
-
-When running locally (`Development`), the generated specification also lists documentation routes under the **Documentation** tag (for testing APIM-style routing). These paths are **not** included in the public OpenAPI document used by deployed environments:
-
-| OpenAPI path | Application route |
-| --- | --- |
-| `/swagger/index.html` | `/correspondence/api/v1/swagger/index.html` |
-| `/swagger/v1/swagger.json` | `/correspondence/api/v1/swagger/v1/swagger.json` |
-| `/swagger/{asset}` | `/correspondence/api/v1/swagger/{asset}` (css, js, png, and other static files) |
-
-OpenAPI has no true `*` wildcard. The `{asset}` path parameter is the supported way to cover Swagger UI static files (for example `swagger-ui-bundle.js`, `index.css`, `favicon-32x32.png`) in one operation. The document extension `x-altinn-swagger-static-assets` lists typical file names for reference when configuring APIM.
-
-If APIM still blocks an asset after import, add or verify a catch-all forward for `/correspondence/api/v1/swagger/*` in [altinn-studio-ops](https://dev.azure.com/brreg/altinn-studio-ops/_git/altinn-studio-ops) (outside this OpenAPI file).
-
+When the app runs in an environment it serves its own Swagger document showing only the public API, and is meant for use with documentation pages.
