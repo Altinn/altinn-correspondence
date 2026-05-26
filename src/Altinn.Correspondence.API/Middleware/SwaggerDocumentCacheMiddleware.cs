@@ -19,7 +19,6 @@ internal sealed class SwaggerDocumentCacheMiddleware(RequestDelegate next)
                 }
                 return Task.CompletedTask;
             });
-            });
         }
 
         await next(context);
