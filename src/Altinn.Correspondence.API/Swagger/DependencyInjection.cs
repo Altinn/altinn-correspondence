@@ -11,8 +11,6 @@ internal static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var generalSettings = new GeneralSettings();
-        configuration.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
 
         services.AddSwaggerGen(options =>
         {
