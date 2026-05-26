@@ -13,8 +13,12 @@ internal sealed class SwaggerDocumentCacheMiddleware(RequestDelegate next)
         {
             context.Response.OnStarting(() =>
             {
-                context.Response.Headers.CacheControl = "public, max-age=600";
+                if (context.Response.StatusCode == StatusCodes.Status200OK)
+                {
+                    context.Response.Headers.CacheControl = "public, max-age=600";
+                }
                 return Task.CompletedTask;
+            });
             });
         }
 
