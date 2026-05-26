@@ -70,15 +70,13 @@ runs:
         failOnStdErr: false
         parameters: ./.azure/applications/api/params.bicepparam
 
+    # azure/CLI@v2 runs inside Docker; use host az CLI on self-hosted runners without Docker
     - name: Verify deployment
-      uses: azure/CLI@v2
       id: verify-deployment
-      with:
-        timeout-minutes: 3
-        azcliversion: 2.72.0
-        inlineScript: |
-          chmod +x ./.github/tools/revisionVerifier.sh
-          ./.github/tools/revisionVerifier.sh ${{ steps.deploy.outputs.revisionName }} ${{ inputs.AZURE_NAME_PREFIX }}-rg ${{ inputs.AZURE_NAME_PREFIX}}-app
+      shell: bash
+      run: |
+        chmod +x ./.github/tools/revisionVerifier.sh
+        ./.github/tools/revisionVerifier.sh "${{ steps.deploy.outputs.revisionName }}" "${{ inputs.AZURE_NAME_PREFIX }}-rg" "${{ inputs.AZURE_NAME_PREFIX }}-app"
 
     - name: Logout from azure
       shell: bash

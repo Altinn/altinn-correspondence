@@ -12,6 +12,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
+    IResourceRegistryService resourceRegistryService,
     IHostEnvironment hostEnvironment
     )
 {
@@ -24,7 +25,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     }
     var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
             user,
-            "ttd-reminder-unopened-confidential-correspondences",
+            "digdir-reminder-unopened-confidential-correspondences",
             recipientOrg,
             cancellationToken);
 
@@ -82,16 +83,24 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         })
     );
 
+
+    var uniqueResourceIds = sortedCorrespondences.Select(c => c.ResourceId).Distinct().ToList();
+    var resourceTitles = new Dictionary<string, string?>();
+    foreach (var resourceId in uniqueResourceIds)
+    {
+        resourceTitles[resourceId] = await resourceRegistryService.GetResourceTitle(resourceId, languageCode, cancellationToken);
+    }
+
     var linesNb = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Melding fra avsender {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til {c.ResourceId}")
+        .Select((c, i) => $"{i + 1}. Melding fra avsender {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krever tilgang til tjenesten: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
         .ToList();
 
     var linesNn = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Melding frå avsendar {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krev tilgang til {c.ResourceId}")
+        .Select((c, i) => $"{i + 1}. Melding frå avsendar {senderNames[i] ?? c.Sender.WithoutPrefix()} datert {c.Published:dd.MM.yyyy}, denne krev tilgang til tenesta: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
         .ToList();
 
     var linesEn = sortedCorrespondences
-        .Select((c, i) => $"{i + 1}. Correspondence from sender {senderNames[i] ?? c.Sender.WithoutPrefix()} dated {c.Published:dd.MM.yyyy}, this requires access to {c.ResourceId}")
+        .Select((c, i) => $"{i + 1}. Correspondence from sender {senderNames[i] ?? c.Sender.WithoutPrefix()} dated {c.Published:dd.MM.yyyy}, this requires access to the service: {resourceTitles[c.ResourceId] ?? c.ResourceId}")
         .ToList();
 
     var lines = languageCode switch

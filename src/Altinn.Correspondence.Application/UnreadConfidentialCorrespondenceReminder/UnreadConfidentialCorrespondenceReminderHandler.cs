@@ -44,9 +44,9 @@ public class UnreadConfidentialCorrespondenceHandler(
             Title = "", // Value for title and summary is assigned in the mapper based on the users language
             Summary = "",
             Recipient = correspondence.Recipient.WithUrnPrefix(),
-            ResourceId = "ttd-reminder-unopened-confidential-correspondences",
-            SendersReference = "Digdir",
-            MessageSender = "Digitaliseringsdirektoratet",
+            ResourceId = "digdir-reminder-unopened-confidential-correspondences",
+            SendersReference = "corr-confidential-reminder",
+            Sender = "991825827",
             Created = DateTimeOffset.UtcNow,
             Status = "RequiresAttention",
             PropertyList = new Dictionary<string, string>{}

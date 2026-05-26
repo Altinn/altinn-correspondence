@@ -23,6 +23,9 @@ namespace Altinn.Correspondence.Common.Helpers.Models
         [MaxLength(10, ErrorMessage = "propertyList can contain at most 10 properties")]
         public Dictionary<string, string> PropertyList { get; set; } = new Dictionary<string, string>();
 
+        [Required]
+        public required string Sender { get; set; }
+
         [StringLength(256, MinimumLength = 0)]
         public string? MessageSender { get; set; }
         

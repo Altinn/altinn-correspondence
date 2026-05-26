@@ -24,7 +24,7 @@ run-name: Deploy to ${{ inputs.environment }}
 jobs:
   get-version: 
     name: Get version
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       imageTag: ${{ steps.get-version.outputs.imageTag }}
     permissions: 
@@ -51,7 +51,7 @@ jobs:
           imageTag: ${{ needs.get-version.outputs.imageTag }}
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [get-version, publish]
     environment: ${{ inputs.environment }}
     permissions: 

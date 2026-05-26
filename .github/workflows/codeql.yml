@@ -27,7 +27,7 @@ jobs:
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: self-hosted
     permissions:
       # required for all workflows
       security-events: write
@@ -61,6 +61,8 @@ jobs:
 
     # Set up .NET SDK version 10
     - name: Setup .NET SDK
+      env:
+        DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'

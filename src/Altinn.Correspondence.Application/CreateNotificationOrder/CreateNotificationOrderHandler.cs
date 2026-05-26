@@ -438,8 +438,7 @@ public class CreateNotificationOrderHandler(
             Recipient = reminder.Recipient,
             ResourceId = reminder.ResourceId,
             SendersReference = reminder.SendersReference,
-            MessageSender = reminder.MessageSender,
-            SenderUrn = null,
+            SenderUrn = reminder.Sender,
             MessageTitle = reminder.Title,
             RequestedPublishTime = DateTimeOffset.UtcNow,
             IgnoreReservation = null

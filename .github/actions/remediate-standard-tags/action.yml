@@ -27,15 +27,16 @@ runs:
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
     - name: Remediate standard tags policy
-      shell: pwsh
+      shell: bash
       run: |
-        $rgName = "${{ inputs.AZURE_NAME_PREFIX }}-rg"
-        $subscriptionId = "${{ inputs.AZURE_SUBSCRIPTION_ID }}"
-        $assignmentId = "/subscriptions/$subscriptionId/resourceGroups/$rgName/providers/Microsoft.Authorization/policyAssignments/correspondence-standard-tags"
-        az policy remediation create `
-          --name "correspondence-standard-tags-remediation" `
-          --policy-assignment $assignmentId `
-          --resource-group $rgName
+        set -euo pipefail
+        rg_name="${{ inputs.AZURE_NAME_PREFIX }}-rg"
+        subscription_id="${{ inputs.AZURE_SUBSCRIPTION_ID }}"
+        assignment_id="/subscriptions/${subscription_id}/resourceGroups/${rg_name}/providers/Microsoft.Authorization/policyAssignments/correspondence-standard-tags"
+        az policy remediation create \
+          --name "correspondence-standard-tags-remediation" \
+          --policy-assignment "$assignment_id" \
+          --resource-group "$rg_name"
 
     - name: Logout from azure
       shell: bash

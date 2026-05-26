@@ -78,9 +78,8 @@ public class PublishCorrespondenceHandler(
         else if (
             correspondence.IsConfidential &&
             !string.IsNullOrEmpty(recipientParty!.OrgNumber) &&
-            !await altinnRegisterService.HasPartyRequiredRoles(correspondence.Recipient, recipientPartyUuid.Value, correspondence.IsConfidential, cancellationToken))
+            !await altinnRegisterService.HasPartyRequiredRolesForConfidential(correspondence.Recipient, recipientPartyUuid.Value, cancellationToken))
         {
-            // Only check for confidential pending #1444. Remove IsConfidential condition after Register has been updated.
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
         }
         CorrespondenceStatusEntity status;
