@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.Application;
 using Altinn.Correspondence.Application.GenerateReport;
@@ -7,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
-[ApiExplorerSettings(IgnoreApi = true)]  // Hide from public API documentation for now
+[HideFromPublicApi]
 [Route("correspondence/api/v1/statistics")]
 [ServiceFilter(typeof(StatisticsApiKeyFilter))]
 public class StatisticsController(ILogger<StatisticsController> logger) : Controller
