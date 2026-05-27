@@ -158,8 +158,7 @@ public class AltinnRegisterService : IAltinnRegisterService
 
         if (!response.IsSuccessStatusCode)
         {
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
-                response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("IdentificationIds did not have any valid identifiers");
                 return new List<Party>();

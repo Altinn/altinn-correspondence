@@ -37,8 +37,13 @@ public static class PartyExtensions
     public static string? GetUnitType(this Party party)
         => party is Organization o && o.UnitType.HasValue ? o.UnitType.Value : null;
 
+    /// <summary>
+    /// Returns the party's numeric PartyId. Throws if the field was not populated in the response, since it should be.
+    /// </summary>
     public static int GetPartyId(this Party party)
-        => party.PartyId.HasValue ? (int)party.PartyId.Value : 0;
+        => party.PartyId.HasValue
+            ? (int)party.PartyId.Value
+            : throw new InvalidOperationException($"Party {party.Uuid} has no PartyId");
 
     public static bool GetIsDeleted(this Party party)
         => party.IsDeleted.HasValue && party.IsDeleted.Value;

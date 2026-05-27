@@ -55,6 +55,12 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             return Task.FromResult(LookupByPartyId(partyId));
         }
 
+        var bySsn = LookupBySsn(clean);
+        if (bySsn is not null)
+        {
+            return Task.FromResult<Party?>(bySsn);
+        }
+
         if (IdentificationIDRegex.IsMatch(clean))
         {
             return Task.FromResult<Party?>(BuildDigdirOrganization());
@@ -68,7 +74,13 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         var parties = new List<Party>();
         foreach (var id in identificationIds)
         {
-            if (IdentificationIDRegex.IsMatch(id.WithoutPrefix()))
+            var clean = id.WithoutPrefix();
+            var bySsn = LookupBySsn(clean);
+            if (bySsn is not null)
+            {
+                parties.Add(bySsn);
+            }
+            else if (IdentificationIDRegex.IsMatch(clean))
             {
                 parties.Add(BuildDigdirOrganization());
             }
@@ -127,6 +139,13 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         SecondUserPartyId => BuildPerson(SecondUserPartyId, SecondUserPartyUuid, SecondUserSsn, "Annen test bruker"),
         SiUserPartyId => BuildIdPortenEmailUser("si-user@example.com"),
         LegacySiUserPartyId => BuildLegacySelfIdentifiedUser("si-user"),
+        _ => null,
+    };
+
+    private static Party? LookupBySsn(string ssn) => ssn switch
+    {
+        DelegatedUserSsn => BuildPerson(DelegatedUserPartyId, DelegatedUserPartyUuid, DelegatedUserSsn, "Delegert test bruker"),
+        SecondUserSsn => BuildPerson(SecondUserPartyId, SecondUserPartyUuid, SecondUserSsn, "Annen test bruker"),
         _ => null,
     };
 

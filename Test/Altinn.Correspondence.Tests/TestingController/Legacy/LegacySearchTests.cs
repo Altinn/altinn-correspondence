@@ -391,6 +391,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new HashSet<int> { 1, 2 });
+                services.AddSingleton(mockRegisterService.Object);
                 services.AddSingleton(mockAccessManagementService.Object);
             });
             var client = factory.CreateClientWithAddedClaims(
@@ -446,6 +447,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new HashSet<int>());
+                services.AddSingleton(mockRegisterService.Object);
                 services.AddSingleton(mockAccessManagementService.Object);
             });
             var client = factory.CreateClientWithAddedClaims(
@@ -473,6 +475,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new HashSet<int> { 1, 2 });
+                services.AddSingleton(mockRegisterService.Object);
                 services.AddSingleton(mockAccessManagementService.Object);
             });
             var client = factory.CreateClientWithAddedClaims(
