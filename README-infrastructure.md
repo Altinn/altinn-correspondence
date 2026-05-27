@@ -71,3 +71,9 @@ az account get-access-token --resource=https://ossrdbms-aad.database.windows.net
 We run on Platform's shared APIM. It is configured in [Azure Devops/altinn-studio-ops](https://dev.azure.com/brreg/altinn-studio-ops/_git/altinn-studio-ops) See:
 
 https://pedia.altinn.cloud/altinn-3/ops/release-and-deploy/api-management/
+
+
+### Exposing Swagger / OpenAPI through APIM
+When you run the app locally you will get a Swagger that include all the endpoints, including ones not part of public API, and can be used directly with the APIM deployment pipeline in altinn-studio-ops when we add or remove endpoints.
+
+When the app runs in an environment it serves its own Swagger document showing only the public API, and is meant for use with documentation pages.
