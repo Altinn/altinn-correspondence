@@ -4,11 +4,13 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Tests.Extensions;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
+using Altinn.Register.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -1595,12 +1597,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 // Mock to return a valid party for existing recipients
                 mockRegisterService
                     .Setup(service => service.LookUpPartyById(validRecipient, It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), OrgNumber = "986252932" });
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "986252932"));
 
                 // Mock for sender lookup (needed for authorization)
                 mockRegisterService
                     .Setup(service => service.LookUpPartyById(It.Is<string>(s => s.Contains("991825827")), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), OrgNumber = "991825827" });
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
 
                 services.AddSingleton(mockRegisterService.Object);
             });

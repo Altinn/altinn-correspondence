@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Options;
+using Altinn.Correspondence.Tests.Extensions;
 using Altinn.Correspondence.Application.CreateNotificationOrder;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Microsoft.Extensions.Hosting;
@@ -45,7 +46,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 CorrespondenceBaseUrl = "https://test.altinn.no"
             });
             _mockHostEnvironment.Setup(x => x.EnvironmentName).Returns("Development");
-            _mockAltinnRegisterService.Setup(x => x.LookUpName(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("Name");
+            _mockAltinnRegisterService.Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827", displayName: "Name"));
             _mockResourceRegistryService
                 .Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync("Resource Title");
