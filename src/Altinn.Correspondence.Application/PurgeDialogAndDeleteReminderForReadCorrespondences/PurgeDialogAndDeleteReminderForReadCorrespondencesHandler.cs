@@ -87,18 +87,6 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
     {
         try
         {
-        await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(reminder.CorrespondenceId, cancellationToken);
-        logger.LogInformation(
-            "Deleted confidential reminder {reminderId} | CorrespondenceId: {correspondenceId} | DialogId: {dialogId}",
-            reminder.Id, reminder.CorrespondenceId, reminder.DialogId);
-            
-        } catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to delete confidential reminder {reminderId} for correspondence {correspondenceId}", reminder.Id, reminder.CorrespondenceId);
-            throw;
-        }
-        try
-        {
             if (!reminder.DialogId.HasValue)
             {
                 logger.LogWarning("No DialogId found for confidential reminder {reminderId}, skipping dialog deletion", reminder.Id);
@@ -109,6 +97,18 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to soft delete dialog {dialogId} linked to confidential reminder {reminderId}", reminder.DialogId, reminder.Id);
+            throw;
+        }
+        try
+        {
+        await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(reminder.CorrespondenceId, cancellationToken);
+        logger.LogInformation(
+            "Deleted confidential reminder {reminderId} | CorrespondenceId: {correspondenceId} | DialogId: {dialogId}",
+            reminder.Id, reminder.CorrespondenceId, reminder.DialogId);
+            
+        } catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to delete confidential reminder {reminderId} for correspondence {correspondenceId}", reminder.Id, reminder.CorrespondenceId);
             throw;
         }
 

@@ -370,7 +370,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     }
 
 
-    [HttpGet]
+    [HttpPost]
     [Route("purge-dialog-and-delete-reminder-for-read-correspondences")]
     [Authorize(Policy = AuthorizationConstants.Maintenance)]
     [Produces("application/json")]
