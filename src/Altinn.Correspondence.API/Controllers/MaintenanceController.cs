@@ -18,6 +18,7 @@ using Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
 using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 using Altinn.Correspondence.Application.MaskinportenJwkRotation;
 using Altinn.Correspondence.API.Swagger;
+using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -366,6 +367,26 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             jobId,
             message = "Maskinporten JWK rotation was enqueued."
         });
+    }
+
+
+    [HttpGet]
+    [Route("purge-dialog-and-delete-reminder-for-read-correspondences")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> PurgeDialogAndDeleteReminderForReadCorrespondences(
+        [FromServices] PurgeDialogAndDeleteReminderForReadCorrespondencesHandler handler,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to purge dialog and delete reminder for read correspondences received");
+        var result = await handler.Process(HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
     }
 
     private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
