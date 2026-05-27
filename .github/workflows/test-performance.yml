@@ -128,10 +128,15 @@ jobs:
       id: populate_kubeconfig_with_k6_context
       shell: bash
       run: |
-        if ! az aks install-cli; then
-          echo "Failed to install kubectl CLI"
-          exit 1
-        fi
+        # Install kubectl to user-writable location
+        KUBECTL_DIR="$HOME/.local/bin"
+        mkdir -p "$KUBECTL_DIR"
+        
+        KUBECTL_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
+        curl -sLo "$KUBECTL_DIR/kubectl" "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+        chmod +x "$KUBECTL_DIR/kubectl"
+        export PATH="$KUBECTL_DIR:$PATH"
+        echo "$KUBECTL_DIR" >> $GITHUB_PATH
 
         if ! az aks get-credentials --resource-group k6tests-rg --name k6tests-cluster; then
           echo "Failed to populate kubeconfig"
