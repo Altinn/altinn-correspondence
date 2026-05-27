@@ -18,7 +18,13 @@ internal static class CorrespondenceOverviewMapper
             Sender = correspondenceOverview.Sender,
             MessageSender = correspondenceOverview.MessageSender,
             Created = correspondenceOverview.Created,
-            Notifications = correspondenceOverview.Notifications,
+            Notifications = correspondenceOverview.Notifications
+                .Select(n => new CorrespondenceNotificationOverviewExt
+                {
+                    NotificationOrderId = n.NotificationOrderId,
+                    IsReminder = n.IsReminder
+                })
+                .ToList(),
             Recipient = correspondenceOverview.Recipient,
             Content = CorrespondenceContentMapper.MapToExternal(correspondenceOverview.Content),
             ReplyOptions = CorrespondenceReplyOptionsMapper.MapListToExternal(correspondenceOverview.ReplyOptions),

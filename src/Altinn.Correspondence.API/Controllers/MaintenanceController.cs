@@ -17,11 +17,12 @@ using Altinn.Correspondence.Application.MigrateForwardingEventsBatch;
 using Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
 using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 using Altinn.Correspondence.Application.MaskinportenJwkRotation;
+using Altinn.Correspondence.API.Swagger;
 
 namespace Altinn.Correspondence.API.Controllers;
 
 [ApiController]
-[ApiExplorerSettings(IgnoreApi = true)]
+[HideFromPublicApi]
 [Route("correspondence/api/v1/maintenance")]
 [Authorize]
 public class MaintenanceController(ILogger<MaintenanceController> logger) : Controller

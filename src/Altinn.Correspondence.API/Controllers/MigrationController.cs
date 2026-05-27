@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application;
@@ -17,7 +18,7 @@ namespace Altinn.Correspondence.API.Controllers
 {
     [ApiController]
     [SetJobOrigin("migrate")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [HideFromPublicApi]
     [Route("correspondence/api/v1/migration")]
     [Authorize]
     public class MigrationController : Controller

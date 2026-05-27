@@ -1,3 +1,4 @@
+using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.API.ValidationAttributes;
@@ -362,7 +363,7 @@ namespace Altinn.Correspondence.API.Controllers
         [Produces("text/plain")]
         [Authorize(Policy = AuthorizationConstants.Recipient)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
-        [ApiExplorerSettings(IgnoreApi = true)]
+        [HideFromPublicApi]
         public async Task<ActionResult> GetCorrespondenceContent(
             Guid correspondenceId,
             [FromServices] GetCorrespondenceOverviewHandler handler,
@@ -656,7 +657,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpGet]
         [Route("{correspondenceId}/notification/check")]
         [Authorize(Policy = AuthorizationConstants.NotificationCheck)]
-        [ApiExplorerSettings(IgnoreApi = true)]
+        [HideFromPublicApi]
         public async Task<ActionResult> CheckNotification(
             Guid correspondenceId,
             [FromServices] CheckNotificationHandler handler,

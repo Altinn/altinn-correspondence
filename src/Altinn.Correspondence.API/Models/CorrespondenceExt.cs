@@ -1,10 +1,12 @@
-﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-
 namespace Altinn.Correspondence.API.Models;
 
+/// <summary>
+/// Internal persistence shape. Not part of the public HTTP API surface.
+/// </summary>
 public class CorrespondenceExt
 {
     public Guid Id { get; set; }
