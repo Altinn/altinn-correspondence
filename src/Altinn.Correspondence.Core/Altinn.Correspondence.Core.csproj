@@ -7,14 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-<<<<<<< chore/fully-use-altinn-register-v2
     <PackageReference Include="Altinn.Register.Contracts" Version="1.2.0" />
-    <PackageReference Include="Azure.ResourceManager.Network" Version="1.15.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
-=======
     <PackageReference Include="Azure.ResourceManager.Network" Version="1.13.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
->>>>>>> main
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
