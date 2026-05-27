@@ -49,6 +49,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Altinn.ApiClients.Maskinporten" Version="9.2.1" />
+    <PackageReference Include="Altinn.Authorization.ProblemDetails" Version="4.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />

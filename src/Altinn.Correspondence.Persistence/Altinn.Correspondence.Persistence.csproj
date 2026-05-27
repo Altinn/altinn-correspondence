@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Altinn.ApiClients.Maskinporten" Version="9.2.1" />
+    <PackageReference Include="Altinn.Authorization.ProblemDetails" Version="4.0.1" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.28.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
