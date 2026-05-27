@@ -1,9 +1,11 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Register.Contracts;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -25,8 +27,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
-        var recipientParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.SSN) && string.IsNullOrEmpty(recipientParty.OrgNumber) && string.IsNullOrEmpty(recipientParty.ExternalUrn)))
+        var recipientParty = await altinnRegisterService.LookUpPartyById(partyId.ToString(), cancellationToken);
+        if (recipientParty == null || (string.IsNullOrEmpty(recipientParty.GetPersonIdentifier()) && string.IsNullOrEmpty(recipientParty.GetOrganizationIdentifier()) && string.IsNullOrEmpty(recipientParty.GetExternalUrn())))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -37,7 +39,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
             user,
-            recipientParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
+            recipientParty.GetUserId()?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
             correspondence.ResourceId,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             correspondence.Recipient,
@@ -47,7 +49,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             return AuthorizationErrors.LegacyNoAccessToCorrespondence;
         }
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence.Sender, cancellationToken);
-        if (senderParty == null || (string.IsNullOrEmpty(senderParty.SSN) && string.IsNullOrEmpty(senderParty.OrgNumber) && string.IsNullOrEmpty(senderParty.ExternalUrn)))
+        if (senderParty == null || (string.IsNullOrEmpty(senderParty.GetPersonIdentifier()) && string.IsNullOrEmpty(senderParty.GetOrganizationIdentifier()) && string.IsNullOrEmpty(senderParty.GetExternalUrn())))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -142,14 +144,14 @@ public class LegacyGetCorrespondenceHistoryHandler(
         if (statusBySender.Contains(status.Status))
         {
             party = senderParty;
-            displayName = string.IsNullOrWhiteSpace(messageSender) ? party?.Name : messageSender;
+            displayName = string.IsNullOrWhiteSpace(messageSender) ? party?.GetDisplayName() : messageSender;
         }
         else
         {
-            party = await altinnRegisterService.LookUpPartyByPartyUuid(status.PartyUuid, cancellationToken);
-            displayName = party?.Name;
+            party = await altinnRegisterService.LookUpPartyById(status.PartyUuid.ToString(), cancellationToken);
+            displayName = party?.GetDisplayName();
         }
-        
+
         return new LegacyGetCorrespondenceHistoryResponse
         {
             Status = status.Status.ToString(),
@@ -157,7 +159,7 @@ public class LegacyGetCorrespondenceHistoryHandler(
             StatusText = $"[Correspondence] {status.StatusText}",
             User = new LegacyUser
             {
-                PartyId = party?.PartyId,
+                PartyId = party?.GetPartyId(),
                 Name = displayName
             }
         };
@@ -204,8 +206,8 @@ public class LegacyGetCorrespondenceHistoryHandler(
             var party = await altinnRegisterService.LookUpPartyById(id, cancellationToken);
             response.User = new LegacyUser
             {
-                PartyId = party?.PartyId,
-                Name = party?.Name
+                PartyId = party?.GetPartyId(),
+                Name = party?.GetDisplayName()
             };
         }
 
@@ -232,11 +234,11 @@ public class LegacyGetCorrespondenceHistoryHandler(
                 MailboxSupplier = forwardingEventEntity.MailboxSupplier
             }
         };
-        var party = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEventEntity.ForwardedByPartyUuid, cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(forwardingEventEntity.ForwardedByPartyUuid.ToString(), cancellationToken);
         response.User = new LegacyUser
         {
-            PartyId = party?.PartyId,
-            Name = party?.Name
+            PartyId = party?.GetPartyId(),
+            Name = party?.GetDisplayName()
         };
 
         return response;

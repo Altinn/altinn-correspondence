@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -61,21 +62,21 @@ public class PurgeCorrespondenceHandler(
 
         var caller = user.GetCallerPartyUrn() ?? user.GetCallerOrganizationId();
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
         logger.LogInformation("Retrieved party UUID {PartyUuid} for caller {caller}", partyUuid, caller);
-        logger.LogInformation("Starting purge process for correspondence {CorrespondenceId} as {Role}", 
-            correspondenceId, 
+        logger.LogInformation("Starting purge process for correspondence {CorrespondenceId} as {Role}",
+            correspondenceId,
             isSender ? "sender" : "recipient");
 
         return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
         {
             var partyUrn = user?.GetCallerPartyUrn();
-            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.PartyId, operationTimestamp, cancellationToken, partyUrn);
+            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.GetPartyId(), operationTimestamp, cancellationToken, partyUrn);
             logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", result);
             return result;
         }, logger, cancellationToken);

@@ -4,6 +4,7 @@ using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
@@ -83,7 +84,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     else if (identifier.IsIdPortenEmailUrn() || identifier.IsLegacySelfIdentifiedUrn())
                     {
                         var party = await altinnRegisterService.LookUpPartyById(identifier, cancellationToken);
-                        if (party is not null && party.UserId is int userId && userId > 0)
+                        if (party?.GetUserId() is int userId && userId > 0)
                         {
                             list.Add(CreateXacmlJsonAttribute(UrnConstants.UserId, userId.ToString(), DefaultType, claim.Issuer));
                         }

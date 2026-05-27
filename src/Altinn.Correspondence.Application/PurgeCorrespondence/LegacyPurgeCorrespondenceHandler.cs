@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -23,8 +24,8 @@ public class LegacyPurgeCorrespondenceHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
-        var party = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber) && string.IsNullOrEmpty(party.ExternalUrn)))
+        var party = await altinnRegisterService.LookUpPartyById(partyId.ToString(), cancellationToken);
+        if (party is null || string.IsNullOrEmpty(party.GetExternalUrn()))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -35,7 +36,7 @@ public class LegacyPurgeCorrespondenceHandler(
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
             user,
-            party.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
+            party.GetUserId()?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
             correspondence.ResourceId,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             correspondence.Recipient,
@@ -49,7 +50,7 @@ public class LegacyPurgeCorrespondenceHandler(
         {
             return recipientPurgeError;
         }
-        if (party.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }

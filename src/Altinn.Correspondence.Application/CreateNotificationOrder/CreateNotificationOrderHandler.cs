@@ -3,6 +3,7 @@ using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Common.Helpers.Models;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -91,10 +92,10 @@ public class CreateNotificationOrderHandler(
         if (string.IsNullOrEmpty(sendersName))
         {
             logger.LogInformation("Looking up sender name for {NotificationId}", context.Id);
-            sendersName = await altinnRegisterService.LookUpName(context.SenderUrn!, cancellationToken);
+            sendersName = (await altinnRegisterService.LookUpPartyById(context.SenderUrn!, cancellationToken))?.GetDisplayName();
         }
         logger.LogInformation("Looking up recipient name for {NotificationId}", context.Id);
-        var recipientName = await altinnRegisterService.LookUpName(context.Recipient, cancellationToken);
+        var recipientName = (await altinnRegisterService.LookUpPartyById(context.Recipient, cancellationToken))?.GetDisplayName();
         var messageTitle = context.MessageTitle ?? string.Empty;
 
         foreach (var template in templates)

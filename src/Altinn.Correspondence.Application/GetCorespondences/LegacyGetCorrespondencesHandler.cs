@@ -1,10 +1,11 @@
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Register.Contracts;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -48,60 +49,41 @@ public class LegacyGetCorrespondencesHandler(
             request.SearchString?.SanitizeForLogging(), 
             request.InstanceOwnerPartyIdList);
         var minAuthLevel = userClaimsHelper.GetMinimumAuthenticationLevel();
-        var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber) && string.IsNullOrEmpty(userParty.ExternalUrn)))
+        var userParty = await altinnRegisterService.LookUpPartyById(partyId.ToString(), cancellationToken);
+        if (userParty == null || string.IsNullOrEmpty(userParty.GetExternalUrn()))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
         var recipients = new List<string>();
         if (request.InstanceOwnerPartyIdList != null && request.InstanceOwnerPartyIdList.Length > 0)
         {
-            var authorizedParties = await altinnAccessManagementService.GetAuthorizedParties(userParty, userClaimsHelper.GetUserId(), cancellationToken);
-            authorizedParties = authorizedParties.DistinctBy(party => party.PartyId).ToList();
-            var authorizedPartiesDict = authorizedParties.ToDictionary(p => p.PartyId, p => p);
+            var authorizedPartyIds = await altinnAccessManagementService.GetAuthorizedPartyIds(userParty, userClaimsHelper.GetUserId(), cancellationToken);
             foreach (int instanceOwnerPartyId in request.InstanceOwnerPartyIdList)
             {
-                if (!authorizedPartiesDict.TryGetValue(instanceOwnerPartyId, out var mappedInstanceOwner))
+                if (!authorizedPartyIds.Contains(instanceOwnerPartyId))
                 {
-                    logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedParties.Count, string.Join(',', authorizedParties.Select(party => party.PartyId)));
+                    logger.LogWarning("{instanceOwnerPartyId} is not one of the {authorizedPartiesCount} authorized parties: {authorizedParties}", instanceOwnerPartyId, authorizedPartyIds.Count, string.Join(',', authorizedPartyIds));
                     continue;
                 }
-                var mappedInstanceOwnerWithExternalUrn = await altinnRegisterService.LookUpPartyByPartyId(mappedInstanceOwner.PartyId, cancellationToken);
-                if (!string.IsNullOrEmpty(mappedInstanceOwner.OrgNumber))
+                var fromRegister = await altinnRegisterService.LookUpPartyById(instanceOwnerPartyId.ToString(), cancellationToken);
+                var externalUrn = fromRegister?.GetExternalUrn();
+                if (!string.IsNullOrEmpty(externalUrn))
                 {
-                    recipients.Add(GetPrefixedForOrg(mappedInstanceOwner.OrgNumber));
-                }
-                else if (!string.IsNullOrEmpty(mappedInstanceOwner.SSN))
-                {
-                    recipients.Add(GetPrefixedForPerson(mappedInstanceOwner.SSN));
-                }
-                else if (!string.IsNullOrEmpty(mappedInstanceOwnerWithExternalUrn?.ExternalUrn) &&
-                         (mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsLegacySelfIdentifiedUrn() ||
-                          mappedInstanceOwnerWithExternalUrn.ExternalUrn.IsIdPortenEmailUrn()))
-                {
-                    recipients.Add(mappedInstanceOwnerWithExternalUrn.ExternalUrn);
+                    recipients.Add(externalUrn);
                 }
             }
         }
         else
         {
-            if (!string.IsNullOrEmpty(userParty.SSN))
+            var externalUrn = userParty.GetExternalUrn();
+            if (!string.IsNullOrEmpty(externalUrn))
             {
-                recipients.Add(GetPrefixedForPerson(userParty.SSN));
-            }
-            else if (!string.IsNullOrEmpty(userParty.OrgNumber))
-            {
-                recipients.Add(GetPrefixedForOrg(userParty.OrgNumber));
-            }
-            else if (!string.IsNullOrEmpty(userParty.ExternalUrn) &&
-                     (userParty.ExternalUrn.IsLegacySelfIdentifiedUrn() || userParty.ExternalUrn.IsIdPortenEmailUrn()))
-            {
-                recipients.Add(userParty.ExternalUrn);
+                recipients.Add(externalUrn);
             }
         }
         if (recipients.Count == 0)
         {
-            logger.LogWarning("Caller with party {PartyId} did not have access to any inboxes", userParty.PartyId);
+            logger.LogWarning("Caller with party {PartyId} did not have access to any inboxes", userParty.GetPartyId());
             return new LegacyGetCorrespondencesResponse()
             {
                 Items = []
@@ -170,7 +152,7 @@ public class LegacyGetCorrespondencesHandler(
 
         Dictionary<(string, string), int?> authlevels = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(
             user,
-            userParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
+            userParty.GetUserId()?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
             correspondences,
             cancellationToken);
         foreach (var correspondence in correspondences)
@@ -189,7 +171,7 @@ public class LegacyGetCorrespondencesHandler(
                     Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
                     IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                     ServiceOwnerName = resourceOwners?[correspondence.ResourceId],
-                    InstanceOwnerPartyId = recipient?.PartyId ?? 0,
+                    InstanceOwnerPartyId = recipient?.GetPartyId() ?? 0,
                     MessageTitle = correspondence.Content.MessageTitle,
                     Status = correspondence.GetHighestStatusForLegacyCorrespondenceList().Status,
                     CorrespondenceId = correspondence.Id,
@@ -200,7 +182,7 @@ public class LegacyGetCorrespondencesHandler(
                     DueDateTime = correspondence.DueDateTime,
                     Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
                     ConfirmationDate = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
-                    MessageSender = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? sender!.Name : correspondence.MessageSender,
+                    MessageSender = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? sender!.GetDisplayName() : correspondence.MessageSender,
                 }
                 );
         }
@@ -209,15 +191,5 @@ public class LegacyGetCorrespondencesHandler(
             Items = correspondenceItems,
         };
         return response;
-    }
-
-    private static string GetPrefixedForPerson(string ssn)
-    {
-        return $"{UrnConstants.PersonIdAttribute}:{ssn}";
-    }
-
-    private static string GetPrefixedForOrg(string orgnr)
-    {
-        return $"{UrnConstants.OrganizationNumberAttribute}:{orgnr}";
     }
 }
