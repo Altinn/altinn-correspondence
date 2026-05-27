@@ -87,12 +87,15 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
     {
         try
         {
+            if (await confidentialReminderRepository.NumberOfRemindersForRecipient(reminder.Recipient, cancellationToken) == 1){
+
             if (!reminder.DialogId.HasValue)
             {
                 logger.LogWarning("No DialogId found for confidential reminder {reminderId}, skipping dialog deletion", reminder.Id);
                 return true;
             }
             await dialogportenService.TrySoftDeleteDialog(reminder.DialogId.Value.ToString());
+        }
         }
         catch (Exception ex)
         {
