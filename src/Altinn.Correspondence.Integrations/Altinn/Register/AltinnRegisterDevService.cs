@@ -17,18 +17,18 @@ public class AltinnRegisterDevService : IAltinnRegisterService
     public static readonly Guid DigdirPartyUuid = new("36E2BCC6-D5B8-4399-AA90-4AFEB2D1A0BF");
     public const string DigdirOrgNumber = "991825827";
 
-    public const int DelegatedUserPartyId = 100;
+    public const int DelegatedUserPartyId = 50000100;
     public static readonly Guid DelegatedUserPartyUuid = new("358C48B4-74A7-461F-A86F-48801DEEC920");
     public const string DelegatedUserSsn = "10108000398";
 
-    public const int SecondUserPartyId = 200;
+    public const int SecondUserPartyId = 50000200;
     public static readonly Guid SecondUserPartyUuid = new("AE985685-5D8F-45E0-AE00-240F5F5C60C5");
     public const string SecondUserSsn = "13076800124";
 
-    public const int SiUserPartyId = 300;
+    public const int SiUserPartyId = 50000300;
     public static readonly Guid SiUserPartyUuid = new("11111111-2222-3333-4444-555555555555");
 
-    public const int LegacySiUserPartyId = 301;
+    public const int LegacySiUserPartyId = 50000301;
     public static readonly Guid LegacySiUserPartyUuid = new("22222222-3333-4444-5555-666666666666");
 
     public Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken)

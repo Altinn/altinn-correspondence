@@ -1773,8 +1773,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_ValidatesRolesForOrgRecipient(bool subUnit, bool hasRequiredRoles, HttpStatusCode expectedStatus)
         {
             // Arrange
-            var orgNo = "100000001";
-            var mainUnitOrgNo = "100000002";
+            var orgNo = "100000008";
+            var mainUnitOrgNo = "100000113";
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
@@ -2454,8 +2454,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task WhenDialogCreationFails_PublishCorrespondenceHandlerIsStillScheduledAndSetsFailedStatus()
         {
             var correspondenceId = Guid.NewGuid();
-            const string senderOrgNo = "123456789";
-            const string recipientOrgNo = "987654321";
+            const string senderOrgNo = "991825827";
+            const string recipientOrgNo = "200000005";
             const string dialogJobId = "dialog-job-failed-123";
 
             var scheduleClientMock = new Mock<IBackgroundJobClient>();

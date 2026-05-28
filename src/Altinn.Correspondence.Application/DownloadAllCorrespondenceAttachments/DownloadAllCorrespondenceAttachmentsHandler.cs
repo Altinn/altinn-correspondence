@@ -58,7 +58,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         }
 
         var latestStatus = correspondence.GetHighestStatus();
-        if (latestStatus!.Status.IsAvailableForRecipient())
+        if (!latestStatus!.Status.IsAvailableForRecipient())
         {
             _logger.LogWarning("Correspondence {CorrespondenceId} is not available for recipient - current status: {Status}", request.CorrespondenceId, latestStatus.Status);
             return CorrespondenceErrors.CorrespondenceNotFound;

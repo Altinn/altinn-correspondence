@@ -386,7 +386,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
                     .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "123456789"));
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -442,7 +442,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
                     .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "123456789"));
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -470,7 +470,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
                     .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "123456789"));
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
                     .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
