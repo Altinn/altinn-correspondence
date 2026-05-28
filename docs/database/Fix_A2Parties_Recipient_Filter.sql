@@ -19,9 +19,12 @@
 --     - Others: Use OutputActorId format (already matches Recipient)
 --
 -- DEPLOYMENT:
---   - Safe to run on production (no indexes, fast operations)
---   - Estimated time: < 1 minute
---   - No downtime required
+--   - Schema changes: Column rename, add column, add NOT NULL constraint
+--   - Index creation: Creates covering index on PartyUuid (~2 GB estimated)
+--   - Safe to run on production (uses CREATE INDEX CONCURRENTLY)
+--   - Estimated time: 5-20 minutes (depends on A2Parties table size)
+--   - No downtime: CONCURRENTLY avoids exclusive locks, production unaffected
+--   - Note: Index creation time varies with table size and system load
 --
 -- =====================================================================================
 
@@ -172,7 +175,10 @@ END $$;
 ALTER TABLE correspondence."A2Parties"
 ALTER COLUMN "RecipientUrn" SET NOT NULL;
 
-RAISE NOTICE 'Added NOT NULL constraint to RecipientUrn';
+DO $$
+BEGIN
+    RAISE NOTICE 'Added NOT NULL constraint to RecipientUrn';
+END $$;
 
 -- =====================================================================================
 -- STEP 5: Create Covering Index for Export Queries

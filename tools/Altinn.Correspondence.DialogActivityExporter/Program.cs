@@ -80,19 +80,32 @@ var exportService = new DialogActivityExportService(
 
 var progress = new Progress<ExportProgress>(p =>
 {
-    Console.SetCursorPosition(0, Console.CursorTop);
-    Console.Write(new string(' ', Console.WindowWidth)); // Clear line
-    Console.SetCursorPosition(0, Console.CursorTop);
+    if (Console.IsOutputRedirected)
+    {
+        // Non-interactive output for redirected/piped scenarios
+        var percent = p.PercentComplete;
+        var rate = p.TotalProcessed / p.ElapsedTime.TotalSeconds;
+        var eta = p.EstimatedTimeRemaining;
 
-    var percent = p.PercentComplete;
-    var bar = CreateProgressBar(percent, 40);
-    var rate = p.TotalProcessed / p.ElapsedTime.TotalSeconds;
-    var eta = p.EstimatedTimeRemaining;
+        Console.WriteLine($"Progress: {percent:F2}% | {p.TotalProcessed:N0}/{p.TotalCount:N0} | {rate:F0} rows/sec | ETA: {eta:hh\\:mm\\:ss}");
+    }
+    else
+    {
+        // Interactive progress bar with cursor positioning
+        Console.SetCursorPosition(0, Console.CursorTop);
+        Console.Write(new string(' ', Console.WindowWidth)); // Clear line
+        Console.SetCursorPosition(0, Console.CursorTop);
 
-    Console.ForegroundColor = percent < 50 ? ConsoleColor.Yellow : ConsoleColor.Green;
-    Console.Write($"[{bar}] {percent:F2}% ");
-    Console.ResetColor();
-    Console.Write($"| {p.TotalProcessed:N0}/{p.TotalCount:N0} | {rate:F0} rows/sec | ETA: {eta:hh\\:mm\\:ss}");
+        var percent = p.PercentComplete;
+        var bar = CreateProgressBar(percent, 40);
+        var rate = p.TotalProcessed / p.ElapsedTime.TotalSeconds;
+        var eta = p.EstimatedTimeRemaining;
+
+        Console.ForegroundColor = percent < 50 ? ConsoleColor.Yellow : ConsoleColor.Green;
+        Console.Write($"[{bar}] {percent:F2}% ");
+        Console.ResetColor();
+        Console.Write($"| {p.TotalProcessed:N0}/{p.TotalCount:N0} | {rate:F0} rows/sec | ETA: {eta:hh\\:mm\\:ss}");
+    }
 });
 
 var stopwatch = Stopwatch.StartNew();
@@ -206,7 +219,7 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
     {
         if (!DateTime.TryParse(oldest, out var parsedOldest))
         {
-            logger.LogError("Invalid oldest date format. Use 'yyyy-MM-dd HH:mm:ss'");
+            logger.LogError("Invalid oldest date format. Use 'yyyy-MM-dd' or 'yyyy-MM-dd HH:mm:ss'");
             return null;
         }
         oldestDate = parsedOldest;

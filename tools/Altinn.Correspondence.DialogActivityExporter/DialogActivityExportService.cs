@@ -328,12 +328,12 @@ public class DialogActivityExportService
             lastProcessedId = correspondenceId;
 
             var line = FormatCSVLine(
-                reader.GetString(0),  // DialogId
-                reader.IsDBNull(1) ? "" : reader.GetGuid(1).ToString(),  // DialogActivityId
-                reader.GetDateTime(3).ToString("o", CultureInfo.InvariantCulture),  // Timestamp
-                reader.GetString(4),  // ActorId
+                EscapeCSV(reader.GetString(0)),  // DialogId
+                EscapeCSV(reader.IsDBNull(1) ? "" : reader.GetGuid(1).ToString()),  // DialogActivityId
+                EscapeCSV(reader.GetDateTime(3).ToString("o", CultureInfo.InvariantCulture)),  // Timestamp
+                EscapeCSV(reader.GetString(4)),  // ActorId
                 EscapeCSV(reader.GetString(5)),  // ActorName
-                reader.GetString(7)   // ActivityType
+                EscapeCSV(reader.GetString(7))   // ActivityType
             );
 
             await writer.WriteLineAsync(line);

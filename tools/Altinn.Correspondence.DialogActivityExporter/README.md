@@ -124,7 +124,7 @@ dotnet run --project . -- `
 - `--azure-ad` - Use Azure AD authentication (automatic, recommended)
 
 ### Optional
-- `--oldest` - Oldest correspondence date (yyyy-MM-dd HH:mm:ss) - Issue 1951 only
+- `--oldest` - Oldest correspondence date (yyyy-MM-dd or yyyy-MM-dd HH:mm:ss) - Issue 1951 only
 - `--batch-size` - Batch size (default: 50000)
 - `-y, --yes` - Skip confirmation prompt
 - `-h, --help` - Show help
