@@ -25,6 +25,9 @@ public class PartyUrnHelper
     /// Looks up a party by PartyUuid and converts it to a Dialogporten-compatible URN string.
     /// Returns null if party is not found.
     /// </summary>
+    /// <param name="partyUuid">The PartyUuid to lookup</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>URN string or null if party not found</returns>
     public async Task<string?> GetPartyUrnByUuid(Guid partyUuid, CancellationToken cancellationToken)
     {
         var party = await _altinnRegisterService.LookUpPartyById(partyUuid.ToString(), cancellationToken);
@@ -45,7 +48,11 @@ public class PartyUrnHelper
 
     /// <summary>
     /// Looks up multiple parties by their PartyUuids and returns a dictionary mapping PartyUuid to URN.
+    /// Parties that cannot be found or converted are logged and skipped.
     /// </summary>
+    /// <param name="partyUuids">Collection of PartyUuids to lookup</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Dictionary mapping PartyUuid to URN string</returns>
     public async Task<Dictionary<Guid, string>> GetPartyUrnsByUuids(IEnumerable<Guid> partyUuids, CancellationToken cancellationToken)
     {
         var result = new Dictionary<Guid, string>();
@@ -67,6 +74,9 @@ public class PartyUrnHelper
     /// Gets Dialogporten actor IDs for status events.
     /// Looks up parties for Read and Confirmed status events and converts them to URNs.
     /// </summary>
+    /// <param name="statusEvents">List of status events</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Dictionary mapping PartyUuid to URN string</returns>
     public async Task<Dictionary<Guid, string>> GetDialogPortenActorIdsForStatusEvents(List<CorrespondenceStatusEntity> statusEvents, CancellationToken cancellationToken)
     {
         var partyUuidsToLookup = statusEvents
@@ -79,7 +89,12 @@ public class PartyUrnHelper
 
     /// <summary>
     /// Gets Dialogporten actor IDs for status and deletion events.
+    /// Combines PartyUuids from both event types and looks them up.
     /// </summary>
+    /// <param name="statusEventsToExecute">List of status events</param>
+    /// <param name="deletionEventsToExecute">List of deletion events</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Dictionary mapping PartyUuid to URN string</returns>
     public async Task<Dictionary<Guid, string>> GetDialogPortenActorIdsForEvents(
         List<CorrespondenceStatusEntity>? statusEventsToExecute,
         List<CorrespondenceDeleteEventEntity>? deletionEventsToExecute,

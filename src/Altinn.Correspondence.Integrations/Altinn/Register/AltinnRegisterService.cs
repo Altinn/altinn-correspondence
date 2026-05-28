@@ -142,6 +142,9 @@ public class AltinnRegisterService : IAltinnRegisterService
     /// the polymorphic discriminator on <c>partyType</c> picks <see cref="Person"/>,
     /// <see cref="Organization"/>, etc.
     /// </summary>
+    /// <param name="identificationIds">The party identifiers to look up.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A list of parties matching the provided identifiers.</returns>
     private async Task<List<Party>?> QueryParties(List<string> identificationIds, CancellationToken cancellationToken = default)
     {
         var partyUrns = identificationIds.Select(id => id.WithUrnPrefix()).ToList();
