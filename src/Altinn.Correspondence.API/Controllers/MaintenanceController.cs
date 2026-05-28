@@ -370,7 +370,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
 
     /// <summary>
     /// Enqueue a job that computes hypothetical SMS notification length statistics for all
-    /// correspondences published within the given date range. Aggregated statistics are emitted to logs.
+    /// correspondences created within the given date range. Aggregated statistics are emitted to logs.
     /// </summary>
     /// <response code="200">Returns the enqueued job id and the resolved range</response>
     /// <response code="401">Unauthorized</response>
