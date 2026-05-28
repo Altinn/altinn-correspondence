@@ -33,5 +33,6 @@ public interface IDialogportenService
     Task<bool> DialogValidForTransmission(string dialogId, string transmissionResourceId, CancellationToken cancellationToken = default);
     Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences);
     Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken);
+    Task AddNotificationActivity(Guid notificationId, CancellationToken cancellationToken);
     Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder);
 }

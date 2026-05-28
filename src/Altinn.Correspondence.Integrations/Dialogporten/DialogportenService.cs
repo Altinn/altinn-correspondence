@@ -23,6 +23,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten;
 public class DialogportenService(HttpClient _httpClient,
                                  ICorrespondenceRepository _correspondenceRepository,
                                  ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
+                                 ICorrespondenceNotificationRepository correspondenceNotificationRepository,
                                  IAltinnRegisterService altinnRegisterService,
                                  IOptions<GeneralSettings> generalSettings,
                                  ILogger<DialogportenService> logger,
@@ -1116,6 +1117,90 @@ public class DialogportenService(HttpClient _httpClient,
                 }
             }
             logger.LogError($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"); // Only log as we will run again for those that don't pass DP validation
+        }
+    }
+
+    public async Task AddNotificationActivity(Guid notificationId, CancellationToken cancellationToken)
+    {
+        var notification = await correspondenceNotificationRepository.GetNotificationById(notificationId, cancellationToken);
+        if (notification == null)
+        {
+            logger.LogWarning("Notification with id {NotificationId} not found. Skipping.", notificationId);
+            return;
+        }
+
+        var correspondence = notification.Correspondence!;
+
+        var dialogId = correspondence.ExternalReferences
+            .FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)
+            ?.ReferenceValue;
+
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                logger.LogWarning(
+                    "Skipping adding notification activity for correspondence {CorrespondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", 
+                    correspondence.Id);
+                return;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
+        }
+
+        // Build the activity using the existing mapper method
+        var activity = CreateDialogRequestMapper.GetActivityFromAltinn2Notification(correspondence, notification);
+
+        // Convert the Activity to CreateDialogActivityRequest
+        var createDialogActivityRequest = new CreateDialogActivityRequest
+        {
+            Id = activity.Id,
+            CreatedAt = activity.CreatedAt,
+            Type = Enum.Parse<ActivityType>(activity.Type),
+            PerformedBy = new ActivityPerformedBy
+            {
+                ActorType = activity.PerformedBy.ActorType
+            },
+            Description = activity.Description.Select(d => new ActivityDescription
+            {
+                Value = d.Value,
+                LanguageCode = d.LanguageCode
+            }).ToList()
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(
+            $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", 
+            createDialogActivityRequest, 
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                if (errorContent.Contains("already exists"))
+                {
+                    logger.LogWarning(
+                        "Activity already exists for notification {NotificationId} on correspondence {CorrespondenceId} and dialog {DialogId}", 
+                        notificationId, 
+                        correspondence.Id, 
+                        dialogId);
+                    return;
+                }
+            }
+
+            logger.LogError(
+                "Response from Dialogporten was not successful: {StatusCode}: {Content}. Notification: {NotificationId}, Correspondence: {CorrespondenceId}", 
+                response.StatusCode, 
+                await response.Content.ReadAsStringAsync(),
+                notificationId,
+                correspondence.Id);
+        }
+        else
+        {
+            logger.LogInformation(
+                "Successfully added notification activity for notification {NotificationId} on correspondence {CorrespondenceId}", 
+                notificationId, 
+                correspondence.Id);
         }
     }
 

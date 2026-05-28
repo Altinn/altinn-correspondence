@@ -136,6 +136,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
+        public Task AddNotificationActivity(Guid notificationId, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task CreateDownloadStartedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn, params string[] tokens)
         {
             return Task.CompletedTask;

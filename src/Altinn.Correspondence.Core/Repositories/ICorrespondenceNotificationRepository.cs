@@ -19,5 +19,9 @@ namespace Altinn.Correspondence.Core.Repositories
             Guid? afterNotificationId,
             int limit,
             CancellationToken cancellationToken);
+        Task<List<CorrespondenceNotificationEntity>> GetSyncedNotificationsWithoutDialogActivityBatch(
+            int count, 
+            DateTimeOffset lastProcessed, 
+            CancellationToken cancellationToken);
     }
 }

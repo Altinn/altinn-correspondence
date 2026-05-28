@@ -62,6 +62,7 @@ public class DialogportenServiceTests
         var mockLogger = new Mock<ILogger<DialogportenService>>();
         var mockResourceRegistryService = new Mock<IResourceRegistryService>();
         var mockCorrespondenceForwardingEventRepository = new Mock<ICorrespondenceForwardingEventRepository>();
+        var mockCorrespondenceNotificationRepository = new Mock<ICorrespondenceNotificationRepository>();
         var mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
         var mockPartyUrnHelper = new Mock<Core.Services.PartyUrnHelper>(mockAltinnRegisterService.Object, Mock.Of<ILogger<Core.Services.PartyUrnHelper>>());
         var options = Options.Create(new GeneralSettings { CorrespondenceBaseUrl = "https://correspondence.example" });
@@ -69,6 +70,7 @@ public class DialogportenServiceTests
         var service = new DialogportenService(httpClient,
                                               mockRepo.Object,
                                               mockCorrespondenceForwardingEventRepository.Object,
+                                              mockCorrespondenceNotificationRepository.Object,
                                               mockAltinnRegisterService.Object,
                                               options,
                                               mockLogger.Object,
@@ -121,6 +123,7 @@ public class DialogportenServiceTests
         var mockLogger = new Mock<ILogger<DialogportenService>>();
         var mockResourceRegistryService = new Mock<IResourceRegistryService>();
         var mockCorrespondenceForwardingEventRepository = new Mock<ICorrespondenceForwardingEventRepository>();
+        var mockCorrespondenceNotificationRepository = new Mock<ICorrespondenceNotificationRepository>();
         var mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
         var mockPartyUrnHelperLogger = new Mock<ILogger<Core.Services.PartyUrnHelper>>();
         var mockPartyUrnHelper = new Mock<Core.Services.PartyUrnHelper>(mockAltinnRegisterService.Object, mockPartyUrnHelperLogger.Object);
@@ -134,6 +137,7 @@ public class DialogportenServiceTests
         var service = new DialogportenService(httpClient,
                                               mockRepo.Object,
                                               mockCorrespondenceForwardingEventRepository.Object,
+                                              mockCorrespondenceNotificationRepository.Object,
                                               mockAltinnRegisterService.Object,
                                               options,
                                               mockLogger.Object,

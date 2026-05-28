@@ -145,5 +145,23 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Select(x => new NotificationDeliveryRepairCandidate(x.NotificationId, x.CorrespondenceId, x.IsReminder))
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<List<CorrespondenceNotificationEntity>> GetSyncedNotificationsWithoutDialogActivityBatch(
+            int count, 
+            DateTimeOffset lastProcessed, 
+            CancellationToken cancellationToken)
+        {
+            return await _context.CorrespondenceNotifications
+                .Include(n => n.Correspondence)
+                .ThenInclude(c => c.Content)
+                .Include(n => n.Correspondence)
+                .ThenInclude(c => c.ExternalReferences)
+                .Where(n => n.Altinn2NotificationId != null 
+                         && n.SyncedFromAltinn2 != null
+                         && (n.NotificationSent ?? n.RequestedSendTime) < lastProcessed)
+                .OrderByDescending(n => n.NotificationSent ?? n.RequestedSendTime)
+                .Take(count)
+                .ToListAsync(cancellationToken);
+        }
     }
 }
