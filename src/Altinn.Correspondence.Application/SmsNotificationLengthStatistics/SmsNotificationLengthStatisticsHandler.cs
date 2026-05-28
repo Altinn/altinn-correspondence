@@ -102,7 +102,7 @@ public class SmsNotificationLengthStatisticsHandler(
                         }
                         catch (Exception ex)
                         {
-                            logger.LogWarning(ex, "LookUpName failed for recipient {Recipient}", c.Recipient);
+                            logger.LogWarning(ex, "LookUpName failed for correspondence {CorrespondenceId}", c.Id);
                             recipientName = null;
                             totals.NameLookupFailures++;
                             batchStats.NameLookupFailures++;
