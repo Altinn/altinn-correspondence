@@ -272,7 +272,6 @@ public class DialogActivityExportService
             WHERE stats.""Status"" = 4
               AND stats.""{timestampColumn}"" < @cutoffTimestamp
               AND (@lastId IS NULL OR (stats.""CorrespondenceId"", stats.""Status"") > (@lastId, @lastStatus))
-            ORDER BY stats.""CorrespondenceId"", stats.""Status""
 
             UNION ALL
 
@@ -304,7 +303,6 @@ public class DialogActivityExportService
             WHERE stats.""Status"" = 6
               AND stats.""{timestampColumn}"" < @cutoffTimestamp
               AND (@lastId IS NULL OR (stats.""CorrespondenceId"", stats.""Status"") > (@lastId, @lastStatus))
-            ORDER BY stats.""CorrespondenceId"", stats.""Status""
 
             ORDER BY ""CorrespondenceId"", ""Status""
             LIMIT @batchSize";
