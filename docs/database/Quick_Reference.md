@@ -21,11 +21,18 @@
 **Before running export indexes, prepare A2Parties table:**
 
 ```sql
--- See Fix_A2Parties_Recipient_Filter.sql for full script
+-- Part 1: Schema changes (can run in transaction)
+-- See Fix_A2Parties_Recipient_Filter_Schema.sql
 -- 1. Rename IdentifierUrn → OutputActorId
 -- 2. Add RecipientUrn column (conditional format)
--- 3. Create covering index on PartyUuid
--- Time: ~5 minutes
+-- 3. Add NOT NULL constraint
+-- Time: < 1 minute
+
+-- Part 2: Index creation (must run WITHOUT transaction)
+-- See Fix_A2Parties_Recipient_Filter_Index.sql
+-- 4. Create covering index on PartyUuid
+-- Time: 5-20 minutes
+-- ⚠️  Must run via psql (not migration tools)
 ```
 
 ### Phase 1: Critical Indexes (90 minutes) ✅ REQUIRED
@@ -90,7 +97,7 @@ FROM pg_stat_progress_create_index;
 SELECT 
     schemaname, tablename, indexname, idx_scan, idx_tup_read
 FROM pg_stat_user_indexes
-WHERE indexname LIKE ''IX_CorrespondenceStatuses%''
+WHERE indexname LIKE 'IX_CorrespondenceStatuses%'
 ORDER BY idx_scan DESC;
 ```
 
@@ -111,7 +118,7 @@ A: Yes. Use `DROP INDEX CONCURRENTLY` to remove them safely.
 A: Runtime queries start from `Correspondences` table (already has good indexes). Export queries start from `CorrespondenceStatuses` table (needs new indexes). Different starting points = different optimization needs.
 
 **Q: What if index creation is interrupted?**  
-A: Index will be marked INVALID. Drop it with `DROP INDEX` and recreate.
+A: Index will be marked INVALID. Drop it with `DROP INDEX CONCURRENTLY` and recreate.
 
 **Q: Why partial indexes?**  
 A: Smaller size, faster scans, targeted for specific export queries. Index #1 covers only 7-9M rows (synced events), Index #2 covers 150M rows (migrated events).
@@ -134,7 +141,8 @@ DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_Correspondences_Id_Created_
 
 | File | Purpose |
 |------|---------|
-| **Fix_A2Parties_Recipient_Filter.sql** | A2Parties table setup (run first!) |
+| **Fix_A2Parties_Recipient_Filter_Schema.sql** | A2Parties schema changes (run first, transactional) |
+| **Fix_A2Parties_Recipient_Filter_Index.sql** | A2Parties index (run second, non-transactional) |
 | **Index_Creation_Scripts.sql** | Production-ready export indexes |
 | **Technical_Documentation.md** | Business case, query analysis, detailed explanations |
 | **Query_Documentation.md** | Query logic and filter explanations |

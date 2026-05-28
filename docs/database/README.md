@@ -13,9 +13,10 @@ We need to export ~150-160 million rows from the `CorrespondenceStatuses` table.
 
 1. **[Quick_Reference.md](Quick_Reference.md)** - Deployment checklist, metrics, and FAQ
 2. **[Index_Creation_Scripts.sql](Index_Creation_Scripts.sql)** - Production-ready SQL scripts for export indexes
-3. **[Fix_A2Parties_Recipient_Filter.sql](Fix_A2Parties_Recipient_Filter.sql)** - A2Parties table setup (column rename + index)
-4. **[Technical_Documentation.md](Technical_Documentation.md)** - Detailed analysis, query patterns, and business case
-5. **[Query_Documentation.md](Query_Documentation.md)** - Query explanations and filter logic
+3. **[Fix_A2Parties_Recipient_Filter_Schema.sql](Fix_A2Parties_Recipient_Filter_Schema.sql)** - A2Parties schema changes (Part 1: transactional)
+4. **[Fix_A2Parties_Recipient_Filter_Index.sql](Fix_A2Parties_Recipient_Filter_Index.sql)** - A2Parties index creation (Part 2: non-transactional)
+5. **[Technical_Documentation.md](Technical_Documentation.md)** - Detailed analysis, query patterns, and business case
+6. **[Query_Documentation.md](Query_Documentation.md)** - Query explanations and filter logic
 
 ## Quick Start
 
@@ -61,7 +62,7 @@ WHERE "SyncedFromAltinn2" IS NULL;
 
 ## Related Files
 
-```
+```text
 altinn-correspondence/
 ├── docs/database/
 │   ├── README.md (this file)

@@ -31,7 +31,7 @@ public class DialogActivityExportService
     {
         var totalProcessed = 0L;
         var batchNumber = 0;
-        Guid? lastCorrespondenceId = null;
+        (Guid correspondenceId, int status)? lastCursor = null;
 
         _logger.LogInformation("Starting export for Issue #{Issue} to {FilePath}", issueNumber, outputFilePath);
 
@@ -58,20 +58,20 @@ public class DialogActivityExportService
             batchNumber++;
             var batchStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            var (batchCount, lastId) = await ProcessBatchAsync(
+            var (batchCount, newCursor) = await ProcessBatchAsync(
                 connection,
                 writer,
                 issueNumber,
                 cutoffTimestamp,
                 oldestCorrespondenceDate,
-                lastCorrespondenceId,
+                lastCursor,
                 cancellationToken);
 
             if (batchCount == 0)
                 break;
 
             totalProcessed += batchCount;
-            lastCorrespondenceId = lastId;
+            lastCursor = newCursor;
             batchStopwatch.Stop();
 
             _logger.LogDebug(
@@ -161,26 +161,26 @@ public class DialogActivityExportService
     {
         var totalProcessed = 0L;
         var batchNumber = 0;
-        Guid? lastCorrespondenceId = null;
+        (Guid correspondenceId, int status)? lastCursor = null;
 
         while (true)
         {
             batchNumber++;
 
-            var (batchCount, lastId) = await ProcessBatchAsync(
+            var (batchCount, newCursor) = await ProcessBatchAsync(
                 connection,
                 writer,
                 issueNumber,
                 cutoffTimestamp,
                 oldestCorrespondenceDate,
-                lastCorrespondenceId,
+                lastCursor,
                 cancellationToken);
 
             if (batchCount == 0)
                 break;
 
             totalProcessed += batchCount;
-            lastCorrespondenceId = lastId;
+            lastCursor = newCursor;
 
             // Report progress with combined totals
             progress?.Report(new ExportProgress
@@ -232,13 +232,13 @@ public class DialogActivityExportService
         return result != null ? Convert.ToInt64(result) : 0;
     }
 
-    private async Task<(int Count, Guid? LastId)> ProcessBatchAsync(
+    private async Task<(int Count, (Guid correspondenceId, int status)? LastCursor)> ProcessBatchAsync(
         NpgsqlConnection connection,
         StreamWriter writer,
         int issueNumber,
         DateTime cutoffTimestamp,
         DateTime? oldestCorrespondenceDate,
-        Guid? lastCorrespondenceId,
+        (Guid correspondenceId, int status)? lastCursor,
         CancellationToken cancellationToken)
     {
         var (syncFilter, timestampColumn, createdFilter) = GetFiltersForIssue(issueNumber, oldestCorrespondenceDate);
@@ -271,8 +271,8 @@ public class DialogActivityExportService
                 AND idcFetch.""StatusAction"" = '3'
             WHERE stats.""Status"" = 4
               AND stats.""{timestampColumn}"" < @cutoffTimestamp
-              AND (@lastId IS NULL OR stats.""CorrespondenceId"" > @lastId)
-            ORDER BY stats.""CorrespondenceId""
+              AND (@lastId IS NULL OR (stats.""CorrespondenceId"", stats.""Status"") > (@lastId, @lastStatus))
+            ORDER BY stats.""CorrespondenceId"", stats.""Status""
 
             UNION ALL
 
@@ -303,29 +303,31 @@ public class DialogActivityExportService
                 AND idcConfirm.""StatusAction"" = '6'
             WHERE stats.""Status"" = 6
               AND stats.""{timestampColumn}"" < @cutoffTimestamp
-              AND (@lastId IS NULL OR stats.""CorrespondenceId"" > @lastId)
-            ORDER BY stats.""CorrespondenceId""
+              AND (@lastId IS NULL OR (stats.""CorrespondenceId"", stats.""Status"") > (@lastId, @lastStatus))
+            ORDER BY stats.""CorrespondenceId"", stats.""Status""
 
-            ORDER BY ""CorrespondenceId""
+            ORDER BY ""CorrespondenceId"", ""Status""
             LIMIT @batchSize";
 
         await using var cmd = new NpgsqlCommand(batchQuery, connection);
         cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
-        cmd.Parameters.AddWithValue("lastId", (object?)lastCorrespondenceId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("lastId", (object?)lastCursor?.correspondenceId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("lastStatus", lastCursor?.status ?? (object)DBNull.Value);
         cmd.Parameters.AddWithValue("batchSize", _batchSize);
         if (oldestCorrespondenceDate.HasValue)
             cmd.Parameters.AddWithValue("oldestDate", oldestCorrespondenceDate.Value);
         cmd.CommandTimeout = 300;
 
         var count = 0;
-        Guid? lastProcessedId = null;
+        (Guid correspondenceId, int status)? lastProcessedCursor = null;
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
 
         while (await reader.ReadAsync(cancellationToken))
         {
             var correspondenceId = reader.GetGuid(2);
-            lastProcessedId = correspondenceId;
+            var status = reader.GetInt32(6);
+            lastProcessedCursor = (correspondenceId, status);
 
             var line = FormatCSVLine(
                 EscapeCSV(reader.GetString(0)),  // DialogId
@@ -340,7 +342,7 @@ public class DialogActivityExportService
             count++;
         }
 
-        return (count, lastProcessedId);
+        return (count, lastProcessedCursor);
     }
 
     private static (string SyncFilter, string TimestampColumn, string CreatedFilter) GetFiltersForIssue(

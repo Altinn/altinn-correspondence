@@ -37,7 +37,7 @@ We need to export ~150-160 million dialog activity records to sync with DialogPo
 
 Without proper indexes, the export queries perform full table scans:
 
-```
+```text
 EXPLAIN ANALYZE (Issue #1951):
 - Parallel Seq Scan on "CorrespondenceStatuses"
 - Rows scanned: 975,517,862 (entire table!)
@@ -192,7 +192,7 @@ INNER JOIN Correspondences        -- Uses PK
 | **With Optional** | 15 GB | Include Index #3 |
 | **Deployment Time** | 90 min | Using CONCURRENTLY |
 | **Write Overhead** | 5-10% | Slower inserts on CorrespondenceStatuses |
-| **Downtime** | 0 | CONCURRENTLY prevents locks |
+| **Downtime** | 0 | CONCURRENTLY doesn't block DML |
 | **Reversibility** | Full | DROP INDEX CONCURRENTLY |
 
 ---
@@ -202,7 +202,7 @@ INNER JOIN Correspondences        -- Uses PK
 | Risk Factor | Level | Mitigation |
 |-------------|-------|------------|
 | **Downtime** | 🟢 None | CREATE INDEX CONCURRENTLY |
-| **Table Locks** | 🟢 None | CONCURRENTLY flag prevents locks |
+| **Table Locks** | 🟢 None (DML) | CONCURRENTLY doesn't block writes/DML but acquires SHARE UPDATE EXCLUSIVE lock that can conflict with other DDL/schema operations |
 | **Rollback** | 🟢 Easy | DROP INDEX CONCURRENTLY |
 | **Write Performance** | 🟡 -5 to -10% | Acceptable for export benefit |
 | **Disk Space** | 🟢 Low | 13.5 GB for critical functionality |

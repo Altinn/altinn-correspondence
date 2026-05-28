@@ -55,8 +55,8 @@ DialogId,DialogActivityId,Timestamp,ActorId,ActorName,ActivityType
 
 The progress bar shows combined progress:
 
-```
-[████████████░░░░░░░░] 47.23% | 70,845,000/157,000,000 | 12,450 rows/sec | ETA: 01:45:32
+```text
+[████████████░░░░░░░░] 47.23%
 ```
 
 - **TotalCount**: Combined count from both issues
@@ -85,9 +85,9 @@ dotnet run -- --issue 1716 --output "C:\temp\issue1716.csv" ...
 dotnet run -- --issue 1951 --output "C:\temp\issue1951.csv" ...
 
 # Later combine manually if needed
-Get-Content C:\temp\issue1716.csv, C:\temp\issue1951.csv | 
-  Select-Object -Skip 1 | 
-  Out-File C:\temp\combined.csv
+# Keep first file's header, skip headers from subsequent files
+Get-Content C:\temp\issue1716.csv | Out-File C:\temp\combined.csv
+Get-Content C:\temp\issue1951.csv | Select-Object -Skip 1 | Out-File -Append C:\temp\combined.csv
 ```
 
 ## Implementation Details

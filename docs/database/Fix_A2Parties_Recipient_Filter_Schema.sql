@@ -1,5 +1,5 @@
 -- =====================================================================================
--- Fix A2Parties Recipient Filter Issue
+-- Fix A2Parties Recipient Filter Issue - Part 1: Schema Changes
 -- =====================================================================================
 -- 
 -- PURPOSE:
@@ -12,19 +12,27 @@
 --   - A2Parties.IdentifierUrn: "urn:altinn:person:legacy-selfidentified:..." (name format)
 --   - The filter "Recipient <> IdentifierUrn" never matches for self-identified users
 --
--- SOLUTION:
+-- SOLUTION (Part 1 - Schema Changes):
 --   - Rename IdentifierUrn → OutputActorId (clear semantics: what gets exported)
 --   - Add RecipientUrn column (for matching against Correspondences.Recipient)
 --     - Self-identified: Use UUID format (urn:altinn:party:uuid:{PartyUuid})
 --     - Others: Use OutputActorId format (already matches Recipient)
+--   - Add NOT NULL constraint after populating RecipientUrn
 --
 -- DEPLOYMENT:
---   - Schema changes: Column rename, add column, add NOT NULL constraint
---   - Index creation: Creates covering index on PartyUuid (~2 GB estimated)
---   - Safe to run on production (uses CREATE INDEX CONCURRENTLY)
---   - Estimated time: 5-20 minutes (depends on A2Parties table size)
---   - No downtime: CONCURRENTLY avoids exclusive locks, production unaffected
---   - Note: Index creation time varies with table size and system load
+--   - This script contains ONLY transactional DDL operations
+--   - Safe to run through migration tools that wrap scripts in transactions
+--   - Estimated time: < 1 minute
+--
+--   LOCKING BEHAVIOR:
+--   - ALTER TABLE operations acquire ACCESS EXCLUSIVE locks (brief but blocking)
+--   - SET NOT NULL validates all rows (scans table to ensure no NULLs)
+--   - Short lock impact (queries may briefly wait)
+--   - Recommended: Run during low-traffic window
+--
+--   NEXT STEP:
+--   ⚠️  After this script succeeds, run Fix_A2Parties_Recipient_Filter_Index.sql
+--      to create the covering index (requires non-transactional execution)
 --
 -- =====================================================================================
 
@@ -181,63 +189,6 @@ BEGIN
 END $$;
 
 -- =====================================================================================
--- STEP 5: Create Covering Index for Export Queries
--- =====================================================================================
-
--- Create covering index for efficient export query joins
--- This index includes all columns needed by export queries, eliminating heap lookups
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_A2Parties_PartyUuid_Covering"
-ON correspondence."A2Parties" ("PartyUuid")
-INCLUDE ("OutputActorId", "RecipientUrn", "Name");
-
--- Index explanation:
--- • Key: PartyUuid (used for joins from CorrespondenceStatuses)
--- • INCLUDE: OutputActorId (export output), RecipientUrn (filtering), Name (actor name)
--- • Covering index = no table access needed during export query joins
--- • Size: ~2 GB (estimated)
--- • This is the first index on A2Parties besides the primary key
-
--- Verify index creation:
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 
-        FROM pg_indexes 
-        WHERE schemaname = 'correspondence' 
-          AND tablename = 'A2Parties' 
-          AND indexname = 'IX_A2Parties_PartyUuid_Covering'
-    ) THEN
-        RAISE NOTICE 'Index IX_A2Parties_PartyUuid_Covering created successfully';
-    ELSE
-        RAISE WARNING 'Index IX_A2Parties_PartyUuid_Covering was not created';
-    END IF;
-END $$;
-
--- =====================================================================================
--- STEP 6: Verification Query
--- =====================================================================================
-
--- Show sample data for each user type to verify correct formats
-SELECT 
-    CASE 
-        WHEN "OutputActorId" LIKE 'urn:altinn:person:legacy-selfidentified:%' THEN 'Self-identified'
-        WHEN "OutputActorId" LIKE 'urn:altinn:person:identifier-no:%' THEN 'Person'
-        WHEN "OutputActorId" LIKE 'urn:altinn:organization:identifier-no:%' THEN 'Organization'
-        ELSE 'Other'
-    END AS UserType,
-    "PartyUuid",
-    "OutputActorId",
-    "RecipientUrn",
-    "Name"
-FROM correspondence."A2Parties"
-WHERE "OutputActorId" LIKE 'urn:altinn:person:legacy-selfidentified:%'
-   OR "OutputActorId" LIKE 'urn:altinn:person:identifier-no:%'
-   OR "OutputActorId" LIKE 'urn:altinn:organization:identifier-no:%'
-ORDER BY UserType, "Name"
-LIMIT 10;
-
--- =====================================================================================
 -- VERIFICATION SUMMARY
 -- =====================================================================================
 
@@ -254,7 +205,7 @@ BEGIN
     WHERE "RecipientUrn" IS NOT NULL;
 
     RAISE NOTICE '==========================================';
-    RAISE NOTICE 'A2Parties Recipient Filter Fix - COMPLETE';
+    RAISE NOTICE 'A2Parties Schema Changes - COMPLETE';
     RAISE NOTICE '==========================================';
     RAISE NOTICE 'Total rows: %', v_total_rows;
     RAISE NOTICE 'RecipientUrn populated: %', v_recipient_populated;
@@ -262,12 +213,11 @@ BEGIN
     RAISE NOTICE 'Schema changes:';
     RAISE NOTICE '  - Renamed: IdentifierUrn → OutputActorId';
     RAISE NOTICE '  - Added: RecipientUrn (conditional format)';
-    RAISE NOTICE '  - Created: IX_A2Parties_PartyUuid_Covering index';
+    RAISE NOTICE '  - Added: NOT NULL constraint on RecipientUrn';
     RAISE NOTICE '';
     RAISE NOTICE 'Next Steps:';
-    RAISE NOTICE '1. DialogActivityExportService.cs already updated';
-    RAISE NOTICE '2. Test export query with recipient filter';
-    RAISE NOTICE '3. Export indexes ready for creation (see Index_Creation_Scripts.sql)';
+    RAISE NOTICE '⚠️  Run Fix_A2Parties_Recipient_Filter_Index.sql';
+    RAISE NOTICE '   (Creates covering index via CREATE INDEX CONCURRENTLY)';
     RAISE NOTICE '==========================================';
 END $$;
 
@@ -277,13 +227,10 @@ END $$;
 
 -- Uncomment to rollback changes:
 -- 
--- -- Drop the covering index
--- DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_A2Parties_PartyUuid_Covering";
+-- -- Drop RecipientUrn column
+-- ALTER TABLE correspondence."A2Parties"
+-- DROP COLUMN IF EXISTS "RecipientUrn";
 -- 
 -- -- Rename column back
 -- ALTER TABLE correspondence."A2Parties"
 -- RENAME COLUMN "OutputActorId" TO "IdentifierUrn";
--- 
--- -- Drop RecipientUrn column
--- ALTER TABLE correspondence."A2Parties"
--- DROP COLUMN IF EXISTS "RecipientUrn";

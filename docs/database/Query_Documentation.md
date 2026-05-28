@@ -139,7 +139,7 @@ The `A2Parties` table contains two key columns:
 
 ### Current Performance Problem
 
-```
+```text
 EXPLAIN ANALYZE output showed:
 - Parallel Seq Scan on "CorrespondenceStatuses"
 - Rows scanned: 975,517,862 (entire table!)
@@ -175,7 +175,7 @@ Export dialog activities for correspondences that were **synced from Altinn2**. 
 
 ### Expected Performance (With Indexes)
 
-```
+```text
 With proper indexes:
 - Index Scan on IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced
 - Rows scanned: ~7-9 million (only matching rows)

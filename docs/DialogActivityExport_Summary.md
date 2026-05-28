@@ -125,7 +125,7 @@ dotnet run -- `
 
 ## File Structure
 
-```
+```text
 altinn-correspondence/
 ├── tools/
 │   └── Altinn.Correspondence.DialogActivityExporter/

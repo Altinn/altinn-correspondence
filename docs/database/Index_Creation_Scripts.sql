@@ -42,8 +42,8 @@ WHERE "SyncedFromAltinn2" IS NOT NULL;
 -- Verify index creation:
 SELECT 
     schemaname,
-    tablename,
-    indexname,
+    relname as tablename,
+    indexrelname as indexname,
     pg_size_pretty(pg_relation_size(indexrelid)) as size
 FROM pg_stat_user_indexes
 WHERE schemaname = 'correspondence'
@@ -76,8 +76,8 @@ WHERE "SyncedFromAltinn2" IS NULL;
 -- Verify index creation:
 SELECT 
     schemaname,
-    tablename,
-    indexname,
+    relname as tablename,
+    indexrelname as indexname,
     pg_size_pretty(pg_relation_size(indexrelid)) as size
 FROM pg_stat_user_indexes
 WHERE schemaname = 'correspondence'
@@ -108,7 +108,7 @@ WHERE "Altinn2CorrespondenceId" IS NOT NULL
 -- • Optional: Only create if export queries show benefit
 
 -- Verify:
-SELECT pg_size_pretty(pg_relation_size('correspondence.IX_Correspondences_Id_Created_MigrationFilter'));
+SELECT pg_size_pretty(pg_relation_size('correspondence."IX_Correspondences_Id_Created_MigrationFilter"'::regclass));
 
 
 -- ============================================================================
@@ -131,8 +131,8 @@ WHERE command = 'CREATE INDEX CONCURRENTLY';
 -- Check all new indexes after creation:
 SELECT 
     schemaname,
-    tablename,
-    indexname,
+    relname as tablename,
+    indexrelname as indexname,
     idx_scan as times_used,
     idx_tup_read as tuples_read,
     pg_size_pretty(pg_relation_size(indexrelid)) as size
