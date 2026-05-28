@@ -12,9 +12,10 @@ We need to export ~150-160 million rows from the `CorrespondenceStatuses` table.
 ## Documents
 
 1. **[Quick_Reference.md](Quick_Reference.md)** - Deployment checklist, metrics, and FAQ
-2. **[Index_Creation_Scripts.sql](Index_Creation_Scripts.sql)** - Production-ready SQL scripts
-3. **[Technical_Documentation.md](Technical_Documentation.md)** - Detailed analysis, query patterns, and business case
-4. **[Query_Documentation.md](Query_Documentation.md)** - Query explanations and filter logic
+2. **[Index_Creation_Scripts.sql](Index_Creation_Scripts.sql)** - Production-ready SQL scripts for export indexes
+3. **[Fix_A2Parties_Recipient_Filter.sql](Fix_A2Parties_Recipient_Filter.sql)** - A2Parties table setup (column rename + index)
+4. **[Technical_Documentation.md](Technical_Documentation.md)** - Detailed analysis, query patterns, and business case
+5. **[Query_Documentation.md](Query_Documentation.md)** - Query explanations and filter logic
 
 ## Quick Start
 
@@ -35,6 +36,8 @@ WHERE "SyncedFromAltinn2" IS NULL;
 ```
 
 **Total:** 13.5 GB disk space, 90 minutes deployment time
+
+**Note:** A2Parties table setup is handled separately (see below)
 
 ## Key Metrics
 

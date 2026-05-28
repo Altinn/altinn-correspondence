@@ -17,6 +17,17 @@
 
 ## Deployment Plan
 
+### Prerequisites: A2Parties Table Setup
+**Before running export indexes, prepare A2Parties table:**
+
+```sql
+-- See Fix_A2Parties_Recipient_Filter.sql for full script
+-- 1. Rename IdentifierUrn → OutputActorId
+-- 2. Add RecipientUrn column (conditional format)
+-- 3. Create covering index on PartyUuid
+-- Time: ~5 minutes
+```
+
 ### Phase 1: Critical Indexes (90 minutes) ✅ REQUIRED
 ```sql
 -- Issue #1716: Synced events (15 min, 1.5 GB)
@@ -123,7 +134,8 @@ DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_Correspondences_Id_Created_
 
 | File | Purpose |
 |------|---------|
-| **Index_Creation_Scripts.sql** | Production-ready SQL with monitoring queries |
+| **Fix_A2Parties_Recipient_Filter.sql** | A2Parties table setup (run first!) |
+| **Index_Creation_Scripts.sql** | Production-ready export indexes |
 | **Technical_Documentation.md** | Business case, query analysis, detailed explanations |
 | **Query_Documentation.md** | Query logic and filter explanations |
 

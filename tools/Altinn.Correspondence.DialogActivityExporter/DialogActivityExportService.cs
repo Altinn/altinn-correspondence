@@ -218,7 +218,7 @@ public class DialogActivityExportService
                 {createdFilter}
             INNER JOIN correspondence.""A2Parties"" ap 
                 ON stats.""PartyUuid"" = ap.""PartyUuid""
-                AND corr.""Recipient"" <> ap.""IdentifierUrn""
+                AND corr.""Recipient"" <> ap.""RecipientUrn""
             WHERE stats.""Status"" IN (4, 6)
               AND stats.""{timestampColumn}"" < @cutoffTimestamp";
 
@@ -249,7 +249,7 @@ public class DialogActivityExportService
                 idcFetch.""Id"" AS DialogActivityId,
                 stats.""CorrespondenceId"",
                 stats.""StatusChanged"" AS Timestamp,
-                ap.""IdentifierUrn"" AS ActorId,
+                ap.""OutputActorId"" AS ActorId,
                 ap.""Name"" AS ActorName,
                 4 AS Status,
                 'CorrespondenceOpened' AS ActivityType
@@ -261,9 +261,9 @@ public class DialogActivityExportService
                 AND {syncFilter}
                 {createdFilter}
             INNER JOIN correspondence.""A2Parties"" ap 
-                ON stats.""PartyUuid"" = ap."" PartyUuid""
-                AND corr.""Recipient"" <> ap.""IdentifierUrn""
-            INNER JOIN correspondence.""ExternalReferences"" er 
+                ON stats.""PartyUuid"" = ap.""PartyUuid""
+                AND corr.""Recipient"" <> ap.""RecipientUrn""
+            INNER JOIN correspondence.""ExternalReferences"" er
                 ON stats.""CorrespondenceId"" = er.""CorrespondenceId"" 
                 AND er.""ReferenceType"" = 3
             LEFT JOIN correspondence.""IdempotencyKeys"" idcFetch 
@@ -281,7 +281,7 @@ public class DialogActivityExportService
                 idcConfirm.""Id"" AS DialogActivityId,
                 stats.""CorrespondenceId"",
                 stats.""StatusChanged"" AS Timestamp,
-                ap.""IdentifierUrn"" AS ActorId,
+                ap.""OutputActorId"" AS ActorId,
                 ap.""Name"" AS ActorName,
                 6 AS Status,
                 'CorrespondenceConfirmed' AS ActivityType
@@ -294,11 +294,11 @@ public class DialogActivityExportService
                 {createdFilter}
             INNER JOIN correspondence.""A2Parties"" ap 
                 ON stats.""PartyUuid"" = ap.""PartyUuid""
-                AND corr.""Recipient"" <> ap.""IdentifierUrn""
+                AND corr.""Recipient"" <> ap.""RecipientUrn""
             INNER JOIN correspondence.""ExternalReferences"" er 
                 ON stats.""CorrespondenceId"" = er.""CorrespondenceId"" 
                 AND er.""ReferenceType"" = 3
-            LEFT JOIN correspondence.""IdempotencyKeys"" idcConfirm 
+            LEFT JOIN correspondence.""IdempotencyKeys"" idcConfirm
                 ON stats.""CorrespondenceId"" = idcConfirm.""CorrespondenceId"" 
                 AND idcConfirm.""StatusAction"" = '6'
             WHERE stats.""Status"" = 6

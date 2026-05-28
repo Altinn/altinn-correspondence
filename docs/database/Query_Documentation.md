@@ -23,10 +23,10 @@ SELECT
     idcFetch."Id" AS "DialogActivityId",          -- Idempotency key for this activity
     stats."CorrespondenceId",                     -- Link to correspondence
     stats."StatusChanged" AS Timestamp,           -- When action occurred
-    ap."IdentifierUrn" AS ActorId,               -- Who performed the action (URN format)
-    ap."Name" AS ActorName,                      -- Actor's display name
+    ap."OutputActorId" AS ActorId,                -- Who performed the action (output format)
+    ap."Name" AS ActorName,                       -- Actor's display name
     4 AS "Status",                                -- Status code (4 = Fetched/Opened)
-    'CorrespondenceOpened' AS ActivityType       -- Activity type label
+    'CorrespondenceOpened' AS ActivityType        -- Activity type label
 
 FROM correspondence."CorrespondenceStatuses" stats
 
@@ -40,7 +40,7 @@ INNER JOIN correspondence."Correspondences" corr
 -- Join 2: Get actor information from A2 party data
 INNER JOIN correspondence."A2Parties" ap 
     ON stats."PartyUuid" = ap."PartyUuid"
-    AND corr."Recipient" <> ap."IdentifierUrn"      -- Exclude actions by recipient
+    AND corr."Recipient" <> ap."RecipientUrn"        -- Exclude actions by recipient
 
 -- Join 3: Get external reference (Dialog ID)
 INNER JOIN correspondence."ExternalReferences" er 
@@ -66,7 +66,7 @@ SELECT
     idcConfirm."Id" AS "DialogActivityId",
     stats."CorrespondenceId",
     stats."StatusChanged" AS Timestamp,
-    ap."IdentifierUrn" AS ActorId,
+    ap."OutputActorId" AS ActorId,
     ap."Name" AS ActorName,
     6 AS "Status",
     'CorrespondenceConfirmed' AS ActivityType
@@ -80,7 +80,7 @@ INNER JOIN correspondence."Correspondences" corr
 
 INNER JOIN correspondence."A2Parties" ap 
     ON stats."PartyUuid" = ap."PartyUuid"
-    AND corr."Recipient" <> ap."IdentifierUrn"
+    AND corr."Recipient" <> ap."RecipientUrn"        -- Exclude actions by recipient
 
 INNER JOIN correspondence."ExternalReferences" er 
     ON stats."CorrespondenceId" = er."CorrespondenceId" 
@@ -108,7 +108,34 @@ ORDER BY "CorrespondenceId";  -- For cursor-based pagination
 | `corr."Altinn2CorrespondenceId" IS NOT NULL` | Only migrated correspondences | Excludes A3-only data |
 | `corr."IsMigrating" = false` | Migration completed | Excludes in-progress migrations |
 | `corr."Created" > '2019-03-23'` | Valid date range | Business requirement |
-| `corr."Recipient" <> ap."IdentifierUrn"` | Exclude recipient's own actions | Only delegated actions |
+| `corr."Recipient" <> ap."RecipientUrn"` | Exclude recipient's own actions | Only delegated actions |
+
+### A2Parties Columns Explained
+
+The `A2Parties` table contains two key columns:
+
+| Column | Purpose | Format |
+|--------|---------|--------|
+| `OutputActorId` | Export output for DialogPorten | Varies by user type (see below) |
+| `RecipientUrn` | For comparing with `Correspondences.Recipient` | Varies by user type (see below) |
+
+**Three User Type Formats:**
+
+| User Type | Recipient Format | OutputActorId Format | RecipientUrn Format | Match? |
+|-----------|------------------|----------------------|---------------------|--------|
+| **Self-identified** | `urn:altinn:party:uuid:f48a5e8b-...` | `urn:altinn:person:legacy-selfidentified:MurgitroydFinland` | `urn:altinn:party:uuid:f48a5e8b-...` | ✅ UUID |
+| **Person (SSN)** | `urn:altinn:person:identifier-no:10078328644` | `urn:altinn:person:identifier-no:10078328644` | `urn:altinn:person:identifier-no:10078328644` | ✅ Direct |
+| **Organization** | `urn:altinn:organization:identifier-no:983415113` | `urn:altinn:organization:identifier-no:983415113` | `urn:altinn:organization:identifier-no:983415113` | ✅ Direct |
+
+**Why RecipientUrn is needed:**
+- Self-identified users have different formats in `Recipient` (UUID) vs `OutputActorId` (legacy name)
+- Without conversion, filter `Recipient <> OutputActorId` would never match for self-identified users
+- `RecipientUrn` converts to UUID format for self-identified, enabling correct comparison
+- For Person and Organization types, `RecipientUrn` equals `OutputActorId` (already matching formats)
+
+**Column Semantics:**
+- `OutputActorId`: What gets exported to DialogPorten (the correct external format)
+- `RecipientUrn`: For internal filtering logic (matches Correspondences.Recipient format)
 
 ### Current Performance Problem
 

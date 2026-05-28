@@ -1,4 +1,19 @@
--- ============================================================================
+
+
+CREATE TABLE correspondence."A2Parties" (
+	"PartyId" int4 NULL,
+	"PartyUuid" uuid NOT NULL,
+	"IdentifierUrn" text NULL,
+	"Name" text NULL,
+	CONSTRAINT "PK_A2Parties" PRIMARY KEY ("PartyUuid")
+);
+CREATE TABLE correspondence."A2Parties" (
+	"PartyId" int4 NULL,
+	"PartyUuid" uuid NOT NULL,
+	"IdentifierUrn" text NULL,
+	"Name" text NULL,
+	CONSTRAINT "PK_A2Parties" PRIMARY KEY ("PartyUuid")
+);-- ============================================================================
 -- Altinn Correspondence - Index Creation Scripts  
 -- ============================================================================
 -- Purpose: Optimize dialog activity export queries for Issues #1951 and #1716
@@ -109,26 +124,6 @@ WHERE "Altinn2CorrespondenceId" IS NOT NULL
 
 -- Verify:
 SELECT pg_size_pretty(pg_relation_size('correspondence.IX_Correspondences_Id_Created_MigrationFilter'));
-
-
--- ============================================================================
--- MONITORING QUERIES
--- ============================================================================
--- MONITORING QUERIES
--- ============================================================================
-
--- Monitor index creation progress:CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_A2Parties_PartyUuid_Covering"
-ON correspondence."A2Parties" ("PartyUuid")
-INCLUDE ("IdentifierUrn", "Name");
-
--- Index explanation:
--- • Covering index = no table access needed during join
--- • Replaces existing a2parties_partyuuid_idx (which will be dropped later)
--- • Size: ~2 GB
--- • Used by: Export queries for dialog activities
-
--- Verify:
-SELECT pg_size_pretty(pg_relation_size('correspondence.IX_A2Parties_PartyUuid_Covering'));
 
 
 -- ============================================================================
@@ -353,21 +348,10 @@ DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_Correspondences_Id_Created_
 -- IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced:     ~1.5 GB   (7-9M rows)
 -- IX_CorrespondenceStatuses_Status_StatusChanged_Migrated:    ~12.0 GB   (150M rows) **LARGEST**
 -- IX_Correspondences_Id_Created_MigrationFilter:               ~1.5 GB   (partial index)
--- IX_A2Parties_PartyUuid_Covering:                             ~2.0 GB   (covering index)
--- IX_ExternalReferences_CorrespondenceId_ReferenceType:        ~1.0 GB   
--- IX_IdempotencyKeys_Lookup_Composite:                      ~60-70 GB   (1.1B rows) **CRITICAL**
 -- -----------------------------------------------------------------------------
--- TOTAL NEW INDEX SPACE:                                     ~78-88 GB
+-- TOTAL NEW INDEX SPACE:                                     ~15 GB (export optimization)
 
--- Space Savings from Dropping Unused Indexes:
--- --------------------------------------------
--- a2parties_partyid_idx (unused):                            -608 MB
--- a2parties_identifierurn_idx (unused):                     -1234 MB
--- a2parties_partyuuid_idx (replaced by covering):            -581 MB
--- -----------------------------------------------------------------------------
--- TOTAL SAVINGS:                                             -2.4 GB
-
--- NET DISK SPACE IMPACT:                                     ~75-85 GB
+-- Note: A2Parties index is handled separately (see Fix_A2Parties_Recipient_Filter.sql)
 
 
 -- ============================================================================
