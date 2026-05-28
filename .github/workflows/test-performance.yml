@@ -128,19 +128,32 @@ jobs:
       id: populate_kubeconfig_with_k6_context
       shell: bash
       run: |
-        if ! az aks install-cli; then
-          echo "Failed to install kubectl CLI"
-          exit 1
-        fi
+        KUBECTL_DIR="$HOME/.local/bin"
+        mkdir -p "$KUBECTL_DIR"
+
+        # Install kubectl
+        KUBECTL_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
+        curl -sLo "$KUBECTL_DIR/kubectl" "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+        chmod +x "$KUBECTL_DIR/kubectl"
+
+        # Install kubelogin
+        KUBELOGIN_VERSION=$(curl -sL https://api.github.com/repos/Azure/kubelogin/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+        curl -sLo /tmp/kubelogin.zip "https://github.com/Azure/kubelogin/releases/download/${KUBELOGIN_VERSION}/kubelogin-linux-amd64.zip"
+        unzip -jo /tmp/kubelogin.zip "bin/linux_amd64/kubelogin" -d "$KUBECTL_DIR"
+        chmod +x "$KUBECTL_DIR/kubelogin"
+        rm /tmp/kubelogin.zip
+
+        echo "$KUBECTL_DIR" >> $GITHUB_PATH
+        export PATH="$KUBECTL_DIR:$PATH"
 
         if ! az aks get-credentials --resource-group k6tests-rg --name k6tests-cluster; then
-          echo "Failed to populate kubeconfig"
-          exit 1
+        echo "Failed to populate kubeconfig"
+        exit 1
         fi
 
         if ! kubelogin convert-kubeconfig -l azurecli; then
-          echo "Failed to convert kubeconfig"
-          exit 1
+        echo "Failed to convert kubeconfig"
+        exit 1
         fi
     - name: Setup k6
       uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1.1.0
