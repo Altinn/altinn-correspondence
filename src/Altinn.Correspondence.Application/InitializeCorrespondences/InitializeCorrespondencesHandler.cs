@@ -260,7 +260,10 @@ public class InitializeCorrespondencesHandler(
 
     public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
     {
-        var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
+        var scheduleAt = requestedPublishTime < DateTimeOffset.UtcNow
+            ? DateTimeOffset.UtcNow
+            : requestedPublishTime;
+        var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), scheduleAt);
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
             await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
