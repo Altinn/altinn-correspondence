@@ -50,8 +50,8 @@
 -- This query will help diagnose transaction issues
 DO $$
 BEGIN
-    IF current_setting('transaction_isolation', true) IS NOT NULL THEN
-        RAISE WARNING 'You may be inside a transaction block!';
+    IF pg_current_xact_id_if_assigned() IS NOT NULL THEN
+        RAISE WARNING 'You are inside a transaction block!';
         RAISE WARNING 'CREATE INDEX CONCURRENTLY requires autocommit mode.';
         RAISE WARNING 'If the next command fails, exit transaction and run again.';
     END IF;
