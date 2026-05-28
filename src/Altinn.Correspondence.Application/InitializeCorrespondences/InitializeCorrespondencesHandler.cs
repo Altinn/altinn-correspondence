@@ -19,6 +19,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
+using System.Diagnostics;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -34,6 +35,7 @@ public class InitializeCorrespondencesHandler(
     InitializeCorrespondenceValidationHelper initializeCorrespondenceValidationHelper,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
+    private const int SlowInitializationThresholdMs = 500;
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -104,6 +106,12 @@ public class InitializeCorrespondencesHandler(
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
+            var correspondenceProcessingTimer = Stopwatch.StartNew();
+            long idempotencyStepMs = 0;
+            long preDialogSchedulingStepMs = 0;
+            long attachmentSchedulingStepMs = 0;
+            int attachmentsScheduled = 0;
+
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             if (request.IdempotentKey.HasValue)
             {
@@ -130,6 +138,7 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
+            idempotencyStepMs = correspondenceProcessingTimer.ElapsedMilliseconds;
             
             string? notificationJobId = null;
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
@@ -151,6 +160,7 @@ public class InitializeCorrespondencesHandler(
                     }, CancellationToken.None));
                 }
             }
+            preDialogSchedulingStepMs = correspondenceProcessingTimer.ElapsedMilliseconds - idempotencyStepMs;
 
             foreach (var correspondenceAttachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
             {
@@ -167,6 +177,21 @@ public class InitializeCorrespondencesHandler(
                 backgroundJobClient.Schedule<ExpireAttachmentHandler>(
                     HangfireQueues.Default, (handler) => handler.Process(correspondenceAttachment.AttachmentId, null, CancellationToken.None),
                     scheduleAt);
+                attachmentsScheduled++;
+            }
+            attachmentSchedulingStepMs = correspondenceProcessingTimer.ElapsedMilliseconds - idempotencyStepMs - preDialogSchedulingStepMs;
+
+            if (correspondenceProcessingTimer.ElapsedMilliseconds >= SlowInitializationThresholdMs)
+            {
+                logger.LogWarning(
+                    "Slow correspondence initialization before dialog/transmission job for {correspondenceId}. Total {totalMs} ms (idempotency: {idempotencyMs} ms, pre-dialog scheduling: {preDialogSchedulingMs} ms, attachment scheduling: {attachmentSchedulingMs} ms, attachments scheduled: {attachmentsScheduled}, reserved: {isReserved})",
+                    correspondence.Id,
+                    correspondenceProcessingTimer.ElapsedMilliseconds,
+                    idempotencyStepMs,
+                    preDialogSchedulingStepMs,
+                    attachmentSchedulingStepMs,
+                    attachmentsScheduled,
+                    isReserved);
             }
 
             var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
