@@ -110,7 +110,12 @@ public class InitializeCorrespondencesHandler(
             long idempotencyStepMs = 0;
             long preDialogSchedulingStepMs = 0;
             long attachmentSchedulingStepMs = 0;
+            long dueDateScheduleMs = 0;
+            long initializedEventEnqueueMs = 0;
+            long notificationEnqueueMs = 0;
             int attachmentsScheduled = 0;
+            bool hasDueDate = false;
+            bool hasNotification = request.Notification != null;
 
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             if (request.IdempotentKey.HasValue)
@@ -146,18 +151,26 @@ public class InitializeCorrespondencesHandler(
             {
                 if (correspondence.DueDateTime is not null)
                 {
+                    hasDueDate = true;
+                    var dueDateStepStartMs = correspondenceProcessingTimer.ElapsedMilliseconds;
                     backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, CancellationToken.None), correspondence.DueDateTime.Value);
+                    dueDateScheduleMs = correspondenceProcessingTimer.ElapsedMilliseconds - dueDateStepStartMs;
                 }
+
+                var initializedEventStepStartMs = correspondenceProcessingTimer.ElapsedMilliseconds;
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                initializedEventEnqueueMs = correspondenceProcessingTimer.ElapsedMilliseconds - initializedEventStepStartMs;
             
                 if (request.Notification != null)
                 {
+                    var notificationStepStartMs = correspondenceProcessingTimer.ElapsedMilliseconds;
                     notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
                     {
                         CorrespondenceId = correspondence.Id,
                         NotificationRequest = request.Notification,
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
                     }, CancellationToken.None));
+                    notificationEnqueueMs = correspondenceProcessingTimer.ElapsedMilliseconds - notificationStepStartMs;
                 }
             }
             preDialogSchedulingStepMs = correspondenceProcessingTimer.ElapsedMilliseconds - idempotencyStepMs;
@@ -192,6 +205,15 @@ public class InitializeCorrespondencesHandler(
                     attachmentSchedulingStepMs,
                     attachmentsScheduled,
                     isReserved);
+
+                logger.LogWarning(
+                    "Slow pre-dialog scheduling breakdown for {correspondenceId}: dueDate present: {hasDueDate}, dueDate schedule: {dueDateScheduleMs} ms, initialized event enqueue: {initializedEventEnqueueMs} ms, notification present: {hasNotification}, notification enqueue: {notificationEnqueueMs} ms",
+                    correspondence.Id,
+                    hasDueDate,
+                    dueDateScheduleMs,
+                    initializedEventEnqueueMs,
+                    hasNotification,
+                    notificationEnqueueMs);
             }
 
             var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
