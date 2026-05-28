@@ -19,6 +19,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
+using System.Diagnostics;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -34,6 +36,7 @@ public class InitializeCorrespondencesHandler(
     InitializeCorrespondenceValidationHelper initializeCorrespondenceValidationHelper,
     ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
+    private const int SlowInitializationThresholdMs = 500;
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -104,6 +107,19 @@ public class InitializeCorrespondencesHandler(
         var initializedCorrespondences = new List<InitializedCorrespondences>();
         foreach (var correspondence in correspondences)
         {
+            var correspondenceProcessingTimer = Stopwatch.StartNew();
+            long idempotencyStepMs = 0;
+            long preDialogSchedulingStepMs = 0;
+            long attachmentSchedulingStepMs = 0;
+            long dueDateScheduleMs = 0;
+            long initializedEventEnqueueMs = 0;
+            long notificationEnqueueMs = 0;
+            int notificationPayloadBytes = 0;
+            int notificationCustomRecipientsCount = 0;
+            int attachmentsScheduled = 0;
+            bool hasDueDate = false;
+            bool hasNotification = request.Notification != null;
+
             logger.LogInformation("Correspondence {correspondenceId} initialized", correspondence.Id);
             if (request.IdempotentKey.HasValue)
             {
@@ -130,6 +146,7 @@ public class InitializeCorrespondencesHandler(
                     throw;
                 }
             }
+            idempotencyStepMs = correspondenceProcessingTimer.ElapsedMilliseconds;
             
             string? notificationJobId = null;
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
@@ -137,20 +154,31 @@ public class InitializeCorrespondencesHandler(
             {
                 if (correspondence.DueDateTime is not null)
                 {
-                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+                    hasDueDate = true;
+                    var dueDateStepStartMs = correspondenceProcessingTimer.ElapsedMilliseconds;
+                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, CancellationToken.None), correspondence.DueDateTime.Value);
+                    dueDateScheduleMs = correspondenceProcessingTimer.ElapsedMilliseconds - dueDateStepStartMs;
                 }
+
+                var initializedEventStepStartMs = correspondenceProcessingTimer.ElapsedMilliseconds;
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                initializedEventEnqueueMs = correspondenceProcessingTimer.ElapsedMilliseconds - initializedEventStepStartMs;
             
                 if (request.Notification != null)
                 {
+                    notificationPayloadBytes = JsonSerializer.SerializeToUtf8Bytes(request.Notification).Length;
+                    notificationCustomRecipientsCount = request.Notification.CustomRecipients?.Count ?? 0;
+                    var notificationStepStartMs = correspondenceProcessingTimer.ElapsedMilliseconds;
                     notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
                     {
                         CorrespondenceId = correspondence.Id,
                         NotificationRequest = request.Notification,
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
-                    }, cancellationToken));
+                    }, CancellationToken.None));
+                    notificationEnqueueMs = correspondenceProcessingTimer.ElapsedMilliseconds - notificationStepStartMs;
                 }
             }
+            preDialogSchedulingStepMs = correspondenceProcessingTimer.ElapsedMilliseconds - idempotencyStepMs;
 
             foreach (var correspondenceAttachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
             {
@@ -167,6 +195,32 @@ public class InitializeCorrespondencesHandler(
                 backgroundJobClient.Schedule<ExpireAttachmentHandler>(
                     HangfireQueues.Default, (handler) => handler.Process(correspondenceAttachment.AttachmentId, null, CancellationToken.None),
                     scheduleAt);
+                attachmentsScheduled++;
+            }
+            attachmentSchedulingStepMs = correspondenceProcessingTimer.ElapsedMilliseconds - idempotencyStepMs - preDialogSchedulingStepMs;
+
+            if (correspondenceProcessingTimer.ElapsedMilliseconds >= SlowInitializationThresholdMs)
+            {
+                logger.LogWarning(
+                    "Slow correspondence initialization before dialog/transmission job for {correspondenceId}. Total {totalMs} ms (idempotency: {idempotencyMs} ms, pre-dialog scheduling: {preDialogSchedulingMs} ms, attachment scheduling: {attachmentSchedulingMs} ms, attachments scheduled: {attachmentsScheduled}, reserved: {isReserved})",
+                    correspondence.Id,
+                    correspondenceProcessingTimer.ElapsedMilliseconds,
+                    idempotencyStepMs,
+                    preDialogSchedulingStepMs,
+                    attachmentSchedulingStepMs,
+                    attachmentsScheduled,
+                    isReserved);
+
+                logger.LogWarning(
+                    "Slow pre-dialog scheduling breakdown for {correspondenceId}: dueDate present: {hasDueDate}, dueDate schedule: {dueDateScheduleMs} ms, initialized event enqueue: {initializedEventEnqueueMs} ms, notification present: {hasNotification}, notification enqueue: {notificationEnqueueMs} ms, notification payload bytes: {notificationPayloadBytes}, custom recipients: {notificationCustomRecipientsCount}",
+                    correspondence.Id,
+                    hasDueDate,
+                    dueDateScheduleMs,
+                    initializedEventEnqueueMs,
+                    hasNotification,
+                    notificationEnqueueMs,
+                    notificationPayloadBytes,
+                    notificationCustomRecipientsCount);
             }
 
             var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
@@ -181,7 +235,7 @@ public class InitializeCorrespondencesHandler(
                 var unreadCheckDelay = hostEnvironment.IsProduction()
                     ? correspondence.RequestedPublishTime.AddDays(7)
                     : correspondence.RequestedPublishTime.AddMinutes(1);
-                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
+                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, CancellationToken.None), unreadCheckDelay);
             }
 
             initializedCorrespondences.Add(new InitializedCorrespondences()
@@ -232,12 +286,12 @@ public class InitializeCorrespondencesHandler(
             if (!string.IsNullOrEmpty(notificationJobId))
             {
                 #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
-                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, CancellationToken.None), JobContinuationOptions.OnAnyFinishedState);
                 #pragma warning restore CS4014
             }
             else
             {
-                backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>((handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
+                backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>((handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, CancellationToken.None));
             }
         }
         else
@@ -252,7 +306,7 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+            backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None));
         }
 
         return Task.CompletedTask;

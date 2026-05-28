@@ -16,6 +16,7 @@ public static class DependencyInjection
         var generalSettings = new GeneralSettings();
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
         services.AddSingleton<IConnectionFactory, HangfireConnectionFactory>();
+        services.AddSingleton<BackgroundJobClientFilter>();
         services.AddHangfire((provider, config) =>
         {
             config.UsePostgreSqlStorage(
@@ -24,7 +25,7 @@ public static class DependencyInjection
             config.UseLogProvider(new AspNetCoreLogProvider(provider.GetRequiredService<ILoggerFactory>()));
             config.UseFilter(new HangfireAppRequestFilter());
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
-            config.UseFilter(new BackgroundJobClientFilter());
+            config.UseFilter(provider.GetRequiredService<BackgroundJobClientFilter>());
             config.UseFilter(new BackgroundJobServerFilter());
             config.UseFilter(
                 new SlackExceptionHandler(

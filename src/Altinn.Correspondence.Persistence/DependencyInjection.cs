@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using System.Diagnostics;
 
 namespace Altinn.Correspondence.Persistence;
 public static class DependencyInjection
@@ -50,7 +51,15 @@ public static class DependencyInjection
         var psqlServerTokenProvider = new DefaultAzureCredential();
         var tokenRequestContext = new TokenRequestContext(scopes: ["https://ossrdbms-aad.database.windows.net/.default"]) { };
         dataSourceBuilder.UsePeriodicPasswordProvider(async (_, cancellationToken) =>
-            (await psqlServerTokenProvider.GetTokenAsync(tokenRequestContext, cancellationToken)).Token, TimeSpan.FromMinutes(45), TimeSpan.FromSeconds(0)
+            {
+                var tokenTimer = Stopwatch.StartNew();
+                var token = await psqlServerTokenProvider.GetTokenAsync(tokenRequestContext, cancellationToken);
+                if (tokenTimer.ElapsedMilliseconds >= 500)
+                {
+                    bootstrapLogger.LogWarning("Slow Azure PostgreSQL AAD token acquisition: {ElapsedMs} ms", tokenTimer.ElapsedMilliseconds);
+                }
+                return token.Token;
+            }, TimeSpan.FromMinutes(45), TimeSpan.FromSeconds(0)
         );
 
         return dataSourceBuilder.Build();
