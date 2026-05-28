@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
@@ -113,6 +114,8 @@ public class InitializeCorrespondencesHandler(
             long dueDateScheduleMs = 0;
             long initializedEventEnqueueMs = 0;
             long notificationEnqueueMs = 0;
+            int notificationPayloadBytes = 0;
+            int notificationCustomRecipientsCount = 0;
             int attachmentsScheduled = 0;
             bool hasDueDate = false;
             bool hasNotification = request.Notification != null;
@@ -163,6 +166,8 @@ public class InitializeCorrespondencesHandler(
             
                 if (request.Notification != null)
                 {
+                    notificationPayloadBytes = JsonSerializer.SerializeToUtf8Bytes(request.Notification).Length;
+                    notificationCustomRecipientsCount = request.Notification.CustomRecipients?.Count ?? 0;
                     var notificationStepStartMs = correspondenceProcessingTimer.ElapsedMilliseconds;
                     notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
                     {
@@ -207,13 +212,15 @@ public class InitializeCorrespondencesHandler(
                     isReserved);
 
                 logger.LogWarning(
-                    "Slow pre-dialog scheduling breakdown for {correspondenceId}: dueDate present: {hasDueDate}, dueDate schedule: {dueDateScheduleMs} ms, initialized event enqueue: {initializedEventEnqueueMs} ms, notification present: {hasNotification}, notification enqueue: {notificationEnqueueMs} ms",
+                    "Slow pre-dialog scheduling breakdown for {correspondenceId}: dueDate present: {hasDueDate}, dueDate schedule: {dueDateScheduleMs} ms, initialized event enqueue: {initializedEventEnqueueMs} ms, notification present: {hasNotification}, notification enqueue: {notificationEnqueueMs} ms, notification payload bytes: {notificationPayloadBytes}, custom recipients: {notificationCustomRecipientsCount}",
                     correspondence.Id,
                     hasDueDate,
                     dueDateScheduleMs,
                     initializedEventEnqueueMs,
                     hasNotification,
-                    notificationEnqueueMs);
+                    notificationEnqueueMs,
+                    notificationPayloadBytes,
+                    notificationCustomRecipientsCount);
             }
 
             var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
