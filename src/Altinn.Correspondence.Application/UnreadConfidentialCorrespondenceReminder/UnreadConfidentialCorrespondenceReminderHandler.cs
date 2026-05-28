@@ -100,7 +100,7 @@ public class UnreadConfidentialCorrespondenceHandler(
             CorrespondenceId = correspondenceId,
             NotificationRequest = notificationRequest,
             Language = "nb",
-        }, cancellationToken));
+        }, CancellationToken.None));
         logger.LogInformation("Notification job enqueued with id {NotificationJobId} for confidential reminder {ReminderId}", notificationJobId, reminder.Id);
 
         backgroundJobClient.ContinueJobWith<SendNotificationOrderHandler>(notificationJobId, (handler) => handler.Process(correspondenceId, CancellationToken.None));

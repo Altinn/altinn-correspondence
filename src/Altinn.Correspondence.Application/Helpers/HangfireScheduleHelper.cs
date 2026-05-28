@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public void SchedulePublishAfterDialogCreated(Guid correspondenceId, string dialogJobId, CancellationToken cancellationToken)
         {
-            backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, HangfireQueues.LiveMigration, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+            backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, HangfireQueues.LiveMigration, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, CancellationToken.None));
         }
 
         public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)
@@ -38,7 +38,7 @@ namespace Altinn.Correspondence.Application.Helpers
             else
             {
                 #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, CancellationToken.None), JobContinuationOptions.OnAnyFinishedState);
                 #pragma warning restore CS4014
             }
         }
@@ -53,7 +53,7 @@ namespace Altinn.Correspondence.Application.Helpers
             else
             {
                 #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(transmissionJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(transmissionJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, CancellationToken.None), JobContinuationOptions.OnAnyFinishedState);
                 #pragma warning restore CS4014
             }
         }
@@ -71,7 +71,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
-            backgroundJobClient.Schedule<PublishCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
+            backgroundJobClient.Schedule<PublishCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, null, CancellationToken.None), GetActualPublishTime(correspondence.RequestedPublishTime));
         }
 
         private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now

@@ -137,7 +137,7 @@ public class InitializeCorrespondencesHandler(
             {
                 if (correspondence.DueDateTime is not null)
                 {
-                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, CancellationToken.None), correspondence.DueDateTime.Value);
                 }
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             
@@ -148,7 +148,7 @@ public class InitializeCorrespondencesHandler(
                         CorrespondenceId = correspondence.Id,
                         NotificationRequest = request.Notification,
                         Language = correspondence.Content != null ? correspondence.Content.Language : null,
-                    }, cancellationToken));
+                    }, CancellationToken.None));
                 }
             }
 
@@ -181,7 +181,7 @@ public class InitializeCorrespondencesHandler(
                 var unreadCheckDelay = hostEnvironment.IsProduction()
                     ? correspondence.RequestedPublishTime.AddDays(7)
                     : correspondence.RequestedPublishTime.AddMinutes(1);
-                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
+                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, CancellationToken.None), unreadCheckDelay);
             }
 
             initializedCorrespondences.Add(new InitializedCorrespondences()
@@ -232,12 +232,12 @@ public class InitializeCorrespondencesHandler(
             if (!string.IsNullOrEmpty(notificationJobId))
             {
                 #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
-                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+                backgroundJobClient.ContinueJobWith<InitializeCorrespondencesHandler>(notificationJobId, (handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, CancellationToken.None), JobContinuationOptions.OnAnyFinishedState);
                 #pragma warning restore CS4014
             }
             else
             {
-                backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>((handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, cancellationToken));
+                backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>((handler) => handler.ScheduleTransmissionAndPublishJobs(correspondence.Id, request.Correspondence.Content!.Attachments.Count, correspondence.RequestedPublishTime, CancellationToken.None));
             }
         }
         else
@@ -252,7 +252,7 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+            backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, CancellationToken.None));
         }
 
         return Task.CompletedTask;
