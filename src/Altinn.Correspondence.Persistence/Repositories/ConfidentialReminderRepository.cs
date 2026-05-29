@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,5 +53,14 @@ public class ConfidentialReminderRepository(ApplicationDbContext context) : ICon
             return null;
         }
         return reminder.DialogId;
+    }
+
+   public async Task<List<ConfidentialReminderEntity>> GetConfidentialRemindersLinkedToReadCorrespondences(CancellationToken cancellationToken)
+    {
+    return await _context.ConfidentialReminders
+        .Where(cr => _context.CorrespondenceStatuses
+            .Any(cs => cs.CorrespondenceId == cr.CorrespondenceId 
+                    && cs.Status == CorrespondenceStatus.Read))
+        .ToListAsync(cancellationToken);
     }
 }

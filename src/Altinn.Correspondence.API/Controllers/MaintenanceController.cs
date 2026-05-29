@@ -19,6 +19,7 @@ using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 using Altinn.Correspondence.Application.MaskinportenJwkRotation;
 using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.API.Swagger;
+using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -390,6 +391,25 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     {
         _logger.LogInformation("Request to compute SMS notification length statistics received");
         var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+    [HttpPost]
+    [Route("purge-dialog-and-delete-reminder-for-read-correspondences")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> PurgeDialogAndDeleteReminderForReadCorrespondences(
+        [FromServices] PurgeDialogAndDeleteReminderForReadCorrespondencesHandler handler,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to purge dialog and delete reminder for read correspondences received");
+        var result = await handler.Process(HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
             Problem

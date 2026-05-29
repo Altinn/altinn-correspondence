@@ -9,5 +9,6 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<int> NumberOfRemindersForRecipient(string recipient, CancellationToken cancellationToken);
         Task<bool> CorrespondenceHasReminder(Guid correspondenceId, CancellationToken cancellationToken);
         Task<Guid?> GetDialogIdOfReminderForRecipient(string recipient, CancellationToken cancellationToken);
+        Task<List<ConfidentialReminderEntity>> GetConfidentialRemindersLinkedToReadCorrespondences(CancellationToken cancellationToken);
     }
 }
