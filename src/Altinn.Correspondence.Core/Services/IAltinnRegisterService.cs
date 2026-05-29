@@ -1,15 +1,23 @@
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Register;
+using Altinn.Register.Contracts;
 
 namespace Altinn.Correspondence.Core.Services;
+
 public interface IAltinnRegisterService
 {
-    Task<int?> LookUpPartyId(string identificationId, CancellationToken cancellationToken);
-    Task<string?> LookUpName(string identificationId, CancellationToken cancellationToken);
-    Task<Party?> LookUpPartyByPartyId(int partyId, CancellationToken cancellationToken);
-    Task<Party?> LookUpPartyByPartyUuid(Guid partyUuid, CancellationToken cancellationToken);    
+    /// <summary>
+    /// Looks up a single party using any supported identifier (org number, SSN,
+    /// party id, party uuid, or URN). The identifier is normalized to a URN before
+    /// being sent to the v2 query endpoint.
+    /// </summary>
     Task<Party?> LookUpPartyById(string identificationId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Looks up multiple parties in one round-trip via the v2 query endpoint.
+    /// </summary>
     Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken);
+
     Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken);
+
     Task<List<MainUnitItem>> LookUpMainUnits(string urn, CancellationToken cancellationToken);
 }

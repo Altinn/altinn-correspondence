@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Common.Helpers;
@@ -100,7 +101,7 @@ public class DownloadCorrespondenceAttachmentHandler(
 
         var caller = user.GetCallerPartyUrn();
 		var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             _logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
@@ -131,7 +132,7 @@ public class DownloadCorrespondenceAttachmentHandler(
                 request.CorrespondenceId,
                 DialogportenActorType.Recipient,
                 operationTimestamp,
-                party.ExternalUrn ?? caller,
+                party.GetExternalUrn() ?? caller,
                 attachment.DisplayName ?? attachment.FileName,
                 request.AttachmentId.ToString()));
             _logger.LogInformation("Successfully processed download request for correspondence {CorrespondenceId} and attachment {AttachmentId}", 

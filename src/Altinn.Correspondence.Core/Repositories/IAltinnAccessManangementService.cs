@@ -1,8 +1,8 @@
-using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Register.Contracts;
 
 namespace Altinn.Correspondence.Core.Repositories;
 
 public interface IAltinnAccessManagementService
 {
-    Task<List<Party>> GetAuthorizedParties(Party partyToRequestFor, string? userId, CancellationToken cancellationToken = default);
+    Task<HashSet<int>> GetAuthorizedPartyIds(Party partyToRequestFor, string? userId, CancellationToken cancellationToken = default);
 }

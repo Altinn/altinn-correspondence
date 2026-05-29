@@ -47,7 +47,7 @@ public class VerifyCorrespondenceConfirmationHandlerTests
         var partyUuid = Guid.NewGuid();
         var partyId = 123;
         var operationTimestamp = DateTimeOffset.UtcNow;
-        const string callerUrn = "urn:altinn:person:identifier-no:12018012345";
+        const string callerUrn = "urn:altinn:person:identifier-no:10108000398";
 
         var correspondence = new CorrespondenceEntityBuilder()
             .WithStatus(CorrespondenceStatus.Fetched)

@@ -1,8 +1,9 @@
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
+using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Register.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -139,7 +140,7 @@ public class AltinnAuthorizationServiceTests
             .ReturnsAsync((Party?)null);
         var emailUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:{email}";
         registerService.Setup(x => x.LookUpPartyById(emailUrn, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party { PartyId = 12345678, UserId = userId });
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildSelfIdentifiedUser(Guid.NewGuid(), "selfreg-email", userId: (uint)userId, partyId: 12345678));
 
         var sut = new AltinnAuthorizationService(
             httpClient, altinnOptions, dialogportenSettings, idportenSettings,
@@ -212,7 +213,7 @@ public class AltinnAuthorizationServiceTests
         var userClaims = new List<Claim>
         {
             new("iss", idportenIssuer, ClaimValueTypes.String, idportenIssuer),
-            new("pid", "01018045678", ClaimValueTypes.String, idportenIssuer),
+            new("pid", "10108000398", ClaimValueTypes.String, idportenIssuer),
         };
         var user = new ClaimsPrincipal(new ClaimsIdentity(userClaims, "TestAuth"));
 
@@ -229,7 +230,7 @@ public class AltinnAuthorizationServiceTests
 
         var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
         registerService.Setup(x => x.LookUpPartyById(emailUrn, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party { PartyId = resolvedPartyId, PartyUuid = Guid.NewGuid() });
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827", partyId: resolvedPartyId));
 
         var sut = new AltinnAuthorizationService(
             httpClient, altinnOptions, dialogportenSettings, idportenSettings,

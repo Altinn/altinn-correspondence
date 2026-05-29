@@ -3,6 +3,7 @@ using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.SendNotificationOrder;
 using Altinn.Correspondence.Application.SendSlackNotification;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -49,8 +50,8 @@ public class PublishCorrespondenceHandler(
         logger.LogInformation("Publishing correspondence {CorrespondenceId}. It was expected {expectedPublishTime} and actually executed at {actualPublishTime}.", correspondenceId, expectedPublishTime, operationTimestamp);
         var senderParty = await altinnRegisterService.LookUpPartyById(correspondence!.Sender, cancellationToken);
         var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence!.Recipient, cancellationToken);
-        var senderPartyUuid = senderParty?.PartyUuid;
-        var recipientPartyUuid = recipientParty?.PartyUuid;
+        var senderPartyUuid = senderParty?.Uuid;
+        var recipientPartyUuid = recipientParty?.Uuid;
         bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
 
@@ -77,7 +78,7 @@ public class PublishCorrespondenceHandler(
         }
         else if (
             correspondence.IsConfidential &&
-            !string.IsNullOrEmpty(recipientParty!.OrgNumber) &&
+            !string.IsNullOrEmpty(recipientParty!.GetOrganizationIdentifier()) &&
             !await altinnRegisterService.HasPartyRequiredRolesForConfidential(correspondence.Recipient, recipientPartyUuid.Value, cancellationToken))
         {
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
