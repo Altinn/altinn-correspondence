@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Party = Altinn.Correspondence.Core.Models.Entities.Party;
 using Altinn.Correspondence.Common.Constants;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterService : IAltinnRegisterService
@@ -175,6 +176,10 @@ public class AltinnRegisterService : IAltinnRegisterService
             Data = partyUrns
         };
 
+
+        var requestBody = JsonSerializer.Serialize(request);
+        _logger.LogInformation("Querying parties with body: {RequestBody}", requestBody);
+
         var response = await _httpClient.PostAsJsonAsync(
             "register/api/v1/correspondence/parties/query?fields=identifiers&fields=display-name&fields=user",
             request,
@@ -193,6 +198,8 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
 
         var partiesV2Response = await response.Content.ReadFromJsonAsync<ListObject<PartyV2>>(cancellationToken: cancellationToken);
+        var responseBody = JsonSerializer.Serialize(partiesV2Response);
+        _logger.LogInformation("Received response when querying parties: {ResponseBody}", responseBody);
         if (partiesV2Response is null)
         {
             throw new Exception("Unexpected json response when querying parties in Altinn Register");
