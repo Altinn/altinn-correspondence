@@ -1,15 +1,15 @@
 
-using System.Net.Http.Json;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Models.Register;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Party = Altinn.Correspondence.Core.Models.Entities.Party;
-using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterService : IAltinnRegisterService
@@ -19,7 +19,10 @@ public class AltinnRegisterService : IAltinnRegisterService
     private readonly IHybridCacheWrapper _cache;
     private readonly HybridCacheEntryOptions _cacheOptions;
 
-    public AltinnRegisterService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnRegisterService> logger, IHybridCacheWrapper cache)
+    public AltinnRegisterService(HttpClient httpClient,
+                                 IOptions<AltinnOptions> altinnOptions,
+                                 ILogger<AltinnRegisterService> logger,
+                                 IHybridCacheWrapper cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
@@ -175,6 +178,10 @@ public class AltinnRegisterService : IAltinnRegisterService
             Data = partyUrns
         };
 
+
+        var requestBody = JsonSerializer.Serialize(request);
+        _logger.LogDebug("Querying parties with body: {RequestBody}", requestBody);
+
         var response = await _httpClient.PostAsJsonAsync(
             "register/api/v1/correspondence/parties/query?fields=identifiers&fields=display-name&fields=user",
             request,
@@ -188,11 +195,25 @@ public class AltinnRegisterService : IAltinnRegisterService
                 _logger.LogWarning("IdentificationIds did not have any valid identifers");
                 return new List<Party>();
             }
-            
-            throw new Exception($"Error when querying parties in Altinn Register. Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (errorContent.Contains("Invalid PartyUrn"))
+                {
+                    _logger.LogWarning("Bad input provided when querying parties in Altinn Register. Statuscode was: {StatusCode}, error was: {ErrorContent}", response.StatusCode, errorContent);
+                } 
+                else 
+                {
+                    throw new Exception($"Error when querying parties in Altinn Register. Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
+                }
+                return new List<Party>();
+            }
         }
 
         var partiesV2Response = await response.Content.ReadFromJsonAsync<ListObject<PartyV2>>(cancellationToken: cancellationToken);
+        var responseBody = JsonSerializer.Serialize(partiesV2Response);
+        _logger.LogDebug("Received response when querying parties: {ResponseBody}", responseBody);
         if (partiesV2Response is null)
         {
             throw new Exception("Unexpected json response when querying parties in Altinn Register");
