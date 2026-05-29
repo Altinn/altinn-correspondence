@@ -1,36 +1,31 @@
 
-using System.Net.Http.Json;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Models.Register;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Party = Altinn.Correspondence.Core.Models.Entities.Party;
-using Altinn.Correspondence.Common.Constants;
+using System.Net.Http.Json;
 using System.Text.Json;
-using Slack.Webhooks;
+using Party = Altinn.Correspondence.Core.Models.Entities.Party;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Register;
 public class AltinnRegisterService : IAltinnRegisterService
 {
     private readonly HttpClient _httpClient;
-    private readonly ISlackClient _slackClient;
     private readonly ILogger<AltinnRegisterService> _logger;
     private readonly IHybridCacheWrapper _cache;
     private readonly HybridCacheEntryOptions _cacheOptions;
 
     public AltinnRegisterService(HttpClient httpClient,
-                                 ISlackClient slackClient,
                                  IOptions<AltinnOptions> altinnOptions,
                                  ILogger<AltinnRegisterService> logger,
                                  IHybridCacheWrapper cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
-        _slackClient = slackClient;
         _logger = logger;
         _cache = cache;
         _cacheOptions = new HybridCacheEntryOptions
