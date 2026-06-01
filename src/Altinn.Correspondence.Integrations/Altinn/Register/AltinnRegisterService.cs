@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Register;
@@ -18,7 +19,10 @@ public class AltinnRegisterService : IAltinnRegisterService
     private readonly IHybridCacheWrapper _cache;
     private readonly HybridCacheEntryOptions _cacheOptions;
 
-    public AltinnRegisterService(HttpClient httpClient, IOptions<AltinnOptions> altinnOptions, ILogger<AltinnRegisterService> logger, IHybridCacheWrapper cache)
+    public AltinnRegisterService(HttpClient httpClient,
+                                 IOptions<AltinnOptions> altinnOptions,
+                                 ILogger<AltinnRegisterService> logger,
+                                 IHybridCacheWrapper cache)
     {
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", altinnOptions.Value.PlatformSubscriptionKey);
         _httpClient = httpClient;
@@ -154,6 +158,10 @@ public class AltinnRegisterService : IAltinnRegisterService
             Data = partyUrns
         };
 
+
+        var requestBody = JsonSerializer.Serialize(request);
+        _logger.LogDebug("Querying parties with body: {RequestBody}", requestBody);
+
         var response = await _httpClient.PostAsJsonAsync(
             "register/api/v1/correspondence/parties/query?fields=identifiers&fields=display-name&fields=user",
             request,
@@ -167,7 +175,19 @@ public class AltinnRegisterService : IAltinnRegisterService
                 return new List<Party>();
             }
 
-            throw new Exception($"Error when querying parties in Altinn Register. Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync(cancellationToken)}");
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (errorContent.Contains("Invalid PartyUrn"))
+                {
+                    _logger.LogWarning("Bad input provided when querying parties in Altinn Register. Statuscode was: {StatusCode}, error was: {ErrorContent}", response.StatusCode, errorContent);
+                } 
+                else 
+                {
+                    throw new Exception($"Error when querying parties in Altinn Register. Statuscode was: {response.StatusCode}, error was: {errorContent}");
+                }
+                return new List<Party>();
+            }
         }
 
         var parties = await response.Content.ReadFromJsonAsync<AltinnRegisterQueryData<Party>>(cancellationToken);
