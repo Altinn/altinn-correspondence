@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -31,8 +32,8 @@ public class LegacyGetCorrespondenceOverviewHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
-        var userParty = await altinnRegisterService.LookUpPartyByPartyId(partyId, cancellationToken);
-        if (userParty == null || (string.IsNullOrEmpty(userParty.SSN) && string.IsNullOrEmpty(userParty.OrgNumber) && string.IsNullOrEmpty(userParty.ExternalUrn)))
+        var userParty = await altinnRegisterService.LookUpPartyById(partyId.ToString(), cancellationToken);
+        if (userParty == null || string.IsNullOrEmpty(userParty.GetExternalUrn()))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -43,7 +44,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
         }
         var minimumAuthLevel = await altinnAuthorizationService.CheckUserAccessAndGetMinimumAuthLevel(
             user,
-            userParty.UserId?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
+            userParty.GetUserId()?.ToString() ?? userClaimsHelper.GetUserId().ToString(),
             correspondence.ResourceId,
             new List<ResourceAccessLevel> { ResourceAccessLevel.Read },
             correspondence.Recipient,
@@ -81,7 +82,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
-        if (userParty.PartyUuid is not Guid partyUuid)
+        if (userParty?.Uuid is not Guid partyUuid)
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
@@ -136,7 +137,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
                 ResourceId = correspondence.ResourceId,
                 Sender = correspondence.Sender,
                 SendersReference = correspondence.SendersReference,
-                MessageSender = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? resourceOwnerParty.Name : correspondence.MessageSender,
+                MessageSender = String.IsNullOrWhiteSpace(correspondence.MessageSender) ? resourceOwnerParty.GetDisplayName() : correspondence.MessageSender,
                 Created = correspondence.Created,
                 Recipient = correspondence.Recipient,
                 ReplyOptions = correspondence.ReplyOptions ?? new List<CorrespondenceReplyOptionEntity>(),
@@ -154,7 +155,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
                 Archived = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Archived)?.StatusChanged,
                 Confirmed = correspondence.Statuses?.FirstOrDefault(s => s.Status == CorrespondenceStatus.Confirmed)?.StatusChanged,
                 PropertyList = correspondence.PropertyList ?? new Dictionary<string, string>(),
-                InstanceOwnerPartyId = resourceOwnerParty.PartyId
+                InstanceOwnerPartyId = resourceOwnerParty.GetPartyId()
             };
 
             try

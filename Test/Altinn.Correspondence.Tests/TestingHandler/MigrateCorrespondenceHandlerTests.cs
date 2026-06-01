@@ -8,7 +8,9 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Tests.Extensions;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Register.Contracts;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -40,8 +42,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly MigrateCorrespondenceHandler _handler;
 
         private Guid _defaultUserPartyUuid = Guid.NewGuid();
-        private string _defaultUserPartySSN = "12018012345";
-        private string _defaultUserPartyIdentifier = $"{UrnConstants.PersonIdAttribute}:{12018012345}";
+        private string _defaultUserPartySSN = "10108000398";
+        private string _defaultUserPartyIdentifier = $"{UrnConstants.PersonIdAttribute}:{10108000398}";
 
         public MigrateCorrespondenceHandlerTests()
         {
@@ -1178,8 +1180,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.AddCorrespondenceStatusForSync(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Guid.NewGuid());
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+                .Setup(x => x.LookUpPartyById(_defaultUserPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(_defaultUserPartyUuid, _defaultUserPartySSN));
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1292,8 +1294,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.AddCorrespondenceStatusForSync(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Guid.NewGuid());
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+                .Setup(x => x.LookUpPartyById(_defaultUserPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(_defaultUserPartyUuid, _defaultUserPartySSN));
 
             // Act
             var result = await _handler.Process(request, null, CancellationToken.None);
@@ -1448,8 +1450,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.AddCorrespondenceStatusForSync(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Guid.NewGuid());
             _altinnRegisterServiceMock
-                .Setup(x => x.LookUpPartyByPartyUuid(_defaultUserPartyUuid, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = _defaultUserPartyUuid, SSN = _defaultUserPartySSN, PartyTypeName = PartyType.Person });
+                .Setup(x => x.LookUpPartyById(_defaultUserPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(_defaultUserPartyUuid, _defaultUserPartySSN));
 
             _correspondenceNotificationRepositoryMock
                 .Setup(x => x.AddNotificationForSync(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))

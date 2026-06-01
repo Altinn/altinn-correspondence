@@ -2,17 +2,17 @@ using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.Register;
+using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Register.Contracts;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using System.Security.Claims;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -135,12 +135,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party
-                    {
-                        PartyId = 99999999,
-                        ExternalUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:other-user@example.com",
-                    });
+                    .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildSelfIdentifiedUser(Guid.NewGuid(), "other-user@example.com", partyId: 99999999));
                 services.AddSingleton(mockRegisterService.Object);
             });
 
@@ -318,7 +314,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                    .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync((Party?)null);
                 services.AddSingleton(mockRegisterService.Object);
             });
@@ -362,12 +358,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party
-                    {
-                        PartyId = 99999999,
-                        ExternalUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:other-user",
-                    });
+                    .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildSelfIdentifiedUser(Guid.NewGuid(), "other-user", partyId: 99999999));
                 services.AddSingleton(mockRegisterService.Object);
             });
 
@@ -389,38 +381,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         [Fact]
         public async Task LegacyGetCorrespondences_DuplicateAuthorizedParties_IsIgnored()
         {
-            var duplicateParty = new PartyWithSubUnits()
-            {
-                PartyId = 1,
-                Name = "hovedenhet",
-                OnlyHierarchyElementWithNoAccess = false,
-                SubUnits = new List<PartyWithSubUnits>()
-                            {
-                                new PartyWithSubUnits()
-                                {
-                                    PartyId = 2,
-                                    Name = "underenhet",
-                                    IsDeleted = false,
-                                }
-                            }
-            };
             using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party()
-                    {
-                        OrgNumber = "123456789"
-                    });
+                    .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
-                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new List<Party>()
-                    {
-                        duplicateParty,
-                        duplicateParty
-                    });
+                    .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new HashSet<int> { 1, 2 });
+                services.AddSingleton(mockRegisterService.Object);
                 services.AddSingleton(mockAccessManagementService.Object);
             });
             var client = factory.CreateClientWithAddedClaims(
@@ -439,28 +410,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         public async Task LegacyGetCorrespondences_CalledWithUserId_UsesUserIdForAuthorizedParties()
         {
             var userId = "1234567";
-            var party = new PartyWithSubUnits()
-            {
-                PartyId = 1,
-                Name = "hovedenhet",
-                OnlyHierarchyElementWithNoAccess = false,
-                SubUnits = new List<PartyWithSubUnits>()
-                            {
-                                new PartyWithSubUnits()
-                                {
-                                    PartyId = 2,
-                                    Name = "underenhet",
-                                    IsDeleted = false,
-                                }
-                            }
-            };
             var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
             mockAccessManagementService
-                .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<Party>()
-                {
-                        party
-                });
+                .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new HashSet<int> { 1, 2 });
             using var factory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 services.AddSingleton(mockAccessManagementService.Object);
@@ -475,7 +428,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             listPayload.To = DateTimeOffset.UtcNow;
             var correspondenceList = await client.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
-            mockAccessManagementService.Verify(service => service.GetAuthorizedParties(
+            mockAccessManagementService.Verify(service => service.GetAuthorizedPartyIds(
                 It.IsAny<Party>(),
                 It.Is<string>(party => party == userId),
                 It.IsAny<CancellationToken>()), Times.Once);
@@ -488,15 +441,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party()
-                    {
-                        OrgNumber = "123456789"
-                    });
+                    .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
-                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync([]);
+                    .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new HashSet<int>());
+                services.AddSingleton(mockRegisterService.Object);
                 services.AddSingleton(mockAccessManagementService.Object);
             });
             var client = factory.CreateClientWithAddedClaims(
@@ -518,32 +469,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party()
-                    {
-                        OrgNumber = "123456789"
-                    });
+                    .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
                 var mockAccessManagementService = new Mock<IAltinnAccessManagementService>();
                 mockAccessManagementService
-                    .Setup(service => service.GetAuthorizedParties(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new List<Party>()
-                    {
-                        new PartyWithSubUnits()
-                        {
-                            PartyId = 1,
-                            Name = "hovedenhet",
-                            OnlyHierarchyElementWithNoAccess = true,
-                            SubUnits = new List<PartyWithSubUnits>()
-                                        {
-                                            new PartyWithSubUnits()
-                                            {
-                                                PartyId = 2,
-                                                Name = "underenhet",
-                                                IsDeleted = false,
-                                            }
-                                        }
-                        }
-                    });
+                    .Setup(service => service.GetAuthorizedPartyIds(It.IsAny<Party>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new HashSet<int> { 1, 2 });
+                services.AddSingleton(mockRegisterService.Object);
                 services.AddSingleton(mockAccessManagementService.Object);
             });
             var client = factory.CreateClientWithAddedClaims(

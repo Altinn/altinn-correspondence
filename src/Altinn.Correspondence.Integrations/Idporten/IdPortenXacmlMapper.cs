@@ -3,6 +3,7 @@ using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -163,7 +164,7 @@ namespace Altinn.Correspondence.Integrations.Idporten
             XacmlJsonCategory subjectCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
             var emailUrn = emailClaim.Value.ToLowerInvariant().WithUrnPrefix();
             var party = await altinnRegisterService.LookUpPartyById(emailUrn, cancellationToken);
-            if (party is not null && party.UserId is int userId && userId > 0)
+            if (party?.GetUserId() is int userId && userId > 0)
             {
                 subjectCategory.Attribute.Add(
                     DecisionHelper.CreateXacmlJsonAttribute(

@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -75,7 +76,7 @@ public class GetCorrespondenceOverviewHandler(
 
         var caller = user?.GetCallerPartyUrn();
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
@@ -130,7 +131,7 @@ public class GetCorrespondenceOverviewHandler(
                             backgroundJobClient.Enqueue<IAltinnStorageService>(
                                 syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
                                     correspondence.Altinn2CorrespondenceId.Value,
-                                    party.PartyId,
+                                    party.GetPartyId(),
                                     operationTimestamp,
                                     SyncEventType.Read,
                                     CancellationToken.None));
