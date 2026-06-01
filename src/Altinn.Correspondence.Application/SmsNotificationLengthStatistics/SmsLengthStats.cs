@@ -4,27 +4,28 @@ namespace Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 
 public class SmsLengthStats
 {
-    public long Count { get; private set; }
-    public long SumLength { get; private set; }
-    public int MinLength { get; private set; } = int.MaxValue;
-    public int MaxLength { get; private set; }
+    public long Count { get; set; }
+    public long SumLength { get; set; }
+    public int MinLength { get; set; } = int.MaxValue;
+    public int MaxLength { get; set; }
 
     public long NameLookupFailures { get; set; }
     public long ResourceLookupFailures { get; set; }
     public long ProcessingFailures { get; set; }
 
-    public long RecipientNameSamples { get; private set; }
-    public long RecipientNameSumLength { get; private set; }
-    public int RecipientNameMinLength { get; private set; } = int.MaxValue;
-    public int RecipientNameMaxLength { get; private set; }
+    public long RecipientNameSamples { get; set; }
+    public long RecipientNameSumLength { get; set; }
+    public int RecipientNameMinLength { get; set; } = int.MaxValue;
+    public int RecipientNameMaxLength { get; set; }
 
-    public long ResourceNameSamples { get; private set; }
-    public long ResourceNameSumLength { get; private set; }
-    public int ResourceNameMinLength { get; private set; } = int.MaxValue;
-    public int ResourceNameMaxLength { get; private set; }
+    public long ResourceNameSamples { get; set; }
+    public long ResourceNameSumLength { get; set; }
+    public int ResourceNameMinLength { get; set; } = int.MaxValue;
+    public int ResourceNameMaxLength { get; set; }
 
     private const int MaxTrackedLength = 1000;
-    private readonly long[] _lengthBuckets = new long[MaxTrackedLength + 1];
+
+    public long[] LengthBuckets { get; set; } = new long[MaxTrackedLength + 1];
 
     public void Record(int length)
     {
@@ -34,7 +35,7 @@ public class SmsLengthStats
         if (length > MaxLength) MaxLength = length;
 
         var bucketIndex = Math.Min(length, MaxTrackedLength);
-        _lengthBuckets[bucketIndex]++;
+        LengthBuckets[bucketIndex]++;
     }
 
     public void RecordRecipientNameLength(int length)
@@ -63,9 +64,9 @@ public class SmsLengthStats
         if (Count == 0) return 0;
         var target = (long)Math.Ceiling(percentile * Count / 100.0);
         long running = 0;
-        for (int i = 0; i < _lengthBuckets.Length; i++)
+        for (int i = 0; i < LengthBuckets.Length; i++)
         {
-            running += _lengthBuckets[i];
+            running += LengthBuckets[i];
             if (running >= target)
             {
                 return i;
@@ -104,9 +105,9 @@ public class SmsLengthStats
     private long SumBuckets(int fromBucket, int toBucket)
     {
         long sum = 0;
-        for (int i = fromBucket; i <= toBucket && i < _lengthBuckets.Length; i++)
+        for (int i = fromBucket; i <= toBucket && i < LengthBuckets.Length; i++)
         {
-            sum += _lengthBuckets[i];
+            sum += LengthBuckets[i];
         }
         return sum;
     }
