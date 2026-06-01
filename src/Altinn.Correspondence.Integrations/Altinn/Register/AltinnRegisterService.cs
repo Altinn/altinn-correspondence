@@ -5,7 +5,7 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Platform.Register.Models;
+using Altinn.Register.Contracts;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
