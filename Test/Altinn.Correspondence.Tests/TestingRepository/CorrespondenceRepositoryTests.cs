@@ -6,6 +6,7 @@ using Altinn.Correspondence.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Tests.TestingRepository
 {
@@ -67,6 +68,44 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.NotEmpty(correspondences);
             Assert.Equal(1, correspondences?.Count);
             Assert.Equal(addedCorrespondence.Id, correspondences?.FirstOrDefault()?.Id);
+        }
+
+        [Fact]
+        public async Task GetDailySummaryData_PropertyListContainsSenderOrgNumber_PopulatesSenderOrgNumber()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            // Service owner must exist; otherwise GetDailySummaryData filters the group out.
+            context.ServiceOwners.Add(new ServiceOwnerEntity
+            {
+                Id = "123456789",
+                Name = "Test Service Owner",
+                StorageProviders = new List<StorageProviderEntity>()
+            });
+
+            var created = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithServiceOwnerId("123456789")
+                .WithCreated(created)
+                .WithPropertyList(new Dictionary<string, string>
+                {
+                    // Use different casing to verify case-insensitive lookup
+                    ["senderOrgNumber"] = "987654321",
+                    ["other"] = "value"
+                })
+                .Build();
+            correspondence.Altinn2CorrespondenceId = null;
+            correspondence.MessageSender = "test-sender";
+            correspondence.RecipientType = UrnConstants.OrganizationNumberAttribute;
+
+            context.Correspondences.Add(correspondence);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetDailySummaryData(includeAltinn2: false, cancellationToken: CancellationToken.None);
+
+            var row = Assert.Single(result);
+            Assert.Equal("987654321", row.SenderOrgNumber);
         }
 
         [Fact]
