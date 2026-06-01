@@ -76,18 +76,23 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             await using var context = _fixture.CreateDbContext();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
+            var serviceOwnerId = $"so-{Guid.NewGuid():N}";
+            var resourceId = $"test-resource-{Guid.NewGuid():N}";
+            var messageSender = $"test-sender-{Guid.NewGuid():N}";
+
             // Service owner must exist; otherwise GetDailySummaryData filters the group out.
             context.ServiceOwners.Add(new ServiceOwnerEntity
             {
-                Id = "123456789",
+                Id = serviceOwnerId,
                 Name = "Test Service Owner",
                 StorageProviders = new List<StorageProviderEntity>()
             });
 
             var created = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
             var correspondence = new CorrespondenceEntityBuilder()
-                .WithServiceOwnerId("123456789")
+                .WithServiceOwnerId(serviceOwnerId)
                 .WithCreated(created)
+                .WithResourceId(resourceId)
                 .WithPropertyList(new Dictionary<string, string>
                 {
                     // Use different casing to verify case-insensitive lookup
@@ -96,7 +101,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 })
                 .Build();
             correspondence.Altinn2CorrespondenceId = null;
-            correspondence.MessageSender = "test-sender";
+            correspondence.MessageSender = messageSender;
             correspondence.RecipientType = UrnConstants.OrganizationNumberAttribute;
 
             context.Correspondences.Add(correspondence);
@@ -104,7 +109,11 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             var result = await repo.GetDailySummaryData(includeAltinn2: false, cancellationToken: CancellationToken.None);
 
-            var row = Assert.Single(result);
+            var row = Assert.Single(result, r =>
+                r.ServiceOwnerId == serviceOwnerId &&
+                r.ResourceId == resourceId &&
+                r.MessageSender == messageSender &&
+                r.Date == created.Date);
             Assert.Equal("987654321", row.SenderOrgNumber);
         }
 
