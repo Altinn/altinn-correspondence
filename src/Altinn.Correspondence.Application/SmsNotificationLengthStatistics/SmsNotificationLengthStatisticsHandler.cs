@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Hangfire;
@@ -94,7 +95,7 @@ public class SmsNotificationLengthStatisticsHandler(
                     {
                         try
                         {
-                            recipientName = await altinnRegisterService.LookUpName(recipientNumber, cancellationToken);
+                            recipientName = (await altinnRegisterService.LookUpPartyById(recipientNumber, cancellationToken))?.GetDisplayName();
                         }
                         catch (OperationCanceledException)
                         {
