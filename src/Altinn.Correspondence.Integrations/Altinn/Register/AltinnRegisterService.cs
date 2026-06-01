@@ -1,9 +1,11 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Platform.Register.Models;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
