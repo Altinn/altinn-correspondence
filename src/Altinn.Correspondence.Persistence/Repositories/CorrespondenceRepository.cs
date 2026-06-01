@@ -550,7 +550,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     c.ServiceOwnerId,
                     c.MessageSender,
                     c.ResourceId,
-                    c.RecipientType
+                    c.RecipientType,
+                    c.PropertyList
                 })
                 .Select(g => new
                 {
@@ -559,6 +560,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     g.Key.MessageSender,
                     g.Key.ResourceId,
                     g.Key.RecipientType,
+                    g.Key.PropertyList,
                     MessageCount = g.Count()
                 })
                 .ToListAsync(cancellationToken);
@@ -585,7 +587,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     Day = g.Date.Day,
                     ServiceOwnerId = g.ServiceOwnerId!,
                     ServiceOwnerName = serviceOwners[g.ServiceOwnerId!],
-                    MessageSender = g.MessageSender,
+                    MessageSender = g.MessageSender ?? string.Empty,
+                    SenderOrgNumber = GetSenderOrgNumberFromPropertyList(g.PropertyList),
                     ResourceId = g.ResourceId,
                     RecipientType = g.RecipientType switch
                     {
@@ -609,6 +612,29 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToList();
 
             return aggregatedData;
+        }
+
+        private static string? GetSenderOrgNumberFromPropertyList(Dictionary<string, string>? propertyList)
+        {
+            if (propertyList is null || propertyList.Count == 0)
+            {
+                return null;
+            }
+
+            if (propertyList.TryGetValue("senderOrgNumber", out var value))
+            {
+                return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            }
+
+            foreach (var kvp in propertyList)
+            {
+                if (string.Equals(kvp.Key, "senderOrgNumber", StringComparison.OrdinalIgnoreCase))
+                {
+                    return string.IsNullOrWhiteSpace(kvp.Value) ? null : kvp.Value.Trim();
+                }
+            }
+
+            return null;
         }
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken)
