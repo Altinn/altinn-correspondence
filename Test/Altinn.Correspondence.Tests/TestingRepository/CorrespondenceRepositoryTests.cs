@@ -70,8 +70,11 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.Equal(addedCorrespondence.Id, correspondences?.FirstOrDefault()?.Id);
         }
 
-        [Fact]
-        public async Task GetDailySummaryData_PropertyListContainsSenderOrgNumber_PopulatesSenderOrgNumber()
+        [Theory]
+        [InlineData("SEnDeROrgNuMBeR")]
+        [InlineData("senderorgnumber")]
+        [InlineData("senderOrgNumber")]
+        public async Task GetDailySummaryData_PropertyListContainsSenderOrgNumber_PopulatesSenderOrgNumber(string senderOrgNumberKey)
         {
             await using var context = _fixture.CreateDbContext();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
@@ -95,8 +98,8 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 .WithResourceId(resourceId)
                 .WithPropertyList(new Dictionary<string, string>
                 {
-                    // Use different casing to verify case-insensitive lookup
-                    ["senderOrgNumber"] = "987654321",
+                    // Use different casing to verify case-insensitive fallback logic
+                    [senderOrgNumberKey] = "987654321",
                     ["other"] = "value"
                 })
                 .Build();
