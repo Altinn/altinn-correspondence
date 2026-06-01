@@ -184,7 +184,7 @@ public class AltinnRegisterService : IAltinnRegisterService
                 } 
                 else 
                 {
-                    throw new Exception($"Error when querying parties in Altinn Register. Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync()}");
+                    throw new Exception($"Error when querying parties in Altinn Register. Statuscode was: {response.StatusCode}, error was: {errorContent}");
                 }
                 return new List<Party>();
             }
