@@ -10,6 +10,7 @@ using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Tests.Extensions;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
@@ -329,10 +330,7 @@ public class DialogportenTests
         correspondenceRepository.Setup(correspondenceRepository => correspondenceRepository
             .GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
             .ReturnsAsync(testCorrespondence);
-        altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Core.Models.Entities.Party
-        {
-            PartyUuid = Guid.NewGuid()
-        });
+        altinnRegisterService.Setup(altinnRegisterService => altinnRegisterService.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
         using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
         {
             services.AddSingleton(correspondenceRepository.Object);

@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -69,14 +70,14 @@ public class ConfirmCorrespondenceHandler(
         }
 
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for caller {caller}", caller);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        var verifyJobId = backgroundJobClient.Schedule<VerifyCorrespondenceConfirmationHandler>(HangfireQueues.Default, 
-            handler => handler.VerifyPatchAndCommitConfirmation(correspondence.Id, partyUuid, party.PartyId, operationTimestamp, caller, CancellationToken.None),
+        var verifyJobId = backgroundJobClient.Schedule<VerifyCorrespondenceConfirmationHandler>(HangfireQueues.Default,
+            handler => handler.VerifyPatchAndCommitConfirmation(correspondence.Id, partyUuid, party.GetPartyId(), operationTimestamp, caller, CancellationToken.None),
             TimeSpan.FromSeconds(4));
         
         try

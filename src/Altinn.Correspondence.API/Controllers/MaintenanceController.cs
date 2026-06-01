@@ -17,7 +17,9 @@ using Altinn.Correspondence.Application.MigrateForwardingEventsBatch;
 using Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
 using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 using Altinn.Correspondence.Application.MaskinportenJwkRotation;
+using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.API.Swagger;
+using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -366,6 +368,52 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             jobId,
             message = "Maskinporten JWK rotation was enqueued."
         });
+    }
+
+    /// <summary>
+    /// Enqueue a job that computes hypothetical SMS notification length statistics for all
+    /// correspondences created within the given date range. Aggregated statistics are emitted to logs.
+    /// </summary>
+    /// <response code="200">Returns the enqueued job id and the resolved range</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    [HttpPost]
+    [Route("sms-notification-length-statistics")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(SmsNotificationLengthStatisticsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> GetSmsNotificationLengthStatistics(
+        [FromServices] SmsNotificationLengthStatisticsHandler handler,
+        [FromBody] SmsNotificationLengthStatisticsRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to compute SMS notification length statistics received");
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+    [HttpPost]
+    [Route("purge-dialog-and-delete-reminder-for-read-correspondences")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> PurgeDialogAndDeleteReminderForReadCorrespondences(
+        [FromServices] PurgeDialogAndDeleteReminderForReadCorrespondencesHandler handler,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to purge dialog and delete reminder for read correspondences received");
+        var result = await handler.Process(HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
     }
 
     private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);

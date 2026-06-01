@@ -1,5 +1,6 @@
 using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Tests.Helpers;
 using System.Text.Json;
 using System.Web;
@@ -12,10 +13,10 @@ public class MigrationTestBase
     internal readonly HttpClient _legacyClient;
     internal readonly HttpClient _recipientClient;
     public readonly string _partyIdClaim = "urn:altinn:partyid";
-    public readonly int _digdirPartyId = 50952483;
-    public readonly int _testUserPartyId = 100;
+    public readonly int _digdirPartyId = AltinnRegisterDevService.DigdirPartyId;
+    public readonly int _testUserPartyId = AltinnRegisterDevService.DelegatedUserPartyId;
     public readonly Guid _testUserPartyUuId = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
-    public readonly string _delegatedUserName = "Delegert test bruker";
+    public readonly string _delegatedUserName = "Delegert Test Bruker";
 
     internal const string migrateCorrespondenceControllerBaseUrl = "correspondence/api/v1/migration";
     internal const string migrateCorrespondenceUrl = $"{migrateCorrespondenceControllerBaseUrl}/correspondence";

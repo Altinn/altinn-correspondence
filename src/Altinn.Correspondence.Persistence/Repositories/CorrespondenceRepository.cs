@@ -708,5 +708,28 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.RequestedPublishTime < cutoff)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesCreatedInRange(
+            DateTimeOffset from,
+            DateTimeOffset to,
+            Guid? cursorId,
+            int batchSize,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.Created >= from && c.Created < to);
+
+            if (cursorId.HasValue)
+            {
+                query = query.Where(c => c.Id < cursorId.Value);
+            }
+
+            return await query
+                .OrderByDescending(c => c.Id)
+                .Take(batchSize)
+                .Include(c => c.Content)
+                .ToListAsync(cancellationToken);
+        }
     }
 }

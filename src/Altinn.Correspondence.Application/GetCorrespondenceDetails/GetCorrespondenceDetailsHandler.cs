@@ -54,7 +54,7 @@ public class GetCorrespondenceDetailsHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());
             return AuthorizationErrors.CouldNotFindPartyUuid;

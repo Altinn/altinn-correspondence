@@ -7,7 +7,9 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Tests.Extensions;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Register.Contracts;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -107,7 +109,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock party lookup
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
@@ -166,7 +168,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock party lookup
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
@@ -217,7 +219,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock party lookup
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
@@ -270,7 +272,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock party lookup
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
@@ -337,7 +339,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock party lookup
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
@@ -404,7 +406,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Mock party lookup
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
@@ -508,7 +510,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(false);
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);
@@ -557,7 +559,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(false);
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);
@@ -613,7 +615,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(false);
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);
@@ -657,7 +659,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(false);
             _altinnRegisterServiceMock
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _correspondenceRepositoryMock
                 .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
                 .ReturnsAsync(correspondence);

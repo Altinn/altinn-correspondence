@@ -1,10 +1,10 @@
 using Altinn.Correspondence.Application.ConfirmCorrespondence;
 using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Tests.Extensions;
 using Altinn.Correspondence.Tests.Factories;
 using Hangfire;
 using Hangfire.Common;
@@ -51,7 +51,7 @@ public class ConfirmCorrespondenceHandlerTests
             .Build();
 
         var request = new ConfirmCorrespondenceRequest { CorrespondenceId = correspondence.Id };
-        var user = CreateUserWithCallerUrn($"{UrnConstants.PersonIdAttribute}:12018012345");
+        var user = CreateUserWithCallerUrn($"{UrnConstants.PersonIdAttribute}:10108000398");
 
         _correspondenceRepositoryMock
             .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
@@ -63,7 +63,7 @@ public class ConfirmCorrespondenceHandlerTests
 
         _altinnRegisterServiceMock
             .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), PartyId = 123 });
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827", partyId: 123));
 
         _dialogportenServiceMock
             .Setup(x => x.PatchCorrespondenceDialogToConfirmed(correspondence.Id, It.IsAny<CancellationToken>()))

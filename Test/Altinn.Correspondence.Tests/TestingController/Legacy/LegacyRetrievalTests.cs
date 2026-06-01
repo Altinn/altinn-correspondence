@@ -2,14 +2,13 @@
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondenceHistory;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Legacy.Base;
-using Azure;
+using Altinn.Register.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -244,8 +243,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
                 mockRegisterService
-                    .Setup(service => service.LookUpPartyByPartyId(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync((Party)null);
+                    .Setup(service => service.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((Party?)null);
                 services.AddSingleton(mockRegisterService.Object);
             });
             var failClient = factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.LegacyScope), (_partyIdClaim, "123"));
