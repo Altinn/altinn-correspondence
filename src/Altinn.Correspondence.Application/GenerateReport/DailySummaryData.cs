@@ -42,7 +42,12 @@ public class DailySummaryData
     /// Message sender
     /// </summary>
     public string MessageSender { get; set; } = string.Empty;
-    
+
+    /// <summary>
+    /// Sender organization number (if available in propertyList)
+    /// </summary>
+    public string SenderOrgNumber { get; set; } = string.Empty;
+
     /// <summary>
     /// Resource ID
     /// </summary>
