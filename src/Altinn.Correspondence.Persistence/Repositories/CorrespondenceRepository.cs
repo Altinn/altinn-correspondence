@@ -719,7 +719,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             var query = _context.Correspondences
                 .AsNoTracking()
-                .Where(c => c.Created >= from && c.Created < to);
+                .Where(c => c.Created >= from && c.Created < to)
+                .Where(c => c.Altinn2CorrespondenceId == null);
 
             if (cursorCreated.HasValue && cursorId.HasValue)
             {
