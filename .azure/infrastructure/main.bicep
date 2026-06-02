@@ -20,7 +20,7 @@ param grafanaMonitoringPrincipalId string
 param deploymentPrincipalId string
 
 @secure()
-@description('Object ID (Principal ID) of correspondence-blob PIM group')
+@description('Object ID (Principal ID) of correspondence-prod-blob PIM group')
 param correspondenceBlobGroupId string
 
 var prodLikeEnvironment = environment == 'production' || environment == 'staging' || environment == 'yt01'
@@ -132,7 +132,7 @@ module grantDeploymentPrincipalStorageFileAccess '../modules/storageAccount/addF
 
 module grantCorrespondenceBlobDataOwner '../modules/storageAccount/addBlobDataOwnerRole.bicep' = {
   scope: subscription()
-  name: 'storage-blob-data-owner-correspondence-blob'
+  name: 'storage-blob-data-owner-correspondence-prod-blob'
   params: {
     principalId: correspondenceBlobGroupId
     principalType: 'Group'

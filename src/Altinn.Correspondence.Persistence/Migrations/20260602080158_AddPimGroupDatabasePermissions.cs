@@ -14,8 +14,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
             @"
                 DO $do$
                 DECLARE
-                    db_reader_role_name CONSTANT text := 'correspondence-db-reader';
-                    db_writer_role_name CONSTANT text := 'correspondence-db-writer';
+                    db_reader_role_name CONSTANT text := 'correspondence-prod-db-reader';
+                    db_writer_role_name CONSTANT text := 'correspondence-prod-db-writer';
                     role_name text;
                 BEGIN
                     FOREACH role_name IN ARRAY ARRAY[db_reader_role_name, db_writer_role_name]
@@ -38,25 +38,25 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 END
                 $do$;
 
-                GRANT CONNECT, TEMPORARY ON DATABASE correspondence TO ""correspondence-db-reader"", ""correspondence-db-writer"";
+                GRANT CONNECT, TEMPORARY ON DATABASE correspondence TO ""correspondence-prod-db-reader"", ""correspondence-prod-db-writer"";
 
-                GRANT USAGE ON SCHEMA correspondence TO ""correspondence-db-reader"", ""correspondence-db-writer"";
-                GRANT SELECT ON ALL TABLES IN SCHEMA correspondence TO ""correspondence-db-reader"";
-                GRANT SELECT ON ALL SEQUENCES IN SCHEMA correspondence TO ""correspondence-db-reader"";
-                GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA correspondence TO ""correspondence-db-reader"";
-                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence GRANT SELECT ON TABLES TO ""correspondence-db-reader"";
-                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence GRANT SELECT ON SEQUENCES TO ""correspondence-db-reader"";
-                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence GRANT EXECUTE ON FUNCTIONS TO ""correspondence-db-reader"";
+                GRANT USAGE ON SCHEMA correspondence TO ""correspondence-prod-db-reader"", ""correspondence-prod-db-writer"";
+                GRANT SELECT ON ALL TABLES IN SCHEMA correspondence TO ""correspondence-prod-db-reader"";
+                GRANT SELECT ON ALL SEQUENCES IN SCHEMA correspondence TO ""correspondence-prod-db-reader"";
+                GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA correspondence TO ""correspondence-prod-db-reader"";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence GRANT SELECT ON TABLES TO ""correspondence-prod-db-reader"";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence GRANT SELECT ON SEQUENCES TO ""correspondence-prod-db-reader"";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence GRANT EXECUTE ON FUNCTIONS TO ""correspondence-prod-db-reader"";
 
                 GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-                    ON ALL TABLES IN SCHEMA correspondence TO ""correspondence-db-writer"";
-                GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA correspondence TO ""correspondence-db-writer"";
-                GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA correspondence TO ""correspondence-db-writer"";
+                    ON ALL TABLES IN SCHEMA correspondence TO ""correspondence-prod-db-writer"";
+                GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA correspondence TO ""correspondence-prod-db-writer"";
+                GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA correspondence TO ""correspondence-prod-db-writer"";
                 ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence
-                    GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES TO ""correspondence-db-writer"";
+                    GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES TO ""correspondence-prod-db-writer"";
                 ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence
-                    GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO ""correspondence-db-writer"";
-                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence GRANT EXECUTE ON FUNCTIONS TO ""correspondence-db-writer"";
+                    GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO ""correspondence-prod-db-writer"";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence GRANT EXECUTE ON FUNCTIONS TO ""correspondence-prod-db-writer"";
             "
             );
         }
@@ -66,25 +66,25 @@ namespace Altinn.Correspondence.Persistence.Migrations
         {
             migrationBuilder.Sql(
             @"
-                REVOKE CONNECT, TEMPORARY ON DATABASE correspondence FROM ""correspondence-db-reader"", ""correspondence-db-writer"";
+                REVOKE CONNECT, TEMPORARY ON DATABASE correspondence FROM ""correspondence-prod-db-reader"", ""correspondence-prod-db-writer"";
 
-                REVOKE USAGE ON SCHEMA correspondence FROM ""correspondence-db-reader"", ""correspondence-db-writer"";
-                REVOKE SELECT ON ALL TABLES IN SCHEMA correspondence FROM ""correspondence-db-reader"";
-                REVOKE SELECT ON ALL SEQUENCES IN SCHEMA correspondence FROM ""correspondence-db-reader"";
-                REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA correspondence FROM ""correspondence-db-reader"";
-                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence REVOKE SELECT ON TABLES FROM ""correspondence-db-reader"";
-                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence REVOKE SELECT ON SEQUENCES FROM ""correspondence-db-reader"";
-                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence REVOKE EXECUTE ON FUNCTIONS FROM ""correspondence-db-reader"";
+                REVOKE USAGE ON SCHEMA correspondence FROM ""correspondence-prod-db-reader"", ""correspondence-prod-db-writer"";
+                REVOKE SELECT ON ALL TABLES IN SCHEMA correspondence FROM ""correspondence-prod-db-reader"";
+                REVOKE SELECT ON ALL SEQUENCES IN SCHEMA correspondence FROM ""correspondence-prod-db-reader"";
+                REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA correspondence FROM ""correspondence-prod-db-reader"";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence REVOKE SELECT ON TABLES FROM ""correspondence-prod-db-reader"";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence REVOKE SELECT ON SEQUENCES FROM ""correspondence-prod-db-reader"";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence REVOKE EXECUTE ON FUNCTIONS FROM ""correspondence-prod-db-reader"";
 
                 REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-                    ON ALL TABLES IN SCHEMA correspondence FROM ""correspondence-db-writer"";
-                REVOKE USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA correspondence FROM ""correspondence-db-writer"";
-                REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA correspondence FROM ""correspondence-db-writer"";
+                    ON ALL TABLES IN SCHEMA correspondence FROM ""correspondence-prod-db-writer"";
+                REVOKE USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA correspondence FROM ""correspondence-prod-db-writer"";
+                REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA correspondence FROM ""correspondence-prod-db-writer"";
                 ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence
-                    REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES FROM ""correspondence-db-writer"";
+                    REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES FROM ""correspondence-prod-db-writer"";
                 ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence
-                    REVOKE USAGE, SELECT, UPDATE ON SEQUENCES FROM ""correspondence-db-writer"";
-                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence REVOKE EXECUTE ON FUNCTIONS FROM ""correspondence-db-writer"";
+                    REVOKE USAGE, SELECT, UPDATE ON SEQUENCES FROM ""correspondence-prod-db-writer"";
+                ALTER DEFAULT PRIVILEGES IN SCHEMA correspondence REVOKE EXECUTE ON FUNCTIONS FROM ""correspondence-prod-db-writer"";
             "
             );
         }
