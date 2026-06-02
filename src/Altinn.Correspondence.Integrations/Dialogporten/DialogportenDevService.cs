@@ -111,6 +111,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.CompletedTask;
         }
 
+        public Task CreateInformationActivity(Guid correspondenceId, DialogportenActorType actorType, DialogportenTextType textType, string? partyUrn, Guid? dialogActivityId, DateTimeOffset activityTimestamp, params string[] tokens)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task CreateOpenedActivity(Guid correspondenceId, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
         {
             return Task.CompletedTask;

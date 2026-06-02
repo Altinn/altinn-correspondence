@@ -112,6 +112,27 @@ public class CheckNotificationDeliveryHandler(
                     {
                         logger.LogInformation("Skipping notification failed event publishing for notification {NotificationId}", notificationId);
                     }
+
+                    var failedRecipients = notificationDetailsV2.Recipients
+                        .Where(r => r.Status.IsFailed())
+                        .ToList();
+                    foreach (var recipient in failedRecipients)
+                    {
+                        var failureTextType = recipient.Status.IsTtlFailure()
+                            ? (notification.IsReminder ? DialogportenTextType.NotificationReminderDeliveryUnconfirmed : DialogportenTextType.NotificationDeliveryUnconfirmed)
+                            : (notification.IsReminder ? DialogportenTextType.NotificationReminderFailed : DialogportenTextType.NotificationFailed);
+                        var activityId = notificationId.CreateVersion5($"{recipient.Destination}|{failureTextType}");
+                        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
+                            dialogportenService.CreateInformationActivity(
+                                correspondence.Id,
+                                DialogportenActorType.ServiceOwner,
+                                failureTextType,
+                                null,
+                                activityId,
+                                recipient.LastUpdate,
+                                recipient.Destination,
+                                recipient.Type.ToString()));
+                    }
                 }
                 else
                 {
