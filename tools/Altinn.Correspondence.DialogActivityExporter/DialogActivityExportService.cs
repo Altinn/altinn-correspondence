@@ -241,18 +241,74 @@ public class DialogActivityExportService
         (Guid correspondenceId, int status)? lastCursor,
         CancellationToken cancellationToken)
     {
+        // OPTIMIZATION: Run Status 4 and Status 6 as separate queries and merge in-memory
+        // This avoids the slow UNION ALL + ORDER BY performance issue
+        // Status 4: ~21ms, Status 6: ~3s vs UNION ALL + ORDER BY: 12+ minutes
+
+        var status4Results = await FetchStatusRecordsAsync(
+            connection, issueNumber, cutoffTimestamp, oldestCorrespondenceDate, 
+            statusValue: 4, lastCursor, cancellationToken);
+
+        var status6Results = await FetchStatusRecordsAsync(
+            connection, issueNumber, cutoffTimestamp, oldestCorrespondenceDate, 
+            statusValue: 6, lastCursor, cancellationToken);
+
+        // Merge and sort in-memory (much faster than database ORDER BY on UNION ALL)
+        var allResults = status4Results
+            .Concat(status6Results)
+            .OrderBy(r => r.CorrespondenceId)
+            .ThenBy(r => r.Status)
+            .Take(_batchSize)
+            .ToList();
+
+        // Write to CSV
+        foreach (var record in allResults)
+        {
+            var line = FormatCSVLine(
+                EscapeCSV(record.DialogId),
+                EscapeCSV(record.DialogActivityId),
+                EscapeCSV(record.Timestamp.ToString("o", CultureInfo.InvariantCulture)),
+                EscapeCSV(record.ActorId),
+                EscapeCSV(record.ActorName),
+                EscapeCSV(record.ActivityType)
+            );
+            await writer.WriteLineAsync(line);
+        }
+
+        var lastProcessedCursor = allResults.Count > 0 
+            ? (allResults[^1].CorrespondenceId, allResults[^1].Status) 
+            : ((Guid correspondenceId, int status)?)null;
+
+        return (allResults.Count, lastProcessedCursor);
+    }
+
+    private async Task<List<DialogActivityRecord>> FetchStatusRecordsAsync(
+        NpgsqlConnection connection,
+        int issueNumber,
+        DateTime cutoffTimestamp,
+        DateTime? oldestCorrespondenceDate,
+        int statusValue,
+        (Guid correspondenceId, int status)? lastCursor,
+        CancellationToken cancellationToken)
+    {
         var (syncFilter, timestampColumn, createdFilter) = GetFiltersForIssue(issueNumber, oldestCorrespondenceDate);
 
-        var batchQuery = $@"
+        var activityType = statusValue == 4 ? "CorrespondenceOpened" : "CorrespondenceConfirmed";
+        var idcJoinAlias = statusValue == 4 ? "idcFetch" : "idcConfirm";
+        var statusActionValue = statusValue;
+
+        // NOTE: No ORDER BY here - we order in-memory after merging
+        // This allows PostgreSQL to stop at LIMIT efficiently
+        var query = $@"
             SELECT 
                 er.""ReferenceValue"" AS DialogId,
-                idcFetch.""Id"" AS DialogActivityId,
+                {idcJoinAlias}.""Id"" AS DialogActivityId,
                 stats.""CorrespondenceId"",
                 stats.""StatusChanged"" AS Timestamp,
                 ap.""OutputActorId"" AS ActorId,
                 ap.""Name"" AS ActorName,
-                4 AS Status,
-                'CorrespondenceOpened' AS ActivityType
+                {statusValue} AS Status,
+                '{activityType}' AS ActivityType
             FROM correspondence.""CorrespondenceStatuses"" stats
             INNER JOIN correspondence.""Correspondences"" corr 
                 ON stats.""CorrespondenceId"" = corr.""Id"" 
@@ -266,81 +322,42 @@ public class DialogActivityExportService
             INNER JOIN correspondence.""ExternalReferences"" er
                 ON stats.""CorrespondenceId"" = er.""CorrespondenceId"" 
                 AND er.""ReferenceType"" = 3
-            LEFT JOIN correspondence.""IdempotencyKeys"" idcFetch 
-                ON stats.""CorrespondenceId"" = idcFetch.""CorrespondenceId"" 
-                AND idcFetch.""StatusAction"" = '3'
-            WHERE stats.""Status"" = 4
+            LEFT JOIN correspondence.""IdempotencyKeys"" {idcJoinAlias}
+                ON stats.""CorrespondenceId"" = {idcJoinAlias}.""CorrespondenceId"" 
+                AND {idcJoinAlias}.""StatusAction"" = '{statusActionValue}'
+            WHERE stats.""Status"" = {statusValue}
               AND stats.""{timestampColumn}"" < @cutoffTimestamp
               AND (@lastId IS NULL OR (stats.""CorrespondenceId"", stats.""Status"") > (@lastId, @lastStatus))
+            LIMIT @fetchLimit";
 
-            UNION ALL
-
-            SELECT 
-                er.""ReferenceValue"" AS DialogId,
-                idcConfirm.""Id"" AS DialogActivityId,
-                stats.""CorrespondenceId"",
-                stats.""StatusChanged"" AS Timestamp,
-                ap.""OutputActorId"" AS ActorId,
-                ap.""Name"" AS ActorName,
-                6 AS Status,
-                'CorrespondenceConfirmed' AS ActivityType
-            FROM correspondence.""CorrespondenceStatuses"" stats
-            INNER JOIN correspondence.""Correspondences"" corr 
-                ON stats.""CorrespondenceId"" = corr.""Id"" 
-                AND corr.""Altinn2CorrespondenceId"" IS NOT NULL 
-                AND corr.""IsMigrating"" = FALSE
-                AND {syncFilter}
-                {createdFilter}
-            INNER JOIN correspondence.""A2Parties"" ap 
-                ON stats.""PartyUuid"" = ap.""PartyUuid""
-                AND corr.""Recipient"" <> ap.""RecipientUrn""
-            INNER JOIN correspondence.""ExternalReferences"" er 
-                ON stats.""CorrespondenceId"" = er.""CorrespondenceId"" 
-                AND er.""ReferenceType"" = 3
-            LEFT JOIN correspondence.""IdempotencyKeys"" idcConfirm
-                ON stats.""CorrespondenceId"" = idcConfirm.""CorrespondenceId"" 
-                AND idcConfirm.""StatusAction"" = '6'
-            WHERE stats.""Status"" = 6
-              AND stats.""{timestampColumn}"" < @cutoffTimestamp
-              AND (@lastId IS NULL OR (stats.""CorrespondenceId"", stats.""Status"") > (@lastId, @lastStatus))
-
-            ORDER BY ""CorrespondenceId"", ""Status""
-            LIMIT @batchSize";
-
-        await using var cmd = new NpgsqlCommand(batchQuery, connection);
+        await using var cmd = new NpgsqlCommand(query, connection);
         cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
         cmd.Parameters.AddWithValue("lastId", (object?)lastCursor?.correspondenceId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("lastStatus", lastCursor?.status ?? (object)DBNull.Value);
-        cmd.Parameters.AddWithValue("batchSize", _batchSize);
+        cmd.Parameters.AddWithValue("fetchLimit", _batchSize); // Fetch up to batchSize from each status
         if (oldestCorrespondenceDate.HasValue)
             cmd.Parameters.AddWithValue("oldestDate", oldestCorrespondenceDate.Value);
         cmd.CommandTimeout = 300;
 
-        var count = 0;
-        (Guid correspondenceId, int status)? lastProcessedCursor = null;
-
+        var results = new List<DialogActivityRecord>();
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            var correspondenceId = reader.GetGuid(2);
-            var status = reader.GetInt32(6);
-            lastProcessedCursor = (correspondenceId, status);
-
-            var line = FormatCSVLine(
-                EscapeCSV(reader.GetString(0)),  // DialogId
-                EscapeCSV(reader.IsDBNull(1) ? "" : reader.GetGuid(1).ToString()),  // DialogActivityId
-                EscapeCSV(reader.GetDateTime(3).ToString("o", CultureInfo.InvariantCulture)),  // Timestamp
-                EscapeCSV(reader.GetString(4)),  // ActorId
-                EscapeCSV(reader.GetString(5)),  // ActorName
-                EscapeCSV(reader.GetString(7))   // ActivityType
-            );
-
-            await writer.WriteLineAsync(line);
-            count++;
+            results.Add(new DialogActivityRecord
+            {
+                DialogId = reader.GetString(0),
+                DialogActivityId = reader.IsDBNull(1) ? "" : reader.GetGuid(1).ToString(),
+                CorrespondenceId = reader.GetGuid(2),
+                Timestamp = reader.GetDateTime(3),
+                ActorId = reader.GetString(4),
+                ActorName = reader.GetString(5),
+                Status = reader.GetInt32(6),
+                ActivityType = reader.GetString(7)
+            });
         }
 
-        return (count, lastProcessedCursor);
+        return results;
     }
 
     private static (string SyncFilter, string TimestampColumn, string CreatedFilter) GetFiltersForIssue(
@@ -349,10 +366,13 @@ public class DialogActivityExportService
     {
         return issueNumber switch
         {
+            // OPTIMIZATION: Removed corr.Created BETWEEN filter for Issue #1951
+            // This filter caused massive performance degradation (3s → 12+ min)
+            // by filtering rows AFTER the index scan instead of during it
             1951 => (
                 "stats.\"SyncedFromAltinn2\" IS NULL",
                 "StatusChanged",
-                oldestDate.HasValue ? "AND corr.\"Created\" > @oldestDate" : ""
+                "" // Removed: oldestDate.HasValue ? "AND corr.\"Created\" > @oldestDate" : ""
             ),
             1716 => (
                 "stats.\"SyncedFromAltinn2\" IS NOT NULL",
@@ -374,9 +394,22 @@ public class DialogActivityExportService
             return string.Empty;
         return value.Replace("\"", "\"\"");
     }
-}
+            }
 
-public record ExportProgress
+            // Record to hold query results before CSV export
+            internal record DialogActivityRecord
+            {
+                public required string DialogId { get; init; }
+                public required string DialogActivityId { get; init; }
+                public required Guid CorrespondenceId { get; init; }
+                public required DateTime Timestamp { get; init; }
+                public required string ActorId { get; init; }
+                public required string ActorName { get; init; }
+                public required int Status { get; init; }
+                public required string ActivityType { get; init; }
+            }
+
+            public record ExportProgress
 {
     public long TotalProcessed { get; init; }
     public long TotalCount { get; init; }

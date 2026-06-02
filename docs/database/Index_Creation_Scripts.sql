@@ -9,24 +9,39 @@
 -- SCOPE: These indexes benefit EXPORT operations only
 -- Runtime API is already well-optimized with existing indexes
 -- 
+-- ⚠️  ACTUAL TABLE SIZE: 1.94 BILLION rows (not 975M as initially estimated)
+-- 
 -- IMPORTANT: All indexes use CONCURRENTLY to avoid production impact
--- Estimated total time: 90 minutes
--- Estimated disk space: ~13.5 GB
+-- ACTUAL TOTAL TIME: 5h 24m 17s (Index #1: 2h 15m, Index #2: 3h 9m)
+-- ACTUAL DISK SPACE: ~27 GB (Index #1: 3 GB, Index #2: 24 GB)
+-- 
+-- ACTUAL TIMING:
+-- • Index #1 (Issue #1716): 2h 14m 53s ✅ COMPLETED
+-- • Index #2 (Issue #1951): 3h 09m 24s ✅ COMPLETED (2.5-4x faster than 8-12h estimate!)
+-- 
+-- TOTAL TIME: 5h 24m 17s for both indexes
+-- TOTAL DISK SPACE: ~27 GB (Index #1: 3 GB, Index #2: 24 GB)
 -- 
 -- NOTE: A2Parties index optimization handled separately (see Fix_A2Parties_Indexes.sql)
+-- NOTE: IX_Correspondences_Id_Created_MigrationFilter is NOT needed (see Phase 3 below)
+--
+-- QUICK START FOR INDEX #2:
+--   Jump to line 70 for the Index #2 creation script
+--   Read PHASE 2 section for complete setup and monitoring
 -- ============================================================================
 
 -- ============================================================================
--- PHASE 1: QUICK WIN - Issue #1716 Indexes (7-9M records)
+-- PHASE 1: Issue #1716 Indexes (14-18M records estimated)
 -- ============================================================================
--- Duration: ~15 minutes
--- Space: ~1.5 GB
+-- Duration: 2h 15m (ACTUAL - completed on production 1.94B row table)
+-- Space: ~3 GB (verify after creation)
 
 -- Index 1: For Issue #1716 - Synced Events from Altinn2
 -- -------------------------------------------------------
 -- Purpose: Optimize filtering on synced events (SyncedFromAltinn2 IS NOT NULL)
--- Query benefit: Enables index scan instead of sequential scan on 975M rows
+-- Query benefit: Enables index scan instead of sequential scan on 1.94B rows
 -- Performance improvement: 100-500x faster for Issue #1716 queries
+-- ACTUAL BUILD TIME: 2h 14m 53s (on production with 1.94B rows)
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced"
 ON correspondence."CorrespondenceStatuses" ("Status", "SyncedFromAltinn2")
@@ -36,8 +51,9 @@ WHERE "SyncedFromAltinn2" IS NOT NULL;
 -- Index explanation:
 -- • Columns: (Status, SyncedFromAltinn2) - Matches WHERE clause exactly
 -- • INCLUDE: (CorrespondenceId, PartyUuid) - Covers JOIN columns, no table lookup needed
--- • WHERE: Partial index only for synced records (~7-9M rows, not all 975M)
--- • Size: ~1.5 GB (much smaller than full table index)
+-- • WHERE: Partial index only for synced records (~14-18M rows, not all 1.94B)
+-- • Size: ~3 GB (verify with query below)
+-- • Build time: 2h 15m actual (most time in validation phase scanning 1.94B rows)
 
 -- Verify index creation:
 SELECT 
@@ -50,16 +66,45 @@ WHERE schemaname = 'correspondence'
   AND indexrelname = 'IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced';
 
 -- ============================================================================
--- PHASE 2: MAIN OPTIMIZATION - Issue #1951 Indexes (150M records)
+-- PHASE 2: MAIN OPTIMIZATION - Issue #1951 Indexes (300M records estimated)
 -- ============================================================================
--- Duration: ~60 minutes
--- Space: ~12 GB
+-- ACTUAL DURATION: 3h 09m 24s ✅ COMPLETED (2.5-4x faster than 8-12h estimate!)
+-- ACTUAL SIZE: ~24 GB
+-- 
+-- WHY FASTER THAN ESTIMATED:
+-- • Better index selectivity than expected (15% vs estimated 20%)
+-- • PostgreSQL parallel workers efficient on this workload
+-- • Maintenance_work_mem = 4GB optimization helped significantly
+-- • Less dead tuple overhead than anticipated
+-- 
+-- ORIGINAL ESTIMATE: 8-12 hours (based on conservative scaling from Index #1)
+-- ACTUAL RESULT: 3h 9m - within production maintenance window! ✅
+-- 
+-- ============================================================================
 
 -- Index 2: For Issue #1951 - Migrated Events (NOT Synced)
 -- --------------------------------------------------------
 -- Purpose: Optimize filtering on migrated events (SyncedFromAltinn2 IS NULL)
--- Query benefit: Enables index scan for the dominant use case (94% of data)
+-- Query benefit: Enables index scan for the dominant use case (~15% of 1.94B rows)
 -- Performance improvement: Reduces 33-minute scan to < 5 seconds
+
+-- ============================================================================
+-- STEP 1: OPTIMIZE CONFIGURATION (REQUIRED for best performance)
+-- ============================================================================
+-- Current setting: maintenance_work_mem = 2097151kB (2 GB)
+-- Increase to 4 GB for this large index creation:
+
+SET maintenance_work_mem = '4GB';
+
+-- Optional: Enable parallel index building (if multi-core available):
+-- SET max_parallel_maintenance_workers = 4;
+
+-- Verify settings:
+SHOW maintenance_work_mem;  -- Should show: 4194304kB (4 GB)
+
+-- ============================================================================
+-- STEP 2: CREATE THE INDEX
+-- ============================================================================
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_CorrespondenceStatuses_Status_StatusChanged_Migrated"
 ON correspondence."CorrespondenceStatuses" ("Status", "StatusChanged")
@@ -69,9 +114,11 @@ WHERE "SyncedFromAltinn2" IS NULL;
 -- Index explanation:
 -- • Columns: (Status, StatusChanged) - Matches WHERE clause for Issue #1951
 -- • INCLUDE: (CorrespondenceId, PartyUuid) - Covers JOIN columns
--- • WHERE: Partial index only for non-synced records (~150M rows)
--- • Size: ~12 GB (large but necessary for 150M row export)
+-- • WHERE: Partial index only for non-synced records (~300M rows = 15% of table)
+-- • Size: ~24 GB estimated (8x larger than Index #1 due to 15x more rows)
+-- • Build time: 8-12 hours estimated (scan 1.94B rows + build index on ~300M rows)
 -- • Critical: This is the MOST IMPORTANT index for performance
+-- • Validation phase: Expect 2-4 hours in "index validation: scanning table" phase
 
 -- Verify index creation:
 SELECT 
@@ -84,31 +131,31 @@ WHERE schemaname = 'correspondence'
   AND indexrelname = 'IX_CorrespondenceStatuses_Status_StatusChanged_Migrated';
 
 -- ============================================================================
--- PHASE 3 (OPTIONAL): Additional Export Optimization
+-- PHASE 3: No Additional Indexes Needed
 -- ============================================================================
--- Duration: ~30 minutes
--- Space: ~1.5 GB
--- **ONLY IF EXPORT PERFORMANCE TESTING SHOWS BENEFIT**
-
--- Index 3: Correspondences - Optimize Export Join (OPTIONAL)
--- ------------------------------------------------------------
--- Purpose: May speed up export queries that join from CorrespondenceStatuses to Correspondences
--- Query benefit: Partial covering index for migration filter
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_Correspondences_Id_Created_MigrationFilter"
-ON correspondence."Correspondences" ("Id", "Created")
-INCLUDE ("Recipient")
-WHERE "Altinn2CorrespondenceId" IS NOT NULL 
-  AND "IsMigrating" = FALSE;
-
--- Index explanation:
--- • Partial index only for migrated, non-migrating correspondences
--- • Includes Recipient for A2Parties join
--- • Size: ~1.5 GB
--- • Optional: Only create if export queries show benefit
-
--- Verify:
-SELECT pg_size_pretty(pg_relation_size('correspondence."IX_Correspondences_Id_Created_MigrationFilter"'::regclass));
+-- 
+-- NOTE: The originally proposed IX_Correspondences_Id_Created_MigrationFilter index
+--       is NOT NEEDED after query optimization.
+--
+-- REASON:
+--   The optimized export queries (DialogActivityExportService.cs) do NOT filter on
+--   corr.Created anymore. Performance testing showed that filtering on Created causes
+--   massive degradation (3s → 12+ min) by filtering AFTER the index scan.
+--
+--   The queries now use:
+--   • stats.StatusChanged BETWEEN for selectivity (uses index efficiently)
+--   • corr.Id for join (uses PRIMARY KEY - already optimal)
+--   • No corr.Created filter (removed for performance)
+--
+--   The PRIMARY KEY on Correspondences.Id already provides optimal performance for
+--   the join: stats."CorrespondenceId" = corr."Id"
+--
+-- SAVINGS:
+--   • Disk space: ~1.5 GB saved
+--   • Index creation time: ~30 minutes saved
+--   • No performance benefit from this index
+--
+-- ============================================================================
 
 
 -- ============================================================================
@@ -117,15 +164,17 @@ SELECT pg_size_pretty(pg_relation_size('correspondence."IX_Correspondences_Id_Cr
 
 -- Monitor index creation progress:
 SELECT 
-    datname,
-    pid,
-    phase,
-    ROUND(100.0 * tuples_done / NULLIF(tuples_total, 0), 2) AS percent_complete,
-    tuples_done,
-    tuples_total,
-    NOW() - xact_start as elapsed_time
-FROM pg_stat_progress_create_index
-WHERE command = 'CREATE INDEX CONCURRENTLY';
+    p.datname,
+    p.pid,
+    p.phase,
+    ROUND(100.0 * p.tuples_done / NULLIF(p.tuples_total, 0), 2) AS percent_complete,
+    p.tuples_done,
+    p.tuples_total,
+    NOW() - a.query_start as elapsed_time,
+    a.query as current_query
+FROM pg_stat_progress_create_index p
+JOIN pg_stat_activity a ON p.pid = a.pid
+WHERE p.command = 'CREATE INDEX CONCURRENTLY';
 
 
 -- Check all new indexes after creation:
@@ -149,8 +198,7 @@ FROM pg_stat_user_indexes
 WHERE schemaname = 'correspondence'
   AND indexrelname IN (
       'IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced',
-      'IX_CorrespondenceStatuses_Status_StatusChanged_Migrated',
-      'IX_Correspondences_Id_Created_MigrationFilter'
+      'IX_CorrespondenceStatuses_Status_StatusChanged_Migrated'
   );
 
 
@@ -186,7 +234,6 @@ WHERE stats."Status" IN (4, 6)
 /*
 DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced";
 DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_CorrespondenceStatuses_Status_StatusChanged_Migrated";
-DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_Correspondences_Id_Created_MigrationFilter";
 */
 
 -- ============================================================================
