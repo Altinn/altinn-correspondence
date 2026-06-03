@@ -4,7 +4,7 @@ namespace Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownload
 
 public class UpdateOldCorrespondencesWithDownloadAllRequest
 {
-    [Range(100, int.MaxValue)]
+    [Range(100, int.MaxValue - 1)]
     public int windowSize { get; set; } = 10000;
 
 }

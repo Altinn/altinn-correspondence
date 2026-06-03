@@ -895,7 +895,7 @@ public class DialogportenService(HttpClient _httpClient,
     public async Task<bool> HasDownloadAllAttachments(string dialogId, CancellationToken cancellationToken = default)
     {
         var dialog = await GetDialog(dialogId);
-        return dialog.Attachments.Any(a => a.Urls != null && a.Urls.Any(u => u.Url.Contains("downloadall")));
+        return dialog.Attachments?.Any(a => a.Urls != null && a.Urls.Any(u => u.Url.Contains("downloadall"))) ?? false; 
     }
 
     public async Task<bool> TryAddDownloadAllAttachmentsToDialog(string dialogId, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default)

@@ -426,10 +426,11 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> UpdateOldCorrespondencesWithDownloadAll(
         [FromServices] UpdateOldCorrespondencesWithDownloadAllHandler handler,
+        [FromBody] UpdateOldCorrespondencesWithDownloadAllRequest request,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Request to update old correspondences with download all received");
-        var result = await handler.Process(new UpdateOldCorrespondencesWithDownloadAllRequest(), HttpContext.User, cancellationToken);
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
             Problem

@@ -108,6 +108,9 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                             {
                                 totalNotMatchingDownloadAllCriteria++;
                             }
+                        } else
+                        {
+                            totalNotMatchingDownloadAllCriteria++;
                         }
                     }
                     catch (Exception ex)
