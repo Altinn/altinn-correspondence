@@ -142,10 +142,12 @@ public class DialogActivityExportService
         // Use pre-calculated counts if available (for progress percentage)
         long count1716 = preCalculatedCount1716;
         long count1951 = preCalculatedCount1951;
-        long totalCount = count1716 + count1951;
+
+        // Only calculate total if both counts are available
+        long totalCount = (count1716 > 0 && count1951 > 0) ? count1716 + count1951 : 0;
 
         // Only consider total known if both individual counts are available
-        if (count1716 > 0 && count1951 > 0)
+        if (totalCount > 0)
         {
             _logger.LogInformation("Expected records (from pre-calculated counts): ~{Count:N0} total (1716: {Count1716:N0}, 1951: {Count1951:N0})", 
                 totalCount, count1716, count1951);
@@ -466,36 +468,36 @@ public class DialogActivityExportService
             return string.Empty;
         return value.Replace("\"", "\"\"");
     }
-            }
 
-            // Record to hold query results before CSV export
-            internal record DialogActivityRecord
-            {
-                public required string DialogId { get; init; }
-                public required string DialogActivityId { get; init; }
-                public required Guid CorrespondenceId { get; init; }
-                public required DateTime Timestamp { get; init; }
-                public required string ActorId { get; init; }
-                public required string ActorName { get; init; }
-                public required int Status { get; init; }
-                public required string ActivityType { get; init; }
-            }
-
-            public record ExportProgress
-{
-    public long TotalProcessed { get; init; }
-    public long TotalCount { get; init; }
-    public int BatchNumber { get; init; }
-    public TimeSpan ElapsedTime { get; init; }
-    public double PercentComplete => TotalCount > 0 ? (TotalProcessed / (double)TotalCount) * 100 : 0;
-    public TimeSpan EstimatedTimeRemaining
+    // Record to hold query results before CSV export
+    internal record DialogActivityRecord
     {
-        get
+        public required string DialogId { get; init; }
+        public required string DialogActivityId { get; init; }
+        public required Guid CorrespondenceId { get; init; }
+        public required DateTime Timestamp { get; init; }
+        public required string ActorId { get; init; }
+        public required string ActorName { get; init; }
+        public required int Status { get; init; }
+        public required string ActivityType { get; init; }
+    }
+
+    public record ExportProgress
+    {
+        public long TotalProcessed { get; init; }
+        public long TotalCount { get; init; }
+        public int BatchNumber { get; init; }
+        public TimeSpan ElapsedTime { get; init; }
+        public double PercentComplete => TotalCount > 0 ? (TotalProcessed / (double)TotalCount) * 100 : 0;
+        public TimeSpan EstimatedTimeRemaining
         {
-            if (TotalProcessed == 0 || ElapsedTime.TotalSeconds < 1) return TimeSpan.Zero;
-            var rate = TotalProcessed / ElapsedTime.TotalSeconds;
-            var remaining = TotalCount - TotalProcessed;
-            return TimeSpan.FromSeconds(remaining / rate);
+            get
+            {
+                if (TotalProcessed == 0 || ElapsedTime.TotalSeconds < 1) return TimeSpan.Zero;
+                var rate = TotalProcessed / ElapsedTime.TotalSeconds;
+                var remaining = TotalCount - TotalProcessed;
+                return TimeSpan.FromSeconds(remaining / rate);
+            }
         }
     }
 }

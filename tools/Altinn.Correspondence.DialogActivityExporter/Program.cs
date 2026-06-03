@@ -68,6 +68,13 @@ Console.WriteLine();
 // Confirm
 if (!options.SkipConfirmation)
 {
+    // Check if input is redirected (non-interactive scenario)
+    if (Console.IsInputRedirected)
+    {
+        logger.LogWarning("Interactive confirmation unavailable (stdin redirected). Use --yes to proceed automatically.");
+        return 1; // Exit with error code
+    }
+
     Console.ForegroundColor = ConsoleColor.Yellow;
     Console.Write("Continue? (y/n): ");
     Console.ResetColor();
@@ -90,12 +97,12 @@ var exportService = new DialogActivityExportService(
 var preCalcCount1716 = config.GetValue<long>("PreCalculatedCounts:Issue1716", 0);
 var preCalcCount1951 = config.GetValue<long>("PreCalculatedCounts:Issue1951", 0);
 
-var progress = new Progress<ExportProgress>(p =>
+var progress = new Progress<DialogActivityExportService.ExportProgress>(p =>
 {
     if (Console.IsOutputRedirected)
     {
         // Non-interactive output for redirected/piped scenarios
-        var rate = p.TotalProcessed / p.ElapsedTime.TotalSeconds;
+        var rate = p.ElapsedTime.TotalSeconds > 0 ? p.TotalProcessed / p.ElapsedTime.TotalSeconds : 0;
 
         if (p.TotalCount > 0)
         {
@@ -116,7 +123,7 @@ var progress = new Progress<ExportProgress>(p =>
         Console.Write(new string(' ', Console.WindowWidth)); // Clear line
         Console.SetCursorPosition(0, Console.CursorTop);
 
-        var rate = p.TotalProcessed / p.ElapsedTime.TotalSeconds;
+        var rate = p.ElapsedTime.TotalSeconds > 0 ? p.TotalProcessed / p.ElapsedTime.TotalSeconds : 0;
 
         if (p.TotalCount > 0)
         {
@@ -251,15 +258,9 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
         return null;
     }
 
-    DateTime? oldestDate = null;
+    // Warn if deprecated parameter is present
     if (!string.IsNullOrEmpty(oldest))
     {
-        if (!DateTime.TryParse(oldest, out var parsedOldest))
-        {
-            logger.LogError("Invalid oldest date format. Use 'yyyy-MM-dd' or 'yyyy-MM-dd HH:mm:ss'");
-            return null;
-        }
-        oldestDate = parsedOldest;
         logger.LogWarning("WARNING: --oldest parameter is deprecated and no longer used (performance optimization)");
     }
 
