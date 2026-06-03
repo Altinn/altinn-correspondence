@@ -85,7 +85,6 @@ public class AzureResourceManagerService : IResourceManager
             return;
         }
         _logger.LogDebug($"Starting deployment for {serviceOwnerEntity.Name}");
-        _logger.LogDebug($"Using app identity for deploying Azure resources"); // TODO remove
         var resourceGroupName = GetResourceGroupName(serviceOwnerEntity);
 
         var storageAccountName = GenerateStorageAccountName();
@@ -122,6 +121,8 @@ public class AzureResourceManagerService : IResourceManager
         {
             await blobService.GetBlobContainers().CreateOrUpdateAsync(WaitUntil.Completed, containerName, new BlobContainerData(), cancellationToken);
         }
+
+        await ConfigureBlobDiagnosticSettings(blobService, cancellationToken);
 
         await _serviceOwnerRepository.InitializeStorageProvider(serviceOwnerEntity.Id, storageAccountName, virusScan ? StorageProviderType.Altinn3Azure : StorageProviderType.Altinn3AzureWithoutVirusScan);
         _logger.LogDebug($"Storage account {storageAccountName} created");
@@ -168,6 +169,22 @@ public class AzureResourceManagerService : IResourceManager
             throw new HttpRequestException($"Failed to enable Defender Malware Scan. Error: {errorMessage}");
         }
         _logger.LogDebug($"Microsoft Defender Malware scan enabled for storage account {storageAccountName}: {await response.Content.ReadAsStringAsync()}");
+    }
+    private async Task ConfigureBlobDiagnosticSettings(BlobServiceResource blobService, CancellationToken cancellationToken)
+    {
+        // Diagnostic settings target the blob service sub-resource, not the storage account.
+        var diagnosticCollection = blobService.GetDiagnosticSettings();
+
+        var diagnosticData = new DiagnosticSettingsData
+        {
+            WorkspaceId = new ResourceIdentifier(_resourceManagerOptions.LogAnalyticsWorkspaceId),
+        };
+
+        diagnosticData.Logs.Add(new LogSettings(true) { Category = "StorageRead" });
+        diagnosticData.Logs.Add(new LogSettings(true) { Category = "StorageWrite" });
+        diagnosticData.Logs.Add(new LogSettings(true) { Category = "StorageDelete" });
+
+        await diagnosticCollection.CreateOrUpdateAsync(WaitUntil.Completed, "audit-logs", diagnosticData, cancellationToken);
     }
 
     private string GenerateStorageAccountName()
