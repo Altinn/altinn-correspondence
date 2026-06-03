@@ -142,6 +142,23 @@ public class CheckNotificationDeliveryHandlerTests
         VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, Times.Never());
     }
 
+    [Fact]
+    public async Task Process_WhenNotificationAlreadyHasTerminalOrderStatus_SkipsReprocessing()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario();
+        notification.NotificationOrderStatus = "Order_Completed";
+        SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId, NotificationStatusV2.Email_Failed));
+
+        var result = await _handler.Process(notification.Id, CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.True(result.AsT0);
+        // Short-circuits before querying delivery status or producing any side effects
+        _notificationServiceMock.Verify(x => x.GetNotificationDetailsV2(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerifyActivityCreated(DialogportenTextType.NotificationFailed, Times.Never());
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, Times.Never());
+    }
+
     [Theory]
     [InlineData(NotificationStatusV2.Email_Failed)]
     [InlineData(NotificationStatusV2.Email_Failed_Bounced)]

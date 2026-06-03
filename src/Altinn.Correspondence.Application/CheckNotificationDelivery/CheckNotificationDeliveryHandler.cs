@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -66,8 +67,15 @@ public class CheckNotificationDeliveryHandler(
             // Check if notification is already marked as sent
             if (notification.NotificationSent.HasValue)
             {
-                logger.LogInformation("Notification {NotificationId} already marked as sent at {SentTime}", 
+                logger.LogInformation("Notification {NotificationId} already marked as sent at {SentTime}",
                     notificationId, notification.NotificationSent.Value);
+                return true;
+            }
+
+            if (IsTerminalOrderStatus(notification.NotificationOrderStatus))
+            {
+                logger.LogInformation("Notification {NotificationId} already processed with terminal order status {Status}",
+                    notificationId, notification.NotificationOrderStatus);
                 return true;
             }
 
@@ -87,10 +95,8 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
-            if (notificationDetailsV2.Status.Equals("Order_Completed")  || notificationDetailsV2.Status.Equals("Order_SendConditionNotMet") || notificationDetailsV2.Status.Equals("Cancelled"))
+            if (IsTerminalOrderStatus(notificationDetailsV2.Status))
             {
-                await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, cancellationToken);
-                
                 var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
                 var allFailed = hasFailedStatus && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
                 var isMainOrder = IsMainOrder(notification, correspondence.Recipient);
@@ -121,14 +127,11 @@ public class CheckNotificationDeliveryHandler(
                         var failureTextType = recipient.Status.IsTtlFailure()
                             ? (notification.IsReminder ? DialogportenTextType.NotificationReminderDeliveryUnconfirmed : DialogportenTextType.NotificationDeliveryUnconfirmed)
                             : (notification.IsReminder ? DialogportenTextType.NotificationReminderFailed : DialogportenTextType.NotificationFailed);
-                        var activityId = notificationId.CreateVersion5($"{recipient.Destination}|{failureTextType}");
                         backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
                             dialogportenService.CreateInformationActivity(
                                 correspondence.Id,
                                 DialogportenActorType.ServiceOwner,
                                 failureTextType,
-                                null,
-                                activityId,
                                 recipient.LastUpdate,
                                 recipient.Destination,
                                 recipient.Type.ToString()));
@@ -196,8 +199,10 @@ public class CheckNotificationDeliveryHandler(
                     }
                 }
                 
+                await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, cancellationToken);
+
                 logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
-                if (correspondence.StatusHasBeen(Core.Models.Enums.CorrespondenceStatus.Read))
+                if (correspondence.StatusHasBeen(CorrespondenceStatus.Read))
                 {
                     logger.LogInformation("Correspondence has been read. Hence no notification was sent");
                     return true;
@@ -215,6 +220,10 @@ public class CheckNotificationDeliveryHandler(
                 throw;
         }
     }
+
+    private static readonly string[] TerminalOrderStatuses = ["Order_Completed", "Order_SendConditionNotMet", "Cancelled"];
+
+    private static bool IsTerminalOrderStatus(string? status) => status is not null && TerminalOrderStatuses.Contains(status);
 
     private static bool IsMainOrder(CorrespondenceNotificationEntity notification, string correspondenceRecipient)
     {
