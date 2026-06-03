@@ -10,4 +10,7 @@ public class SmsNotificationLengthStatisticsRequest
 
     [Range(100, 5000)]
     public int? BatchSize { get; set; }
+
+    [Range(1, 1000000)]
+    public int? MaxBatches { get; set; }
 }

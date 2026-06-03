@@ -113,6 +113,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<List<CorrespondenceEntity>> GetCorrespondencesCreatedInRange(
             DateTimeOffset from,
             DateTimeOffset to,
+            DateTimeOffset? cursorCreated,
             Guid? cursorId,
             int batchSize,
             CancellationToken cancellationToken);

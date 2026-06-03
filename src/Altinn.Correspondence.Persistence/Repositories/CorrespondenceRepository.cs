@@ -712,21 +712,28 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesCreatedInRange(
             DateTimeOffset from,
             DateTimeOffset to,
+            DateTimeOffset? cursorCreated,
             Guid? cursorId,
             int batchSize,
             CancellationToken cancellationToken)
         {
             var query = _context.Correspondences
                 .AsNoTracking()
-                .Where(c => c.Created >= from && c.Created < to);
+                .Where(c => c.Created >= from && c.Created < to)
+                .Where(c => c.Altinn2CorrespondenceId == null);
 
-            if (cursorId.HasValue)
+            if (cursorCreated.HasValue && cursorId.HasValue)
             {
-                query = query.Where(c => c.Id < cursorId.Value);
+                var cursorCreatedValue = cursorCreated.Value;
+                var cursorIdValue = cursorId.Value;
+                query = query.Where(c =>
+                    c.Created < cursorCreatedValue ||
+                    (c.Created == cursorCreatedValue && c.Id > cursorIdValue));
             }
 
             return await query
-                .OrderByDescending(c => c.Id)
+                .OrderByDescending(c => c.Created)
+                .ThenBy(c => c.Id)
                 .Take(batchSize)
                 .Include(c => c.Content)
                 .ToListAsync(cancellationToken);
