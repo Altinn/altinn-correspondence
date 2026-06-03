@@ -101,7 +101,7 @@ var token = tokenResult.Token;
 - Works without Azure CLI if other credentials available
 
 **Example Error Message:**
-```
+```text
 Azure authentication failed. Make sure you're logged in via Azure CLI (az login), 
 Visual Studio, or VS Code.
 ```
@@ -146,14 +146,14 @@ Visual Studio, or VS Code.
 ### Example Scenarios:
 
 **Scenario 1: Developer using Visual Studio**
-```
+```text
 1. Tools → Options → Azure Service Authentication → Sign in
 2. Run: .\test-export.ps1
 3. ✅ Works! No Azure CLI needed
 ```
 
 **Scenario 2: Developer using VS Code**
-```
+```text
 1. Install Azure Account extension
 2. Ctrl+Shift+P → "Azure: Sign In"
 3. Run: .\test-export.ps1
@@ -161,14 +161,14 @@ Visual Studio, or VS Code.
 ```
 
 **Scenario 3: CI/CD Pipeline**
-```
+```text
 1. Set environment variables for service principal
 2. Run: dotnet run -- --issue all --azure-ad ...
 3. ✅ Works! Uses EnvironmentCredential
 ```
 
 **Scenario 4: Azure VM/App Service**
-```
+```text
 1. Enable Managed Identity on Azure resource
 2. Run: dotnet run -- --issue all --azure-ad ...
 3. ✅ Works! Uses ManagedIdentityCredential

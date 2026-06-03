@@ -16,7 +16,9 @@
 --   2. Run ALL FOUR queries separately in pgAdmin or Azure Data Studio
 --   3. Add the Status 4 + Status 6 counts for each issue
 --   4. Copy the summed results to appsettings.json PreCalculatedCounts section
---   5. Set to 0 to force runtime calculation (useful for testing)
+--   5. Setting a count to 0 means "no total count available" - the exporter will show 
+--      processed-only progress (not trigger a COUNT query). To provide accurate progress
+--      with percentage and ETA, supply non-zero counts from these queries.
 --
 -- PERFORMANCE:
 --   Running separate queries (no UNION ALL) allows PostgreSQL to optimize each:

@@ -83,14 +83,13 @@ The script will:
 - ✅ Generate timestamped output filename automatically
 - ✅ Create output directory if needed
 - ✅ Show file size and row count after completion
-- ✅ Offer to open CSV file automatically
 
 ### Option B: Direct Command Line
 ```powershell
 cd tools\Altinn.Correspondence.DialogActivityExporter
 
 # Test Issue #1951 with 2 batches (2000 rows)
-dotnet run -- --issue 1951 --output C:\temp\test.csv --cutoff "2026-05-19 11:35:59" --oldest "2019-03-23" --batch-size 1000 --max-batches 2 --azure-ad --yes
+dotnet run -- --issue 1951 --output C:\temp\test.csv --cutoff "2026-05-19 11:35:59" --batch-size 1000 --max-batches 2 --azure-ad --yes
 
 # After ~4 seconds, open C:\temp\test.csv to verify format
 ```
@@ -370,14 +369,14 @@ az login
 ```
 
 **Option C2: Visual Studio Authentication**
-```
+```text
 1. In Visual Studio: Tools → Options → Azure Service Authentication
 2. Sign in with your Azure account
 3. Run test: .\test-export.ps1
 ```
 
 **Option C3: VS Code with Azure Account Extension**
-```
+```text
 1. Install Azure Account extension in VS Code
 2. Sign in to Azure (Ctrl+Shift+P → "Azure: Sign In")
 3. Run test: .\test-export.ps1

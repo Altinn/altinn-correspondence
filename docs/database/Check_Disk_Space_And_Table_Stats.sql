@@ -14,9 +14,9 @@ FROM pg_tablespace;
 SELECT 
     schemaname,
     tablename,
-    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS total_size,
-    pg_size_pretty(pg_relation_size(schemaname||'.'||tablename)) AS table_size,
-    pg_size_pretty(pg_indexes_size(schemaname||'.'||tablename)) AS indexes_size,
+    pg_size_pretty(pg_total_relation_size(relid)) AS total_size,
+    pg_size_pretty(pg_relation_size(relid)) AS table_size,
+    pg_size_pretty(pg_indexes_size(relid)) AS indexes_size,
     n_live_tup AS live_rows,
     n_dead_tup AS dead_rows,
     ROUND(100.0 * n_dead_tup / NULLIF(n_live_tup + n_dead_tup, 0), 2) AS dead_row_pct
@@ -29,14 +29,14 @@ SELECT
     schemaname,
     tablename,
     indexname,
-    pg_size_pretty(pg_relation_size(schemaname||'.'||indexname)) AS index_size,
+    pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,
     idx_scan AS times_used,
     idx_tup_read AS tuples_read,
     idx_tup_fetch AS tuples_fetched
 FROM pg_stat_user_indexes
 WHERE schemaname = 'correspondence'
   AND tablename = 'CorrespondenceStatuses'
-ORDER BY pg_relation_size(schemaname||'.'||indexname) DESC;
+ORDER BY pg_relation_size(indexrelid) DESC;
 
 -- 4. Estimate new index sizes (rough calculation)
 -- Based on 1.94B total rows:

@@ -59,6 +59,7 @@ WHERE stats."Status" = 4
   AND stats."SyncedFromAltinn2" < '2026-02-15 00:00:00'
   -- Cursor pagination (uncomment for subsequent batches):
   -- AND (stats."CorrespondenceId", stats."Status") > ('last-uuid'::uuid, 4)
+ORDER BY stats."CorrespondenceId", stats."Status"
 LIMIT 100;
 
 -- Status 6: CorrespondenceConfirmed
@@ -90,6 +91,7 @@ WHERE stats."Status" = 6
   AND stats."SyncedFromAltinn2" < '2026-02-15 00:00:00'
   -- Cursor pagination (uncomment for subsequent batches):
   -- AND (stats."CorrespondenceId", stats."Status") > ('last-uuid'::uuid, 6)
+ORDER BY stats."CorrespondenceId", stats."Status"
 LIMIT 100;
 
 
@@ -135,6 +137,7 @@ WHERE stats."Status" = 4
   AND stats."StatusChanged" BETWEEN '2019-03-23 00:00:00' AND '2026-05-19 11:35:59'
   -- Cursor pagination (uncomment for subsequent batches):
   -- AND (stats."CorrespondenceId", stats."Status") > ('last-uuid'::uuid, 4)
+ORDER BY stats."CorrespondenceId", stats."Status"
 LIMIT 100;
 
 -- Status 6: CorrespondenceConfirmed
@@ -166,4 +169,5 @@ WHERE stats."Status" = 6
   AND stats."StatusChanged" BETWEEN '2019-03-23 00:00:00' AND '2026-05-19 11:35:59'
   -- Cursor pagination (uncomment for subsequent batches):
   -- AND (stats."CorrespondenceId", stats."Status") > ('last-uuid'::uuid, 6)
+ORDER BY stats."CorrespondenceId", stats."Status"
 LIMIT 100;

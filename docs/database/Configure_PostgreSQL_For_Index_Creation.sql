@@ -19,10 +19,13 @@ SELECT
     setting,
     unit,
     pg_size_pretty((setting::bigint * 
-        CASE unit 
-            WHEN 'kB' THEN 1024
-            WHEN 'MB' THEN 1024*1024
-            WHEN 'GB' THEN 1024*1024*1024
+        CASE 
+            -- Handle block-based units (e.g., '8kB' where blocks are 8192 bytes)
+            WHEN unit ~ '^\d+kB$' THEN 
+                (substring(unit from '^\d+')::bigint * 1024)
+            WHEN unit = 'kB' THEN 1024
+            WHEN unit = 'MB' THEN 1024*1024
+            WHEN unit = 'GB' THEN 1024*1024*1024
             ELSE 1
         END)::bigint) as pretty_value,
     context,

@@ -16,8 +16,8 @@ public async Task ExportToCSVAsync(
     string outputFilePath,
     int issueNumber,
     DateTime cutoffTimestamp,
-    DateTime? oldestCorrespondenceDate,
     int? maxBatches = null,  // NEW PARAMETER
+    long? preCalculatedCount = null,
     IProgress<ExportProgress>? progress = null,
     CancellationToken cancellationToken = default)
 ```
@@ -25,7 +25,8 @@ public async Task ExportToCSVAsync(
 **Features:**
 - ✅ Limits export to N batches when specified
 - ✅ Logs "TEST MODE" message when max-batches is active
-- ✅ Automatically skips total count query in test mode (faster startup)
+- ✅ Uses preCalculatedCount when provided (no COUNT query)
+- ✅ Shows processed-only progress when preCalculatedCount not available
 - ✅ Automatically stops after reaching batch limit
 - ✅ Works with both single-issue and combined exports
 

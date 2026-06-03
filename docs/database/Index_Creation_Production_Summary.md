@@ -248,14 +248,14 @@ WHERE c.relname = 'IX_CorrespondenceStatuses_Status_StatusChanged_Migrated';
 -- 2. Check both indexes:
 SELECT 
     schemaname,
-    tablename,
-    indexname,
-    pg_size_pretty(pg_relation_size(schemaname||'.'||indexname)) AS size
+    relname as tablename,
+    indexrelname as indexname,
+    pg_size_pretty(pg_relation_size(indexrelid)) AS size
 FROM pg_stat_user_indexes
 WHERE schemaname = 'correspondence'
-  AND tablename = 'CorrespondenceStatuses'
-  AND indexname LIKE 'IX_CorrespondenceStatuses_Status_%'
-ORDER BY indexname;
+  AND relname = 'CorrespondenceStatuses'
+  AND indexrelname LIKE 'IX_CorrespondenceStatuses_Status_%'
+ORDER BY indexrelname;
 
 -- 3. Test query performance:
 EXPLAIN ANALYZE

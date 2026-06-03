@@ -108,7 +108,7 @@ if (-not (Test-Path $outputDir)) {
 }
 
 # Build command arguments
-$args = @(
+$commandArgs = @(
     "--issue", $Issue,
     "--output", $OutputPath,
     "--cutoff", $CutoffDate,
@@ -119,10 +119,10 @@ $args = @(
 
 # Add connection string or Azure AD flag
 if (-not [string]::IsNullOrEmpty($ConnectionString)) {
-    $args += "--connection"
-    $args += $ConnectionString
+    $commandArgs += "--connection"
+    $commandArgs += $ConnectionString
 } elseif ($UseAzureAd) {
-    $args += "--azure-ad"
+    $commandArgs += "--azure-ad"
 }
 
 # Display test configuration
@@ -145,7 +145,7 @@ try {
     Write-Host "Starting export..." -ForegroundColor Green
     Write-Host ""
 
-    dotnet run -- $args
+    dotnet run -- $commandArgs
 
     $exitCode = $LASTEXITCODE
 

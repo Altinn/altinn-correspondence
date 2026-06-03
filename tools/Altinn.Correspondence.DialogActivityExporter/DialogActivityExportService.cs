@@ -144,7 +144,8 @@ public class DialogActivityExportService
         long count1951 = preCalculatedCount1951;
         long totalCount = count1716 + count1951;
 
-        if (totalCount > 0)
+        // Only consider total known if both individual counts are available
+        if (count1716 > 0 && count1951 > 0)
         {
             _logger.LogInformation("Expected records (from pre-calculated counts): ~{Count:N0} total (1716: {Count1716:N0}, 1951: {Count1951:N0})", 
                 totalCount, count1716, count1951);
@@ -343,8 +344,8 @@ public class DialogActivityExportService
         // NOTE: StatusAction is stored as TEXT in database, so we use string comparison
         var statusActionValue = statusValue == 4 ? "3" : "6";
 
-        // NOTE: No ORDER BY here - we order in-memory after merging
-        // This allows PostgreSQL to stop at LIMIT efficiently
+        // NOTE: ORDER BY matches cursor predicate for deterministic pagination
+        // This ensures each batch returns consistent, non-overlapping results
         var query = $@"
             SELECT 
                 er.""ReferenceValue"" AS DialogId,
@@ -373,6 +374,7 @@ public class DialogActivityExportService
             WHERE stats.""Status"" = {statusValue}
               {timestampFilter}
               AND (@lastId IS NULL OR (stats.""CorrespondenceId"", stats.""Status"") > (@lastId, @lastStatus))
+            ORDER BY stats.""CorrespondenceId"", stats.""Status""
             LIMIT @fetchLimit";
 
         await using var cmd = new NpgsqlCommand(query, connection);
