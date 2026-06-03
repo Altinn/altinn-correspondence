@@ -173,6 +173,7 @@ try
             options.CutoffTimestamp,
             preCalcCount,
             options.MaxBatches,
+            options.FreshStart,
             progress,
             CancellationToken.None);
     }
@@ -225,6 +226,7 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
     var maxBatchesStr = GetArgument(args, "--max-batches", config["MaxBatches"]);
     var skipConfirm = args.Contains("--yes") || args.Contains("-y");
     var useAzureAd = args.Contains("--azure-ad") || args.Contains("--azure");
+    var freshStart = args.Contains("--fresh") || args.Contains("-f");
 
     // If --azure-ad flag is set, connectionString will be built automatically later
     if (!useAzureAd && string.IsNullOrEmpty(connectionString))
@@ -291,7 +293,8 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
         BatchSize = batchSize,
         MaxBatches = maxBatches,
         SkipConfirmation = skipConfirm,
-        UseAzureAd = useAzureAd
+        UseAzureAd = useAzureAd,
+        FreshStart = freshStart
     };
 }
 
@@ -323,6 +326,7 @@ static void ShowHelp()
     Console.WriteLine("Optional Arguments:");
     Console.WriteLine("  --batch-size   Batch size (default: 50000)");
     Console.WriteLine("  --max-batches  Limit export to N batches (for testing format/function)");
+    Console.WriteLine("  -f, --fresh    Force fresh start, ignore any existing checkpoint");
     Console.WriteLine("  -y, --yes      Skip confirmation prompt");
     Console.WriteLine("  -h, --help     Show this help");
     Console.WriteLine();
@@ -468,4 +472,5 @@ class ExportOptions
     public int? MaxBatches { get; set; }
     public bool SkipConfirmation { get; set; }
     public bool UseAzureAd { get; set; }
+    public bool FreshStart { get; set; }
 }

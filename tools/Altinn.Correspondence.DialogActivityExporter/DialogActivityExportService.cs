@@ -29,17 +29,46 @@ public class DialogActivityExportService
         DateTime cutoffTimestamp,
         long preCalculatedCount = 0,
         int? maxBatches = null,
+        bool freshStart = false,
         IProgress<ExportProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        var checkpointPath = outputFilePath + ".checkpoint";
         var totalProcessed = 0L;
         var batchNumber = 0;
         (Guid correspondenceId, int status)? lastCursor = null;
 
+        // Delete checkpoint if fresh start requested
+        if (freshStart && File.Exists(checkpointPath))
+        {
+            File.Delete(checkpointPath);
+            _logger.LogInformation("Fresh start requested - deleted existing checkpoint");
+        }
+
+        // Try to resume from checkpoint
+        var checkpoint = freshStart ? null : await LoadCheckpointAsync(checkpointPath);
+        var isResuming = checkpoint != null 
+            && checkpoint.IssueNumber == issueNumber 
+            && checkpoint.CutoffTimestamp == cutoffTimestamp
+            && File.Exists(outputFilePath);
+
+        if (isResuming && checkpoint != null)
+        {
+            _logger.LogInformation("Resuming export from checkpoint: {Processed:N0} rows, batch {Batch}", 
+                checkpoint.TotalProcessed, checkpoint.BatchNumber);
+            totalProcessed = checkpoint.TotalProcessed;
+            batchNumber = checkpoint.BatchNumber;
+            if (checkpoint.LastCorrespondenceId.HasValue && checkpoint.LastStatus.HasValue)
+            {
+                lastCursor = (checkpoint.LastCorrespondenceId.Value, checkpoint.LastStatus.Value);
+            }
+        }
+
         // Set test mode for query logging
         _isTestMode = maxBatches.HasValue;
 
-        _logger.LogInformation("Starting export for Issue #{Issue} to {FilePath}", issueNumber, outputFilePath);
+        _logger.LogInformation("{Mode} export for Issue #{Issue} to {FilePath}", 
+            isResuming ? "Resuming" : "Starting", issueNumber, outputFilePath);
         if (maxBatches.HasValue)
         {
             _logger.LogInformation("TEST MODE: Limited to {MaxBatches} batch(es)", maxBatches.Value);
@@ -60,14 +89,19 @@ public class DialogActivityExportService
             _logger.LogInformation("Total count not available - will track processed records only");
         }
 
-        // Create output file
-        await using var fileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 65536);
+        // Open file in append mode if resuming, otherwise create new
+        var fileMode = isResuming ? FileMode.Append : FileMode.Create;
+        await using var fileStream = new FileStream(outputFilePath, fileMode, FileAccess.Write, FileShare.None, bufferSize: 65536);
         await using var writer = new StreamWriter(fileStream, Encoding.UTF8, bufferSize: 65536);
 
-        // Write CSV header
-        await writer.WriteLineAsync("DialogId,DialogActivityId,Timestamp,ActorId,ActorName,ActivityType");
+        // Write CSV header only if creating new file
+        if (!isResuming)
+        {
+            await writer.WriteLineAsync("DialogId,DialogActivityId,Timestamp,ActorId,ActorName,ActivityType");
+        }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var checkpointInterval = 10; // Save checkpoint every N batches
 
         while (true)
         {
@@ -101,6 +135,22 @@ public class DialogActivityExportService
                 ElapsedTime = stopwatch.Elapsed
             });
 
+            // Save checkpoint periodically
+            if (batchNumber % checkpointInterval == 0)
+            {
+                await SaveCheckpointAsync(checkpointPath, new ExportCheckpoint
+                {
+                    IssueNumber = issueNumber,
+                    CutoffTimestamp = cutoffTimestamp,
+                    TotalProcessed = totalProcessed,
+                    BatchNumber = batchNumber,
+                    LastCorrespondenceId = lastCursor?.correspondenceId,
+                    LastStatus = lastCursor?.status,
+                    CheckpointTime = DateTime.UtcNow
+                });
+                _logger.LogDebug("Checkpoint saved at batch {BatchNumber}", batchNumber);
+            }
+
             if (batchCount < _batchSize)
                 break;
 
@@ -108,6 +158,17 @@ public class DialogActivityExportService
             if (maxBatches.HasValue && batchNumber >= maxBatches.Value)
             {
                 _logger.LogInformation("Reached max batch limit ({MaxBatches}). Stopping test export.", maxBatches.Value);
+                // Save final checkpoint for test mode
+                await SaveCheckpointAsync(checkpointPath, new ExportCheckpoint
+                {
+                    IssueNumber = issueNumber,
+                    CutoffTimestamp = cutoffTimestamp,
+                    TotalProcessed = totalProcessed,
+                    BatchNumber = batchNumber,
+                    LastCorrespondenceId = lastCursor?.correspondenceId,
+                    LastStatus = lastCursor?.status,
+                    CheckpointTime = DateTime.UtcNow
+                });
                 break;
             }
         }
@@ -116,6 +177,13 @@ public class DialogActivityExportService
         _logger.LogInformation(
             "Export completed. Total: {Total:N0} rows in {Elapsed}",
             totalProcessed, stopwatch.Elapsed);
+
+        // Delete checkpoint file on successful completion
+        if (File.Exists(checkpointPath))
+        {
+            File.Delete(checkpointPath);
+            _logger.LogInformation("Checkpoint file deleted after successful completion");
+        }
     }
 
     public async Task ExportBothToCSVAsync(
@@ -346,54 +414,67 @@ public class DialogActivityExportService
         // NOTE: StatusAction is stored as TEXT in database, so we use string comparison
         var statusActionValue = statusValue == 4 ? "3" : "6";
 
-        // NOTE: ORDER BY matches cursor predicate for deterministic pagination
-        // This ensures each batch returns consistent, non-overlapping results
+        // Build cursor predicate conditionally (only add if we have a cursor)
+        var cursorPredicate = lastCursor.HasValue 
+            ? "AND (stats.\"CorrespondenceId\", stats.\"Status\") > (@lastId, @lastStatus)"
+            : "";
+
+        // Build sync filter for CTE (moves stats reference into CTE scope)
+        var cteSyncFilter = issueNumber == 1716 
+            ? "AND stats.\"SyncedFromAltinn2\" IS NOT NULL"
+            : "AND stats.\"SyncedFromAltinn2\" IS NULL";
+
+        // NOTE: CTE filters CorrespondenceStatuses only, keeping it simple for index optimization
+        // The subsequent JOINs filter the result set further
         var query = $@"
+            WITH filtered AS (
+                SELECT 
+                    stats.""CorrespondenceId"",
+                    stats.""PartyUuid"",
+                    stats.""StatusChanged"",
+                    stats.""Status""
+                FROM correspondence.""CorrespondenceStatuses"" stats
+                WHERE stats.""Status"" = {statusValue}
+                  {timestampFilter}
+                  {cteSyncFilter}
+                  {cursorPredicate}
+                ORDER BY stats.""CorrespondenceId"", stats.""Status""
+                LIMIT @fetchLimit
+            )
             SELECT 
                 er.""ReferenceValue"" AS DialogId,
                 {idcJoinAlias}.""Id"" AS DialogActivityId,
-                stats.""CorrespondenceId"",
-                stats.""StatusChanged"" AS Timestamp,
+                filtered.""CorrespondenceId"",
+                filtered.""StatusChanged"" AS Timestamp,
                 ap.""OutputActorId"" AS ActorId,
                 ap.""Name"" AS ActorName,
                 {statusValue} AS Status,
                 '{activityType}' AS ActivityType
-            FROM correspondence.""CorrespondenceStatuses"" stats
+            FROM filtered
             INNER JOIN correspondence.""Correspondences"" corr 
-                ON stats.""CorrespondenceId"" = corr.""Id"" 
+                ON filtered.""CorrespondenceId"" = corr.""Id"" 
                 AND corr.""Altinn2CorrespondenceId"" IS NOT NULL 
                 AND corr.""IsMigrating"" = FALSE
-                AND {syncFilter}
             INNER JOIN correspondence.""A2Parties"" ap 
-                ON stats.""PartyUuid"" = ap.""PartyUuid""
+                ON filtered.""PartyUuid"" = ap.""PartyUuid""
                 AND corr.""Recipient"" <> ap.""RecipientUrn""
             INNER JOIN correspondence.""ExternalReferences"" er
-                ON stats.""CorrespondenceId"" = er.""CorrespondenceId"" 
+                ON filtered.""CorrespondenceId"" = er.""CorrespondenceId"" 
                 AND er.""ReferenceType"" = 3
             INNER JOIN correspondence.""IdempotencyKeys"" {idcJoinAlias}
-                ON stats.""CorrespondenceId"" = {idcJoinAlias}.""CorrespondenceId"" 
+                ON filtered.""CorrespondenceId"" = {idcJoinAlias}.""CorrespondenceId"" 
                 AND {idcJoinAlias}.""StatusAction"" = '{statusActionValue}'
-            WHERE stats.""Status"" = {statusValue}
-              {timestampFilter}
-              AND (@lastId IS NULL OR (stats.""CorrespondenceId"", stats.""Status"") > (@lastId, @lastStatus))
-            ORDER BY stats.""CorrespondenceId"", stats.""Status""
-            LIMIT @fetchLimit";
+            ORDER BY filtered.""CorrespondenceId"", filtered.""Status""";
 
         await using var cmd = new NpgsqlCommand(query, connection);
         cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
 
-        // Explicitly specify parameter types for nullable cursor values
-        var lastIdParam = new NpgsqlParameter("lastId", NpgsqlTypes.NpgsqlDbType.Uuid)
+        // Only add cursor parameters if we have a cursor value
+        if (lastCursor.HasValue)
         {
-            Value = lastCursor.HasValue ? lastCursor.Value.correspondenceId : (object)DBNull.Value
-        };
-        cmd.Parameters.Add(lastIdParam);
-
-        var lastStatusParam = new NpgsqlParameter("lastStatus", NpgsqlTypes.NpgsqlDbType.Integer)
-        {
-            Value = lastCursor.HasValue ? lastCursor.Value.status : (object)DBNull.Value
-        };
-        cmd.Parameters.Add(lastStatusParam);
+            cmd.Parameters.AddWithValue("lastId", lastCursor.Value.correspondenceId);
+            cmd.Parameters.AddWithValue("lastStatus", lastCursor.Value.status);
+        }
 
         cmd.Parameters.AddWithValue("fetchLimit", _batchSize); // Fetch up to batchSize from each status
 
@@ -431,6 +512,32 @@ public class DialogActivityExportService
         }
 
         return results;
+    }
+
+    private static async Task SaveCheckpointAsync(string checkpointPath, ExportCheckpoint checkpoint)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(checkpoint, new System.Text.Json.JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        await File.WriteAllTextAsync(checkpointPath, json);
+    }
+
+    private static async Task<ExportCheckpoint?> LoadCheckpointAsync(string checkpointPath)
+    {
+        if (!File.Exists(checkpointPath))
+            return null;
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(checkpointPath);
+            return System.Text.Json.JsonSerializer.Deserialize<ExportCheckpoint>(json);
+        }
+        catch (Exception)
+        {
+            // Corrupt checkpoint file, ignore and start fresh
+            return null;
+        }
     }
 
     private static (string SyncFilter, string TimestampFilter) GetFiltersForIssue(
@@ -499,5 +606,17 @@ public class DialogActivityExportService
                 return TimeSpan.FromSeconds(remaining / rate);
             }
         }
+    }
+
+    // Checkpoint data for resumable exports
+    internal record ExportCheckpoint
+    {
+        public int IssueNumber { get; init; }
+        public DateTime CutoffTimestamp { get; init; }
+        public long TotalProcessed { get; init; }
+        public int BatchNumber { get; init; }
+        public Guid? LastCorrespondenceId { get; init; }
+        public int? LastStatus { get; init; }
+        public DateTime CheckpointTime { get; init; }
     }
 }
