@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Altinn.Correspondence.DialogActivityExporter;
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -27,7 +29,7 @@ if (options == null)
     return 1;
 }
 
-// If connection string is not provided, try to build it automatically using Azure CLI
+// If connection string is not provided, try to build it automatically using Azure Identity
 if (string.IsNullOrEmpty(options.ConnectionString))
 {
     var autoConnection = await TryBuildAzureConnectionAsync(logger);
@@ -54,6 +56,12 @@ Console.WriteLine($"Issue:        {(options.ExportBoth ? "ALL (1716 + 1951)" : o
 Console.WriteLine($"Output:       {options.OutputPath}");
 Console.WriteLine($"Cutoff Date:  {options.CutoffTimestamp:yyyy-MM-dd HH:mm:ss}");
 Console.WriteLine($"Batch Size:   {options.BatchSize:N0} rows");
+if (options.MaxBatches.HasValue)
+{
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine($"Max Batches:  {options.MaxBatches.Value} (TEST MODE)");
+    Console.ResetColor();
+}
 Console.WriteLine($"Connection:   {MaskConnectionString(options.ConnectionString)}");
 Console.WriteLine();
 
@@ -78,16 +86,28 @@ var exportService = new DialogActivityExportService(
     options.BatchSize,
     loggerFactory.CreateLogger<DialogActivityExportService>());
 
+// Read pre-calculated counts from configuration (0 means calculate at runtime)
+var preCalcCount1716 = config.GetValue<long>("PreCalculatedCounts:Issue1716", 0);
+var preCalcCount1951 = config.GetValue<long>("PreCalculatedCounts:Issue1951", 0);
+
 var progress = new Progress<ExportProgress>(p =>
 {
     if (Console.IsOutputRedirected)
     {
         // Non-interactive output for redirected/piped scenarios
-        var percent = p.PercentComplete;
         var rate = p.TotalProcessed / p.ElapsedTime.TotalSeconds;
-        var eta = p.EstimatedTimeRemaining;
 
-        Console.WriteLine($"Progress: {percent:F2}% | {p.TotalProcessed:N0}/{p.TotalCount:N0} | {rate:F0} rows/sec | ETA: {eta:hh\\:mm\\:ss}");
+        if (p.TotalCount > 0)
+        {
+            var percent = p.PercentComplete;
+            var eta = p.EstimatedTimeRemaining;
+            Console.WriteLine($"Progress: {percent:F2}% | {p.TotalProcessed:N0}/{p.TotalCount:N0} | {rate:F0} rows/sec | ETA: {eta:hh\\:mm\\:ss}");
+        }
+        else
+        {
+            // No total count available - just show processed and rate
+            Console.WriteLine($"Processed: {p.TotalProcessed:N0} | {rate:F0} rows/sec | Elapsed: {p.ElapsedTime:hh\\:mm\\:ss}");
+        }
     }
     else
     {
@@ -96,15 +116,27 @@ var progress = new Progress<ExportProgress>(p =>
         Console.Write(new string(' ', Console.WindowWidth)); // Clear line
         Console.SetCursorPosition(0, Console.CursorTop);
 
-        var percent = p.PercentComplete;
-        var bar = CreateProgressBar(percent, 40);
         var rate = p.TotalProcessed / p.ElapsedTime.TotalSeconds;
-        var eta = p.EstimatedTimeRemaining;
 
-        Console.ForegroundColor = percent < 50 ? ConsoleColor.Yellow : ConsoleColor.Green;
-        Console.Write($"[{bar}] {percent:F2}% ");
-        Console.ResetColor();
-        Console.Write($"| {p.TotalProcessed:N0}/{p.TotalCount:N0} | {rate:F0} rows/sec | ETA: {eta:hh\\:mm\\:ss}");
+        if (p.TotalCount > 0)
+        {
+            var percent = p.PercentComplete;
+            var bar = CreateProgressBar(percent, 40);
+            var eta = p.EstimatedTimeRemaining;
+
+            Console.ForegroundColor = percent < 50 ? ConsoleColor.Yellow : ConsoleColor.Green;
+            Console.Write($"[{bar}] {percent:F2}% ");
+            Console.ResetColor();
+            Console.Write($"| {p.TotalProcessed:N0}/{p.TotalCount:N0} | {rate:F0} rows/sec | ETA: {eta:hh\\:mm\\:ss}");
+        }
+        else
+        {
+            // No total count - show simple counter
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Write($"Processed: {p.TotalProcessed:N0} ");
+            Console.ResetColor();
+            Console.Write($"| {rate:F0} rows/sec | Elapsed: {p.ElapsedTime:hh\\:mm\\:ss}");
+        }
     }
 });
 
@@ -118,18 +150,22 @@ try
         await exportService.ExportBothToCSVAsync(
             options.OutputPath,
             options.CutoffTimestamp,
-            options.OldestCorrespondenceDate,
+            preCalcCount1716,
+            preCalcCount1951,
+            options.MaxBatches,
             progress,
             CancellationToken.None);
     }
     else
     {
         // Export single issue
+        var preCalcCount = options.IssueNumber == 1716 ? preCalcCount1716 : preCalcCount1951;
         await exportService.ExportToCSVAsync(
             options.OutputPath,
             options.IssueNumber,
             options.CutoffTimestamp,
-            options.OldestCorrespondenceDate,
+            preCalcCount,
+            options.MaxBatches,
             progress,
             CancellationToken.None);
     }
@@ -179,6 +215,7 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
     var cutoff = GetArgument(args, "--cutoff", config["CutoffTimestamp"]);
     var oldest = GetArgument(args, "--oldest", config["OldestDate"]);
     var batchSizeStr = GetArgument(args, "--batch-size", config["BatchSize"] ?? "50000");
+    var maxBatchesStr = GetArgument(args, "--max-batches", config["MaxBatches"]);
     var skipConfirm = args.Contains("--yes") || args.Contains("-y");
     var useAzureAd = args.Contains("--azure-ad") || args.Contains("--azure");
 
@@ -223,12 +260,24 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
             return null;
         }
         oldestDate = parsedOldest;
+        logger.LogWarning("WARNING: --oldest parameter is deprecated and no longer used (performance optimization)");
     }
 
     if (!int.TryParse(batchSizeStr, out var batchSize) || batchSize < 1000)
     {
         logger.LogError("Invalid batch size. Must be >= 1000");
         return null;
+    }
+
+    int? maxBatches = null;
+    if (!string.IsNullOrEmpty(maxBatchesStr))
+    {
+        if (!int.TryParse(maxBatchesStr, out var parsedMaxBatches) || parsedMaxBatches < 1)
+        {
+            logger.LogError("Invalid max batches. Must be >= 1");
+            return null;
+        }
+        maxBatches = parsedMaxBatches;
     }
 
     return new ExportOptions
@@ -238,8 +287,8 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
         OutputPath = output,
         ConnectionString = connectionString ?? "", // Will be populated later if using Azure AD
         CutoffTimestamp = cutoffDate,
-        OldestCorrespondenceDate = oldestDate,
         BatchSize = batchSize,
+        MaxBatches = maxBatches,
         SkipConfirmation = skipConfirm,
         UseAzureAd = useAzureAd
     };
@@ -267,11 +316,12 @@ static void ShowHelp()
     Console.WriteLine();
     Console.WriteLine("Connection (choose one):");
     Console.WriteLine("  --connection   PostgreSQL connection string");
-    Console.WriteLine("  --azure-ad     Use automatic Azure AD authentication (requires Azure CLI)");
+    Console.WriteLine("  --azure-ad     Use automatic Azure AD authentication");
+    Console.WriteLine("                 (Azure CLI, Visual Studio, VS Code, or other Azure credentials)");
     Console.WriteLine();
     Console.WriteLine("Optional Arguments:");
-    Console.WriteLine("  --oldest       Oldest correspondence date (yyyy-MM-dd HH:mm:ss) - Issue 1951 only");
     Console.WriteLine("  --batch-size   Batch size (default: 50000)");
+    Console.WriteLine("  --max-batches  Limit export to N batches (for testing format/function)");
     Console.WriteLine("  -y, --yes      Skip confirmation prompt");
     Console.WriteLine("  -h, --help     Show this help");
     Console.WriteLine();
@@ -280,8 +330,7 @@ static void ShowHelp()
     Console.WriteLine("  DialogActivityExporter --issue 1951 \\");
     Console.WriteLine("    --output C:\\temp\\issue1951.csv \\");
     Console.WriteLine("    --connection \"Host=localhost;Database=correspondence;Username=user;Password=pass\" \\");
-    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\" \\");
-    Console.WriteLine("    --oldest \"2019-03-23\"");
+    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\"");
     Console.WriteLine();
     Console.WriteLine("  # Export Issue #1716");
     Console.WriteLine("  DialogActivityExporter --issue 1716 \\");
@@ -293,15 +342,20 @@ static void ShowHelp()
     Console.WriteLine("  DialogActivityExporter --issue all \\");
     Console.WriteLine("    --output C:\\temp\\all_issues.csv \\");
     Console.WriteLine("    --connection \"Host=localhost;Database=correspondence;Username=user;Password=pass\" \\");
-    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\" \\");
-    Console.WriteLine("    --oldest \"2019-03-23\"");
+    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\"");
     Console.WriteLine();
     Console.WriteLine("  # Use Azure AD authentication (automatic)");
     Console.WriteLine("  DialogActivityExporter --issue all \\");
     Console.WriteLine("    --output C:\\temp\\all_issues.csv \\");
     Console.WriteLine("    --azure-ad \\");
+    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\"");
+    Console.WriteLine();
+    Console.WriteLine("  # Test mode: Export only first 2 batches to verify format");
+    Console.WriteLine("  DialogActivityExporter --issue 1951 \\");
+    Console.WriteLine("    --output C:\\temp\\test_export.csv \\");
+    Console.WriteLine("    --azure-ad \\");
     Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\" \\");
-    Console.WriteLine("    --oldest \"2019-03-23\"");
+    Console.WriteLine("    --max-batches 2");
 }
 
 static string CreateProgressBar(double percent, int width)
@@ -326,36 +380,41 @@ static async Task<string?> TryBuildAzureConnectionAsync(ILogger logger)
 {
     try
     {
-        logger.LogInformation("Attempting to get Azure AD access token using Azure CLI...");
+        logger.LogInformation("Attempting to get Azure AD access token using Azure.Identity SDK...");
 
-        // Get access token using Azure CLI
-        var tokenProcess = new System.Diagnostics.Process
+        // Use DefaultAzureCredential which tries multiple authentication methods:
+        // 1. EnvironmentCredential (env vars)
+        // 2. WorkloadIdentityCredential (Kubernetes)
+        // 3. ManagedIdentityCredential (Azure VMs/App Service)
+        // 4. SharedTokenCacheCredential (cached tokens)
+        // 5. VisualStudioCredential (Visual Studio)
+        // 6. VisualStudioCodeCredential (VS Code)
+        // 7. AzureCliCredential (Azure CLI - az login)
+        // 8. AzurePowerShellCredential (Azure PowerShell)
+        // 9. AzureDeveloperCliCredential (azd)
+        // 10. InteractiveBrowserCredential (browser popup - disabled by default)
+
+        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
         {
-            StartInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "az",
-                Arguments = "account get-access-token --resource-type oss-rdbms --query accessToken -o tsv",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            }
-        };
+            ExcludeInteractiveBrowserCredential = true // Don't popup browser in CLI tool
+        });
 
-        tokenProcess.Start();
-        var token = await tokenProcess.StandardOutput.ReadToEndAsync();
-        var error = await tokenProcess.StandardError.ReadToEndAsync();
-        await tokenProcess.WaitForExitAsync();
+        // Get access token for Azure Database for PostgreSQL
+        // Scope: https://ossrdbms-aad.database.windows.net/.default
+        var tokenRequestContext = new TokenRequestContext(
+            scopes: new[] { "https://ossrdbms-aad.database.windows.net/.default" }
+        );
 
-        if (tokenProcess.ExitCode != 0 || string.IsNullOrWhiteSpace(token))
+        var tokenResult = await credential.GetTokenAsync(tokenRequestContext, CancellationToken.None);
+        var token = tokenResult.Token;
+
+        if (string.IsNullOrWhiteSpace(token))
         {
-            logger.LogWarning("Failed to get Azure access token: {Error}", error);
+            logger.LogWarning("Failed to get Azure access token: token is empty");
             return null;
         }
 
-        token = token.Trim();
-
-        // Get current Windows username
+        // Get current Windows username for Azure AD authentication
         var username = Environment.UserName;
         logger.LogInformation("Current Windows user: {Username}", username);
 
@@ -367,8 +426,13 @@ static async Task<string?> TryBuildAzureConnectionAsync(ILogger logger)
                               $"Password={token};" +
                               $"SSL Mode=Require;";
 
-        logger.LogInformation("Successfully built Azure AD connection string");
+        logger.LogInformation("Successfully built Azure AD connection string using Azure.Identity SDK");
         return connectionString;
+    }
+    catch (Azure.Identity.AuthenticationFailedException ex)
+    {
+        logger.LogWarning(ex, "Azure authentication failed. Make sure you're logged in via Azure CLI (az login), Visual Studio, or VS Code.");
+        return null;
     }
     catch (Exception ex)
     {
@@ -399,8 +463,8 @@ class ExportOptions
     public string OutputPath { get; set; } = null!;
     public string ConnectionString { get; set; } = null!;
     public DateTime CutoffTimestamp { get; set; }
-    public DateTime? OldestCorrespondenceDate { get; set; }
     public int BatchSize { get; set; }
+    public int? MaxBatches { get; set; }
     public bool SkipConfirmation { get; set; }
     public bool UseAzureAd { get; set; }
 }

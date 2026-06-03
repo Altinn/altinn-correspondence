@@ -30,8 +30,7 @@ dotnet run --project . -- `
   --issue all `
   --output "C:\temp\export.csv" `
   --azure-ad `
-  --cutoff "2026-05-19 11:35:59" `
-  --oldest "2019-03-23"
+  --cutoff "2026-05-19 11:35:59"
 ```
 
 **How it works:**
@@ -62,6 +61,44 @@ cd tools/Altinn.Correspondence.DialogActivityExporter
 dotnet build -c Release
 ```
 
+## Performance Optimization: Pre-Calculated Counts (Optional)
+
+**Background**: COUNT(*) queries on the 1.94B row CorrespondenceStatuses table are extremely expensive and may be infeasible.
+
+**Solution**: The exporter works perfectly **without** total counts - it simply tracks processed records instead of showing percentage complete.
+
+### Two Modes:
+
+**1. Without Pre-Calculated Counts (Default - Simpler)**:
+```powershell
+# Just run the export - no COUNT queries needed!
+dotnet run -- --issue all --output export.csv --cutoff "2026-05-19 11:35:59" --azure-ad -y
+```
+**Progress Display**:
+```
+Processed: 1,234,567 | 12,450 rows/sec | Elapsed: 00:01:39
+```
+
+**2. With Pre-Calculated Counts (Optional - Shows Percentage)**:
+
+If you want percentage complete and ETA, you can pre-calculate counts once:
+
+```json
+{
+  "PreCalculatedCounts": {
+    "Issue1716": 8456789,
+    "Issue1951": 152348912
+  }
+}
+```
+
+**Progress Display**:
+```
+[████████████████████░░░░░░] 75.23% | 121,234,567/160,805,701 | 12,450 rows/sec | ETA: 00:08:45
+```
+
+**Note**: Pre-calculated counts are **optional** and only used for progress reporting. The export works identically without them.
+
 ## Usage
 
 ### Export Both Issues to Single CSV (Recommended)
@@ -72,8 +109,7 @@ dotnet run --project . -- `
   --issue all `
   --output "C:\temp\all_dialog_activities.csv" `
   --azure-ad `
-  --cutoff "2026-05-19 11:35:59" `
-  --oldest "2019-03-23"
+  --cutoff "2026-05-19 11:35:59"
 ```
 
 **With connection string:**
@@ -83,7 +119,6 @@ dotnet run --project . -- `
   --output "C:\temp\all_dialog_activities.csv" `
   --connection "Host=prod-db;Database=correspondence;Username=user;Password=pass" `
   --cutoff "2026-05-19 11:35:59" `
-  --oldest "2019-03-23" `
   --batch-size 50000
 ```
 
@@ -97,7 +132,6 @@ dotnet run --project . -- `
   --output "C:\temp\issue1951_migrated_events.csv" `
   --connection "Host=prod-db;Database=correspondence;Username=user;Password=pass" `
   --cutoff "2026-05-19 11:35:59" `
-  --oldest "2019-03-23" `
   --batch-size 50000
 ```
 
@@ -124,8 +158,8 @@ dotnet run --project . -- `
 - `--azure-ad` - Use Azure AD authentication (automatic, recommended)
 
 ### Optional
-- `--oldest` - Oldest correspondence date (yyyy-MM-dd or yyyy-MM-dd HH:mm:ss) - Issue 1951 only
 - `--batch-size` - Batch size (default: 50000)
+- `--max-batches` - Limit export to N batches (for testing, e.g., `--max-batches 2`)
 - `-y, --yes` - Skip confirmation prompt
 - `-h, --help` - Show help
 
@@ -136,14 +170,18 @@ You can also use `appsettings.json` for configuration:
 ```json
 {
   "ConnectionString": "Host=prod-db;Database=correspondence;...",
-  "BatchSize": 50000
+  "BatchSize": 50000,
+  "PreCalculatedCounts": {
+    "Issue1716": 8456789,
+    "Issue1951": 152348912
+  }
 }
 ```
 
 Then run with fewer arguments:
 
 ```powershell
-dotnet run -- --issue 1951 --output "C:\temp\issue1951.csv" --cutoff "2026-05-19 11:35:59" --oldest "2019-03-23"
+dotnet run -- --issue 1951 --output "C:\temp\issue1951.csv" --cutoff "2026-05-19 11:35:59"
 ```
 
 ## Performance

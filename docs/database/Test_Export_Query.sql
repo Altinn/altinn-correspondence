@@ -52,7 +52,7 @@ INNER JOIN correspondence."A2Parties" ap
 INNER JOIN correspondence."ExternalReferences" er
     ON stats."CorrespondenceId" = er."CorrespondenceId" 
     AND er."ReferenceType" = 3
-LEFT JOIN correspondence."IdempotencyKeys" idcFetch 
+INNER JOIN correspondence."IdempotencyKeys" idcFetch 
     ON stats."CorrespondenceId" = idcFetch."CorrespondenceId" 
     AND idcFetch."StatusAction" = '3'
 WHERE stats."Status" = 4
@@ -83,7 +83,7 @@ INNER JOIN correspondence."A2Parties" ap
 INNER JOIN correspondence."ExternalReferences" er 
     ON stats."CorrespondenceId" = er."CorrespondenceId" 
     AND er."ReferenceType" = 3
-LEFT JOIN correspondence."IdempotencyKeys" idcConfirm
+INNER JOIN correspondence."IdempotencyKeys" idcConfirm
     ON stats."CorrespondenceId" = idcConfirm."CorrespondenceId" 
     AND idcConfirm."StatusAction" = '6'
 WHERE stats."Status" = 6
@@ -128,7 +128,7 @@ INNER JOIN correspondence."A2Parties" ap
 INNER JOIN correspondence."ExternalReferences" er
     ON stats."CorrespondenceId" = er."CorrespondenceId" 
     AND er."ReferenceType" = 3
-LEFT JOIN correspondence."IdempotencyKeys" idcFetch 
+INNER JOIN correspondence."IdempotencyKeys" idcFetch 
     ON stats."CorrespondenceId" = idcFetch."CorrespondenceId" 
     AND idcFetch."StatusAction" = '3'
 WHERE stats."Status" = 4
@@ -159,7 +159,7 @@ INNER JOIN correspondence."A2Parties" ap
 INNER JOIN correspondence."ExternalReferences" er 
     ON stats."CorrespondenceId" = er."CorrespondenceId" 
     AND er."ReferenceType" = 3
-LEFT JOIN correspondence."IdempotencyKeys" idcConfirm
+INNER JOIN correspondence."IdempotencyKeys" idcConfirm
     ON stats."CorrespondenceId" = idcConfirm."CorrespondenceId" 
     AND idcConfirm."StatusAction" = '6'
 WHERE stats."Status" = 6

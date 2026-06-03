@@ -36,25 +36,44 @@ This folder contains documentation for optimizing PostgreSQL queries and C# code
 ### Production Tracking
 
 4. **[Index_Creation_Production_Summary.md](Index_Creation_Production_Summary.md)** ⏱️
-   - Actual production timing (Index #1: 2h 15m)
-   - Index #2 projections (8-12 hours)
-   - Pre-deployment checklist
+   - Actual production timing (Index #1: 2h 15m, Index #2: 3h 9m)
+   - Lessons learned and optimization insights
+   - Combined results: 5h 24m total
+
+### Testing & Verification
+
+5. **[Testing_Guide.md](Testing_Guide.md)** 🧪 **Testing Made Easy**
+   - Quick test with limited results (1000-10000 rows)
+   - Verify output format before full export
+   - Multiple testing methods (batch size, cutoff date, SQL queries)
+   - Azure authentication options (CLI, Visual Studio, VS Code, Managed Identity)
+   - Troubleshooting common issues
+
+6. **[Quick_Test_Reference.md](Quick_Test_Reference.md)** ⚡ **Quick Reference Card**
+   - One-page cheat sheet for testing
+   - Common commands and expected output
+   - Performance expectations and troubleshooting
+
+7. **[Azure_Identity_Migration_Summary.md](Azure_Identity_Migration_Summary.md)** 🔐 **Azure.Identity SDK**
+   - Migration from Azure CLI process to Azure.Identity SDK
+   - Supported authentication methods (10 options)
+   - Benefits and improved developer experience
 
 ### Configuration & Utilities
 
-5. **[Configure_PostgreSQL_For_Index_Creation.sql](Configure_PostgreSQL_For_Index_Creation.sql)**
+8. **[Configure_PostgreSQL_For_Index_Creation.sql](Configure_PostgreSQL_For_Index_Creation.sql)**
    - PostgreSQL optimization for index creation
    - Set maintenance_work_mem, parallel workers, etc.
 
-6. **[Check_Disk_Space_And_Table_Stats.sql](Check_Disk_Space_And_Table_Stats.sql)**
+9. **[Check_Disk_Space_And_Table_Stats.sql](Check_Disk_Space_And_Table_Stats.sql)**
    - Verify disk space and table health before index creation
 
 ### A2Parties Setup (Separate)
 
-7. **[Fix_A2Parties_Recipient_Filter_Schema.sql](Fix_A2Parties_Recipient_Filter_Schema.sql)**
+10. **[Fix_A2Parties_Recipient_Filter_Schema.sql](Fix_A2Parties_Recipient_Filter_Schema.sql)**
    - Schema changes (Part 1: transactional)
 
-8. **[Fix_A2Parties_Recipient_Filter_Index.sql](Fix_A2Parties_Recipient_Filter_Index.sql)**
+11. **[Fix_A2Parties_Recipient_Filter_Index.sql](Fix_A2Parties_Recipient_Filter_Index.sql)**
    - Index creation (Part 2: non-transactional)
 
 ---
