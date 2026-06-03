@@ -15,6 +15,7 @@ public class DailySummaryDataDto
     public string ServiceOwnerId { get; set; } = string.Empty;
     public string? ServiceOwnerName { get; set; }
     public string MessageSender { get; set; } = string.Empty;
+    public string? SenderOrgNumber { get; set; }
     public string ResourceId { get; set; } = string.Empty;
     public RecipientType RecipientType { get; set; }
     public AltinnVersion AltinnVersion { get; set; }

@@ -6,6 +6,7 @@ using Altinn.Correspondence.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Tests.TestingRepository
 {
@@ -67,6 +68,56 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.NotEmpty(correspondences);
             Assert.Equal(1, correspondences?.Count);
             Assert.Equal(addedCorrespondence.Id, correspondences?.FirstOrDefault()?.Id);
+        }
+
+        [Theory]
+        [InlineData("SEnDeROrgNuMBeR")]
+        [InlineData("senderorgnumber")]
+        [InlineData("senderOrgNumber")]
+        public async Task GetDailySummaryData_PropertyListContainsSenderOrgNumber_PopulatesSenderOrgNumber(string senderOrgNumberKey)
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var serviceOwnerId = $"so-{Guid.NewGuid():N}";
+            var resourceId = $"test-resource-{Guid.NewGuid():N}";
+            var messageSender = $"test-sender-{Guid.NewGuid():N}";
+
+            // Service owner must exist; otherwise GetDailySummaryData filters the group out.
+            context.ServiceOwners.Add(new ServiceOwnerEntity
+            {
+                Id = serviceOwnerId,
+                Name = "Test Service Owner",
+                StorageProviders = new List<StorageProviderEntity>()
+            });
+
+            var created = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithServiceOwnerId(serviceOwnerId)
+                .WithCreated(created)
+                .WithResourceId(resourceId)
+                .WithPropertyList(new Dictionary<string, string>
+                {
+                    // Use different casing to verify case-insensitive fallback logic
+                    [senderOrgNumberKey] = "987654321",
+                    ["other"] = "value"
+                })
+                .Build();
+            correspondence.Altinn2CorrespondenceId = null;
+            correspondence.MessageSender = messageSender;
+            correspondence.RecipientType = UrnConstants.OrganizationNumberAttribute;
+
+            context.Correspondences.Add(correspondence);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetDailySummaryData(includeAltinn2: false, cancellationToken: CancellationToken.None);
+
+            var row = Assert.Single(result, r =>
+                r.ServiceOwnerId == serviceOwnerId &&
+                r.ResourceId == resourceId &&
+                r.MessageSender == messageSender &&
+                r.Date == created.Date);
+            Assert.Equal("987654321", row.SenderOrgNumber);
         }
 
         [Fact]
