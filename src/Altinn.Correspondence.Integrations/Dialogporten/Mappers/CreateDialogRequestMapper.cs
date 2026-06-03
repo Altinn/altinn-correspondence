@@ -655,7 +655,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
             if (enableDownloadAll
                 && correspondence.Content?.Attachments?.Count >= 2
-                && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 25_000_000)
+                && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 2_000_000_000)
             {
                 attachments.Insert(0, new Attachment
                 {
