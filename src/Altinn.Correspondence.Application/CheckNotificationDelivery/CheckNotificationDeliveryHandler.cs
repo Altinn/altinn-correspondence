@@ -71,9 +71,9 @@ public class CheckNotificationDeliveryHandler(
                 return true;
             }
 
-            if (IsFinishedOrderStatus(notification.NotificationOrderStatus))
+            if (IsFinalOrderStatus(notification.NotificationOrderStatus))
             {
-                logger.LogInformation("Notification {NotificationId} already processed with finished order status {Status}",
+                logger.LogInformation("Notification {NotificationId} already processed with final order status {Status}",
                     notificationId, notification.NotificationOrderStatus);
                 return true;
             }
@@ -94,7 +94,7 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
-            if (IsFinishedOrderStatus(notificationDetailsV2.Status))
+            if (IsFinalOrderStatus(notificationDetailsV2.Status))
             {
                 var failedRecipients = notificationDetailsV2.Recipients.Where(r => r.Status.IsFailed()).ToList();
                 var sentRecipients = notificationDetailsV2.Recipients.Where(r => r.IsSent()).ToList();
@@ -179,9 +179,9 @@ public class CheckNotificationDeliveryHandler(
         }
     }
 
-    private static readonly string[] FinishedOrderStatuses = ["Order_Completed", "Order_SendConditionNotMet", "Order_Cancelled"];
+    private static readonly string[] FinalOrderStatuses = ["Order_Completed", "Order_SendConditionNotMet", "Order_Cancelled"];
 
-    private static bool IsFinishedOrderStatus(string? status) => status is not null && FinishedOrderStatuses.Contains(status);
+    private static bool IsFinalOrderStatus(string? status) => status is not null && FinalOrderStatuses.Contains(status);
 
     private static bool IsMainOrder(CorrespondenceNotificationEntity notification, string correspondenceRecipient)
     {
