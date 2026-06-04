@@ -177,6 +177,7 @@ The daily summary parquet files contain aggregated data with the following field
 | `serviceownerorgnr` | string | Service Owner ID (organization number) |
 | `serviceownercode` | string | Service Owner Name (for readability) |
 | `messagesender` | string | Message sender |
+| `senderorgnr` | string | Sender organization number (from correspondence `propertyList` when present) |
 | `serviceresourceid` | string | Resource ID |
 | `serviceresourcetitle` | string | Service owner name in Norwegian (from Resource Registry) |
 | `recipienttype` | string | Recipient type (Organization, Person, or Unknown) |
@@ -187,10 +188,10 @@ The daily summary parquet files contain aggregated data with the following field
 
 **Example Daily Summary Data:**
 ```parquet
-date       | year | month | day | serviceownerorgnr | serviceownercode | messagesender | serviceresourceid | serviceresourcetitle | recipienttype | costcenter | messagecount | databasestoragebytes | attachmentstoragebytes
-2025-01-15 | 2025 | 1     | 15  | 987654321         | Test Org         | sender1       | resource1         | Digitaliseringsdirektoratet | Organization  | Altinn3     | 45           | 46080                | 0
-2025-01-15 | 2025 | 1     | 15  | 123456789         | Another Org      | sender2       | resource2         | NAV                      | Person        | Altinn2     | 23           | 23552                | 0
-2025-01-16 | 2025 | 1     | 16  | 987654321         | Test Org         | sender1       | resource1         | Digitaliseringsdirektoratet | Unknown       | Altinn3     | 8            | 8192                 | 0
+date       | year | month | day | serviceownerorgnr | serviceownercode | messagesender | senderorgnr | serviceresourceid | serviceresourcetitle | recipienttype | costcenter | messagecount | databasestoragebytes | attachmentstoragebytes
+2025-01-15 | 2025 | 1     | 15  | 987654321         | Test Org         | sender1       | 910753614  | resource1         | Digitaliseringsdirektoratet | Organization  | Altinn3     | 45           | 46080                | 0
+2025-01-15 | 2025 | 1     | 15  | 123456789         | Another Org      | sender2       | 889640782  | resource2         | NAV                      | Person        | Altinn2     | 23           | 23552                | 0
+2025-01-16 | 2025 | 1     | 16  | 987654321         | Test Org         | sender1       |            | resource1         | Digitaliseringsdirektoratet | Unknown       | Altinn3     | 8            | 8192                 | 0
 ```
 
 
