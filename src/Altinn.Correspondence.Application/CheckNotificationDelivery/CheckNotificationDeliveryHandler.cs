@@ -1,7 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -72,9 +71,9 @@ public class CheckNotificationDeliveryHandler(
                 return true;
             }
 
-            if (IsTerminalOrderStatus(notification.NotificationOrderStatus))
+            if (IsFinishedOrderStatus(notification.NotificationOrderStatus))
             {
-                logger.LogInformation("Notification {NotificationId} already processed with terminal order status {Status}",
+                logger.LogInformation("Notification {NotificationId} already processed with finished order status {Status}",
                     notificationId, notification.NotificationOrderStatus);
                 return true;
             }
@@ -95,118 +94,77 @@ public class CheckNotificationDeliveryHandler(
                 return NotificationErrors.NotificationDetailsNotFound;
             }
 
-            if (IsTerminalOrderStatus(notificationDetailsV2.Status))
+            if (IsFinishedOrderStatus(notificationDetailsV2.Status))
             {
-                var hasFailedStatus = notificationDetailsV2.Recipients.Any(r => r.Status.IsFailed());
-                var allFailed = hasFailedStatus && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
+                var failedRecipients = notificationDetailsV2.Recipients.Where(r => r.Status.IsFailed()).ToList();
+                var sentRecipients = notificationDetailsV2.Recipients.Where(r => r.IsSent()).ToList();
+                var allFailed = failedRecipients.Any() && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
                 var isMainOrder = IsMainOrder(notification, correspondence.Recipient);
-                if (hasFailedStatus)
-                { 
-                    logger.LogError("Notification {NotificationId} has failed status (allFailed: {AllFailed}, isMainOrder: {IsMainOrder})", notificationId, allFailed, isMainOrder);
-                    if (publishFailedEvent)
-                    {
-                        if (allFailed && isMainOrder)
-                        {
-                            SendAllFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
-                        }
-                        else
-                        {
-                            SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
-                        }
-                    }
-                    else
-                    {
-                        logger.LogInformation("Skipping notification failed event publishing for notification {NotificationId}", notificationId);
-                    }
 
-                    var failedRecipients = notificationDetailsV2.Recipients
-                        .Where(r => r.Status.IsFailed())
-                        .ToList();
-                    foreach (var recipient in failedRecipients)
-                    {
-                        var failureTextType = recipient.Status.IsTtlFailure()
-                            ? (notification.IsReminder ? DialogportenTextType.NotificationReminderDeliveryUnconfirmed : DialogportenTextType.NotificationDeliveryUnconfirmed)
-                            : (notification.IsReminder ? DialogportenTextType.NotificationReminderFailed : DialogportenTextType.NotificationFailed);
-                        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
-                            dialogportenService.CreateInformationActivity(
-                                correspondence.Id,
-                                DialogportenActorType.ServiceOwner,
-                                failureTextType,
-                                recipient.LastUpdate,
-                                recipient.Destination,
-                                recipient.Type.ToString()));
-                    }
-                }
-                else
+                await TransactionWithRetriesPolicy.Execute(async (transactionToken) =>
                 {
-                    logger.LogInformation("Notification {NotificationId} has status {Status}", notificationId, notificationDetailsV2.Status);
-                }
-            
+                    await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, transactionToken);
 
-                var sentRecipients = notificationDetailsV2.Recipients
-                    .Where(r => r.IsSent())
-                    .ToList();
-
-                if (sentRecipients.Any())
-                {
-                    var deliveryDestination = string.Join(", ", sentRecipients.Select(r => r.Destination));
-                    var sentTime = sentRecipients.Min(r => r.LastUpdate);
-                    logger.LogInformation("Notification {NotificationId} sent to: {Destinations}", 
-                        notificationId, deliveryDestination);
-
-                    // Mark notification as sent
-                    // Notification sent time is the time of the first recipient that was sent (last update)
-                    // According to Team Altinn Notification, last update reflects when we receive the delivery confirmation from the network operator.
-                    var successfullyUpdated = await TransactionWithRetriesPolicy.RetryPolicy(logger).ExecuteAndCaptureAsync<bool>(
-                        async (cancellationToken) => {
-                            logger.LogInformation("Updating notification {NotificationId} as sent at {SentTime} to {Destinations}",
-                                notificationId, sentTime, deliveryDestination);
-                            await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, cancellationToken);
-
-                            // Create activity in Dialogporten for each recipient
-                            // Choose the appropriate text type based on whether this is a reminder notification
-                            var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
-
-                            foreach (var recipient in sentRecipients)
+                    if (failedRecipients.Any())
+                    {
+                        logger.LogError("Notification {NotificationId} has failed status (allFailed: {AllFailed}, isMainOrder: {IsMainOrder})", notificationId, allFailed, isMainOrder);
+                        if (publishFailedEvent)
+                        {
+                            if (allFailed && isMainOrder)
                             {
-                                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
+                                SendAllFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                            }
+                            else
+                            {
+                                SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                            }
+                        }
+
+                        foreach (var recipient in failedRecipients)
+                        {
+                            var failureTextType = recipient.Status.IsTtlFailure()
+                                ? (notification.IsReminder ? DialogportenTextType.NotificationReminderDeliveryUnconfirmed : DialogportenTextType.NotificationDeliveryUnconfirmed)
+                                : (notification.IsReminder ? DialogportenTextType.NotificationReminderFailed : DialogportenTextType.NotificationFailed);
+                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
                                 dialogportenService.CreateInformationActivity(
                                     correspondence.Id,
                                     DialogportenActorType.ServiceOwner,
-                                    textType,
+                                    failureTextType,
                                     recipient.LastUpdate,
                                     recipient.Destination,
                                     recipient.Type.ToString()));
-                            }
-
-                            var sentEventType = notification.IsReminder
-                                ? AltinnEventType.CorrespondenceNotificationReminderDelivered
-                                : AltinnEventType.CorrespondenceNotificationDelivered;
-                            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
-                                sentEventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-
-                            logger.LogInformation("Successfully processed sent notification {NotificationId} and created activities", notificationId);
-                            return true;
-                        }, cancellationToken);
-                    if (successfullyUpdated.Outcome == Polly.OutcomeType.Successful && successfullyUpdated.Result)
-                    {
-                        return true;
+                        }
                     }
-                    else
-                    {
-                        logger.LogError("Failed to update notification {NotificationId} as sent", notificationId);
-                        throw new Exception("Failed to update notification as sent");
-                    }
-                }
-                
-                await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, cancellationToken);
 
-                logger.LogWarning("Notification {NotificationId} not yet sent", notificationId);
-                if (correspondence.StatusHasBeen(CorrespondenceStatus.Read))
-                {
-                    logger.LogInformation("Correspondence has been read. Hence no notification was sent");
+                    if (sentRecipients.Any())
+                    {
+                        var deliveryDestination = string.Join(", ", sentRecipients.Select(r => r.Destination));
+                        var sentTime = sentRecipients.Min(r => r.LastUpdate);
+                        await correspondenceNotificationRepository.UpdateNotificationSent(notificationId, sentTime, deliveryDestination, transactionToken);
+
+                        var sentTextType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
+                        foreach (var recipient in sentRecipients)
+                        {
+                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
+                                dialogportenService.CreateInformationActivity(
+                                    correspondence.Id,
+                                    DialogportenActorType.ServiceOwner,
+                                    sentTextType,
+                                    recipient.LastUpdate,
+                                    recipient.Destination,
+                                    recipient.Type.ToString()));
+                        }
+
+                        var sentEventType = notification.IsReminder
+                            ? AltinnEventType.CorrespondenceNotificationReminderDelivered
+                            : AltinnEventType.CorrespondenceNotificationDelivered;
+                        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
+                            sentEventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                    }
+
                     return true;
-                }
+                }, logger, cancellationToken);
+
                 return true;
             }
             else
@@ -221,9 +179,9 @@ public class CheckNotificationDeliveryHandler(
         }
     }
 
-    private static readonly string[] TerminalOrderStatuses = ["Order_Completed", "Order_SendConditionNotMet", "Cancelled"];
+    private static readonly string[] FinishedOrderStatuses = ["Order_Completed", "Order_SendConditionNotMet", "Order_Cancelled"];
 
-    private static bool IsTerminalOrderStatus(string? status) => status is not null && TerminalOrderStatuses.Contains(status);
+    private static bool IsFinishedOrderStatus(string? status) => status is not null && FinishedOrderStatuses.Contains(status);
 
     private static bool IsMainOrder(CorrespondenceNotificationEntity notification, string correspondenceRecipient)
     {
