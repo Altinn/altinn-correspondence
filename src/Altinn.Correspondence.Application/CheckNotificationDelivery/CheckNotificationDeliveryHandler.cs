@@ -169,7 +169,7 @@ public class CheckNotificationDeliveryHandler(
             }
             else
             {
-                throw new InvalidOperationException("Notification not yet sent. Throwing to retry.");
+                throw new InvalidOperationException($"Notification {notificationId} not yet finished (order status: {notificationDetailsV2.Status}). Throwing to retry.");
             }
             }
             catch (Exception ex)
