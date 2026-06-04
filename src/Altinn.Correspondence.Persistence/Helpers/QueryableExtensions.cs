@@ -20,10 +20,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
 
         public static IQueryable<CorrespondenceEntity> FilterByStatus(this IQueryable<CorrespondenceEntity> query, CorrespondenceStatus? status, string orgNo, CorrespondencesRoleType role)
         {
-            var blacklistSender = new List<CorrespondenceStatus?>
-            {
-                CorrespondenceStatus.Archived,
-            };
+            var blacklistSender = new List<CorrespondenceStatus?>();
 
             var blacklistRecipient = new List<CorrespondenceStatus?>
             {
