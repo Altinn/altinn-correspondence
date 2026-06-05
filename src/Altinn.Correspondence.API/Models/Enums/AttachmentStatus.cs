@@ -1,8 +1,11 @@
-﻿namespace Altinn.Correspondence.API.Models.Enums
+﻿using Altinn.Authorization.ModelUtils;
+
+namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
     /// Represents the important statuses for an attachment
     /// </summary>
+    [StringEnumConverter]
     public enum AttachmentStatusExt
     {
         /// <summary>

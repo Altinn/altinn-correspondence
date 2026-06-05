@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.API.Models.Enums;
+﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Correspondence.API.Models.Enums;
 using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models
@@ -18,7 +19,7 @@ namespace Altinn.Correspondence.API.Models
         /// Current attachment status
         /// </summary>
         [JsonPropertyName("status")]
-        public required AttachmentStatusExt Status { get; set; }
+        public required NonExhaustiveEnum<AttachmentStatusExt> Status { get; set; }
 
         /// <summary>
         /// Current attachment status text description
