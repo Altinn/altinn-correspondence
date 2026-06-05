@@ -89,6 +89,8 @@
 3. 💡 4GB maintenance_work_mem is effective for large indexes
 4. 💡 Conservative estimates are good (but may finish sooner than expected)
 5. 💡 Query optimization matters as much as indexes (separate > UNION ALL)
+
+```sql
 -- Check dead tuples and bloat:
 SELECT 
     schemaname,

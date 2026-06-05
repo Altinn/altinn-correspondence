@@ -97,7 +97,8 @@ Set-Location $scriptPath
 # Generate default output path if not provided
 if ([string]::IsNullOrEmpty($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $OutputPath = "C:\temp\test_export_$($Issue)_$($timestamp).csv"
+    $tempPath = [System.IO.Path]::GetTempPath()
+    $OutputPath = Join-Path $tempPath "test_export_$($Issue)_$($timestamp).csv"
 }
 
 # Ensure output directory exists
@@ -166,7 +167,9 @@ try {
 
             Write-Host "Output file:   $OutputPath" -ForegroundColor White
             Write-Host "File size:     $fileSize" -ForegroundColor White
-            Write-Host "Rows (approx): ~$((Get-Content $OutputPath | Measure-Object -Line).Lines - 1)" -ForegroundColor White
+            # Calculate approximate row count for test mode without loading entire file
+            $estimatedRows = $MaxBatches * $BatchSize
+            Write-Host "Rows (approx): ~$estimatedRows (test mode: $MaxBatches batches × $BatchSize)" -ForegroundColor White
             Write-Host ""            
         }
     } else {

@@ -13,16 +13,24 @@ Export dialog activity data for two separate data quality issues:
 - .NET 10 SDK
 - Access to Correspondence production database
 - Required PostgreSQL indexes (see `docs/database/` folder)
-- **For Azure AD auth**: Azure CLI installed and logged in (`az login`)
+- **For Azure AD auth**: Azure credentials (Azure CLI, Visual Studio, VS Code, managed identity, or environment variables)
 
 ## Authentication
 
 ### Option 1: Azure AD (Recommended for Production)
 
-The app can automatically authenticate using your Azure AD credentials:
+The app uses Azure.Identity's DefaultAzureCredential which automatically tries multiple authentication methods:
 
+**Supported Credential Sources (tried in order):**
+- Environment variables (for service principals/automation)
+- Managed Identity (when running in Azure)
+- Visual Studio (Tools → Options → Azure Service Authentication)
+- VS Code (Azure Account extension)
+- Azure CLI (`az login`)
+
+**Example - Azure CLI:**
 ```powershell
-# Make sure you're logged in to Azure CLI
+# Login to Azure CLI
 az login
 
 # Run with --azure-ad flag (no connection string needed!)
@@ -206,8 +214,8 @@ CSV with columns:
 ## Database Requirements
 
 Before running, ensure the required indexes are created. See:
-- `docs/database/DBA_Index_Creation_Scripts.sql`
-- `docs/database/DBA_Index_Request_Executive_Summary.md`
+- `docs/database/Index_Creation_Scripts.sql`
+- `docs/database/Index_Creation_Production_Summary.md`
 
 Contact your DBA to create the necessary indexes for optimal performance.
 

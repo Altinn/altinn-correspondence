@@ -78,15 +78,20 @@
        - Run: az login
        - Verify: az account show
 
+    4. Sufficient disk space
+       - Required: ~2.5 GB minimum (output file ~2 GB)
+       - Recommended: 5 GB free for safety margin
+
     Expected Performance:
     - Total rows: ~9.97M (Status 4 + Status 6)
-    - Batch size 10,000: ~997 batches
-    - Time per batch: 200-500ms
-    - Total time: 35-50 minutes
-    - Throughput: 3,000-5,000 rows/sec
+    - Batch size 5,000: ~1,994 batches
+    - Time per batch: 250-300ms
+    - Total time: 9-12 minutes
+    - Throughput: 15,000 rows/sec
+    - Output size: ~2 GB
 
     Progress Display:
-    - Shows: "Processed: 5,234,567 / 9,970,000 (52.5%) | 4,123 rows/sec | ETA: 00:19:23"
+    - Shows: "Processed: 5,234,567 / 9,970,000 (52.5%) | 15,000 rows/sec | ETA: 00:05:23"
     - Updates every batch
     - Includes checkpoint save after each batch
 
@@ -97,7 +102,7 @@
 
     Monitoring:
     - Check logs for timing: "Batch timing: Fetch=...ms, Merge=...ms, Write=...ms"
-    - Watch for consistent timing (200-500ms per batch)
+    - Watch for consistent timing (250-300ms per batch)
     - If batches slow down significantly, check database load
 
     Troubleshooting:
@@ -117,7 +122,7 @@ param(
     [string]$OutputPath = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$CutoffDate = "",
+    [string]$CutoffDate = "2026-02-15",
 
     [Parameter(Mandatory=$false)]
     [ValidateRange(1000, 100000)]
@@ -212,7 +217,7 @@ Write-Host "Cutoff Date:   $CutoffDate" -ForegroundColor White
 Write-Host "Batch Size:    $($BatchSize.ToString('N0')) rows" -ForegroundColor White
 Write-Host "Mode:          $(if ($isResume) { 'RESUME from checkpoint' } else { 'FULL EXPORT (fresh start)' })" -ForegroundColor $(if ($isResume) { 'Yellow' } else { 'Green' })
 Write-Host ""
-Write-Host "Estimated:     ~9.97M rows, 35-50 minutes" -ForegroundColor DarkGray
+Write-Host "Estimated:     ~9.97M rows, 9-12 minutes, ~2 GB output" -ForegroundColor DarkGray
 Write-Host "Checkpoint:    Saved after each batch (resume support)" -ForegroundColor DarkGray
 Write-Host ""
 
@@ -258,18 +263,25 @@ try {
     exit 1
 }
 
-# Check disk space (need ~500MB for full export)
+# Check disk space (need ~2.5 GB for full export)
 Write-Host "  [3/3] Disk space..." -ForegroundColor White -NoNewline
 try {
     $drive = (Get-Item $outputDir).PSDrive
     $freeSpaceGB = [math]::Round($drive.Free / 1GB, 2)
-    if ($freeSpaceGB -gt 1) {
+    if ($freeSpaceGB -gt 3) {
         Write-Host " ✓" -ForegroundColor Green
         Write-Host "        Available: $($freeSpaceGB) GB" -ForegroundColor DarkGray
-    } else {
+    } elseif ($freeSpaceGB -gt 2) {
         Write-Host " ⚠" -ForegroundColor Yellow
         Write-Host "        Warning: Only $($freeSpaceGB) GB available" -ForegroundColor Yellow
-        Write-Host "        Export needs ~0.5 GB. Consider freeing space." -ForegroundColor Yellow
+        Write-Host "        Export needs ~2.5 GB. Tight but should work." -ForegroundColor Yellow
+    } else {
+        Write-Host " ✗" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "ERROR: Insufficient disk space: $($freeSpaceGB) GB available" -ForegroundColor Red
+        Write-Host "Export needs ~2.5 GB (output file ~2 GB + safety margin)" -ForegroundColor Red
+        Write-Host "Please free up disk space and try again." -ForegroundColor Red
+        exit 1
     }
 } catch {
     Write-Host " ?" -ForegroundColor Yellow
@@ -282,7 +294,7 @@ Write-Host ""
 
 # Confirmation prompt
 if (-not $isResume) {
-    Write-Host "This will export ~9.97M rows (estimated 35-50 minutes)." -ForegroundColor Yellow
+    Write-Host "This will export ~9.97M rows (estimated 9-12 minutes, ~2 GB output)." -ForegroundColor Yellow
     Write-Host "Press Enter to continue, or Ctrl+C to cancel..." -ForegroundColor Yellow
     Read-Host
 }

@@ -165,13 +165,16 @@ BEGIN
         RAISE NOTICE '';
         RAISE NOTICE 'Sample RecipientUrn formats:';
         IF v_selfidentified_sample IS NOT NULL THEN
-            RAISE NOTICE '  Self-identified: %', v_selfidentified_sample;
+            -- Mask the identifier part after the last colon
+            RAISE NOTICE '  Self-identified: % (identifier masked)', regexp_replace(v_selfidentified_sample, ':[^:]+$', ':***');
         END IF;
         IF v_person_sample IS NOT NULL THEN
-            RAISE NOTICE '  Person: %', v_person_sample;
+            -- Mask the identifier part after the last colon
+            RAISE NOTICE '  Person: % (identifier masked)', regexp_replace(v_person_sample, ':[^:]+$', ':***');
         END IF;
         IF v_org_sample IS NOT NULL THEN
-            RAISE NOTICE '  Organization: %', v_org_sample;
+            -- Mask the identifier part after the last colon
+            RAISE NOTICE '  Organization: % (identifier masked)', regexp_replace(v_org_sample, ':[^:]+$', ':***');
         END IF;
     END IF;
 END $$;

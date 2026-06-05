@@ -37,11 +37,6 @@ if (_isTestMode)
         .Replace("@lastStatus", lastCursor.HasValue ? lastCursor.Value.status.ToString() : "NULL")
         .Replace("@fetchLimit", _batchSize.ToString());
 
-    if (oldestCorrespondenceDate.HasValue)
-    {
-        logQuery = logQuery.Replace("@oldestDate", $"'{oldestCorrespondenceDate.Value:yyyy-MM-dd HH:mm:ss}'");
-    }
-
     _logger.LogInformation("TEST MODE - Executing query for Status {StatusValue}:", statusValue);
     _logger.LogInformation("{Query}", logQuery);
 }
@@ -57,34 +52,43 @@ When running in test mode (`--max-batches` specified), you'll see:
 
 ```
 info: TEST MODE - Executing query for Status 4:
-info: SELECT 
+info: WITH filtered AS (
+         SELECT 
+             stats."CorrespondenceId",
+             stats."PartyUuid",
+             stats."StatusChanged",
+             stats."Status"
+         FROM correspondence."CorrespondenceStatuses" stats
+         WHERE stats."Status" = 4
+           AND stats."StatusChanged" BETWEEN '2019-03-23 00:00:00' AND '2026-05-19 11:35:59'
+           AND stats."SyncedFromAltinn2" IS NULL
+         ORDER BY stats."CorrespondenceId", stats."Status"
+         LIMIT 1000
+     )
+     SELECT 
          er."ReferenceValue" AS DialogId,
          idcFetch."Id" AS DialogActivityId,
-         stats."CorrespondenceId",
-         stats."StatusChanged" AS Timestamp,
+         filtered."CorrespondenceId",
+         filtered."StatusChanged" AS Timestamp,
          ap."OutputActorId" AS ActorId,
          ap."Name" AS ActorName,
          4 AS Status,
          'CorrespondenceOpened' AS ActivityType
-     FROM correspondence."CorrespondenceStatuses" stats
+     FROM filtered
      INNER JOIN correspondence."Correspondences" corr 
-         ON stats."CorrespondenceId" = corr."Id" 
+         ON filtered."CorrespondenceId" = corr."Id" 
          AND corr."Altinn2CorrespondenceId" IS NOT NULL 
          AND corr."IsMigrating" = FALSE
-         AND stats."SyncedFromAltinn2" IS NULL
      INNER JOIN correspondence."A2Parties" ap 
-         ON stats."PartyUuid" = ap."PartyUuid"
+         ON filtered."PartyUuid" = ap."PartyUuid"
          AND corr."Recipient" <> ap."RecipientUrn"
      INNER JOIN correspondence."ExternalReferences" er
-         ON stats."CorrespondenceId" = er."CorrespondenceId" 
+         ON filtered."CorrespondenceId" = er."CorrespondenceId" 
          AND er."ReferenceType" = 3
-     LEFT JOIN correspondence."IdempotencyKeys" idcFetch
-         ON stats."CorrespondenceId" = idcFetch."CorrespondenceId" 
+     INNER JOIN correspondence."IdempotencyKeys" idcFetch
+         ON filtered."CorrespondenceId" = idcFetch."CorrespondenceId" 
          AND idcFetch."StatusAction" = '3'
-     WHERE stats."Status" = 4
-       AND stats."StatusChanged" < '2026-05-19 11:35:59'
-       AND (NULL IS NULL OR (stats."CorrespondenceId", stats."Status") > (NULL, NULL))
-     LIMIT 1000
+     ORDER BY filtered."CorrespondenceId", filtered."Status"
 ```
 
 ### Benefits:

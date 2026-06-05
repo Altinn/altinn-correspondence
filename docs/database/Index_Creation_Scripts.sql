@@ -22,7 +22,7 @@
 -- TOTAL TIME: 5h 24m 17s for both indexes
 -- TOTAL DISK SPACE: ~27 GB (Index #1: 3 GB, Index #2: 24 GB)
 -- 
--- NOTE: A2Parties index optimization handled separately (see Fix_A2Parties_Indexes.sql)
+-- NOTE: A2Parties index optimization handled separately (see Fix_A2Parties_Recipient_Filter_Schema.sql and Fix_A2Parties_Recipient_Filter_Index.sql)
 -- NOTE: IX_Correspondences_Id_Created_MigrationFilter is NOT needed (see Phase 3 below)
 --
 -- QUICK START FOR INDEX #2:
@@ -383,7 +383,7 @@ DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_CorrespondenceStatuses_Stat
 -- -----------------------------------------------------------------------------
 -- TOTAL NEW INDEX SPACE:                                     ~15 GB (export optimization)
 
--- Note: A2Parties index is handled separately (see Fix_A2Parties_Recipient_Filter.sql)
+-- Note: A2Parties index is handled separately (see Fix_A2Parties_Recipient_Filter_Schema.sql and Fix_A2Parties_Recipient_Filter_Index.sql)
 
 
 -- ============================================================================

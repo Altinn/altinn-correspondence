@@ -147,7 +147,6 @@ dotnet run -- `
   --issue 1951 `
   --output C:\temp\test_export_1951.csv `
   --cutoff "2026-05-19 11:35:59" `
-  --oldest "2019-03-23" `
   --batch-size 1000 `
   --max-batches 1 `
   --azure-ad `
@@ -196,7 +195,6 @@ dotnet run -- `
   --issue 1951 `
   --output C:\temp\test_export_recent.csv `
   --cutoff $yesterday `
-  --oldest "2019-03-23" `
   --batch-size 50000 `
   --azure-ad `
   --yes
@@ -424,7 +422,6 @@ dotnet run -- `
   --issue 1951 `
   --output C:\temp\test_export.csv `
   --cutoff "2026-05-19 11:35:59" `
-  --oldest "2019-03-23" `
   --batch-size 1000 `
   --azure-ad `
   --yes
