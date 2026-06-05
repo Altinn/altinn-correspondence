@@ -319,24 +319,41 @@ public class DialogActivityExportService
         DateTime cutoffTimestamp,
         CancellationToken cancellationToken)
     {
-        var (syncFilter, timestampFilter) = GetFiltersForIssue(issueNumber);
+        string countQuery;
 
-        var countQuery = $@"
-            SELECT COUNT(*)
-            FROM correspondence.""CorrespondenceStatuses"" stats
-            INNER JOIN correspondence.""Correspondences"" corr 
-                ON stats.""CorrespondenceId"" = corr.""Id"" 
-                AND corr.""Altinn2CorrespondenceId"" IS NOT NULL 
-                AND corr.""IsMigrating"" = FALSE
-                AND {syncFilter}
-            INNER JOIN correspondence.""A2Parties"" ap 
-                ON stats.""PartyUuid"" = ap.""PartyUuid""
-                AND corr.""Recipient"" <> ap.""RecipientUrn""
-            WHERE stats.""Status"" IN (4, 6)
-              {timestampFilter}";
+        if (issueNumber == 1716)
+        {
+            // Use helper table for Issue #1716 - much faster count
+            countQuery = @"
+                SELECT COUNT(*)
+                FROM correspondence.""A2Iss1716A2Events""
+                WHERE ""Status"" IN (4, 6)";
+        }
+        else
+        {
+            // Standard count for Issue #1951
+            var (syncFilter, timestampFilter) = GetFiltersForIssue(issueNumber);
+
+            countQuery = $@"
+                SELECT COUNT(*)
+                FROM correspondence.""CorrespondenceStatuses"" stats
+                INNER JOIN correspondence.""Correspondences"" corr 
+                    ON stats.""CorrespondenceId"" = corr.""Id"" 
+                    AND corr.""Altinn2CorrespondenceId"" IS NOT NULL 
+                    AND corr.""IsMigrating"" = FALSE
+                    AND {syncFilter}
+                INNER JOIN correspondence.""A2Parties"" ap 
+                    ON stats.""PartyUuid"" = ap.""PartyUuid""
+                    AND corr.""Recipient"" <> ap.""RecipientUrn""
+                WHERE stats.""Status"" IN (4, 6)
+                  {timestampFilter}";
+        }
 
         await using var cmd = new NpgsqlCommand(countQuery, connection);
-        cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
+        if (issueNumber == 1951)
+        {
+            cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
+        }
         cmd.CommandTimeout = 120;
 
         var result = await cmd.ExecuteScalarAsync(cancellationToken);
@@ -355,6 +372,9 @@ public class DialogActivityExportService
         // This avoids the slow UNION ALL + ORDER BY performance issue
         // Status 4: ~21ms, Status 6: ~3s vs UNION ALL + ORDER BY: 12+ minutes
 
+        var batchTimer = System.Diagnostics.Stopwatch.StartNew();
+
+        var fetchTimer = System.Diagnostics.Stopwatch.StartNew();
         var status4Results = await FetchStatusRecordsAsync(
             connection, issueNumber, cutoffTimestamp,
             statusValue: 4, lastCursor, cancellationToken);
@@ -362,16 +382,20 @@ public class DialogActivityExportService
         var status6Results = await FetchStatusRecordsAsync(
             connection, issueNumber, cutoffTimestamp,
             statusValue: 6, lastCursor, cancellationToken);
+        var fetchTime = fetchTimer.ElapsedMilliseconds;
 
         // Merge and sort in-memory (much faster than database ORDER BY on UNION ALL)
+        var mergeTimer = System.Diagnostics.Stopwatch.StartNew();
         var allResults = status4Results
             .Concat(status6Results)
             .OrderBy(r => r.CorrespondenceId)
             .ThenBy(r => r.Status)
             .Take(_batchSize)
             .ToList();
+        var mergeTime = mergeTimer.ElapsedMilliseconds;
 
         // Write to CSV
+        var writeTimer = System.Diagnostics.Stopwatch.StartNew();
         foreach (var record in allResults)
         {
             var line = FormatCSVLine(
@@ -387,6 +411,12 @@ public class DialogActivityExportService
 
         // Flush to disk after each batch to ensure data is written immediately
         await writer.FlushAsync();
+        var writeTime = writeTimer.ElapsedMilliseconds;
+        batchTimer.Stop();
+
+        _logger.LogInformation(
+            "Batch timing: Fetch={FetchMs}ms, Merge={MergeMs}ms, Write={WriteMs}ms, Total={TotalMs}ms, Rows={RowCount}",
+            fetchTime, mergeTime, writeTime, batchTimer.ElapsedMilliseconds, allResults.Count);
 
         var lastProcessedCursor = allResults.Count > 0 
             ? (allResults[^1].CorrespondenceId, allResults[^1].Status) 
@@ -403,8 +433,6 @@ public class DialogActivityExportService
         (Guid correspondenceId, int status)? lastCursor,
         CancellationToken cancellationToken)
     {
-        var (syncFilter, timestampFilter) = GetFiltersForIssue(issueNumber);
-
         var activityType = statusValue == 4 ? "CorrespondenceOpened" : "CorrespondenceConfirmed";
         var idcJoinAlias = statusValue == 4 ? "idcFetch" : "idcConfirm";
 
@@ -414,57 +442,110 @@ public class DialogActivityExportService
         // NOTE: StatusAction is stored as TEXT in database, so we use string comparison
         var statusActionValue = statusValue == 4 ? "3" : "6";
 
-        // Build cursor predicate conditionally (only add if we have a cursor)
-        var cursorPredicate = lastCursor.HasValue 
-            ? "AND (stats.\"CorrespondenceId\", stats.\"Status\") > (@lastId, @lastStatus)"
-            : "";
-
         // Build sync filter for CTE (moves stats reference into CTE scope)
         var cteSyncFilter = issueNumber == 1716 
             ? "AND stats.\"SyncedFromAltinn2\" IS NOT NULL"
             : "AND stats.\"SyncedFromAltinn2\" IS NULL";
 
-        // NOTE: CTE filters CorrespondenceStatuses only, keeping it simple for index optimization
-        // The subsequent JOINs filter the result set further
-        var query = $@"
-            WITH filtered AS (
-                SELECT 
+        // Issue #1716: Use helper table for optimized performance
+        // Issue #1951: Use standard CTE approach (no helper table yet)
+        string query;
+
+        if (issueNumber == 1716)
+        {
+            // Build cursor predicate for helper table query
+            // CRITICAL: Cursor must reference columns in SELECT list for DISTINCT to work
+            // Since stats."CorrespondenceId" is in SELECT, we use that for cursor comparison
+            // Note: a2Events."CorrespondenceId" = stats."CorrespondenceId" (join condition),
+            // but for index usage, we filter on a2Events first, then join
+            var a2EventsCursorPredicate = lastCursor.HasValue 
+                ? "AND (a2Events.\"CorrespondenceId\", a2Events.\"Status\") > (@lastId, @lastStatus)"
+                : "";
+
+            // Optimized query using A2Iss1716A2Events helper table
+            // This table pre-filters to only the affected correspondence events from Altinn 2
+            // Performance: Much faster than scanning 1.94B rows, uses direct event matching
+            query = $@"
+                SELECT DISTINCT
+                    er.""ReferenceValue"" AS DialogId,
+                    {idcJoinAlias}.""Id"" AS DialogActivityId,
                     stats.""CorrespondenceId"",
-                    stats.""PartyUuid"",
-                    stats.""StatusChanged"",
-                    stats.""Status""
-                FROM correspondence.""CorrespondenceStatuses"" stats
-                WHERE stats.""Status"" = {statusValue}
-                  {timestampFilter}
-                  {cteSyncFilter}
-                  {cursorPredicate}
-                ORDER BY stats.""CorrespondenceId"", stats.""Status""
-                LIMIT @fetchLimit
-            )
-            SELECT 
-                er.""ReferenceValue"" AS DialogId,
-                {idcJoinAlias}.""Id"" AS DialogActivityId,
-                filtered.""CorrespondenceId"",
-                filtered.""StatusChanged"" AS Timestamp,
-                ap.""OutputActorId"" AS ActorId,
-                ap.""Name"" AS ActorName,
-                {statusValue} AS Status,
-                '{activityType}' AS ActivityType
-            FROM filtered
-            INNER JOIN correspondence.""Correspondences"" corr 
-                ON filtered.""CorrespondenceId"" = corr.""Id"" 
-                AND corr.""Altinn2CorrespondenceId"" IS NOT NULL 
-                AND corr.""IsMigrating"" = FALSE
-            INNER JOIN correspondence.""A2Parties"" ap 
-                ON filtered.""PartyUuid"" = ap.""PartyUuid""
-                AND corr.""Recipient"" <> ap.""RecipientUrn""
-            INNER JOIN correspondence.""ExternalReferences"" er
-                ON filtered.""CorrespondenceId"" = er.""CorrespondenceId"" 
-                AND er.""ReferenceType"" = 3
-            INNER JOIN correspondence.""IdempotencyKeys"" {idcJoinAlias}
-                ON filtered.""CorrespondenceId"" = {idcJoinAlias}.""CorrespondenceId"" 
-                AND {idcJoinAlias}.""StatusAction"" = '{statusActionValue}'
-            ORDER BY filtered.""CorrespondenceId"", filtered.""Status""";
+                    stats.""StatusChanged"" AS Timestamp,
+                    ap.""OutputActorId"" AS ActorId,
+                    ap.""Name"" AS ActorName,
+                    {statusValue} AS Status,
+                    '{activityType}' AS ActivityType
+                FROM correspondence.""A2Iss1716A2Events"" a2Events
+                INNER JOIN correspondence.""CorrespondenceStatuses"" stats 
+                    ON a2Events.""CorrespondenceId"" = stats.""CorrespondenceId"" 
+                    AND a2Events.""Status"" = stats.""Status"" 
+                    AND a2Events.""PartyUuid"" = stats.""PartyUuid""
+                INNER JOIN correspondence.""ExternalReferences"" er
+                    ON a2Events.""CorrespondenceId"" = er.""CorrespondenceId""
+                    AND er.""ReferenceType"" = 3
+                INNER JOIN correspondence.""IdempotencyKeys"" {idcJoinAlias}
+                    ON a2Events.""CorrespondenceId"" = {idcJoinAlias}.""CorrespondenceId""
+                    AND {idcJoinAlias}.""StatusAction"" = '{statusActionValue}'
+                INNER JOIN correspondence.""A2Parties"" ap 
+                    ON stats.""PartyUuid"" = ap.""PartyUuid""
+                WHERE a2Events.""Status"" = {statusValue}
+                  {a2EventsCursorPredicate}
+                ORDER BY stats.""CorrespondenceId"", Status
+                LIMIT @fetchLimit";
+        }
+        else
+        {
+            // Get filters for Issue #1951
+            var (syncFilter, timestampFilter) = GetFiltersForIssue(issueNumber);
+
+            // Build cursor predicate for standard CTE query
+            var cursorPredicate = lastCursor.HasValue 
+                ? "AND (stats.\"CorrespondenceId\", stats.\"Status\") > (@lastId, @lastStatus)"
+                : "";
+
+            // Standard CTE approach for Issue #1951
+            // NOTE: CTE filters CorrespondenceStatuses only, keeping it simple for index optimization
+            // The subsequent JOINs filter the result set further
+            query = $@"
+                WITH filtered AS (
+                    SELECT 
+                        stats.""CorrespondenceId"",
+                        stats.""PartyUuid"",
+                        stats.""StatusChanged"",
+                        stats.""Status""
+                    FROM correspondence.""CorrespondenceStatuses"" stats
+                    WHERE stats.""Status"" = {statusValue}
+                      {timestampFilter}
+                      {cteSyncFilter}
+                      {cursorPredicate}
+                    ORDER BY stats.""CorrespondenceId"", stats.""Status""
+                    LIMIT @fetchLimit
+                )
+                SELECT 
+                    er.""ReferenceValue"" AS DialogId,
+                    {idcJoinAlias}.""Id"" AS DialogActivityId,
+                    filtered.""CorrespondenceId"",
+                    filtered.""StatusChanged"" AS Timestamp,
+                    ap.""OutputActorId"" AS ActorId,
+                    ap.""Name"" AS ActorName,
+                    {statusValue} AS Status,
+                    '{activityType}' AS ActivityType
+                FROM filtered
+                INNER JOIN correspondence.""Correspondences"" corr 
+                    ON filtered.""CorrespondenceId"" = corr.""Id"" 
+                    AND corr.""Altinn2CorrespondenceId"" IS NOT NULL 
+                    AND corr.""IsMigrating"" = FALSE
+                INNER JOIN correspondence.""A2Parties"" ap 
+                    ON filtered.""PartyUuid"" = ap.""PartyUuid""
+                    AND corr.""Recipient"" <> ap.""RecipientUrn""
+                INNER JOIN correspondence.""ExternalReferences"" er
+                    ON filtered.""CorrespondenceId"" = er.""CorrespondenceId"" 
+                    AND er.""ReferenceType"" = 3
+                INNER JOIN correspondence.""IdempotencyKeys"" {idcJoinAlias}
+                    ON filtered.""CorrespondenceId"" = {idcJoinAlias}.""CorrespondenceId"" 
+                    AND {idcJoinAlias}.""StatusAction"" = '{statusActionValue}'
+                ORDER BY filtered.""CorrespondenceId"", filtered.""Status""";
+        }
 
         await using var cmd = new NpgsqlCommand(query, connection);
         cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
@@ -494,8 +575,12 @@ public class DialogActivityExportService
         }
 
         var results = new List<DialogActivityRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
 
+        var queryStartTime = System.Diagnostics.Stopwatch.StartNew();
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        var queryExecutionTime = queryStartTime.ElapsedMilliseconds;
+
+        var readStartTime = System.Diagnostics.Stopwatch.StartNew();
         while (await reader.ReadAsync(cancellationToken))
         {
             results.Add(new DialogActivityRecord
@@ -510,6 +595,12 @@ public class DialogActivityExportService
                 ActivityType = reader.GetString(7)
             });
         }
+        var readTime = readStartTime.ElapsedMilliseconds;
+        queryStartTime.Stop();
+
+        _logger.LogInformation(
+            "Status {Status} query: ExecuteReader={ExecuteMs}ms, Read {Count} rows={ReadMs}ms, Total={TotalMs}ms",
+            statusValue, queryExecutionTime, results.Count, readTime, queryStartTime.ElapsedMilliseconds);
 
         return results;
     }

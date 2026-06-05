@@ -140,6 +140,78 @@ ORDER BY filtered."CorrespondenceId", filtered."Status";
 
 
 -- =====================================================================================
+-- OPTIMIZED HELPER TABLE VERSION (New - Currently Implemented in Production)
+-- =====================================================================================
+-- Uses A2Iss1716A2Events helper table pre-filtered from Altinn 2
+-- This eliminates the need to scan 1.94B CorrespondenceStatuses rows
+-- REQUIRES: Indexes from Optimize_A2Iss1716A2Events_Indexes.sql
+-- Performance: Expected <1s per batch vs ~5-6s with CTE approach
+-- =====================================================================================
+
+-- Status 4: CorrespondenceOpened (Helper Table)
+SELECT DISTINCT
+    er."ReferenceValue" AS DialogId,
+    idcFetch."Id" AS DialogActivityId,
+    stats."CorrespondenceId",
+    stats."StatusChanged" AS Timestamp,
+    ap."OutputActorId" AS ActorId,
+    ap."Name" AS ActorName,
+    4 AS Status,
+    'CorrespondenceOpened' AS ActivityType
+FROM correspondence."A2Iss1716A2Events" a2Events
+INNER JOIN correspondence."CorrespondenceStatuses" stats 
+    ON a2Events."CorrespondenceId" = stats."CorrespondenceId" 
+    AND a2Events."Status" = stats."Status" 
+    AND a2Events."PartyUuid" = stats."PartyUuid"
+INNER JOIN correspondence."ExternalReferences" er
+    ON a2Events."CorrespondenceId" = er."CorrespondenceId"
+    AND er."ReferenceType" = 3
+INNER JOIN correspondence."IdempotencyKeys" idcFetch
+    ON a2Events."CorrespondenceId" = idcFetch."CorrespondenceId"
+    AND idcFetch."StatusAction" = '3'
+INNER JOIN correspondence."A2Parties" ap 
+    ON stats."PartyUuid" = ap."PartyUuid"
+WHERE a2Events."Status" = 4
+  -- Cursor pagination (uncomment for subsequent batches):
+  -- CRITICAL: Cursor on a2Events (indexed table) but ORDER BY uses stats (SELECT list)
+  -- This works because a2Events."CorrespondenceId" = stats."CorrespondenceId" (join condition)
+  -- AND (a2Events."CorrespondenceId", a2Events."Status") > ('last-uuid'::uuid, 4)
+ORDER BY stats."CorrespondenceId", Status
+LIMIT 100;
+
+-- Status 6: CorrespondenceConfirmed (Helper Table)
+SELECT DISTINCT
+    er."ReferenceValue" AS DialogId,
+    idcConfirm."Id" AS DialogActivityId,
+    stats."CorrespondenceId",
+    stats."StatusChanged" AS Timestamp,
+    ap."OutputActorId" AS ActorId,
+    ap."Name" AS ActorName,
+    6 AS Status,
+    'CorrespondenceConfirmed' AS ActivityType
+FROM correspondence."A2Iss1716A2Events" a2Events
+INNER JOIN correspondence."CorrespondenceStatuses" stats 
+    ON a2Events."CorrespondenceId" = stats."CorrespondenceId" 
+    AND a2Events."Status" = stats."Status" 
+    AND a2Events."PartyUuid" = stats."PartyUuid"
+INNER JOIN correspondence."ExternalReferences" er
+    ON a2Events."CorrespondenceId" = er."CorrespondenceId"
+    AND er."ReferenceType" = 3
+INNER JOIN correspondence."IdempotencyKeys" idcConfirm
+    ON a2Events."CorrespondenceId" = idcConfirm."CorrespondenceId"
+    AND idcConfirm."StatusAction" = '6'
+INNER JOIN correspondence."A2Parties" ap 
+    ON stats."PartyUuid" = ap."PartyUuid"
+WHERE a2Events."Status" = 6
+  -- Cursor pagination (uncomment for subsequent batches):
+  -- CRITICAL: Cursor on a2Events (indexed table) but ORDER BY uses stats (SELECT list)
+  -- This works because a2Events."CorrespondenceId" = stats."CorrespondenceId" (join condition)
+  -- AND (a2Events."CorrespondenceId", a2Events."Status") > ('last-uuid'::uuid, 6)
+ORDER BY stats."CorrespondenceId", Status
+LIMIT 100;
+
+
+-- =====================================================================================
 -- ALTERNATIVE: SIMPLE JOIN VERSION (For Testing/Verification)
 -- =====================================================================================
 -- This version without CTE is simpler to read but may have different performance.

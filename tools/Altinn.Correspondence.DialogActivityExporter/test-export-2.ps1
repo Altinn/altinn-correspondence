@@ -71,7 +71,7 @@ param(
 
     [Parameter(Mandatory=$false)]
     [ValidateRange(1000, 100000)]
-    [int]$BatchSize = 1000,
+    [int]$BatchSize = 5000,
 
     [Parameter(Mandatory=$false)]
     [string]$OutputPath = "",
