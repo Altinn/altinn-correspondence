@@ -24,9 +24,9 @@
     Format: yyyy-MM-dd HH:mm:ss (e.g., "2026-02-15 14:30:00")
 
 .PARAMETER BatchSize
-    Number of rows per batch (default: 10000)
-    Larger batch sizes reduce network overhead
-    Recommended: 10000-20000 for optimal performance
+    Number of rows per batch (default: 5000)
+    Optimal range: 5000 rows (proven stable with Azure PostgreSQL network throttling)
+    Recommended: Keep at 5000 unless specific testing indicates otherwise
 
 .PARAMETER UseAzureAd
     Use Azure AD authentication (default: true)
@@ -194,7 +194,7 @@ $commandArgs = @(
 
 # Add fresh start flag if requested
 if ($FreshStart) {
-    $commandArgs += "--fresh-start"
+    $commandArgs += "--fresh"
 }
 
 # Add connection string or Azure AD flag

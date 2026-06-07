@@ -59,14 +59,14 @@ ANALYZE correspondence."A2Iss1716A2Events";
 -- Check index creation and sizes:
 SELECT 
     schemaname,
-    tablename,
-    indexname,
+    relname as tablename,
+    indexrelname as indexname,
     pg_size_pretty(pg_relation_size(indexrelid)) as size,
     idx_scan as times_used
 FROM pg_stat_user_indexes
 WHERE schemaname = 'correspondence'
-  AND tablename = 'A2Iss1716A2Events'
-ORDER BY indexname;
+  AND relname = 'A2Iss1716A2Events'
+ORDER BY indexrelname;
 
 -- Verify index validity:
 SELECT 
@@ -216,15 +216,15 @@ GROUP BY "Status";
 -- SOLUTION 4: Verify both indexes are being used
 SELECT 
     schemaname,
-    tablename,
-    indexname,
+    relname as tablename,
+    indexrelname as indexname,
     idx_scan as times_used,
     idx_tup_read as tuples_read,
     idx_tup_fetch as tuples_fetched
 FROM pg_stat_user_indexes
 WHERE schemaname = 'correspondence'
-  AND tablename = 'A2Iss1716A2Events'
-ORDER BY indexname;
+  AND relname = 'A2Iss1716A2Events'
+ORDER BY indexrelname;
 
 -- SOLUTION 5: If Status 6 consistently slow, drop IX_A2Iss1716A2Events_Status_CorrId
 -- This forces planner to use IX_A2Iss1716A2Events_CorrId_Status_Party for both queries

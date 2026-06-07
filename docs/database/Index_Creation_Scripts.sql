@@ -377,11 +377,11 @@ DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_CorrespondenceStatuses_Stat
 
 -- Estimated Index Sizes:
 -- ----------------------
--- IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced:     ~1.5 GB   (7-9M rows)
--- IX_CorrespondenceStatuses_Status_StatusChanged_Migrated:    ~12.0 GB   (150M rows) **LARGEST**
--- IX_Correspondences_Id_Created_MigrationFilter:               ~1.5 GB   (partial index)
+-- IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced:      ~3 GB    (Issue #1716: 7-9M rows)
+-- IX_CorrespondenceStatuses_Status_StatusChanged_Migrated:     ~24 GB    (Issue #1951: 150M rows) **LARGEST**
+-- IX_Correspondences_Id_Created_MigrationFilter:                ~1.5 GB  (partial index) **NOT NEEDED**
 -- -----------------------------------------------------------------------------
--- TOTAL NEW INDEX SPACE:                                     ~15 GB (export optimization)
+-- TOTAL NEW INDEX SPACE:                                      ~27 GB (export optimization)
 
 -- Note: A2Parties index is handled separately (see Fix_A2Parties_Recipient_Filter_Schema.sql and Fix_A2Parties_Recipient_Filter_Index.sql)
 

@@ -39,8 +39,9 @@ ORDER BY stats."CorrespondenceId", Status  -- ✅ SELECT list (for DISTINCT)!
 **Fix**:
 - **Cursor**: References `a2Events` columns (indexed table) → allows index usage
 - **ORDER BY**: References `stats` columns (in SELECT list) → satisfies DISTINCT requirement
-- **Join**: `a2Events."CorrespondenceId" = stats."CorrespondenceId"` → equivalence proven
-- PostgreSQL optimizer recognizes equivalence and uses index for cursor seek → **Expected < 1 second!**
+- **Join Equivalence**: `a2Events."CorrespondenceId" = stats."CorrespondenceId"` → PostgreSQL recognizes the columns are equivalent via the join condition
+- **Why ORDER BY can use stats columns**: The optimizer understands that due to the INNER JOIN equality, ordering by `stats."CorrespondenceId"` is equivalent to ordering by `a2Events."CorrespondenceId"`. Since `stats."CorrespondenceId"` is in the SELECT list (required by DISTINCT), we can ORDER BY it while still benefiting from the index on `a2Events` used by the cursor predicate.
+- **Result**: Cursor predicate uses indexed `a2Events` columns → index seek works efficiently → **Expected < 1 second!**
 
 ## Timing Evidence
 

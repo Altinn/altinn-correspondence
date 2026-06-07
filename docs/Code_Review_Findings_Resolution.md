@@ -82,8 +82,9 @@
 
 ### 5. **Max_Batches_Feature_Summary.md** - API documentation
 - **Issue Claim**: Documentation needs update for `preCalculatedCount` parameter
-- **Status**: This document doesn't exist in the workspace (may be renamed or removed)
-- **Reason**: File not found during verification
+- **Status**: FILE EXISTS - needs review for preCalculatedCount parameter documentation
+- **Reason**: File found at docs/database/Max_Batches_Feature_Summary.md
+- **Follow-up**: Need to inspect API docs for preCalculatedCount parameter and update if outdated
 
 ### 6. **Performance_Optimization_Summary.sql** - Query structure
 - **Issue Claim**: SQL diverges from DialogActivityExportService

@@ -6,15 +6,18 @@
 --          affects COUNT performance if records are guaranteed to exist.
 --
 -- CRITICAL QUESTION:
---   We use LEFT JOIN IdempotencyKeys because the export code handles IsDBNull(1).
---   But is that circular reasoning? Does the data actually have NULL DialogActivityIds,
---   or did we just assume it might and use LEFT JOIN defensively?
+--   The export code uses INNER JOIN to IdempotencyKeys (changed from LEFT JOIN).
+--   This test verifies whether records exist and measures count performance
+--   with and without the JOINs.
+--
+-- NOTE: calculate-counts.sql already uses INNER JOIN to IdempotencyKeys.
+--       This test script is for performance comparison only.
 --
 -- TEST INSTRUCTIONS:
 --   1. Run Query 1: Check how many DialogActivityIds are actually NULL
 --   2. Run Query 2: Count WITH all JOINs (current structure)
 --   3. Run Query 3: Count WITHOUT ExternalReferences/IdempotencyKeys
---   4. Run Query 4: Count WITH INNER JOIN IdempotencyKeys (if NULLs exist, count will be lower)
+--   4. Run Query 4: Count WITH INNER JOIN IdempotencyKeys (to verify no data loss)
 --   5. Compare counts and timing
 --
 -- =====================================================================================

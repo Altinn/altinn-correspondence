@@ -38,13 +38,14 @@ await writer.FlushAsync();
 
 This ensures data is written to disk incrementally, preventing memory overload.
 
-**Automatic skip of total count in test mode:**
-```csharp
-// Automatically skip total count in test mode (when max-batches is specified)
-var skipTotalCount = options.MaxBatches.HasValue;
-```
+**Current behavior with maxBatches:**
 
-When `--max-batches` is used, the expensive `COUNT(*)` query is automatically skipped for faster test startup. This is especially beneficial on tables with billions of rows where counting can take 30+ seconds.
+When `--max-batches` is specified, the exporter operates in test mode:
+- `preCalculatedCount` is set to 0 (meaning "no total count available")
+- The expensive `COUNT(*)` query is automatically skipped for faster test startup
+- Progress displays processed rows only (no percentage or ETA)
+
+This is especially beneficial on tables with billions of rows where counting can take 30+ seconds.
 
 ---
 
@@ -89,7 +90,6 @@ DialogActivityExporter --issue 1951 \
   --output C:\temp\test_export.csv \
   --azure-ad \
   --cutoff "2026-05-19 11:35:59" \
-  --oldest "2019-03-23" \
   --max-batches 2
 ```
 
@@ -131,7 +131,7 @@ if (options.MaxBatches.HasValue)
 
 **Added to command arguments:**
 ```powershell
-$args = @(
+$commandArgs = @(
     # ... other args
     "--max-batches", $MaxBatches,
     # ... more args
@@ -240,7 +240,7 @@ await writer.FlushAsync();  // Force flush to disk after each batch
 | **Default Test** | `.\test-export.ps1` | 2,000 | ~4s |
 | **Larger Verification** | `.\test-export.ps1 -MaxBatches 5` | 5,000 | ~10s |
 | **Both Issues Test** | `.\test-export.ps1 -Issue all -MaxBatches 2` | 4,000 | ~8s |
-| **Production** | `dotnet run -- ... --yes` (no max-batches) | All data | 30-60 min |
+| **Production** | `dotbase run -- ... --yes` (no max-batches) | All data | 30-60 min |
 
 ---
 
@@ -357,5 +357,5 @@ You can now test the DialogActivityExporter with a limited number of batches to 
 cd tools\Altinn.Correspondence.DialogActivityExporter
 .\test-export.ps1
 
-# That's it! File opens automatically when done.
-```
+# Check output file path shown in console after completion.
+# Open the exported CSV file manually to verify format.

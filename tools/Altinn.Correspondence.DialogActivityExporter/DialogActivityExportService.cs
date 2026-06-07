@@ -33,7 +33,7 @@ public class DialogActivityExportService
         IProgress<ExportProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var checkpointPath = outputFilePath + ".checkpoint";
+        var checkpointPath = outputFilePath + ".checkpoint.json";
         var totalProcessed = 0L;
         var batchNumber = 0;
         (Guid correspondenceId, int status)? lastCursor = null;

@@ -2,11 +2,11 @@
 
 ## Test Script (test-export-2.ps1)
 
-**Purpose**: Quick validation with limited data (default: 2 batches × 10,000 rows = 20,000 rows)
+**Purpose**: Quick validation with limited data (default: 2 batches × 5,000 rows = 5,000 rows)
 
 ### Basic Usage
 ```powershell
-# Quick test with defaults (20,000 rows)
+# Quick test with defaults (5,000 rows)
 .\test-export-2.ps1
 
 # Test with different batch size
@@ -23,7 +23,7 @@
 - ✅ **Fast startup**: No COUNT queries (test mode)
 - ✅ **Limited data**: Only exports specified batches
 - ✅ **Progress shows**: Processed rows, rate, elapsed time
-- ✅ **Default**: 2 batches × 10,000 rows = 20,000 rows total
+- ✅ **Default**: 2 batches × 5,000 rows = 5,000 rows total
 - ✅ **Duration**: < 10 seconds
 
 ### When to Use
@@ -35,9 +35,9 @@
 
 ### Expected Output
 ```
-Batch 1: Fetch=150ms, Merge=4ms, Write=4ms, Total=160ms, Rows=10000
-Batch 2: Fetch=300ms, Merge=2ms, Write=2ms, Total=305ms, Rows=10000
-Export completed. Total: 20,000 rows in 00:00:00.5
+Batch 1: Fetch=150ms, Merge=4ms, Write=4ms, Total=160ms, Rows=5000
+Batch 2: Fetch=300ms, Merge=2ms, Write=2ms, Total=305ms, Rows=5000
+Export completed. Total: 5,000 rows in 00:00:00.5
 ```
 
 ---
@@ -58,7 +58,7 @@ Export completed. Total: 20,000 rows in 00:00:00.5
 .\export-production-1716.ps1 -CutoffDate "2026-02-15 14:30:00"
 
 # Use larger batch size (faster, if network is fast)
-.\export-production-1716.ps1 -BatchSize 20000
+.\export-production-1716.ps1 -BatchSize 10000
 
 # Start fresh (ignore checkpoint)
 .\export-production-1716.ps1 -FreshStart
@@ -69,7 +69,7 @@ Export completed. Total: 20,000 rows in 00:00:00.5
 - ✅ **Progress tracking**: Shows percentage, ETA, throughput
 - ✅ **Resume support**: Checkpoint file for interruption recovery
 - ✅ **Pre-flight checks**: Validates auth, disk space, permissions
-- ✅ **Batch size**: 10,000 rows (optimized for network performance)
+- ✅ **Batch size**: 5,000 rows (optimized for network performance)
 - ✅ **Estimated time**: 35-50 minutes
 
 ### Pre-Flight Checks
@@ -109,7 +109,7 @@ If export is interrupted:
 | Parameter | test-export-2.ps1 | export-production-1716.ps1 | Notes |
 |-----------|------------------|---------------------------|-------|
 | **Issue** | 1716 (default) | 1716 (fixed) | Test can change, prod is fixed |
-| **BatchSize** | 10000 (default) | 10000 (default) | Both optimized for performance |
+| **BatchSize** | 5000 (default) | 5000 (default) | Both optimized for performance |
 | **MaxBatches** | 2 (default) | N/A (full export) | Test only - limits data |
 | **OutputPath** | C:\temp\test_export_... | C:\temp\dialog_activity_export_... | Different naming |
 | **CutoffDate** | 2026-02-15 | Current date/time | Test uses fixed, prod uses now |
@@ -126,7 +126,7 @@ If export is interrupted:
 # Quick test to verify everything works
 .\test-export-2.ps1
 
-# Expected: 20,000 rows in < 10 seconds
+# Expected: 5,000 rows in < 10 seconds
 # Verify: CSV format, no errors, timing looks good
 ```
 
@@ -161,7 +161,7 @@ If export is interrupted:
 
 ## Performance Expectations
 
-### Test Export (20,000 rows)
+### Test Export (5,000 rows)
 | Metric | Expected |
 |--------|----------|
 | Time per batch | 150-500ms |
@@ -243,10 +243,10 @@ Remove-Item "C:\temp\dialog_activity_export_*.checkpoint.json"
 ### Larger Batch Size (Faster)
 ```powershell
 # Test with 20K batch
-.\test-export-2.ps1 -BatchSize 20000
+.\test-export-2.ps1 -BatchSize 10000
 
 # Production with 20K batch (expect 20-30 minutes)
-.\export-production-1716.ps1 -BatchSize 20000
+.\export-production-1716.ps1 -BatchSize 10000
 ```
 
 ### Specific Date Range
@@ -269,7 +269,7 @@ Remove-Item "C:\temp\dialog_activity_export_*.checkpoint.json"
 
 ### Checkpoint Files
 - **Format**: `{output_path}.checkpoint.json`
-- **Example**: `C:\temp\dialog_activity_export_1716_20260605_120000.csv.checkpoint.json`
+- **Example**: `C:\temp\dialog_activity_export_1716_20260605_110000.csv.checkpoint.json`
 - **Auto-deleted**: On successful completion
 - **Preserved**: On failure (for resume)
 
@@ -308,4 +308,4 @@ Want to start over?
 | **test-export-2.ps1** | Validation | 20K | <10s | Testing queries, format, performance |
 | **export-production-1716.ps1** | Production | 9.97M | 35-50m | Full export with monitoring |
 
-Both scripts use **batch size 10,000** for optimal network performance with Azure PostgreSQL.
+Both scripts use **batch size 5,000** for optimal network performance with Azure PostgreSQL.

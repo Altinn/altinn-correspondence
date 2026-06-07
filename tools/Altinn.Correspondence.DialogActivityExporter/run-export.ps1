@@ -36,25 +36,25 @@
     Can also be configured in appsettings.json
 
 .EXAMPLE
-    .\test-export.ps1
+    .\\run-export.ps1
     # Quick test with 2 batches (2000 rows) for Issue #1951
     # Shows: "Processed: 2,000 | 1,234 rows/sec | Elapsed: 00:00:02"
 
 .EXAMPLE
-    .\test-export.ps1 -Issue 1716 -BatchSize 5000 -MaxBatches 1
+    .\\run-export.ps1 -Issue 1716 -BatchSize 5000 -MaxBatches 1
     # Test Issue #1716 with 1 batch of 5000 rows
     # Fast startup (no COUNT query)
 
 .EXAMPLE
-    .\test-export.ps1 -MaxBatches 5
+    .\\run-export.ps1 -MaxBatches 5
     # Test with 5 batches to get more data for verification
 
 .EXAMPLE
-    .\test-export.ps1 -Issue all -OutputPath C:\temp\my_test.csv
+    .\\run-export.ps1 -Issue all -OutputPath C:\temp\my_test.csv
     # Test both issues combined (fast startup, no COUNT queries)
 
 .EXAMPLE
-    .\test-export.ps1 -ConnectionString "Host=localhost;Database=correspondence_dev;Username=dev;Password=dev"
+    .\\run-export.ps1 -ConnectionString "Host=localhost;Database=correspondence_dev;Username=dev;Password=dev"
     # Test against local dev database
 
 .NOTES
