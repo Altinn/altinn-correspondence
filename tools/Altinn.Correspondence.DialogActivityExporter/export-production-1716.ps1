@@ -230,10 +230,10 @@ if ($UseAzureAd -and [string]::IsNullOrEmpty($ConnectionString)) {
     try {
         $account = az account show 2>$null | ConvertFrom-Json
         if ($account) {
-            Write-Host " ✓" -ForegroundColor Green
+            Write-Host " OK" -ForegroundColor Green
             Write-Host "        Logged in as: $($account.user.name)" -ForegroundColor DarkGray
         } else {
-            Write-Host " ✗" -ForegroundColor Red
+            Write-Host " ERROR" -ForegroundColor Red
             Write-Host ""
             Write-Host "ERROR: Not logged into Azure CLI. Please run:" -ForegroundColor Red
             Write-Host "  az login" -ForegroundColor Yellow
@@ -245,7 +245,7 @@ if ($UseAzureAd -and [string]::IsNullOrEmpty($ConnectionString)) {
         Write-Host "        Export will attempt Azure AD authentication anyway" -ForegroundColor DarkGray
     }
 } else {
-    Write-Host "  [1/3] Connection string provided... ✓" -ForegroundColor Green
+    Write-Host "  [1/3] Connection string provided... OK" -ForegroundColor Green
 }
 
 # Check output directory writable
@@ -254,9 +254,9 @@ try {
     $testFile = Join-Path $outputDir "write_test_$(Get-Random).tmp"
     "test" | Out-File $testFile -ErrorAction Stop
     Remove-Item $testFile -ErrorAction SilentlyContinue
-    Write-Host " ✓" -ForegroundColor Green
+    Write-Host " OK" -ForegroundColor Green
 } catch {
-    Write-Host " ✗" -ForegroundColor Red
+    Write-Host " ERROR" -ForegroundColor Red
     Write-Host ""
     Write-Host "ERROR: Cannot write to output directory: $outputDir" -ForegroundColor Red
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
@@ -269,14 +269,14 @@ try {
     $drive = (Get-Item $outputDir).PSDrive
     $freeSpaceGB = [math]::Round($drive.Free / 1GB, 2)
     if ($freeSpaceGB -gt 3) {
-        Write-Host " ✓" -ForegroundColor Green
+        Write-Host " OK" -ForegroundColor Green
         Write-Host "        Available: $($freeSpaceGB) GB" -ForegroundColor DarkGray
     } elseif ($freeSpaceGB -gt 2) {
-        Write-Host " ⚠" -ForegroundColor Yellow
+        Write-Host " WARNING" -ForegroundColor Yellow
         Write-Host "        Warning: Only $($freeSpaceGB) GB available" -ForegroundColor Yellow
         Write-Host "        Export needs ~2.5 GB. Tight but should work." -ForegroundColor Yellow
     } else {
-        Write-Host " ✗" -ForegroundColor Red
+        Write-Host " ERROR" -ForegroundColor Red
         Write-Host ""
         Write-Host "ERROR: Insufficient disk space: $($freeSpaceGB) GB available" -ForegroundColor Red
         Write-Host "Export needs ~2.5 GB (output file ~2 GB + safety margin)" -ForegroundColor Red
@@ -287,6 +287,7 @@ try {
     Write-Host " ?" -ForegroundColor Yellow
     Write-Host "        Warning: Could not check disk space" -ForegroundColor Yellow
 }
+
 
 Write-Host ""
 Write-Host "Ready to start export." -ForegroundColor Green
