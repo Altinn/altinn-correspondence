@@ -74,17 +74,26 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return this;
         }
 
-        internal DialogPatchRequestBuilder WithAddDownloadAllAttachmentsOperation(string baseUrl, CorrespondenceEntity correspondence)
+        internal DialogPatchRequestBuilder WithRemoveAttachmentsOperation()
         {
-            var baseTimestamp = DateTimeOffset.UtcNow;
             _PatchDialogRequest.Add(
                 new
                 {
-                    op = "add",
-                    path = "/attachments/0",
-                    value = new Attachment
+                    op = "remove",
+                    path = "/attachments"
+                }
+            );
+            return this;
+        }
+
+        internal DialogPatchRequestBuilder WithAddDownloadAllAttachmentsOperation(string baseUrl, CorrespondenceEntity correspondence, List<Attachment> attachments)
+        {
+            var baseTimestamp = DateTimeOffset.UtcNow;
+            var dialogAttachments = attachments;
+            var downloadAllAttachment = 
+                new Attachment
                     {
-                        Id = Guid.CreateVersion7(baseTimestamp).ToString(),
+                        Id = Guid.CreateVersion7(DateTimeOffset.UnixEpoch).ToString(),
                         DisplayName = new List<DisplayName>
                     {
                         new DisplayName { LanguageCode = "nb", Value = "Alle vedlegg" },
@@ -100,8 +109,26 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                             Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
                         }
                     }
+                    };
+            dialogAttachments.Insert(0, downloadAllAttachment);
+                _PatchDialogRequest.Add(
+                    new
+                    {
+                        op = "add",
+                        path = "/attachments",
+                        value = dialogAttachments.Select(a => new
+                        {
+                            id = a.Id,
+                            displayName = a.DisplayName,
+                            urls = a.Urls?.Select(u => new
+                            {
+                                consumerType = u.ConsumerType,
+                                mediaType = u.MediaType,
+                                url = u.Url
+                            })
+                        })
                     }
-                });
+                );
             return this;
         }
 
