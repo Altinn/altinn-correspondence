@@ -36,7 +36,8 @@ public class DialogActivityExportService
         var checkpointPath = outputFilePath + ".checkpoint.json";
         var totalProcessed = 0L;
         var batchNumber = 0;
-        (Guid correspondenceId, int status)? lastCursor = null;
+        Guid? lastStatus4CorrespondenceId = null;
+        Guid? lastStatus6CorrespondenceId = null;
 
         // Delete checkpoint if fresh start requested
         if (freshStart && File.Exists(checkpointPath))
@@ -58,10 +59,8 @@ public class DialogActivityExportService
                 checkpoint.TotalProcessed, checkpoint.BatchNumber);
             totalProcessed = checkpoint.TotalProcessed;
             batchNumber = checkpoint.BatchNumber;
-            if (checkpoint.LastCorrespondenceId.HasValue && checkpoint.LastStatus.HasValue)
-            {
-                lastCursor = (checkpoint.LastCorrespondenceId.Value, checkpoint.LastStatus.Value);
-            }
+            lastStatus4CorrespondenceId = checkpoint.LastStatus4CorrespondenceId;
+            lastStatus6CorrespondenceId = checkpoint.LastStatus6CorrespondenceId;
         }
 
         // Set test mode for query logging
@@ -108,19 +107,21 @@ public class DialogActivityExportService
             batchNumber++;
             var batchStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            var (batchCount, newCursor) = await ProcessBatchAsync(
+            var (batchCount, newStatus4Cursor, newStatus6Cursor) = await ProcessBatchAsync(
                 connection,
                 writer,
                 issueNumber,
                 cutoffTimestamp,
-                lastCursor,
+                lastStatus4CorrespondenceId,
+                lastStatus6CorrespondenceId,
                 cancellationToken);
 
             if (batchCount == 0)
                 break;
 
             totalProcessed += batchCount;
-            lastCursor = newCursor;
+            lastStatus4CorrespondenceId = newStatus4Cursor;
+            lastStatus6CorrespondenceId = newStatus6Cursor;
             batchStopwatch.Stop();
 
             _logger.LogDebug(
@@ -144,8 +145,8 @@ public class DialogActivityExportService
                     CutoffTimestamp = cutoffTimestamp,
                     TotalProcessed = totalProcessed,
                     BatchNumber = batchNumber,
-                    LastCorrespondenceId = lastCursor?.correspondenceId,
-                    LastStatus = lastCursor?.status,
+                    LastStatus4CorrespondenceId = lastStatus4CorrespondenceId,
+                    LastStatus6CorrespondenceId = lastStatus6CorrespondenceId,
                     CheckpointTime = DateTime.UtcNow
                 });
                 _logger.LogDebug("Checkpoint saved at batch {BatchNumber}", batchNumber);
@@ -165,8 +166,8 @@ public class DialogActivityExportService
                     CutoffTimestamp = cutoffTimestamp,
                     TotalProcessed = totalProcessed,
                     BatchNumber = batchNumber,
-                    LastCorrespondenceId = lastCursor?.correspondenceId,
-                    LastStatus = lastCursor?.status,
+                    LastStatus4CorrespondenceId = lastStatus4CorrespondenceId,
+                    LastStatus6CorrespondenceId = lastStatus6CorrespondenceId,
                     CheckpointTime = DateTime.UtcNow
                 });
                 break;
@@ -270,25 +271,28 @@ public class DialogActivityExportService
     {
         var totalProcessed = 0L;
         var batchNumber = 0;
-        (Guid correspondenceId, int status)? lastCursor = null;
+        Guid? lastStatus4CorrespondenceId = null;
+        Guid? lastStatus6CorrespondenceId = null;
 
         while (true)
         {
             batchNumber++;
 
-            var (batchCount, newCursor) = await ProcessBatchAsync(
+            var (batchCount, newStatus4Cursor, newStatus6Cursor) = await ProcessBatchAsync(
                 connection,
                 writer,
                 issueNumber,
                 cutoffTimestamp,
-                lastCursor,
+                lastStatus4CorrespondenceId,
+                lastStatus6CorrespondenceId,
                 cancellationToken);
 
             if (batchCount == 0)
                 break;
 
             totalProcessed += batchCount;
-            lastCursor = newCursor;
+            lastStatus4CorrespondenceId = newStatus4Cursor;
+            lastStatus6CorrespondenceId = newStatus6Cursor;
 
             // Report progress with combined totals
             progress?.Report(new ExportProgress
@@ -360,28 +364,29 @@ public class DialogActivityExportService
         return result != null ? Convert.ToInt64(result) : 0;
     }
 
-    private async Task<(int Count, (Guid correspondenceId, int status)? LastCursor)> ProcessBatchAsync(
+    private async Task<(int Count, Guid? LastStatus4CorrespondenceId, Guid? LastStatus6CorrespondenceId)> ProcessBatchAsync(
         NpgsqlConnection connection,
         StreamWriter writer,
         int issueNumber,
         DateTime cutoffTimestamp,
-        (Guid correspondenceId, int status)? lastCursor,
+        Guid? lastStatus4CorrespondenceId,
+        Guid? lastStatus6CorrespondenceId,
         CancellationToken cancellationToken)
     {
-        // OPTIMIZATION: Run Status 4 and Status 6 as separate queries and merge in-memory
-        // This avoids the slow UNION ALL + ORDER BY performance issue
-        // Status 4: ~21ms, Status 6: ~3s vs UNION ALL + ORDER BY: 12+ minutes
+        // OPTIMIZATION: Run Status 4 and Status 6 as separate queries with independent cursors
+        // This ensures each status type progresses independently, avoiding data loss
+        // when one status has significantly more records than the other
 
         var batchTimer = System.Diagnostics.Stopwatch.StartNew();
 
         var fetchTimer = System.Diagnostics.Stopwatch.StartNew();
         var status4Results = await FetchStatusRecordsAsync(
             connection, issueNumber, cutoffTimestamp,
-            statusValue: 4, lastCursor, cancellationToken);
+            statusValue: 4, lastStatus4CorrespondenceId, cancellationToken);
 
         var status6Results = await FetchStatusRecordsAsync(
             connection, issueNumber, cutoffTimestamp,
-            statusValue: 6, lastCursor, cancellationToken);
+            statusValue: 6, lastStatus6CorrespondenceId, cancellationToken);
         var fetchTime = fetchTimer.ElapsedMilliseconds;
 
         // Merge and sort in-memory (much faster than database ORDER BY on UNION ALL)
@@ -418,11 +423,20 @@ public class DialogActivityExportService
             "Batch timing: Fetch={FetchMs}ms, Merge={MergeMs}ms, Write={WriteMs}ms, Total={TotalMs}ms, Rows={RowCount}",
             fetchTime, mergeTime, writeTime, batchTimer.ElapsedMilliseconds, allResults.Count);
 
-        var lastProcessedCursor = allResults.Count > 0 
-            ? (allResults[^1].CorrespondenceId, allResults[^1].Status) 
-            : ((Guid correspondenceId, int status)?)null;
+        // Track the last CorrespondenceId for each status independently
+        Guid? newStatus4Cursor = lastStatus4CorrespondenceId;
+        Guid? newStatus6Cursor = lastStatus6CorrespondenceId;
 
-        return (allResults.Count, lastProcessedCursor);
+        if (status4Results.Count > 0)
+        {
+            newStatus4Cursor = status4Results[^1].CorrespondenceId;
+        }
+        if (status6Results.Count > 0)
+        {
+            newStatus6Cursor = status6Results[^1].CorrespondenceId;
+        }
+
+        return (allResults.Count, newStatus4Cursor, newStatus6Cursor);
     }
 
     private async Task<List<DialogActivityRecord>> FetchStatusRecordsAsync(
@@ -430,7 +444,7 @@ public class DialogActivityExportService
         int issueNumber,
         DateTime cutoffTimestamp,
         int statusValue,
-        (Guid correspondenceId, int status)? lastCursor,
+        Guid? lastCorrespondenceId,
         CancellationToken cancellationToken)
     {
         var activityType = statusValue == 4 ? "CorrespondenceOpened" : "CorrespondenceConfirmed";
@@ -454,12 +468,9 @@ public class DialogActivityExportService
         if (issueNumber == 1716)
         {
             // Build cursor predicate for helper table query
-            // CRITICAL: Cursor must reference columns in SELECT list for DISTINCT to work
-            // Since stats."CorrespondenceId" is in SELECT, we use that for cursor comparison
-            // Note: a2Events."CorrespondenceId" = stats."CorrespondenceId" (join condition),
-            // but for index usage, we filter on a2Events first, then join
-            var a2EventsCursorPredicate = lastCursor.HasValue 
-                ? "AND (a2Events.\"CorrespondenceId\", a2Events.\"Status\") > (@lastId, @lastStatus)"
+            // Each status now has independent cursor based only on CorrespondenceId
+            var a2EventsCursorPredicate = lastCorrespondenceId.HasValue 
+                ? "AND a2Events.\"CorrespondenceId\" > @lastId"
                 : "";
 
             // Optimized query using A2Iss1716A2Events helper table
@@ -490,7 +501,7 @@ public class DialogActivityExportService
                     ON stats.""PartyUuid"" = ap.""PartyUuid""
                 WHERE a2Events.""Status"" = {statusValue}
                   {a2EventsCursorPredicate}
-                ORDER BY stats.""CorrespondenceId"", Status
+                ORDER BY stats.""CorrespondenceId""
                 LIMIT @fetchLimit";
         }
         else
@@ -499,8 +510,9 @@ public class DialogActivityExportService
             var (syncFilter, timestampFilter) = GetFiltersForIssue(issueNumber);
 
             // Build cursor predicate for standard CTE query
-            var cursorPredicate = lastCursor.HasValue 
-                ? "AND (stats.\"CorrespondenceId\", stats.\"Status\") > (@lastId, @lastStatus)"
+            // Each status now has independent cursor based only on CorrespondenceId
+            var cursorPredicate = lastCorrespondenceId.HasValue 
+                ? "AND stats.\"CorrespondenceId\" > @lastId"
                 : "";
 
             // Standard CTE approach for Issue #1951
@@ -518,7 +530,7 @@ public class DialogActivityExportService
                       {timestampFilter}
                       {cteSyncFilter}
                       {cursorPredicate}
-                    ORDER BY stats.""CorrespondenceId"", stats.""Status""
+                    ORDER BY stats.""CorrespondenceId""
                     LIMIT @fetchLimit
                 )
                 SELECT 
@@ -544,17 +556,16 @@ public class DialogActivityExportService
                 INNER JOIN correspondence.""IdempotencyKeys"" {idcJoinAlias}
                     ON filtered.""CorrespondenceId"" = {idcJoinAlias}.""CorrespondenceId"" 
                     AND {idcJoinAlias}.""StatusAction"" = '{statusActionValue}'
-                ORDER BY filtered.""CorrespondenceId"", filtered.""Status""";
+                ORDER BY filtered.""CorrespondenceId""";
         }
 
         await using var cmd = new NpgsqlCommand(query, connection);
         cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
 
-        // Only add cursor parameters if we have a cursor value
-        if (lastCursor.HasValue)
+        // Only add cursor parameter if we have a cursor value
+        if (lastCorrespondenceId.HasValue)
         {
-            cmd.Parameters.AddWithValue("lastId", lastCursor.Value.correspondenceId);
-            cmd.Parameters.AddWithValue("lastStatus", lastCursor.Value.status);
+            cmd.Parameters.AddWithValue("lastId", lastCorrespondenceId.Value);
         }
 
         cmd.Parameters.AddWithValue("fetchLimit", _batchSize); // Fetch up to batchSize from each status
@@ -566,8 +577,7 @@ public class DialogActivityExportService
         {
             var logQuery = query
                 .Replace("@cutoffTimestamp", $"'{cutoffTimestamp:yyyy-MM-dd HH:mm:ss}'")
-                .Replace("@lastId", lastCursor.HasValue ? $"'{lastCursor.Value.correspondenceId}'" : "NULL")
-                .Replace("@lastStatus", lastCursor.HasValue ? lastCursor.Value.status.ToString() : "NULL")
+                .Replace("@lastId", lastCorrespondenceId.HasValue ? $"'{lastCorrespondenceId.Value}'" : "NULL")
                 .Replace("@fetchLimit", _batchSize.ToString());
 
             _logger.LogInformation("TEST MODE - Executing query for Status {StatusValue}:", statusValue);
@@ -706,8 +716,8 @@ public class DialogActivityExportService
         public DateTime CutoffTimestamp { get; init; }
         public long TotalProcessed { get; init; }
         public int BatchNumber { get; init; }
-        public Guid? LastCorrespondenceId { get; init; }
-        public int? LastStatus { get; init; }
+        public Guid? LastStatus4CorrespondenceId { get; init; }
+        public Guid? LastStatus6CorrespondenceId { get; init; }
         public DateTime CheckpointTime { get; init; }
     }
 }
