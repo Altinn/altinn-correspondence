@@ -45,6 +45,8 @@ public class GetCorrespondenceOverviewResponse
     
     public DateTimeOffset? Published { get; set; }
 
+    public DateTimeOffset? Read { get; set; }
+
     public bool IsConfirmationNeeded { get; set; }
     
     public bool IsConfidential { get; set; }

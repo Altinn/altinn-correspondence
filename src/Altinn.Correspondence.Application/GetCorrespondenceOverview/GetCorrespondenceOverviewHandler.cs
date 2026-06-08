@@ -194,6 +194,7 @@ public class GetCorrespondenceOverviewHandler(
                 RequestedPublishTime = correspondence.RequestedPublishTime,
                 IgnoreReservation = correspondence.IgnoreReservation ?? false,
                 Published = correspondence.Published,
+                Read = correspondence.GetReadTimestamp(),
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 IsConfidential = correspondence.IsConfidential,
                 Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId

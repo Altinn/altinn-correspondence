@@ -178,6 +178,7 @@ public class GetCorrespondenceDetailsHandler(
                 DueDateTime = correspondence.DueDateTime,
                 PropertyList = correspondence.PropertyList,
                 Published = correspondence.Published,
+                Read = correspondence.GetReadTimestamp(),
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 IsConfidential = correspondence.IsConfidential,
                 SystemLabel = systemLabel

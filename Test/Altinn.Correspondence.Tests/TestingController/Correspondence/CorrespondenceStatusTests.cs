@@ -75,6 +75,51 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task GetCorrespondence_ReadTimestamp_IsNullBeforeRead()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            // Act
+            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
+            var details = await _senderClient.GetFromJsonAsync<CorrespondenceDetailsExt>($"correspondence/api/v1/correspondence/{correspondenceId}/details", _responseSerializerOptions);
+
+            // Assert
+            Assert.Null(overview?.Read);
+            Assert.Null(details?.Read);
+        }
+
+        [Fact]
+        public async Task GetCorrespondence_ReadTimestamp_IsPopulatedOnOverviewAndDetailsAfterRead()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+            var initializedCorrespondence = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, payload);
+            var correspondenceId = initializedCorrespondence.CorrespondenceId;
+            await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+            // Act
+            var fetchResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to be able to Read
+            Assert.Equal(HttpStatusCode.OK, fetchResponse.StatusCode);
+            var readResponse = await _recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+            readResponse.EnsureSuccessStatusCode();
+
+            // Assert
+            var overview = await _senderClient.GetFromJsonAsync<CorrespondenceOverviewExt>($"correspondence/api/v1/correspondence/{correspondenceId}", _responseSerializerOptions);
+            var details = await _senderClient.GetFromJsonAsync<CorrespondenceDetailsExt>($"correspondence/api/v1/correspondence/{correspondenceId}/details", _responseSerializerOptions);
+            Assert.NotNull(overview?.Read);
+            Assert.NotNull(details?.Read);
+            Assert.Equal(overview?.Read, details?.Read);
+        }
+
+        [Fact]
         public async Task UpdateCorrespondenceStatus_MarkAsRead_WithoutFetched_ReturnsBadRequest()
         {
             //  Arrange
