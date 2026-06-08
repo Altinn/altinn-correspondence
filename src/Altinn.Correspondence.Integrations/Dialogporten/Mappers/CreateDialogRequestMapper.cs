@@ -692,5 +692,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 }
             };
         }
+
+        internal static List<Attachment> GetAttachmentsForDialogPatchRequest(CorrespondenceEntity correspondence, string baseUrl)
+        {
+            var attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence);
+            return attachments;
+        }
     }
 }
