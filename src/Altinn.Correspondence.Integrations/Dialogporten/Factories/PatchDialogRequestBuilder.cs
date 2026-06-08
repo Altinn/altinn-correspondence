@@ -1,3 +1,6 @@
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Integrations.Dialogporten.Models;
+
 namespace Altinn.Correspondence.Integrations.Dialogporten
 {
     internal class DialogPatchRequestBuilder
@@ -57,7 +60,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             );
             return this;
         }
-        
+
         internal DialogPatchRequestBuilder WithReplaceSummaryOperation(string newSummary)
         {
             _PatchDialogRequest.Add(
@@ -69,6 +72,43 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 }
             );
             return this;
+        }
+
+        internal DialogPatchRequestBuilder WithAddDownloadAllAttachmentsOperation(string baseUrl, CorrespondenceEntity correspondence)
+        {
+            var baseTimestamp = DateTimeOffset.UtcNow;
+            _PatchDialogRequest.Add(
+                new
+                {
+                    op = "add",
+                    path = "/attachments/0",
+                    value = new Attachment
+                    {
+                        Id = Guid.CreateVersion7(baseTimestamp).ToString(),
+                        DisplayName = new List<DisplayName>
+                    {
+                        new DisplayName { LanguageCode = "nb", Value = "Alle vedlegg" },
+                        new DisplayName { LanguageCode = "nn", Value = "Alle vedlegg" },
+                        new DisplayName { LanguageCode = "en", Value = "All attachments" }
+                    },
+                        Urls = new List<DialogUrl>
+                    {
+                        new DialogUrl
+                        {
+                            ConsumerType = "Gui",
+                            MediaType = "application/zip",
+                            Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
+                        }
+                    }
+                    }
+                });
+            return this;
+        }
+
+
+        private static string GetDownloadAllAttachmentsEndpoint(string baseUrl, Guid correspondenceId)
+        {
+            return $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachments/downloadall";
         }
     }
 }
