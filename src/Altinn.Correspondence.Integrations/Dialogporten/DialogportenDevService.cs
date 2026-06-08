@@ -151,9 +151,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
             return Task.FromResult(false);
         }
 
-        public Task<bool> TryAddDownloadAllAttachmentsToDialog(string dialogId, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default)
+        public Task TryAddDownloadAllAttachmentsToDialog(string dialogId, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(true);
+            return Task.CompletedTask;
         }
     }
 }

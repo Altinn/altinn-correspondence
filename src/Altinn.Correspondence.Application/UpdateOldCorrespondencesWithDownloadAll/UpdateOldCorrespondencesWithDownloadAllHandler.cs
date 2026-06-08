@@ -151,8 +151,8 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
         }
         try
         {
-            var updated = await dialogportenService.TryAddDownloadAllAttachmentsToDialog(dialogId, correspondence, cancellationToken);
-            return updated;
+            _backgroundJobClient.Enqueue<IDialogportenService>(service => service.TryAddDownloadAllAttachmentsToDialog(dialogId, correspondence, CancellationToken.None));
+            return true;
         }
         catch (Exception ex)
         {
