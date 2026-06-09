@@ -8,6 +8,7 @@ using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.AppContainers;
 using Azure.ResourceManager.AppContainers.Models;
+using Azure.ResourceManager.Monitor;
 using Azure.ResourceManager.Monitor.Models;
 using Azure.ResourceManager.Network;
 using Azure.ResourceManager.Network.Models;
@@ -173,10 +174,16 @@ public class AzureResourceManagerService : IResourceManager
     }
     private async Task ConfigureBlobDiagnosticSettings(BlobServiceResource blobService, CancellationToken cancellationToken)
     {
-        // Diagnostic settings target the blob service sub-resource, not the storage account.
-        var diagnosticCollection = blobService.GetDiagnosticSettings();
+        if (string.IsNullOrWhiteSpace(_resourceManagerOptions.LogAnalyticsWorkspaceId))
+        {
+            _logger.LogDebug("Log Analytics workspace not configured. Skipping blob diagnostic settings.");
+            return;
+        }
 
-        var diagnosticData = new DiagnosticSettingsData
+        // Diagnostic settings target the blob service sub-resource, not the storage account.
+        var diagnosticCollection = _armClient.GetDiagnosticSettings(blobService.Id);
+
+        var diagnosticData = new DiagnosticSettingData
         {
             WorkspaceId = new ResourceIdentifier(_resourceManagerOptions.LogAnalyticsWorkspaceId),
         };
