@@ -119,6 +119,7 @@ public class DialogActivityExportService
                 lastStatus6CorrespondenceId,
                 status4Exhausted,
                 status6Exhausted,
+                batchNumber,
                 cancellationToken);
 
             if (batchCount == 0)
@@ -315,6 +316,7 @@ public class DialogActivityExportService
                 lastStatus6CorrespondenceId,
                 status4Exhausted,
                 status6Exhausted,
+                batchNumber,
                 cancellationToken);
 
             if (batchCount == 0)
@@ -421,6 +423,7 @@ public class DialogActivityExportService
         Guid? lastStatus6CorrespondenceId,
         bool status4Exhausted,
         bool status6Exhausted,
+        int batchNumber,
         CancellationToken cancellationToken)
     {
         // OPTIMIZATION: Run Status 4 and Status 6 as separate queries with independent cursors
@@ -485,9 +488,13 @@ public class DialogActivityExportService
         var writeTime = writeTimer.ElapsedMilliseconds;
         batchTimer.Stop();
 
+        var rowsPerSecond = batchTimer.ElapsedMilliseconds > 0 
+            ? (int)(allResults.Count / (batchTimer.ElapsedMilliseconds / 1000.0))
+            : 0;
+
         _logger.LogInformation(
-            "Batch timing: Fetch={FetchMs}ms, Merge={MergeMs}ms, Write={WriteMs}ms, Total={TotalMs}ms, Rows={RowCount} (S4={S4Count}, S6={S6Count})",
-            fetchTime, mergeTime, writeTime, batchTimer.ElapsedMilliseconds, allResults.Count, status4Results.Count, status6Results.Count);
+            "Batch #{BatchNum} timing: Fetch={FetchMs}ms, Merge={MergeMs}ms, Write={WriteMs}ms, Total={TotalMs}ms, Rows={RowCount} (S4={S4Count}, S6={S6Count}), Rate={RowsPerSec} rows/sec",
+            batchNumber, fetchTime, mergeTime, writeTime, batchTimer.ElapsedMilliseconds, allResults.Count, status4Results.Count, status6Results.Count, rowsPerSecond);
 
         // Track the last CorrespondenceId for each status independently
         Guid? newStatus4Cursor = lastStatus4CorrespondenceId;

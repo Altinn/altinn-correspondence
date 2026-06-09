@@ -113,7 +113,7 @@ var progress = new Progress<DialogActivityExportService.ExportProgress>(p =>
         else
         {
             // No total count available - just show processed and rate
-            Console.WriteLine($"Processed: {p.TotalProcessed:N0} | {rate:F0} rows/sec | Elapsed: {p.ElapsedTime:hh\\:mm\\:ss}");
+            Console.WriteLine($"Processed in Total: {p.TotalProcessed:N0} | {rate:F0} rows/sec | Elapsed: {p.ElapsedTime:hh\\:mm\\:ss}");
         }
     }
     else
@@ -140,7 +140,7 @@ var progress = new Progress<DialogActivityExportService.ExportProgress>(p =>
         {
             // No total count - show simple counter
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write($"Processed: {p.TotalProcessed:N0} ");
+            Console.Write($"Processed in Total: {p.TotalProcessed:N0} ");
             Console.ResetColor();
             Console.Write($"| {rate:F0} rows/sec | Elapsed: {p.ElapsedTime:hh\\:mm\\:ss}");
         }
