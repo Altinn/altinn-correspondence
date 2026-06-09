@@ -25,8 +25,9 @@
 
 .PARAMETER BatchSize
     Number of rows per batch (default: 5000)
-    Optimal range: 5000 rows (proven stable with Azure PostgreSQL network throttling)
-    Recommended: Keep at 5000 unless specific testing indicates otherwise
+    Each query fetches up to batchSize rows, total processed per batch: ~2x batchSize
+    Recommended: 5000 (processes ~10,000 rows per batch)
+    Note: Smaller batch sizes don't improve performance due to cursor pagination overhead
 
 .PARAMETER UseAzureAd
     Use Azure AD authentication (default: true)
@@ -46,8 +47,9 @@
     # Run full export with defaults:
     # - Output: C:\temp\dialog_activity_export_1716_{timestamp}.csv
     # - Cutoff: Current date/time
-    # - Batch size: 10,000 rows
+    # - Batch size: 5,000 rows (processes ~10,000 per batch)
     # - Azure AD authentication
+    # - Checkpoint saved after every batch
 
 .EXAMPLE
     .\export-production-1716.ps1 -OutputPath "D:\exports\issue_1716.csv"
@@ -58,8 +60,9 @@
     # Export records before specific date/time
 
 .EXAMPLE
-    .\export-production-1716.ps1 -BatchSize 20000
-    # Use larger batch size for faster export (if network is fast)
+    .\export-production-1716.ps1 -BatchSize 2500
+    # Use smaller batch size (if needed for testing)
+    # Note: Throughput will be similar to 5000 due to cursor pagination
 
 .EXAMPLE
     .\export-production-1716.ps1 -FreshStart
@@ -84,32 +87,35 @@
 
     Expected Performance:
     - Total rows: ~9.97M (Status 4 + Status 6)
-    - Batch size 5,000: ~1,994 batches
-    - Time per batch: 250-300ms
-    - Total time: 9-12 minutes
-    - Throughput: 15,000 rows/sec
+    - Batch size 5,000: Each batch processes ~10,000 rows (5000 from each status)
+    - Time per batch: 40-80 seconds (varies with database load)
+    - Estimated batches: ~1,000 batches
+    - Total time: 11-22 hours (depends on query performance)
+    - Throughput: 125-250 rows/sec
     - Output size: ~2 GB
 
     Progress Display:
-    - Shows: "Processed: 5,234,567 / 9,970,000 (52.5%) | 15,000 rows/sec | ETA: 00:05:23"
+    - Shows: "Processed: 5,234,567 / 9,970,000 (52.5%) | 150 rows/sec | ETA: 12:30:45"
     - Updates every batch
-    - Includes checkpoint save after each batch
+    - Checkpoint saved after EVERY batch (for maximum resume safety)
 
     Resume Support:
     - Checkpoint file: {output_path}.checkpoint.json
+    - Saved after every batch (once data is flushed to disk)
     - Automatically resumes if interrupted
     - Use -FreshStart to ignore checkpoint
 
     Monitoring:
     - Check logs for timing: "Batch timing: Fetch=...ms, Merge=...ms, Write=...ms"
-    - Watch for consistent timing (250-300ms per batch)
-    - If batches slow down significantly, check database load
+    - Fast batches: 100-500ms (when database is responsive)
+    - Slow batches: 40,000-80,000ms (when cursor pagination is expensive)
+    - Checkpoint saved after each batch for safe interruption
 
     Troubleshooting:
-    - If slow (>1s per batch): Check Status 6 index selection
+    - If slow (>80s per batch): Expected behavior due to cursor pagination
     - If connection fails: Verify Azure AD login (az account show)
-    - If out of disk: Need ~400MB for output CSV
-    - If interrupted: Just restart - will resume from checkpoint
+    - If out of disk: Need ~2.5 GB for output CSV
+    - If interrupted: Just restart - will resume from last completed batch
 
     Related Documentation:
     - Migration Guide: A2Iss1716A2Events_Helper_Table_Migration.md
@@ -119,14 +125,14 @@
 
 param(
     [Parameter(Mandatory=$false)]
-    [string]$OutputPath = "",
+    [string]$OutputPath = "C:\Temp\dialog_activity_export_1716_20260609_125929.csv",
 
     [Parameter(Mandatory=$false)]
     [string]$CutoffDate = "2026-02-15",
 
     [Parameter(Mandatory=$false)]
     [ValidateRange(1000, 100000)]
-    [int]$BatchSize = 5000,
+    [int]$BatchSize = 2500,
 
     [Parameter(Mandatory=$false)]
     [bool]$UseAzureAd = $true,

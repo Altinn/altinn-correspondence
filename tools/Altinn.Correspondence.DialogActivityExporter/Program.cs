@@ -424,12 +424,20 @@ static async Task<string?> TryBuildAzureConnectionAsync(ILogger logger)
         logger.LogInformation("Current Windows user: {Username}", username);
 
         // Build connection string with Azure AD token
+        // Optimized for bulk data transfer with network performance tuning
+        // Using only valid Npgsql connection string parameters
         var connectionString = $"Host=altinn-corr-prod-dbserver.postgres.database.azure.com;" +
                               $"Port=5432;" +
                               $"Database=correspondence;" +
                               $"Username={username}@ai-dev.no;" +
                               $"Password={token};" +
-                              $"SSL Mode=Require;";
+                              $"SSL Mode=Require;" +
+                              $"MaxPoolSize=1;" +                        // Prevent connection pool issues
+                              $"Keepalive=30;" +                         // TCP keepalive (seconds)
+                              $"Command Timeout=300;" +                  // Command timeout (5 minutes)
+                              $"Timeout=300;" +                          // Connection timeout (5 minutes)
+                              $"Read Buffer Size=65536;" +               // 64KB read buffer
+                              $"Write Buffer Size=65536;";               // 64KB write buffer
 
         logger.LogInformation("Successfully built Azure AD connection string using Azure.Identity SDK");
         return connectionString;

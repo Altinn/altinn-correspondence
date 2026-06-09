@@ -38,6 +38,8 @@ public class DialogActivityExportService
         var batchNumber = 0;
         Guid? lastStatus4CorrespondenceId = null;
         Guid? lastStatus6CorrespondenceId = null;
+        bool status4Exhausted = false;
+        bool status6Exhausted = false;
 
         // Delete checkpoint if fresh start requested
         if (freshStart && File.Exists(checkpointPath))
@@ -61,6 +63,8 @@ public class DialogActivityExportService
             batchNumber = checkpoint.BatchNumber;
             lastStatus4CorrespondenceId = checkpoint.LastStatus4CorrespondenceId;
             lastStatus6CorrespondenceId = checkpoint.LastStatus6CorrespondenceId;
+            status4Exhausted = checkpoint.Status4Exhausted;
+            status6Exhausted = checkpoint.Status6Exhausted;
         }
 
         // Set test mode for query logging
@@ -100,7 +104,6 @@ public class DialogActivityExportService
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var checkpointInterval = 10; // Save checkpoint every N batches
 
         while (true)
         {
@@ -114,14 +117,34 @@ public class DialogActivityExportService
                 cutoffTimestamp,
                 lastStatus4CorrespondenceId,
                 lastStatus6CorrespondenceId,
+                status4Exhausted,
+                status6Exhausted,
                 cancellationToken);
 
             if (batchCount == 0)
                 break;
 
             totalProcessed += batchCount;
+
+            // Update cursors and check if statuses are exhausted
+            bool status4HadResults = newStatus4Cursor != lastStatus4CorrespondenceId;
+            bool status6HadResults = newStatus6Cursor != lastStatus6CorrespondenceId;
+
             lastStatus4CorrespondenceId = newStatus4Cursor;
             lastStatus6CorrespondenceId = newStatus6Cursor;
+
+            // Mark as exhausted if cursor didn't advance (no new results)
+            if (!status4Exhausted && !status4HadResults)
+            {
+                status4Exhausted = true;
+                _logger.LogInformation("Status 4 exhausted - will skip in future batches");
+            }
+            if (!status6Exhausted && !status6HadResults)
+            {
+                status6Exhausted = true;
+                _logger.LogInformation("Status 6 exhausted - will skip in future batches");
+            }
+
             batchStopwatch.Stop();
 
             _logger.LogDebug(
@@ -136,23 +159,24 @@ public class DialogActivityExportService
                 ElapsedTime = stopwatch.Elapsed
             });
 
-            // Save checkpoint periodically
-            if (batchNumber % checkpointInterval == 0)
+            // Save checkpoint after every batch (data already flushed to disk in ProcessBatchAsync)
+            await SaveCheckpointAsync(checkpointPath, new ExportCheckpoint
             {
-                await SaveCheckpointAsync(checkpointPath, new ExportCheckpoint
-                {
-                    IssueNumber = issueNumber,
-                    CutoffTimestamp = cutoffTimestamp,
-                    TotalProcessed = totalProcessed,
-                    BatchNumber = batchNumber,
-                    LastStatus4CorrespondenceId = lastStatus4CorrespondenceId,
-                    LastStatus6CorrespondenceId = lastStatus6CorrespondenceId,
-                    CheckpointTime = DateTime.UtcNow
-                });
-                _logger.LogDebug("Checkpoint saved at batch {BatchNumber}", batchNumber);
-            }
+                IssueNumber = issueNumber,
+                CutoffTimestamp = cutoffTimestamp,
+                TotalProcessed = totalProcessed,
+                BatchNumber = batchNumber,
+                LastStatus4CorrespondenceId = lastStatus4CorrespondenceId,
+                LastStatus6CorrespondenceId = lastStatus6CorrespondenceId,
+                Status4Exhausted = status4Exhausted,
+                Status6Exhausted = status6Exhausted,
+                CheckpointTime = DateTime.UtcNow
+            });
+            _logger.LogDebug("Checkpoint saved at batch {BatchNumber}", batchNumber);
 
-            if (batchCount < _batchSize)
+            // Continue until we get no more rows (both queries return 0)
+            // Note: batch count can be up to 2x batchSize (batchSize from each status)
+            if (batchCount == 0)
                 break;
 
             // Check if we've reached the max batch limit (test mode)
@@ -168,6 +192,8 @@ public class DialogActivityExportService
                     BatchNumber = batchNumber,
                     LastStatus4CorrespondenceId = lastStatus4CorrespondenceId,
                     LastStatus6CorrespondenceId = lastStatus6CorrespondenceId,
+                    Status4Exhausted = status4Exhausted,
+                    Status6Exhausted = status6Exhausted,
                     CheckpointTime = DateTime.UtcNow
                 });
                 break;
@@ -273,6 +299,8 @@ public class DialogActivityExportService
         var batchNumber = 0;
         Guid? lastStatus4CorrespondenceId = null;
         Guid? lastStatus6CorrespondenceId = null;
+        bool status4Exhausted = false;
+        bool status6Exhausted = false;
 
         while (true)
         {
@@ -285,14 +313,33 @@ public class DialogActivityExportService
                 cutoffTimestamp,
                 lastStatus4CorrespondenceId,
                 lastStatus6CorrespondenceId,
+                status4Exhausted,
+                status6Exhausted,
                 cancellationToken);
 
             if (batchCount == 0)
                 break;
 
             totalProcessed += batchCount;
+
+            // Update cursors and check if statuses are exhausted
+            bool status4HadResults = newStatus4Cursor != lastStatus4CorrespondenceId;
+            bool status6HadResults = newStatus6Cursor != lastStatus6CorrespondenceId;
+
             lastStatus4CorrespondenceId = newStatus4Cursor;
             lastStatus6CorrespondenceId = newStatus6Cursor;
+
+            // Mark as exhausted if cursor didn't advance (no new results)
+            if (!status4Exhausted && !status4HadResults)
+            {
+                status4Exhausted = true;
+                _logger.LogInformation("Issue #{Issue}: Status 4 exhausted", issueNumber);
+            }
+            if (!status6Exhausted && !status6HadResults)
+            {
+                status6Exhausted = true;
+                _logger.LogInformation("Issue #{Issue}: Status 6 exhausted", issueNumber);
+            }
 
             // Report progress with combined totals
             progress?.Report(new ExportProgress
@@ -303,7 +350,8 @@ public class DialogActivityExportService
                 ElapsedTime = stopwatch.Elapsed
             });
 
-            if (batchCount < _batchSize)
+            // Continue until we get no more rows
+            if (batchCount == 0)
                 break;
 
             // Check if we've reached the max batch limit (test mode)
@@ -371,31 +419,49 @@ public class DialogActivityExportService
         DateTime cutoffTimestamp,
         Guid? lastStatus4CorrespondenceId,
         Guid? lastStatus6CorrespondenceId,
+        bool status4Exhausted,
+        bool status6Exhausted,
         CancellationToken cancellationToken)
     {
         // OPTIMIZATION: Run Status 4 and Status 6 as separate queries with independent cursors
         // This ensures each status type progresses independently, avoiding data loss
         // when one status has significantly more records than the other
+        //
+        // Fetch Strategy: Fetch up to batchSize from EACH status, process ALL results
+        // Example: batchSize=5000 → fetch 5000 from Status 4 + 5000 from Status 6
+        // → process all ~10000 rows (no waste!)
+        // This doubles throughput per batch and eliminates wasted database work entirely.
+        //
+        // Skip Exhausted Queries: Once a status returns 0 rows, we skip querying it
+        // in subsequent batches (saves ~5ms per batch × thousands of batches)
 
         var batchTimer = System.Diagnostics.Stopwatch.StartNew();
 
         var fetchTimer = System.Diagnostics.Stopwatch.StartNew();
-        var status4Results = await FetchStatusRecordsAsync(
-            connection, issueNumber, cutoffTimestamp,
-            statusValue: 4, lastStatus4CorrespondenceId, cancellationToken);
 
-        var status6Results = await FetchStatusRecordsAsync(
-            connection, issueNumber, cutoffTimestamp,
-            statusValue: 6, lastStatus6CorrespondenceId, cancellationToken);
+        // Only query Status 4 if not exhausted
+        var status4Results = status4Exhausted 
+            ? new List<DialogActivityRecord>()
+            : await FetchStatusRecordsAsync(
+                connection, issueNumber, cutoffTimestamp,
+                statusValue: 4, lastStatus4CorrespondenceId, _batchSize, cancellationToken);
+
+        // Only query Status 6 if not exhausted
+        var status6Results = status6Exhausted
+            ? new List<DialogActivityRecord>()
+            : await FetchStatusRecordsAsync(
+                connection, issueNumber, cutoffTimestamp,
+                statusValue: 6, lastStatus6CorrespondenceId, _batchSize, cancellationToken);
+
         var fetchTime = fetchTimer.ElapsedMilliseconds;
 
         // Merge and sort in-memory (much faster than database ORDER BY on UNION ALL)
+        // Process ALL fetched results (no Take/limit) - eliminates waste entirely
         var mergeTimer = System.Diagnostics.Stopwatch.StartNew();
         var allResults = status4Results
             .Concat(status6Results)
             .OrderBy(r => r.CorrespondenceId)
             .ThenBy(r => r.Status)
-            .Take(_batchSize)
             .ToList();
         var mergeTime = mergeTimer.ElapsedMilliseconds;
 
@@ -420,8 +486,8 @@ public class DialogActivityExportService
         batchTimer.Stop();
 
         _logger.LogInformation(
-            "Batch timing: Fetch={FetchMs}ms, Merge={MergeMs}ms, Write={WriteMs}ms, Total={TotalMs}ms, Rows={RowCount}",
-            fetchTime, mergeTime, writeTime, batchTimer.ElapsedMilliseconds, allResults.Count);
+            "Batch timing: Fetch={FetchMs}ms, Merge={MergeMs}ms, Write={WriteMs}ms, Total={TotalMs}ms, Rows={RowCount} (S4={S4Count}, S6={S6Count})",
+            fetchTime, mergeTime, writeTime, batchTimer.ElapsedMilliseconds, allResults.Count, status4Results.Count, status6Results.Count);
 
         // Track the last CorrespondenceId for each status independently
         Guid? newStatus4Cursor = lastStatus4CorrespondenceId;
@@ -445,6 +511,7 @@ public class DialogActivityExportService
         DateTime cutoffTimestamp,
         int statusValue,
         Guid? lastCorrespondenceId,
+        int fetchLimit,
         CancellationToken cancellationToken)
     {
         var activityType = statusValue == 4 ? "CorrespondenceOpened" : "CorrespondenceConfirmed";
@@ -475,7 +542,9 @@ public class DialogActivityExportService
 
             // Optimized query using A2Iss1716A2Events helper table
             // This table pre-filters to only the affected correspondence events from Altinn 2
-            // Performance: Much faster than scanning 1.94B rows, uses direct event matching
+            // Performance: Query execution is fast (~100ms), bottleneck is network transfer
+            // DISTINCT is REQUIRED: IdempotencyKeys can have multiple entries per CorrespondenceId+StatusAction
+            // Analysis showed 41.8% of records have duplicates (2-16x per correspondence)
             query = $@"
                 SELECT DISTINCT
                     er.""ReferenceValue"" AS DialogId,
@@ -568,7 +637,7 @@ public class DialogActivityExportService
             cmd.Parameters.AddWithValue("lastId", lastCorrespondenceId.Value);
         }
 
-        cmd.Parameters.AddWithValue("fetchLimit", _batchSize); // Fetch up to batchSize from each status
+        cmd.Parameters.AddWithValue("fetchLimit", fetchLimit);
 
         cmd.CommandTimeout = 300;
 
@@ -578,19 +647,20 @@ public class DialogActivityExportService
             var logQuery = query
                 .Replace("@cutoffTimestamp", $"'{cutoffTimestamp:yyyy-MM-dd HH:mm:ss}'")
                 .Replace("@lastId", lastCorrespondenceId.HasValue ? $"'{lastCorrespondenceId.Value}'" : "NULL")
-                .Replace("@fetchLimit", _batchSize.ToString());
+                .Replace("@fetchLimit", fetchLimit.ToString());
 
-            _logger.LogInformation("TEST MODE - Executing query for Status {StatusValue}:", statusValue);
+            _logger.LogInformation("TEST MODE - Executing query for Status {StatusValue} (fetchLimit={FetchLimit}):", statusValue, fetchLimit);
             _logger.LogInformation("{Query}", logQuery);
         }
 
-        var results = new List<DialogActivityRecord>();
+        var results = new List<DialogActivityRecord>(fetchLimit);
 
         var queryStartTime = System.Diagnostics.Stopwatch.StartNew();
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         var queryExecutionTime = queryStartTime.ElapsedMilliseconds;
 
         var readStartTime = System.Diagnostics.Stopwatch.StartNew();
+        var rowCount = 0;
         while (await reader.ReadAsync(cancellationToken))
         {
             results.Add(new DialogActivityRecord
@@ -604,6 +674,14 @@ public class DialogActivityExportService
                 Status = reader.GetInt32(6),
                 ActivityType = reader.GetString(7)
             });
+
+            rowCount++;
+            // Early termination: Stop reading once we have fetchLimit rows
+            // This avoids processing excess rows from the database
+            if (rowCount >= fetchLimit)
+            {
+                break;
+            }
         }
         var readTime = readStartTime.ElapsedMilliseconds;
         queryStartTime.Stop();
@@ -718,6 +796,8 @@ public class DialogActivityExportService
         public int BatchNumber { get; init; }
         public Guid? LastStatus4CorrespondenceId { get; init; }
         public Guid? LastStatus6CorrespondenceId { get; init; }
+        public bool Status4Exhausted { get; init; }
+        public bool Status6Exhausted { get; init; }
         public DateTime CheckpointTime { get; init; }
     }
 }
