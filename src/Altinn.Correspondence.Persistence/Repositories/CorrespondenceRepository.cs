@@ -787,6 +787,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ThenBy(c => c.Id)
                 .Take(batchSize)
                 .Include(c => c.Content)
+                .Include(c => c.Notifications)
                 .ToListAsync(cancellationToken);
         }
     }
