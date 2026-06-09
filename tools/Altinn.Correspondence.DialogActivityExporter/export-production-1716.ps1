@@ -24,9 +24,9 @@
     Format: yyyy-MM-dd HH:mm:ss (e.g., "2026-02-15 14:30:00")
 
 .PARAMETER BatchSize
-    Number of rows per batch (default: 5000)
+    Number of rows per batch (default: 2500)
     Each query fetches up to batchSize rows, total processed per batch: ~2x batchSize
-    Recommended: 5000 (processes ~10,000 rows per batch)
+    Recommended: 2500-5000 (processes ~5,000-10,000 rows per batch)
     Note: Smaller batch sizes don't improve performance due to cursor pagination overhead
 
 .PARAMETER UseAzureAd
@@ -45,9 +45,9 @@
 .EXAMPLE
     .\export-production-1716.ps1
     # Run full export with defaults:
-    # - Output: C:\temp\dialog_activity_export_1716_{timestamp}.csv
+    # - Output: C:\temp\dialog_activity_export_1716_{dynamic-timestamp}.csv
     # - Cutoff: Current date/time
-    # - Batch size: 5,000 rows (processes ~10,000 per batch)
+    # - Batch size: 2,500 rows (processes ~5,000 per batch)
     # - Azure AD authentication
     # - Checkpoint saved after every batch
 
@@ -87,11 +87,11 @@
 
     Expected Performance:
     - Total rows: ~9.97M (Status 4 + Status 6)
-    - Batch size 5,000: Each batch processes ~10,000 rows (5000 from each status)
+    - Batch size 2,500 (default): Each batch processes ~5,000 rows (2500 from each status)
     - Time per batch: 40-80 seconds (varies with database load)
-    - Estimated batches: ~1,000 batches
-    - Total time: 11-22 hours (depends on query performance)
-    - Throughput: 125-250 rows/sec
+    - Estimated batches: ~2,000 batches
+    - Total time: 22-44 hours (depends on query performance)
+    - Throughput: 60-125 rows/sec
     - Output size: ~2 GB
 
     Progress Display:
@@ -125,7 +125,7 @@
 
 param(
     [Parameter(Mandatory=$false)]
-    [string]$OutputPath = "C:\Temp\dialog_activity_export_1716_20260609_125929.csv",
+    [string]$OutputPath = "",
 
     [Parameter(Mandatory=$false)]
     [string]$CutoffDate = "2026-02-15",
@@ -178,9 +178,10 @@ if ((Test-Path $checkpointPath) -and -not $FreshStart) {
     Write-Host "============================================================" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Previous export interrupted at:" -ForegroundColor White
-    Write-Host "  Processed:    $($checkpoint.TotalProcessed) rows" -ForegroundColor Cyan
-    Write-Host "  Last Cursor:  $($checkpoint.LastCursorId)" -ForegroundColor DarkGray
-    Write-Host "  Timestamp:    $($checkpoint.Timestamp)" -ForegroundColor DarkGray
+    Write-Host "  Processed:       $($checkpoint.TotalProcessed) rows" -ForegroundColor Cyan
+    Write-Host "  Last S4 Cursor:  $($checkpoint.LastStatus4CorrespondenceId)" -ForegroundColor DarkGray
+    Write-Host "  Last S6 Cursor:  $($checkpoint.LastStatus6CorrespondenceId)" -ForegroundColor DarkGray
+    Write-Host "  Checkpoint Time: $($checkpoint.CheckpointTime)" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "Export will resume from checkpoint." -ForegroundColor Green
     Write-Host "Use -FreshStart to ignore checkpoint and start over." -ForegroundColor DarkGray

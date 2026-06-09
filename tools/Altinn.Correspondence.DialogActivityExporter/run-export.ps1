@@ -97,7 +97,8 @@ Set-Location $scriptPath
 # Generate default output path if not provided
 if ([string]::IsNullOrEmpty($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $OutputPath = "C:\temp\test_export_$($Issue)_$($timestamp).csv"
+    $tempPath = [System.IO.Path]::GetTempPath()
+    $OutputPath = Join-Path $tempPath "test_export_$($Issue)_$($timestamp).csv"
 }
 
 # Ensure output directory exists

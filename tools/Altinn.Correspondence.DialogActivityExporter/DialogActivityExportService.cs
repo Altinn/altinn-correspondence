@@ -175,11 +175,6 @@ public class DialogActivityExportService
             });
             _logger.LogDebug("Checkpoint saved at batch {BatchNumber}", batchNumber);
 
-            // Continue until we get no more rows (both queries return 0)
-            // Note: batch count can be up to 2x batchSize (batchSize from each status)
-            if (batchCount == 0)
-                break;
-
             // Check if we've reached the max batch limit (test mode)
             if (maxBatches.HasValue && batchNumber >= maxBatches.Value)
             {
@@ -220,6 +215,7 @@ public class DialogActivityExportService
         long preCalculatedCount1716 = 0,
         long preCalculatedCount1951 = 0,
         int? maxBatches = null,
+        bool freshStart = false,
         IProgress<ExportProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -351,10 +347,6 @@ public class DialogActivityExportService
                 BatchNumber = batchNumber,
                 ElapsedTime = stopwatch.Elapsed
             });
-
-            // Continue until we get no more rows
-            if (batchCount == 0)
-                break;
 
             // Check if we've reached the max batch limit (test mode)
             if (maxBatches.HasValue && batchNumber >= maxBatches.Value)
@@ -788,7 +780,8 @@ public class DialogActivityExportService
             {
                 if (TotalProcessed == 0 || ElapsedTime.TotalSeconds < 1) return TimeSpan.Zero;
                 var rate = TotalProcessed / ElapsedTime.TotalSeconds;
-                var remaining = TotalCount - TotalProcessed;
+                if (rate <= 0) return TimeSpan.Zero;
+                var remaining = Math.Max(0, TotalCount - TotalProcessed);
                 return TimeSpan.FromSeconds(remaining / rate);
             }
         }

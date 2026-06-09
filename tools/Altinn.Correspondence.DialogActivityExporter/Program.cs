@@ -160,6 +160,7 @@ try
             preCalcCount1716,
             preCalcCount1951,
             options.MaxBatches,
+            options.FreshStart,
             progress,
             CancellationToken.None);
     }
