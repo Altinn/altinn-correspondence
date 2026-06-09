@@ -31,6 +31,7 @@ internal static class CorrespondenceDetailsMapper
             DueDateTime = correspondenceDetails.DueDateTime,
             PropertyList = correspondenceDetails.PropertyList,
             Published = correspondenceDetails.Published,
+            Read = correspondenceDetails.Read,
             IsConfirmationNeeded = correspondenceDetails.IsConfirmationNeeded,
             IsConfidential = correspondenceDetails.IsConfidential,
             Altinn2CorrespondenceId = correspondenceDetails.Altinn2CorrespondenceId,
