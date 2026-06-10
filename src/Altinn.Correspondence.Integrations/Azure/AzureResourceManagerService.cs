@@ -20,6 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -390,10 +391,9 @@ public class AzureResourceManagerService : IResourceManager
 
     private string GenerateStorageAccountName()
     {
-        Random random = new Random();
         const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
         var obfuscationString = new string(Enumerable.Repeat(chars, 8)
-            .Select(s => s[random.Next(s.Length)]).ToArray());
+            .Select(s => s[RandomNumberGenerator.GetInt32(s.Length)]).ToArray());
         return "aicorr" + obfuscationString + "sa";
     }
 
