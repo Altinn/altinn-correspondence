@@ -77,7 +77,7 @@ public class RestoreSoftDeletedDialogsHandlerTests
 
         var repo = new Mock<ICorrespondenceRepository>();
         repo.Setup(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((int limit, DateTimeOffset? lastCreated, Guid? lastId, bool _, bool _, CancellationToken __) =>
+            .ReturnsAsync((int limit, DateTimeOffset? lastCreated, Guid? lastId, bool _, CancellationToken __) =>
             {
                 var query = all
                     .Where(c => !lastCreated.HasValue
