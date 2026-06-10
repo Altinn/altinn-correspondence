@@ -902,6 +902,11 @@ public class DialogportenService(HttpClient _httpClient,
             logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
             throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
         }
+        if (correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByAltinn) || correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient))
+        {
+            logger.LogError("Correspondence with id {correspondenceId} has been purged", correspondenceId);
+            return;
+        }
         var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
         if (dialogId is null)
         {
