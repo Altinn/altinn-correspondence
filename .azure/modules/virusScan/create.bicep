@@ -34,6 +34,7 @@ resource malwareScanSettings 'Microsoft.Security/defenderForStorageSettings@2022
   scope: storageAccount
   properties: {
     isEnabled: true
+    dataScannerResourceId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Security/datascanners/StorageDataScanner'
     malwareScanning: {
       onUpload: {
         capGBPerMonth: -1

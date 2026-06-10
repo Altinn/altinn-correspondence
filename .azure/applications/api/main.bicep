@@ -89,6 +89,13 @@ module addStorageBlobDataContributor '../../modules/identity/addStorageBlobDataC
   }
 }
 
+module addDefenderForStorageScannerOperator '../../modules/identity/addDefenderForStorageScannerOperatorRole.bicep' = {
+  name: 'defenderForStorageScannerOperatorAccess'
+  params: {
+    userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
+  }
+}
+
 module keyvaultAddReaderRolesAppIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
   name: 'kvreader-${namePrefix}-app'
   scope: resourceGroup
@@ -155,7 +162,7 @@ resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bicep' = {
   name: 'fetchAzureEventGridIpsScript'
   scope: resourceGroup
-  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess, addContributorAccess]
+  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess, addContributorAccess, addDefenderForStorageScannerOperator]
   params: {
     location: location
     principal_id: appIdentity.outputs.id

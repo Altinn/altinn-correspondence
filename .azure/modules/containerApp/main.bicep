@@ -94,6 +94,7 @@ var containerAppEnvVarsComputed = [
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
+  { name: 'AzureResourceManagerOptions__LogAnalyticsWorkspaceId', value: resourceId('Microsoft.OperationalInsights/workspaces', '${namePrefix}-audit-logs') }
   { name: 'MaskinportenJwkRotationSettings__Enabled', value: string(rotationEnabled) }
   { name: 'MaskinportenJwkRotationSettings__KeyVaultUrl', value: keyVaultUrl }
   { name: 'MaskinportenJwkRotationSettings__ContainerAppResourceId', value: containerAppResourceId }
