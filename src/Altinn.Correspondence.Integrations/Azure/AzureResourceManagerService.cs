@@ -347,7 +347,7 @@ public class AzureResourceManagerService : IResourceManager
 
     private async Task<string?> GetStorageDataScannerPrincipalIdAsync(HttpClient client, CancellationToken cancellationToken)
     {
-        var endpoint = $"https://management.azure.com/subscriptions/{_resourceManagerOptions.SubscriptionId}/providers/Microsoft.Security/datascanners/StorageDataScanner?api-version=2024-07-01-preview";
+        var endpoint = $"https://management.azure.com/subscriptions/{_resourceManagerOptions.SubscriptionId}/providers/Microsoft.Security/datascanners/StorageDataScanner?api-version=2021-12-01-preview";
         using var response = await client.GetAsync(endpoint, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
