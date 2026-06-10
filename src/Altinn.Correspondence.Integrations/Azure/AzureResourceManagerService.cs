@@ -74,7 +74,7 @@ public class AzureResourceManagerService : IResourceManager
 
     public void DeployStorageAccountsForServiceOwner(ServiceOwnerEntity serviceOwnerEntity, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Creating storage providers for {ServiceOwnerName}", serviceOwnerEntity.Name);
+        _logger.LogInformation("Creating storage providers for {ServiceOwnerName}", serviceOwnerEntity.Name);
         var virusScanStorageProviderJob = _backgroundJobClient.Enqueue<IResourceManager>(service => service.DeployStorageAccount(serviceOwnerEntity, true, cancellationToken));
         _backgroundJobClient.ContinueJobWith<IResourceManager>(virusScanStorageProviderJob, service => service.DeployStorageAccount(serviceOwnerEntity, false, cancellationToken));
     }
@@ -83,15 +83,15 @@ public class AzureResourceManagerService : IResourceManager
     {
         if (_hostEnvironment.IsDevelopment())
         {
-            _logger.LogDebug("Development environment detected. Skipping deployment.");
+            _logger.LogInformation("Development environment detected. Skipping deployment.");
             return;
         }
-        _logger.LogDebug($"Starting deployment for {serviceOwnerEntity.Name}");
+        _logger.LogInformation($"Starting deployment for {serviceOwnerEntity.Name}");
         var resourceGroupName = GetResourceGroupName(serviceOwnerEntity);
 
         var storageAccountName = GenerateStorageAccountName();
-        _logger.LogDebug($"Resource group: {resourceGroupName}");
-        _logger.LogDebug($"Storage account: {storageAccountName}");
+        _logger.LogInformation($"Resource group: {resourceGroupName}");
+        _logger.LogInformation($"Storage account: {storageAccountName}");
 
         // Create or get the resource group
         var subscription = GetSubscription();
@@ -127,7 +127,7 @@ public class AzureResourceManagerService : IResourceManager
         await ConfigureBlobDiagnosticSettings(blobService, cancellationToken);
 
         await _serviceOwnerRepository.InitializeStorageProvider(serviceOwnerEntity.Id, storageAccountName, virusScan ? StorageProviderType.Altinn3Azure : StorageProviderType.Altinn3AzureWithoutVirusScan);
-        _logger.LogDebug($"Storage account {storageAccountName} created");
+        _logger.LogInformation($"Storage account {storageAccountName} created");
     }
 
     private async Task EnableMicrosoftDefender(string resourceGroupName, string storageAccountName, CancellationToken cancellationToken)
@@ -142,6 +142,7 @@ public class AzureResourceManagerService : IResourceManager
             Properties = new Properties()
             {
                 IsEnabled = true,
+                DataScannerResourceId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/providers/Microsoft.Security/datascanners/StorageDataScanner",
                 MalwareScanning = new MalwareScanning()
                 {
                     OnUpload = new OnUpload()
@@ -164,19 +165,55 @@ public class AzureResourceManagerService : IResourceManager
         });
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await client.PutAsync(endpoint, content, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            var errorMessage = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to enable Defender Malware Scan. Error: {error}", errorMessage);
-            throw new HttpRequestException($"Failed to enable Defender Malware Scan. Error: {errorMessage}");
+            _logger.LogWarning("Failed to enable Defender Malware Scan. Error: {error}", responseBody);
+            throw new HttpRequestException($"Failed to enable Defender Malware Scan. Error: {responseBody}");
         }
-        _logger.LogDebug($"Microsoft Defender Malware scan enabled for storage account {storageAccountName}: {await response.Content.ReadAsStringAsync()}");
+
+        if (!IsOnUploadMalwareScanEnabled(responseBody))
+        {
+            _logger.LogWarning(
+                "Defender API returned {StatusCode} but on-upload malware scan is not enabled for storage account {StorageAccountName}. Response: {Response}",
+                (int)response.StatusCode,
+                storageAccountName,
+                responseBody);
+            throw new HttpRequestException(
+                $"Defender API returned {(int)response.StatusCode} but on-upload malware scan is not enabled. Response: {responseBody}");
+        }
+
+        _logger.LogInformation(
+            "Microsoft Defender on-upload malware scan enabled for storage account {StorageAccountName}: {Response}",
+            storageAccountName,
+            responseBody);
     }
+    private static bool IsOnUploadMalwareScanEnabled(string responseBody)
+    {
+        using var document = JsonDocument.Parse(responseBody);
+        if (!document.RootElement.TryGetProperty("properties", out var properties))
+        {
+            return false;
+        }
+
+        if (!properties.TryGetProperty("malwareScanning", out var malwareScanning))
+        {
+            return false;
+        }
+
+        if (!malwareScanning.TryGetProperty("onUpload", out var onUpload))
+        {
+            return false;
+        }
+
+        return onUpload.TryGetProperty("isEnabled", out var isEnabled) && isEnabled.GetBoolean();
+    }
+
     private async Task ConfigureBlobDiagnosticSettings(BlobServiceResource blobService, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_resourceManagerOptions.LogAnalyticsWorkspaceId))
         {
-            _logger.LogDebug("Log Analytics workspace not configured. Skipping blob diagnostic settings.");
+            _logger.LogWarning("Log Analytics workspace not configured. Skipping blob diagnostic settings.");
             return;
         }
 
@@ -186,13 +223,34 @@ public class AzureResourceManagerService : IResourceManager
         var diagnosticData = new DiagnosticSettingData
         {
             WorkspaceId = new ResourceIdentifier(_resourceManagerOptions.LogAnalyticsWorkspaceId),
+            LogAnalyticsDestinationType = "Dedicated",
         };
 
         diagnosticData.Logs.Add(new LogSettings(true) { Category = "StorageRead" });
         diagnosticData.Logs.Add(new LogSettings(true) { Category = "StorageWrite" });
         diagnosticData.Logs.Add(new LogSettings(true) { Category = "StorageDelete" });
 
-        await diagnosticCollection.CreateOrUpdateAsync(WaitUntil.Completed, "audit-logs", diagnosticData, cancellationToken);
+        var response = await diagnosticCollection.CreateOrUpdateAsync(
+            WaitUntil.Completed,
+            "audit-logs",
+            diagnosticData,
+            cancellationToken);
+
+        if (!response.GetRawResponse().IsError)
+        {
+            _logger.LogInformation(
+                "Configured blob diagnostic settings for {BlobServiceId} to workspace {WorkspaceId}",
+                blobService.Id,
+                _resourceManagerOptions.LogAnalyticsWorkspaceId);
+            return;
+        }
+
+        var error = response.GetRawResponse().Content.ToString();
+        _logger.LogError(
+            "Failed to configure blob diagnostic settings for {BlobServiceId}. Error: {Error}",
+            blobService.Id,
+            error);
+        throw new RequestFailedException(response.GetRawResponse());
     }
 
     private string GenerateStorageAccountName()
@@ -220,7 +278,7 @@ public class AzureResourceManagerService : IResourceManager
                 ipRestrictions.Add(new ContainerAppIPSecurityRestrictionRule(name: $"IP whitelist {ip.Value}", action: ContainerAppIPRuleAction.Allow, ipAddressRange: ip.Key));
             }
 
-            _logger.LogDebug("Updating IP restrictions for container app");
+            _logger.LogInformation("Updating IP restrictions for container app");
             var response = await containerApp.Value.UpdateAsync(waitUntil: WaitUntil.Started, data: containerApp.Value.Data, cancellationToken: cancellationToken);
 
             if (response.GetRawResponse().Status != 200)
