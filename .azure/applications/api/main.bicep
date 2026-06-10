@@ -64,7 +64,7 @@ module appIdentity '../../modules/identity/create.bicep' = {
   }
 }
 
-module auditStorageBlobLogsTransform '../../modules/logAnalytics/workspaceStorageBlobLogsTransform.bicep' = if (environment == 'production') {
+module auditStorageBlobLogsTransform '../../modules/logAnalytics/workspaceStorageBlobLogsTransform.bicep' = {
   name: 'auditStorageBlobLogsTransform'
   scope: resourceGroup
   params: {
