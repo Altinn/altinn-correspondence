@@ -64,11 +64,10 @@ module appIdentity '../../modules/identity/create.bicep' = {
   }
 }
 
-module auditStorageBlobLogsTransform '../../modules/logAnalytics/workspaceStorageBlobLogsTransform.bicep' =  {
+module auditStorageBlobLogsTransform '../../modules/logAnalytics/workspaceStorageBlobLogsTransform.bicep' = {
   name: 'auditStorageBlobLogsTransform'
   scope: resourceGroup
   params: {
-    workspaceResourceId: resourceId('Microsoft.OperationalInsights/workspaces', '${namePrefix}-audit-logs')
     location: location
     appObjectId: appIdentity.outputs.principalId
     namePrefix: namePrefix

@@ -1,6 +1,3 @@
-@description('Resource ID of the Log Analytics workspace that receives StorageBlobLogs.')
-param workspaceResourceId string
-
 @description('Azure region for the workspace transformation DCR.')
 param location string = resourceGroup().location
 
@@ -10,7 +7,7 @@ param appObjectId string
 @description('Prefix used for uniquely named DCR resources in this environment.')
 param namePrefix string
 
-var workspaceName = last(split(workspaceResourceId, '/'))
+var workspaceName = '${namePrefix}-audit-logs'
 var transformDcrName = '${namePrefix}-storageblob-logs-transform-dcr'
 var dcrAssociationName = '${namePrefix}-storageblob-logs-transform-assoc'
 var logAnalyticsDestinationName = 'audit-logs'
@@ -40,7 +37,7 @@ resource transformDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
     destinations: {
       logAnalytics: [
         {
-          workspaceResourceId: workspaceResourceId
+          workspaceResourceId: workspace.id
           name: logAnalyticsDestinationName
         }
       ]
