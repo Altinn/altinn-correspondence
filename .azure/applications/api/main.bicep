@@ -103,10 +103,6 @@ module addRbacAdministrator '../../modules/identity/addRbacAdministratorRole.bic
   }
 }
 
-module registerEventGridProvider '../../modules/subscription/registerEventGridProvider.bicep' = {
-  name: 'registerEventGridProvider'
-}
-
 module keyvaultAddReaderRolesAppIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
   name: 'kvreader-${namePrefix}-app'
   scope: resourceGroup
