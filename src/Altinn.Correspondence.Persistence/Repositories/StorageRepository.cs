@@ -7,6 +7,7 @@ using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -374,6 +375,57 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw;
             }
         }
+
+    public async Task<(string sasUrl, DateTimeOffset expiresOn)> GenerateDelegatedReadSasUrl(
+        Guid attachmentId,
+        StorageProviderEntity? storageProviderEntity,
+        CancellationToken cancellationToken)
+    {
+        const int validityHours = 1;
+        var startsOn = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var expiresOn = DateTimeOffset.UtcNow.AddHours(validityHours);
+
+        var (blobServiceClient, storageAccountName) = GetBlobServiceClientForAttachment(storageProviderEntity);
+        var blobClient = blobServiceClient.GetBlobContainerClient("attachments").GetBlobClient(attachmentId.ToString());
+
+        var delegationKey = await blobServiceClient.GetUserDelegationKeyAsync(startsOn, expiresOn, cancellationToken);
+
+        var sasBuilder = new BlobSasBuilder
+        {
+            BlobContainerName = "attachments",
+            BlobName = attachmentId.ToString(),
+            Resource = "b",
+            StartsOn = startsOn,
+            ExpiresOn = expiresOn
+        };
+        sasBuilder.SetPermissions(BlobSasPermissions.Read);
+
+        var sasToken = sasBuilder.ToSasQueryParameters(delegationKey.Value, storageAccountName).ToString();
+        var sasUrl = $"{blobClient.Uri}?{sasToken}";
+
+        return (sasUrl, expiresOn);
+    }
+
+    private (BlobServiceClient BlobServiceClient, string StorageAccountName) GetBlobServiceClientForAttachment(
+        StorageProviderEntity? storageProviderEntity)
+    {
+        if (storageProviderEntity is not null)
+        {
+            var storageAccountName = storageProviderEntity.StorageResourceName;
+            return (GetOrCreateBlobServiceClient(storageAccountName), storageAccountName);
+        }
+
+        var connectionString = _options.ConnectionString;
+        if (connectionString.Split(';').Any(part => part.StartsWith("AccountName=")))
+        {
+            var storageAccountName = GetAccountNameFromConnectionString(connectionString)
+                ?? throw new Exception("Failed to extract AccountName from connection string");
+            return (GetOrCreateBlobServiceClient(storageAccountName), storageAccountName);
+        }
+
+        throw new InvalidOperationException(
+            "User delegation SAS requires Azure AD authentication and is not supported with connection string-only storage configuration");
+    }
 
     public async Task<Stream> DownloadReportFile(string fileName, CancellationToken cancellationToken)
     {

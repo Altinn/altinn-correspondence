@@ -10,5 +10,6 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<(string locationUrl, string hash, long size)> UploadReportFile(string fileName, int serviceOwnerCount, int correspondenceCount, Stream stream, CancellationToken cancellationToken);
         Task<Stream> DownloadReportFile(string fileName, CancellationToken cancellationToken);
         Task<(Stream DownloadStream, string FileName, long FileSize, string FileHash, int ServiceOwnerCount, int CorrespondenceCount)> DownloadLatestReportFile(CancellationToken cancellationToken);
+        Task<(string sasUrl, DateTimeOffset expiresOn)> GenerateDelegatedReadSasUrl(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken);
     }
 }

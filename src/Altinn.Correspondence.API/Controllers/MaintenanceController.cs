@@ -21,6 +21,7 @@ using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
+using Altinn.Correspondence.Application.GenerateDelegatedBlobSasUrl;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -431,6 +432,39 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     {
         _logger.LogInformation("Request to update old correspondences with download all received");
         var result = await handler.Process(request, HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+    /// <summary>
+    /// Generate a user-delegation SAS URL for downloading an attachment blob (proof-of-concept).
+    /// </summary>
+    /// <response code="200">Returns a time-limited SAS URL for read access to the blob</response>
+    /// <response code="400">Attachment has no blob location or storage does not support delegated SAS</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="403">Forbidden</response>
+    /// <response code="404">Attachment not found</response>
+    [HttpPost]
+    [Route("attachment-delegated-sas-url/{attachmentId}")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(GenerateDelegatedBlobSasUrlResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> GenerateDelegatedBlobSasUrl(
+        [FromServices] GenerateDelegatedBlobSasUrlHandler handler,
+        [FromRoute] Guid attachmentId,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to generate delegated SAS URL for attachment {AttachmentId} received", attachmentId);
+        var result = await handler.Process(
+            new GenerateDelegatedBlobSasUrlRequest { AttachmentId = attachmentId },
+            HttpContext.User,
+            cancellationToken);
         return result.Match(
             Ok,
             Problem
