@@ -36,6 +36,7 @@ public class CleanupMarkdownAndHTMLInSummaryHandlerTests
             It.IsAny<DateTimeOffset?>(),
             It.IsAny<Guid?>(),
             true,
+            false,
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { c1, c2 })
             .ReturnsAsync(new List<CorrespondenceEntity>());

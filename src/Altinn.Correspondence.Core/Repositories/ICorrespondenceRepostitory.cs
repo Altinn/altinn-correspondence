@@ -66,6 +66,7 @@ namespace Altinn.Correspondence.Core.Repositories
             DateTimeOffset? lastCreated,
             Guid? lastId,
             bool filterMigrated,
+            bool includeForDownloadAll,
             CancellationToken cancellationToken);
 
         Task<List<CorrespondenceEntity>> GetCorrespondencesWindowBefore(

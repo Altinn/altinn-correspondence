@@ -56,6 +56,7 @@ public class CleanupMarkdownAndHTMLInSummaryHandler(
                 lastCreated,
                 lastId,
                 true,
+                false,
                 cancellationToken);
 
                 isMoreCorrespondences = correspondencesWindow.Count > windowSize;

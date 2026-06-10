@@ -31,7 +31,7 @@ public class RestoreSoftDeletedDialogsHandlerTests
             .Build();
 
         var repo = new Mock<ICorrespondenceRepository>();
-        repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
+        repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceEntity> { c1, c2 })
             .ReturnsAsync(new List<CorrespondenceEntity>());
         repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
@@ -76,7 +76,7 @@ public class RestoreSoftDeletedDialogsHandlerTests
         }
 
         var repo = new Mock<ICorrespondenceRepository>();
-        repo.Setup(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
+        repo.Setup(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync((int limit, DateTimeOffset? lastCreated, Guid? lastId, bool _, CancellationToken __) =>
             {
                 var query = all

@@ -63,6 +63,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                 lastCreated,
                 lastId,
                 true,
+                true,
                 cancellationToken);
 
                 isMoreCorrespondences = correspondencesWindow.Count > windowSize;
