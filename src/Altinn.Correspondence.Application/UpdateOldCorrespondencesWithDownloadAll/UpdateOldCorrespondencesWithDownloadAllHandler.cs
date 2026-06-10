@@ -44,7 +44,6 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
 
         var totalProcessed = 0;
         var totalPatched = 0;
-        var totalAlreadyHadDownloadAll = 0;
         var totalNotMatchingDownloadAllCriteria = 0;
         var totalErrors = 0;
         var allErrors = new List<string>();
@@ -88,17 +87,6 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                         {
                             if (attachments.Sum(a => a.AttachmentSize) <= 2_000_000_000) // 2 GB
                             {
-                                var dialogId = correspondence.ExternalReferences.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
-                                if (dialogId == null)
-                                {
-                                    totalErrors++;
-                                    continue;
-                                }
-                                bool hasDownloadAll = await dialogportenService.HasDownloadAllAttachments(dialogId, cancellationToken);
-                                if (hasDownloadAll){
-                                    totalAlreadyHadDownloadAll++;
-                                    continue;
-                                } 
                                 var patched = await ProcessSingleCorrespondence(correspondence, cancellationToken);
                                 if (patched){
                                     totalPatched++;
@@ -126,8 +114,8 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                     isMoreCorrespondences = false;
                 }
             }
-            logger.LogInformation("Background update completed. Total processed: {processedCount}, Total patched: {patchedCount}, Already ok: {alreadyOkCount}, Total errors: {errorCount}, Not matching criteria: {notMatchingCriteriaCount}", 
-                totalProcessed, totalPatched, totalAlreadyHadDownloadAll, totalErrors, totalNotMatchingDownloadAllCriteria);
+            logger.LogInformation("Background update completed. Total processed: {processedCount}, Total patched: {patchedCount}, Total errors: {errorCount}, Not matching criteria: {notMatchingCriteriaCount}", 
+                totalProcessed, totalPatched, totalErrors, totalNotMatchingDownloadAllCriteria);
                 
             if (allErrors.Count > 0)
             {
@@ -143,15 +131,9 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
 
     private async Task<bool> ProcessSingleCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
-        var dialogId = correspondence.ExternalReferences.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
-        if (dialogId == null)
-        {
-            _logger.LogWarning("Correspondence {correspondenceId} has no DialogportenDialogId reference, skipping", correspondence.Id);
-            return false;
-        }
         try
         {
-            _backgroundJobClient.Enqueue<IDialogportenService>(service => service.TryAddDownloadAllAttachmentsToDialog(dialogId, correspondence, CancellationToken.None));
+            _backgroundJobClient.Enqueue<IDialogportenService>(service => service.TryAddDownloadAllAttachmentsToDialog(correspondence.Id, CancellationToken.None));
             return true;
         }
         catch (Exception ex)

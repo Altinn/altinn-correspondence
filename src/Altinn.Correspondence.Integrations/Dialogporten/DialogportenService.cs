@@ -893,30 +893,38 @@ public class DialogportenService(HttpClient _httpClient,
         return dialogResponse;
     }
 
-    public async Task<bool> HasDownloadAllAttachments(string dialogId, CancellationToken cancellationToken = default)
-    {
-        var dialog = await GetDialog(dialogId);
-        return dialog.Attachments?.Any(a => a.Urls != null && a.Urls.Any(u => u.Url.Contains("downloadall"))) ?? false; 
-    }
-
     [AutomaticRetry(Attempts = 10)]
-    public async Task TryAddDownloadAllAttachmentsToDialog(string dialogId, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default)
+    public async Task TryAddDownloadAllAttachmentsToDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
     {
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            logger.LogError("No dialog found on correspondence with id {correspondenceId} when attempting to add download all attachments", correspondenceId);
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId} when attempting to add download all attachments");
+        }
         var dialog = await GetDialog(dialogId);
         if (dialog is null)
         {
             throw new Exception($"Dialog {dialogId} not found when attempting to add download all attachments");
         }
 
+        if (dialog.Attachments?.Any(a => a.Urls != null && a.Urls.Any(u => u.Url.Contains("downloadall"))) == true)
+        {
+            logger.LogInformation("Dialog {dialogId} already has download all attachments, skipping adding it again", dialogId);
+            return;
+        }
+
+
         List<Attachment> attachments = dialog.Attachments ?? new List<Attachment>();
         bool hasAttachments = attachments.Count > 0;
         if (!hasAttachments){
-            var correspondenceEntity = await _correspondenceRepository.GetCorrespondenceById(correspondence.Id, true, true, false, cancellationToken);
-            if (correspondenceEntity is null)            {
-                logger.LogError("Correspondence with id {correspondenceId} not found", correspondence.Id);
-                throw new ArgumentException($"Correspondence with id {correspondence.Id} not found", nameof(correspondence.Id));
-            }
-            attachments = CreateDialogRequestMapper.GetAttachmentsForDialogPatchRequest(correspondenceEntity, generalSettings.Value.CorrespondenceBaseUrl);
+            attachments = CreateDialogRequestMapper.GetAttachmentsForDialogPatchRequest(correspondence, generalSettings.Value.CorrespondenceBaseUrl);
         } else{
             logger.LogInformation("Trying to remove attachments from correspondence: {correspondenceId}", correspondence.Id);
             var patchRequestBuilderRemoveAttachments = new DialogPatchRequestBuilder()
