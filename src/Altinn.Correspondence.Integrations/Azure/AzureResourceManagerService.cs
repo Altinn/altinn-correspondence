@@ -30,6 +30,9 @@ public class AzureResourceManagerService : IResourceManager
     private const string RepositoryUrl = "https://github.com/Altinn/altinn-correspondence";
     private const string DefenderForStorageDataScannerRoleDefinitionId = "1e7ca9b1-60d1-4db8-a914-f2ca1ff27c40";
     private const string StorageBlobDataOwnerRoleDefinitionId = "b7e6dc6d-f1e8-4753-8033-0f276bb0955b";
+    private const string DefenderForStorageSettingsApiVersion = "2025-06-01";
+    private static readonly TimeSpan DefenderSetupPollInterval = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan DefenderSetupPollTimeout = TimeSpan.FromMinutes(5);
 
     private readonly AzureResourceManagerOptions _resourceManagerOptions;
     private readonly IHostEnvironment _hostEnvironment;
@@ -115,15 +118,15 @@ public class AzureResourceManagerService : IResourceManager
         }
         var storageAccountCollection = resourceGroup.Value.GetStorageAccounts();
         var storageAccount = await storageAccountCollection.CreateOrUpdateAsync(WaitUntil.Completed, storageAccountName, storageAccountData, cancellationToken);
-        if (virusScan)
-        {
-            await EnableMicrosoftDefender(resourceGroupName, storageAccountName, cancellationToken);
-        }
         var blobService = storageAccount.Value.GetBlobService();
         string containerName = "attachments";
         if (!blobService.GetBlobContainers().Any(container => container.Data.Name == containerName))
         {
             await blobService.GetBlobContainers().CreateOrUpdateAsync(WaitUntil.Completed, containerName, new BlobContainerData(), cancellationToken);
+        }
+        if (virusScan)
+        {
+            await EnableMicrosoftDefender(resourceGroupName, storageAccountName, cancellationToken);
         }
 
         await ConfigureBlobDiagnosticSettings(blobService, cancellationToken);
@@ -138,8 +141,70 @@ public class AzureResourceManagerService : IResourceManager
         var storageAccountResourceId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{storageAccountName}";
         await EnsureDefenderStorageScannerRoleAssignmentsAsync(client, storageAccountResourceId, cancellationToken);
 
-        var endpoint = $"https://management.azure.com{storageAccountResourceId}/providers/Microsoft.Security/defenderForStorageSettings/current?api-version=2022-12-01-preview";
-        var requestBody = new MalwareScanConfiguration()
+        var defenderSettingsEndpoint = $"https://management.azure.com{storageAccountResourceId}/providers/Microsoft.Security/defenderForStorageSettings/current?api-version={DefenderForStorageSettingsApiVersion}";
+        var requestBody = CreateMalwareScanConfiguration();
+        var json = JsonSerializer.Serialize(requestBody, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var response = await client.PutAsync(defenderSettingsEndpoint, content, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Failed to enable Defender malware scan for storage account {StorageAccountName} on attempt {Attempt}. Error: {Error}",
+                    storageAccountName,
+                    attempt,
+                    responseBody);
+                if (attempt == maxAttempts)
+                {
+                    throw new HttpRequestException($"Failed to enable Defender Malware Scan. Error: {responseBody}");
+                }
+
+                await Task.Delay(DefenderSetupPollInterval, cancellationToken);
+                continue;
+            }
+
+            _logger.LogInformation(
+                "Defender malware scan settings PUT returned {StatusCode} for storage account {StorageAccountName} on attempt {Attempt}. Response: {Response}",
+                (int)response.StatusCode,
+                storageAccountName,
+                attempt,
+                responseBody);
+
+            var readyResponseBody = await WaitForMalwareScanningToBecomeOperationalAsync(
+                client,
+                defenderSettingsEndpoint,
+                storageAccountResourceId,
+                resourceGroupName,
+                cancellationToken);
+            if (readyResponseBody is not null)
+            {
+                _logger.LogInformation(
+                    "Microsoft Defender on-upload malware scan is operational for storage account {StorageAccountName}: {Response}",
+                    storageAccountName,
+                    readyResponseBody);
+                return;
+            }
+
+            _logger.LogWarning(
+                "Defender malware scan was not operational for storage account {StorageAccountName} after attempt {Attempt}",
+                storageAccountName,
+                attempt);
+        }
+
+        throw new HttpRequestException(
+            $"Defender on-upload malware scan did not become operational for storage account {storageAccountName} within {DefenderSetupPollTimeout.TotalMinutes} minutes.");
+    }
+
+    private MalwareScanConfiguration CreateMalwareScanConfiguration()
+    {
+        return new MalwareScanConfiguration()
         {
             Properties = new Properties()
             {
@@ -147,6 +212,7 @@ public class AzureResourceManagerService : IResourceManager
                 DataScannerResourceId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/providers/Microsoft.Security/datascanners/StorageDataScanner",
                 MalwareScanning = new MalwareScanning()
                 {
+                    BlobScanResultsOptions = "blobIndexTags",
                     OnUpload = new OnUpload()
                     {
                         IsEnabled = true,
@@ -161,34 +227,86 @@ public class AzureResourceManagerService : IResourceManager
                 }
             }
         };
-        var json = JsonSerializer.Serialize(requestBody, new JsonSerializerOptions
+    }
+
+    private async Task<string?> WaitForMalwareScanningToBecomeOperationalAsync(
+        HttpClient client,
+        string defenderSettingsEndpoint,
+        string storageAccountResourceId,
+        string resourceGroupName,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow.Add(DefenderSetupPollTimeout);
+        while (DateTimeOffset.UtcNow < deadline)
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await client.PutAsync(endpoint, content, cancellationToken);
-        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var response = await client.GetAsync(defenderSettingsEndpoint, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Failed to read Defender settings while waiting for malware scan setup. Status: {StatusCode}. Response: {Response}",
+                    (int)response.StatusCode,
+                    responseBody);
+            }
+            else if (IsMalwareScanningOperational(responseBody)
+                && await HasStorageMalwareScanSystemTopicAsync(client, resourceGroupName, storageAccountResourceId, cancellationToken))
+            {
+                return responseBody;
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Defender malware scan setup is still in progress for storage account {StorageAccountName}. Current response: {Response}",
+                    storageAccountResourceId.Split('/', StringSplitOptions.RemoveEmptyEntries).Last(),
+                    responseBody);
+            }
+
+            await Task.Delay(DefenderSetupPollInterval, cancellationToken);
+        }
+
+        return null;
+    }
+
+    private async Task<bool> HasStorageMalwareScanSystemTopicAsync(
+        HttpClient client,
+        string resourceGroupName,
+        string storageAccountResourceId,
+        CancellationToken cancellationToken)
+    {
+        var endpoint = $"https://management.azure.com/subscriptions/{_resourceManagerOptions.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/systemTopics?api-version=2022-06-15";
+        using var response = await client.GetAsync(endpoint, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("Failed to enable Defender Malware Scan. Error: {error}", responseBody);
-            throw new HttpRequestException($"Failed to enable Defender Malware Scan. Error: {responseBody}");
-        }
-
-        if (!IsOnUploadMalwareScanEnabled(responseBody))
-        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogWarning(
-                "Defender API returned {StatusCode} but on-upload malware scan is not enabled for storage account {StorageAccountName}. Response: {Response}",
+                "Failed to list Event Grid system topics in resource group {ResourceGroupName}. Status: {StatusCode}. Error: {Error}",
+                resourceGroupName,
                 (int)response.StatusCode,
-                storageAccountName,
-                responseBody);
-            throw new HttpRequestException(
-                $"Defender API returned {(int)response.StatusCode} but on-upload malware scan is not enabled. Response: {responseBody}");
+                error);
+            return false;
         }
 
-        _logger.LogInformation(
-            "Microsoft Defender on-upload malware scan enabled for storage account {StorageAccountName}: {Response}",
-            storageAccountName,
-            responseBody);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        if (!document.RootElement.TryGetProperty("value", out var systemTopics))
+        {
+            return false;
+        }
+
+        foreach (var systemTopic in systemTopics.EnumerateArray())
+        {
+            if (!systemTopic.TryGetProperty("properties", out var properties))
+            {
+                continue;
+            }
+
+            if (properties.TryGetProperty("source", out var source)
+                && string.Equals(source.GetString(), storageAccountResourceId, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
     private async Task<HttpClient> CreateManagementHttpClientAsync(CancellationToken cancellationToken)
     {
@@ -315,7 +433,7 @@ public class AzureResourceManagerService : IResourceManager
         return new Guid(hash).ToString();
     }
 
-    private static bool IsOnUploadMalwareScanEnabled(string responseBody)
+    private static bool IsMalwareScanningOperational(string responseBody)
     {
         using var document = JsonDocument.Parse(responseBody);
         if (!document.RootElement.TryGetProperty("properties", out var properties))
@@ -328,12 +446,20 @@ public class AzureResourceManagerService : IResourceManager
             return false;
         }
 
-        if (!malwareScanning.TryGetProperty("onUpload", out var onUpload))
+        if (!malwareScanning.TryGetProperty("onUpload", out var onUpload)
+            || !onUpload.TryGetProperty("isEnabled", out var isEnabled)
+            || !isEnabled.GetBoolean())
         {
             return false;
         }
 
-        return onUpload.TryGetProperty("isEnabled", out var isEnabled) && isEnabled.GetBoolean();
+        if (!malwareScanning.TryGetProperty("operationStatus", out var operationStatus)
+            || !operationStatus.TryGetProperty("code", out var operationStatusCode))
+        {
+            return true;
+        }
+
+        return string.Equals(operationStatusCode.GetString(), "Succeeded", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task ConfigureBlobDiagnosticSettings(BlobServiceResource blobService, CancellationToken cancellationToken)

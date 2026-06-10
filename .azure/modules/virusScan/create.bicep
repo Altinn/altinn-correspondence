@@ -29,13 +29,14 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-04-01' existing 
   name: storageAccountName
 }
 
-resource malwareScanSettings 'Microsoft.Security/defenderForStorageSettings@2022-12-01-preview' = {
+resource malwareScanSettings 'Microsoft.Security/defenderForStorageSettings@2025-06-01' = {
   name: 'current'
   scope: storageAccount
   properties: {
     isEnabled: true
     dataScannerResourceId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Security/datascanners/StorageDataScanner'
     malwareScanning: {
+      blobScanResultsOptions: 'blobIndexTags'
       onUpload: {
         capGBPerMonth: -1
         isEnabled: true
