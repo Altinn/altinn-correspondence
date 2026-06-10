@@ -92,7 +92,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }   
 
-        const long maxAttachmentSizeForZip = 25_000_000; // 25 MB
+        const long maxAttachmentSizeForZip = 2_000_000_000; // 2 GB
         var totalSize = attachments.Sum(a => a.AttachmentSize);
         if (totalSize > maxAttachmentSizeForZip)
         {

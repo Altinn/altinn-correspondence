@@ -67,5 +67,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("published")]
         public DateTimeOffset? Published { get; set; }
+
+        /// <summary>
+        /// Timestamp for when the correspondence was first read by the recipient. Is null until the correspondence has been read.
+        /// </summary>
+        [JsonPropertyName("read")]
+        public DateTimeOffset? Read { get; set; }
     }
 }

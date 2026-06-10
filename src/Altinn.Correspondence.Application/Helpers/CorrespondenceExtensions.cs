@@ -85,4 +85,15 @@ public static class CorrespondenceStatusExtensions
     {
         return correspondence.Statuses.Any(s => s.Status == status) || correspondence.StatusFetched.Any(s => s.Status == status);
     }
+
+    /// <summary>
+    /// Returns the timestamp of the first time the correspondence was marked as Read, or null if it has not been read.
+    /// </summary>
+    public static DateTimeOffset? GetReadTimestamp(this CorrespondenceEntity correspondence)
+    {
+        return correspondence.Statuses
+            .Where(s => s.Status == CorrespondenceStatus.Read)
+            .OrderBy(s => s.StatusChanged)
+            .FirstOrDefault()?.StatusChanged;
+    }
 }

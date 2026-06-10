@@ -20,6 +20,7 @@ using Altinn.Correspondence.Application.MaskinportenJwkRotation;
 using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
+using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -410,6 +411,26 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     {
         _logger.LogInformation("Request to purge dialog and delete reminder for read correspondences received");
         var result = await handler.Process(HttpContext.User, cancellationToken);
+        return result.Match(
+            Ok,
+            Problem
+        );
+    }
+
+    [HttpPost]
+    [Route("update-old-correspondences-with-download-all")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> UpdateOldCorrespondencesWithDownloadAll(
+        [FromServices] UpdateOldCorrespondencesWithDownloadAllHandler handler,
+        [FromBody] UpdateOldCorrespondencesWithDownloadAllRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Request to update old correspondences with download all received");
+        var result = await handler.Process(request, HttpContext.User, cancellationToken);
         return result.Match(
             Ok,
             Problem

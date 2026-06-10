@@ -6,6 +6,7 @@ using Altinn.Correspondence.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Tests.TestingRepository
 {
@@ -67,6 +68,84 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.NotEmpty(correspondences);
             Assert.Equal(1, correspondences?.Count);
             Assert.Equal(addedCorrespondence.Id, correspondences?.FirstOrDefault()?.Id);
+        }
+
+        [Fact]
+        public async Task GetCorrespondences_AsSender_ReturnsArchivedCorrespondence()
+        {
+            // Arrange
+            await using var context = _fixture.CreateDbContext();
+            var correspondenceRepository = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var baseTime = new DateTimeOffset(new DateTime(2002, 1, 1, 0, 0, 0), TimeSpan.Zero);
+            var from = baseTime.AddDays(-1);
+            var to = baseTime.AddDays(1);
+            var senderOrgNo = "991825827";
+            var resource = Guid.NewGuid().ToString();
+            var entity = new CorrespondenceEntityBuilder()
+                .WithResourceId(resource)
+                .WithRequestedPublishTime(baseTime)
+                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(1))
+                .WithStatus(CorrespondenceStatus.Archived, baseTime.AddMinutes(2))
+                .Build();
+            var addedCorrespondence = await correspondenceRepository.CreateCorrespondence(entity, CancellationToken.None);
+
+            // Act
+            var byArchivedStatus = await correspondenceRepository.GetCorrespondences(resource, 1000, from, to, CorrespondenceStatus.Archived, senderOrgNo, CorrespondencesRoleType.Sender, null, default, CancellationToken.None);
+            var withoutStatus = await correspondenceRepository.GetCorrespondences(resource, 1000, from, to, null, senderOrgNo, CorrespondencesRoleType.Sender, null, default, CancellationToken.None);
+
+            // Assert
+            Assert.Contains(addedCorrespondence.Id, byArchivedStatus);
+            Assert.Contains(addedCorrespondence.Id, withoutStatus);
+        }
+
+        [Theory]
+        [InlineData("SEnDeROrgNuMBeR")]
+        [InlineData("senderorgnumber")]
+        [InlineData("senderOrgNumber")]
+        public async Task GetDailySummaryData_PropertyListContainsSenderOrgNumber_PopulatesSenderOrgNumber(string senderOrgNumberKey)
+        {
+            await using var context = _fixture.CreateDbContext();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var serviceOwnerId = $"so-{Guid.NewGuid():N}";
+            var resourceId = $"test-resource-{Guid.NewGuid():N}";
+            var messageSender = $"test-sender-{Guid.NewGuid():N}";
+
+            // Service owner must exist; otherwise GetDailySummaryData filters the group out.
+            context.ServiceOwners.Add(new ServiceOwnerEntity
+            {
+                Id = serviceOwnerId,
+                Name = "Test Service Owner",
+                StorageProviders = new List<StorageProviderEntity>()
+            });
+
+            var created = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithServiceOwnerId(serviceOwnerId)
+                .WithCreated(created)
+                .WithResourceId(resourceId)
+                .WithPropertyList(new Dictionary<string, string>
+                {
+                    // Use different casing to verify case-insensitive fallback logic
+                    [senderOrgNumberKey] = "987654321",
+                    ["other"] = "value"
+                })
+                .Build();
+            correspondence.Altinn2CorrespondenceId = null;
+            correspondence.MessageSender = messageSender;
+            correspondence.RecipientType = UrnConstants.OrganizationNumberAttribute;
+
+            context.Correspondences.Add(correspondence);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetDailySummaryData(includeAltinn2: false, cancellationToken: CancellationToken.None);
+
+            var row = Assert.Single(result, r =>
+                r.ServiceOwnerId == serviceOwnerId &&
+                r.ResourceId == resourceId &&
+                r.MessageSender == messageSender &&
+                r.Date == created.Date);
+            Assert.Equal("987654321", row.SenderOrgNumber);
         }
 
         [Fact]

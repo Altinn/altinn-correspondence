@@ -35,6 +35,7 @@ internal static class CorrespondenceOverviewMapper
             PropertyList = correspondenceOverview.PropertyList,
             IgnoreReservation = correspondenceOverview.IgnoreReservation,
             Published = correspondenceOverview.Published,
+            Read = correspondenceOverview.Read,
             IsConfirmationNeeded = correspondenceOverview.IsConfirmationNeeded,
             IsConfidential = correspondenceOverview.IsConfidential,
             Altinn2CorrespondenceId = correspondenceOverview.Altinn2CorrespondenceId
