@@ -178,6 +178,7 @@ public class AzureResourceManagerService : IResourceManager
                 defenderSettingsEndpoint,
                 storageAccountResourceId,
                 resourceGroupName,
+                storageAccountName,
                 cancellationToken);
             if (readyResponseBody is not null)
             {
@@ -230,6 +231,7 @@ public class AzureResourceManagerService : IResourceManager
         string defenderSettingsEndpoint,
         string storageAccountResourceId,
         string resourceGroupName,
+        string storageAccountName,
         CancellationToken cancellationToken)
     {
         var deadline = DateTimeOffset.UtcNow.Add(DefenderSetupPollTimeout);
@@ -253,7 +255,7 @@ public class AzureResourceManagerService : IResourceManager
             {
                 _logger.LogInformation(
                     "Defender malware scan setup is still in progress for storage account {StorageAccountName}. Current response: {Response}",
-                    storageAccountResourceId.Split('/', StringSplitOptions.RemoveEmptyEntries).Last(),
+                    storageAccountName,
                     responseBody);
             }
 
