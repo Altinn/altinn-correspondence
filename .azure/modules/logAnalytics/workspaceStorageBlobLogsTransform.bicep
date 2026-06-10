@@ -29,7 +29,7 @@ resource transformDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
     dataFlows: [
       {
         streams: [
-          'Microsoft-StorageBlobLogs'
+          'Microsoft-Table-StorageBlobLogs'
         ]
         destinations: [
           logAnalyticsDestinationName
