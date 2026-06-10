@@ -18,6 +18,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             EF.CompileAsyncQuery((ApplicationDbContext ctx, Guid id) =>
                 ctx.Correspondences
                    .AsNoTracking()
+                   .Include(c => c.ExternalReferences)
                    .Include(c => c.Statuses)
                    .Where(c => c.Id == id)
                    .FirstOrDefault());
@@ -318,11 +319,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             DateTimeOffset? lastCreated,
             Guid? lastId,
             bool filterMigrated,
-            bool includeForDownloadAll,
             CancellationToken cancellationToken)
         {
             var query = _context.Correspondences
                 .AsNoTracking()
+                .Include(c => c.ExternalReferences)
                 .FilterMigrated(filterMigrated)
                 .AsQueryable();
 
@@ -336,12 +337,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 {
                     query = query.Where(c => c.Created > lastCreated.Value);
                 }
-            }
-
-            if (includeForDownloadAll)
-            {
-                query = query.Include(c => c.ExternalReferences.Where(w => w.ReferenceType == ReferenceType.DialogportenDialogId));
-                query = query.Where(c => c.Content != null && c.Content.Attachments.Count() >= 2);
             }
 
             query = query.OrderBy(c => c.Created).ThenBy(c => c.Id).Take(limit);

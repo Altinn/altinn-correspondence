@@ -177,11 +177,11 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             context.Correspondences.AddRange(items);
             await context.SaveChangesAsync();
 
-            var page1 = await repo.GetCorrespondencesWindowAfter(1, null, null, true, false, CancellationToken.None);
+            var page1 = await repo.GetCorrespondencesWindowAfter(1, null, null, true, CancellationToken.None);
             Assert.Single(page1);
             Assert.Equal(idA, page1[0].Id);
 
-            var page2 = await repo.GetCorrespondencesWindowAfter(1, page1[0].Created, page1[0].Id, true, false, CancellationToken.None);
+            var page2 = await repo.GetCorrespondencesWindowAfter(1, page1[0].Created, page1[0].Id, true, CancellationToken.None);
             Assert.Single(page2);
             Assert.Equal(idB, page2[0].Id);
         }
@@ -217,12 +217,12 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             context.Correspondences.AddRange(items);
             await context.SaveChangesAsync();
 
-            var page1 = await repo.GetCorrespondencesWindowAfter(2, null, null, true, false, CancellationToken.None);
+            var page1 = await repo.GetCorrespondencesWindowAfter(2, null, null, true, CancellationToken.None);
             Assert.Equal(2, page1.Count);
             Assert.True(page1[0].Created <= page1[1].Created);
 
             var last = page1.Last();
-            var page2 = await repo.GetCorrespondencesWindowAfter(2, last.Created, last.Id, true, false, CancellationToken.None);
+            var page2 = await repo.GetCorrespondencesWindowAfter(2, last.Created, last.Id, true, CancellationToken.None);
             Assert.True(page2[0].Id == items[2].Id);
             Assert.True(page2[0].Created >= last.Created);
         }

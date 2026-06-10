@@ -57,7 +57,6 @@ public class RestoreSoftDeletedDialogsHandler(
                     lastCreated,
                     lastId,
                     true,
-                    false,
                     cancellationToken);
                     
                 isMoreCorrespondences = correspondencesWindow.Count > windowSize;
