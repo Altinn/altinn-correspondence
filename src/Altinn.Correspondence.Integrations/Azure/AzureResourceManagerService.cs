@@ -29,7 +29,7 @@ public class AzureResourceManagerService : IResourceManager
     private const string FinopsProduct = "melding";
     private const string RepositoryUrl = "https://github.com/Altinn/altinn-correspondence";
     private const string DefenderForStorageDataScannerRoleDefinitionId = "1e7ca9b1-60d1-4db8-a914-f2ca1ff27c40";
-    private const string StorageBlobDataOwnerRoleDefinitionId = "b7e6dc6d-f1e8-4753-8033-0f276bb0955b";
+    private const string EventGridDataSenderRoleDefinitionId = "d5a91429-5739-47e2-a06b-3470a27159e7";
     private const string DefenderForStorageSettingsApiVersion = "2025-06-01";
     private static readonly TimeSpan DefenderSetupPollInterval = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan DefenderSetupPollTimeout = TimeSpan.FromMinutes(5);
@@ -329,6 +329,8 @@ public class AzureResourceManagerService : IResourceManager
             return;
         }
 
+        // Defender for Storage Scanner Operator only permits assigning these two roles (ABAC).
+        // Storage Blob Data Owner is assigned automatically by the Defender platform — not by us.
         await EnsureRoleAssignmentAsync(
             client,
             storageAccountResourceId,
@@ -338,7 +340,7 @@ public class AzureResourceManagerService : IResourceManager
         await EnsureRoleAssignmentAsync(
             client,
             storageAccountResourceId,
-            StorageBlobDataOwnerRoleDefinitionId,
+            EventGridDataSenderRoleDefinitionId,
             storageDataScannerPrincipalId,
             cancellationToken);
     }
