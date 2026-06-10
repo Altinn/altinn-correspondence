@@ -20,9 +20,8 @@ param grafanaMonitoringPrincipalId string
 param deploymentPrincipalId string
 
 @secure()
-param maintenanceAdGroupId string
-@secure()
-param maintenanceAdGroupName string
+@description('Object ID (Principal ID) of correspondence-prod-blob PIM group')
+param correspondenceBlobGroupId string
 
 var prodLikeEnvironment = environment == 'production' || environment == 'staging' || environment == 'yt01'
 var resourceGroupName = '${namePrefix}-rg'
@@ -109,21 +108,6 @@ module postgresql '../modules/postgreSql/create.bicep' = {
   }
 }
 
-module maintenanceDbAccess '../modules/postgreSql/addAdminAccess.bicep' = {
-  name: 'databaseAccess'
-  scope: resourceGroup
-  dependsOn: [
-    postgresql
-  ]
-  params: {
-    principalType: 'Group'
-    tenantId: tenantId
-    principalId: maintenanceAdGroupId
-    appName: maintenanceAdGroupName
-    namePrefix: namePrefix
-  }
-}
-
 module reddis '../modules/redis/main.bicep' = {
   scope: resourceGroup
   name: 'redis'
@@ -143,6 +127,15 @@ module grantDeploymentPrincipalStorageFileAccess '../modules/storageAccount/addF
   params: {
     storageAccountName: storageAccountName
     principalId: deploymentPrincipalId
+  }
+}
+
+module grantCorrespondenceBlobDataOwner '../modules/storageAccount/addBlobDataOwnerRole.bicep' = if (environment == 'production') {
+  scope: subscription()
+  name: 'storage-blob-data-owner-correspondence-prod-blob'
+  params: {
+    principalId: correspondenceBlobGroupId
+    principalType: 'Group'
   }
 }
 

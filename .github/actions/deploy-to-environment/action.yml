@@ -42,6 +42,9 @@ inputs:
   GRAFANA_MONITORING_PRINCIPAL_ID:
     description: "Principal ID for Grafana monitoring service principal"
     required: true
+  CORRESPONDENCE_BLOB_GROUP_ID:
+    description: "ID of the blob group for correspondence"
+    required: true
 
 runs:
   using: "composite"
@@ -64,6 +67,7 @@ runs:
         MAINTENANCE_AD_GROUP_ID: ${{ inputs.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
+        CORRESPONDENCE_BLOB_GROUP_ID: ${{ inputs.CORRESPONDENCE_BLOB_GROUP_ID }}
 
     - name: Migrate database
       uses: ./.github/actions/migrate-database

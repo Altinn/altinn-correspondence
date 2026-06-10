@@ -72,6 +72,7 @@ jobs:
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           STATISTICS_API_KEY: ${{ secrets.STATISTICS_API_KEY }}
           GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
+          CORRESPONDENCE_BLOB_GROUP_ID: ${{ secrets.CORRESPONDENCE_BLOB_GROUP_ID }}
   deploy-staging:
     name: Internal staging
     runs-on: self-hosted
@@ -105,6 +106,7 @@ jobs:
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
+          CORRESPONDENCE_BLOB_GROUP_ID: ${{ secrets.CORRESPONDENCE_BLOB_GROUP_ID }}
   deploy-production:
     name: Production
     runs-on: self-hosted
@@ -138,6 +140,7 @@ jobs:
           MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
           MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
           GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
+          CORRESPONDENCE_BLOB_GROUP_ID: ${{ secrets.CORRESPONDENCE_BLOB_GROUP_ID }}
   check-version-bump:
     name: Check if version was bumped
     runs-on: self-hosted
