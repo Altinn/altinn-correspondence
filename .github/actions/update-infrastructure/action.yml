@@ -42,6 +42,9 @@ inputs:
   GRAFANA_MONITORING_PRINCIPAL_ID:
     description: "Principal ID for Grafana monitoring service principal"
     required: true
+  CORRESPONDENCE_BLOB_GROUP_ID:
+    description: "ID of the blob group for correspondence"
+    required: true
 
 runs:
   using: "composite"
@@ -126,6 +129,7 @@ runs:
         MAINTENANCE_AD_GROUP_NAME: ${{ inputs.MAINTENANCE_AD_GROUP_NAME }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ inputs.GRAFANA_MONITORING_PRINCIPAL_ID }}
         DEPLOYMENT_PRINCIPAL_ID: ${{ steps.get-sp-object-id.outputs.objectId }}
+        CORRESPONDENCE_BLOB_GROUP_ID: ${{ inputs.CORRESPONDENCE_BLOB_GROUP_ID }}
       with:
         scope: subscription
         template: ./.azure/infrastructure/main.bicep
