@@ -96,6 +96,13 @@ module addDefenderForStorageScannerOperator '../../modules/identity/addDefenderF
   }
 }
 
+module addRbacAdministrator '../../modules/identity/addRbacAdministratorRole.bicep' = {
+  name: 'rbacAdministratorAccess'
+  params: {
+    userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
+  }
+}
+
 module keyvaultAddReaderRolesAppIdentity '../../modules/keyvault/addReaderRoles.bicep' = {
   name: 'kvreader-${namePrefix}-app'
   scope: resourceGroup
@@ -162,7 +169,7 @@ resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bicep' = {
   name: 'fetchAzureEventGridIpsScript'
   scope: resourceGroup
-  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess, addContributorAccess, addDefenderForStorageScannerOperator]
+  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess, addContributorAccess, addDefenderForStorageScannerOperator, addRbacAdministrator]
   params: {
     location: location
     principal_id: appIdentity.outputs.id

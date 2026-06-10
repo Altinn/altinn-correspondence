@@ -28,6 +28,8 @@ public class AzureResourceManagerService : IResourceManager
 {
     private const string FinopsProduct = "melding";
     private const string RepositoryUrl = "https://github.com/Altinn/altinn-correspondence";
+    private const string DefenderForStorageDataScannerRoleDefinitionId = "1e7ca9b1-60d1-4db8-a914-f2ca1ff27c40";
+    private const string StorageBlobDataOwnerRoleDefinitionId = "b7e6dc6d-f1e8-4753-8033-0f276bb0955b";
 
     private readonly AzureResourceManagerOptions _resourceManagerOptions;
     private readonly IHostEnvironment _hostEnvironment;
@@ -132,11 +134,11 @@ public class AzureResourceManagerService : IResourceManager
 
     private async Task EnableMicrosoftDefender(string resourceGroupName, string storageAccountName, CancellationToken cancellationToken)
     {
-        using var client = new HttpClient();
-        var tokenRequestContext = new TokenRequestContext(new[] { "https://management.azure.com/.default" });
-        var token = await _credentials.GetTokenAsync(tokenRequestContext, cancellationToken);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
-        var endpoint = $"https://management.azure.com/subscriptions/{_resourceManagerOptions.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{storageAccountName}/providers/Microsoft.Security/defenderForStorageSettings/current?api-version=2022-12-01-preview";
+        using var client = await CreateManagementHttpClientAsync(cancellationToken);
+        var storageAccountResourceId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{storageAccountName}";
+        await EnsureDefenderStorageScannerRoleAssignmentsAsync(client, storageAccountResourceId, cancellationToken);
+
+        var endpoint = $"https://management.azure.com{storageAccountResourceId}/providers/Microsoft.Security/defenderForStorageSettings/current?api-version=2022-12-01-preview";
         var requestBody = new MalwareScanConfiguration()
         {
             Properties = new Properties()
@@ -188,6 +190,131 @@ public class AzureResourceManagerService : IResourceManager
             storageAccountName,
             responseBody);
     }
+    private async Task<HttpClient> CreateManagementHttpClientAsync(CancellationToken cancellationToken)
+    {
+        var client = new HttpClient();
+        var tokenRequestContext = new TokenRequestContext(new[] { "https://management.azure.com/.default" });
+        var token = await _credentials.GetTokenAsync(tokenRequestContext, cancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
+        return client;
+    }
+
+    private async Task EnsureDefenderStorageScannerRoleAssignmentsAsync(
+        HttpClient client,
+        string storageAccountResourceId,
+        CancellationToken cancellationToken)
+    {
+        var storageDataScannerPrincipalId = await GetStorageDataScannerPrincipalIdAsync(client, cancellationToken);
+        if (string.IsNullOrWhiteSpace(storageDataScannerPrincipalId))
+        {
+            _logger.LogWarning("StorageDataScanner principal id was not found. Skipping pre-provisioning of Defender role assignments.");
+            return;
+        }
+
+        await EnsureRoleAssignmentAsync(
+            client,
+            storageAccountResourceId,
+            DefenderForStorageDataScannerRoleDefinitionId,
+            storageDataScannerPrincipalId,
+            cancellationToken);
+        await EnsureRoleAssignmentAsync(
+            client,
+            storageAccountResourceId,
+            StorageBlobDataOwnerRoleDefinitionId,
+            storageDataScannerPrincipalId,
+            cancellationToken);
+    }
+
+    private async Task<string?> GetStorageDataScannerPrincipalIdAsync(HttpClient client, CancellationToken cancellationToken)
+    {
+        var endpoint = $"https://management.azure.com/subscriptions/{_resourceManagerOptions.SubscriptionId}/providers/Microsoft.Security/datascanners/StorageDataScanner?api-version=2024-07-01-preview";
+        using var response = await client.GetAsync(endpoint, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning(
+                "Failed to read StorageDataScanner resource. Status: {StatusCode}. Error: {Error}",
+                (int)response.StatusCode,
+                error);
+            return null;
+        }
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        if (!document.RootElement.TryGetProperty("identity", out var identity))
+        {
+            return null;
+        }
+
+        if (!identity.TryGetProperty("principalId", out var principalId))
+        {
+            return null;
+        }
+
+        return principalId.GetString();
+    }
+
+    private async Task EnsureRoleAssignmentAsync(
+        HttpClient client,
+        string scope,
+        string roleDefinitionId,
+        string principalId,
+        CancellationToken cancellationToken)
+    {
+        var roleAssignmentName = CreateDeterministicGuid(scope, principalId, roleDefinitionId);
+        var endpoint = $"https://management.azure.com/{scope.TrimStart('/')}/providers/Microsoft.Authorization/roleAssignments/{roleAssignmentName}?api-version=2022-04-01";
+        var requestBody = new RoleAssignmentRequest
+        {
+            Properties = new RoleAssignmentProperties
+            {
+                RoleDefinitionId = $"/subscriptions/{_resourceManagerOptions.SubscriptionId}/providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId}",
+                PrincipalId = principalId,
+                PrincipalType = "ServicePrincipal"
+            }
+        };
+        var json = JsonSerializer.Serialize(requestBody, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var response = await client.PutAsync(endpoint, content, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            _logger.LogInformation(
+                "Ensured role assignment {RoleDefinitionId} for principal {PrincipalId} on scope {Scope}",
+                roleDefinitionId,
+                principalId,
+                scope);
+            return;
+        }
+
+        var error = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            _logger.LogInformation(
+                "Role assignment {RoleDefinitionId} for principal {PrincipalId} on scope {Scope} already exists",
+                roleDefinitionId,
+                principalId,
+                scope);
+            return;
+        }
+
+        _logger.LogWarning(
+            "Failed to ensure role assignment {RoleDefinitionId} for principal {PrincipalId} on scope {Scope}. Status: {StatusCode}. Error: {Error}",
+            roleDefinitionId,
+            principalId,
+            scope,
+            (int)response.StatusCode,
+            error);
+        throw new HttpRequestException(
+            $"Failed to ensure role assignment {roleDefinitionId} on scope {scope}. Status: {(int)response.StatusCode}. Error: {error}");
+    }
+
+    private static string CreateDeterministicGuid(string scope, string principalId, string roleDefinitionId)
+    {
+        var hash = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes($"{scope}|{principalId}|{roleDefinitionId}"));
+        return new Guid(hash).ToString();
+    }
+
     private static bool IsOnUploadMalwareScanEnabled(string responseBody)
     {
         using var document = JsonDocument.Parse(responseBody);
