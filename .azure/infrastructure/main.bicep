@@ -130,7 +130,7 @@ module grantDeploymentPrincipalStorageFileAccess '../modules/storageAccount/addF
   }
 }
 
-module grantCorrespondenceBlobDataOwner '../modules/storageAccount/addBlobDataOwnerRole.bicep' = {
+module grantCorrespondenceBlobDataOwner '../modules/storageAccount/addBlobDataOwnerRole.bicep' = if (environment == 'production') {
   scope: subscription()
   name: 'storage-blob-data-owner-correspondence-prod-blob'
   params: {
