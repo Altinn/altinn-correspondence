@@ -17,7 +17,7 @@ var logAnalyticsDestinationName = 'audit-logs'
 var defenderScannerObjectId = storageDataScanner.identity.principalId
 var blobLogsTransformKql = 'source | where AuthenticationType !~ \'TrustedAccess\' | where tolower(tostring(RequesterObjectId)) !in~ (tolower(\'${appObjectId}\'), tolower(\'${defenderScannerObjectId}\')) | where tolower(tostring(RequesterAppId)) != tolower(\'${appClientId}\')'
 
-resource storageDataScanner 'Microsoft.Security/datascanners@2025-06-01' existing = {
+resource storageDataScanner 'Microsoft.Security/datascanners@2021-12-01-preview' existing = {
   scope: subscription()
   name: 'StorageDataScanner'
 }
