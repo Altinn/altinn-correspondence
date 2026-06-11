@@ -1,5 +1,5 @@
-@description('Azure region for the workspace transformation DCR.')
-param location string = resourceGroup().location
+@description('Azure region for the audit workspace and transformation DCR. Must match the existing workspace location.')
+param location string
 
 @description('Object ID of the app managed identity to exclude from StorageBlobLogs.')
 param appObjectId string
@@ -11,6 +11,7 @@ param appClientId string
 param namePrefix string
 
 var workspaceName = '${namePrefix}-audit-logs'
+var workspaceResourceId = resourceId('Microsoft.OperationalInsights/workspaces', workspaceName)
 var transformDcrName = '${namePrefix}-storageblob-logs-transform-dcr'
 var logAnalyticsDestinationName = 'audit-logs'
 var defenderScannerObjectId = storageDataScanner.identity.principalId
@@ -41,7 +42,7 @@ resource transformDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
     destinations: {
       logAnalytics: [
         {
-          workspaceResourceId: resourceId('Microsoft.OperationalInsights/workspaces', workspaceName)
+          workspaceResourceId: workspaceResourceId
           name: logAnalyticsDestinationName
         }
       ]
@@ -52,6 +53,7 @@ resource transformDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
 // Workspace transform DCRs must be linked on the workspace itself (not via dataCollectionRuleAssociations).
 resource auditLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: workspaceName
+  location: location
   properties: {
     defaultDataCollectionRuleResourceId: transformDcr.id
   }
