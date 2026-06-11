@@ -46,6 +46,12 @@ runs:
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
         subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
+    - name: Register Microsoft.EventGrid provider
+      shell: bash
+      run: |
+        set -euo pipefail
+        az provider register --namespace Microsoft.EventGrid --wait
+
     - name: Deploy app
       uses: azure/arm-deploy@v2
       id: deploy

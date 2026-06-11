@@ -12,4 +12,5 @@ public class AzureResourceManagerOptions
     public string MalwareScanEventGridTopicName { get; set; } = string.Empty;
     public string ContainerAppName { get; set; } = string.Empty;
     public string ApimIP { get; set; } = string.Empty;
+    public string LogAnalyticsWorkspaceId { get; set; } = string.Empty;
 }
