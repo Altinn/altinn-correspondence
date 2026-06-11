@@ -39,11 +39,16 @@ resource transformDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
   }
 }
 
-// Workspace transform DCRs must be linked on the workspace itself (not via dataCollectionRuleAssociations).
+// Link the transform DCR on the workspace. Keep sku/retention/tags aligned with containerAppEnvironment/main.bicep.
 resource auditLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: workspaceName
   location: location
+  tags: resourceGroup().tags
   properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 90
     defaultDataCollectionRuleResourceId: transformDcr.id
   }
   dependsOn: [
