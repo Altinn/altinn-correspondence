@@ -69,8 +69,6 @@ module auditStorageBlobLogsTransform '../../modules/logAnalytics/workspaceStorag
   scope: resourceGroup
   params: {
     location: location
-    appObjectId: appIdentity.outputs.principalId
-    appClientId: appIdentity.outputs.clientId
     namePrefix: namePrefix
   }
 }

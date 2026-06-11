@@ -1,12 +1,6 @@
 @description('Azure region for the audit workspace and transformation DCR. Must match the existing workspace location.')
 param location string
 
-@description('Object ID of the app managed identity to exclude from StorageBlobLogs.')
-param appObjectId string
-
-@description('Application (client) ID of the app managed identity to exclude from StorageBlobLogs.')
-param appClientId string
-
 @description('Prefix used for uniquely named DCR resources in this environment.')
 param namePrefix string
 
@@ -14,13 +8,8 @@ var workspaceName = '${namePrefix}-audit-logs'
 var workspaceResourceId = resourceId('Microsoft.OperationalInsights/workspaces', workspaceName)
 var transformDcrName = '${namePrefix}-storageblob-logs-transform-dcr'
 var logAnalyticsDestinationName = 'audit-logs'
-var defenderScannerObjectId = storageDataScanner.identity.principalId
-var blobLogsTransformKql = 'source | where AuthenticationType !~ \'TrustedAccess\' and AuthenticationType !~ \'AnonymousPreflight\' | where tostring(RequesterObjectId) !~ \'${appObjectId}\' and tostring(RequesterObjectId) !~ \'${defenderScannerObjectId}\' | where tostring(RequesterAppId) !~ \'${appClientId}\''
-
-resource storageDataScanner 'Microsoft.Security/datascanners@2021-12-01-preview' existing = {
-  scope: subscription()
-  name: 'StorageDataScanner'
-}
+// Keep interactive user access only: app MI, Defender scanner, and platform calls have no RequesterUpn.
+var blobLogsTransformKql = 'source | where AuthenticationType =~ \'OAuth\' | where isnotempty(RequesterUpn)'
 
 resource transformDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
   name: transformDcrName
@@ -64,4 +53,3 @@ resource auditLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@20
 
 output dataCollectionRuleId string = transformDcr.id
 output transformKql string = blobLogsTransformKql
-output defenderScannerObjectId string = defenderScannerObjectId
