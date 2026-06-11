@@ -70,6 +70,7 @@ module auditStorageBlobLogsTransform '../../modules/logAnalytics/workspaceStorag
   params: {
     location: location
     appObjectId: appIdentity.outputs.principalId
+    appClientId: appIdentity.outputs.clientId
     namePrefix: namePrefix
   }
 }
