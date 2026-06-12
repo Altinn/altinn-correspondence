@@ -1,9 +1,8 @@
 using System.Security.Claims;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -14,7 +13,6 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAttachmentRepository attachmentRepository,
     IBackgroundJobClient backgroundJobClient,
-    IDialogportenService dialogportenService,
     ILogger<UpdateOldCorrespondencesWithDownloadAllHandler> logger) : IHandler<UpdateOldCorrespondencesWithDownloadAllRequest, UpdateOldCorrespondencesWithDownloadAllResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
@@ -25,9 +23,9 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
     public Task<OneOf<UpdateOldCorrespondencesWithDownloadAllResponse, Error>> Process(UpdateOldCorrespondencesWithDownloadAllRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting update of old correspondences with download all. Window size: {windowSize}", request.windowSize);
-        var jobId = _backgroundJobClient.Enqueue(() => ExecutePatchingInBackground(request.windowSize, CancellationToken.None));
+        var jobId = _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(handler => handler.ExecutePatchingInBackground(request, CancellationToken.None));
 
-        _logger.LogInformation("Cleanup job {jobId} has been enqueued", jobId);
+        _logger.LogInformation("Orchestrator job {jobId} has been enqueued", jobId);
 
         return Task.FromResult<OneOf<UpdateOldCorrespondencesWithDownloadAllResponse, Error>>(new UpdateOldCorrespondencesWithDownloadAllResponse
         {
@@ -37,127 +35,99 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
     }
 
     [AutomaticRetry(Attempts = 0)]
-    [DisableConcurrentExecution(timeoutInSeconds: 43200)]
-    public async Task ExecutePatchingInBackground(int windowSize, CancellationToken cancellationToken)
+    public async Task ExecutePatchingInBackground(UpdateOldCorrespondencesWithDownloadAllRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Executing update of old correspondences with download all in background job");
+        _logger.LogInformation("Executing batch starting after cursor {cursorId}", request.CursorId);
 
-        var totalProcessed = 0;
-        var totalPatched = 0;
-        var totalAlreadyHadDownloadAll = 0;
-        var totalNotMatchingDownloadAllCriteria = 0;
-        var totalErrors = 0;
-        var allErrors = new List<string>();
-
-        try
+        var queueLimit = request.windowSize * 2;
+        var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
+        if (enqueuedJobs >= queueLimit)
         {
-            DateTimeOffset? lastCreated = null;
-            Guid? lastId = null;
-            bool isMoreCorrespondences = true;
+            _logger.LogInformation(
+                "Queue has {enqueuedJobs} jobs (limit {limit}), rescheduling in 1 minute",
+                enqueuedJobs, queueLimit);
+            _backgroundJobClient.Schedule<UpdateOldCorrespondencesWithDownloadAllHandler>(
+                handler => handler.ExecutePatchingInBackground(request, CancellationToken.None),
+                TimeSpan.FromMinutes(1));
+            return;
+        }
 
-            while (isMoreCorrespondences)
+        var window = await _correspondenceRepository.GetCorrespondencesWindowAfter(
+            request.windowSize + 1, request.CursorCreated, request.CursorId, false, cancellationToken);
+
+        var isMore = window.Count > request.windowSize;
+        if (isMore) window.RemoveAt(window.Count - 1);
+
+        if (window.Count == 0)
+        {
+            _logger.LogInformation(
+                "No more correspondences to process. Job complete. Total processed: {processed}, Patched: {patched}, Not matching criteria: {notMatchingCriteria}, Errors: {errors}",
+                request.TotalProcessed, request.TotalPatched, request.TotalNotMatchingCriteria, request.TotalErrors);
+            return;
+        }
+
+        var batchProcessed = 0;
+        var batchPatched = 0;
+        var batchNotMatchingCriteria = 0;
+        var batchErrors = 0;
+
+        foreach (var correspondence in window)
+        {
+            try
             {
-                _logger.LogInformation("Processing batch starting after cursor {correspondenceId}", lastId);
-                var correspondencesWindow = await _correspondenceRepository.GetCorrespondencesWindowAfter
-                (windowSize + 1,
-                lastCreated,
-                lastId,
-                true,
-                cancellationToken);
-
-                isMoreCorrespondences = correspondencesWindow.Count > windowSize;
-                if (isMoreCorrespondences)
+                batchProcessed++;
+                var attachments = await _attachmentRepository.GetAttachmentsByCorrespondence(correspondence.Id, cancellationToken);
+                if (attachments != null && attachments.Count >= 2 && attachments.Sum(a => a.AttachmentSize) <= 2_000_000_000) // 2 GB
                 {
-                    correspondencesWindow.RemoveAt(correspondencesWindow.Count - 1);
+                    ProcessSingleCorrespondence(correspondence);
+                    batchPatched++;
                 }
-
-                if (correspondencesWindow.Count > 0)
+                else
                 {
-                    var last = correspondencesWindow[^1];
-                    lastCreated = last.Created;
-                    lastId = last.Id;
-                }
-
-                foreach (var correspondence in correspondencesWindow)
-                {
-                    try
-                    {
-                        totalProcessed++;
-                        var attachments = await _attachmentRepository.GetAttachmentsByCorrespondence(correspondence.Id, cancellationToken);
-                        if (attachments != null && attachments.Count >= 2)
-                        {
-                            if (attachments.Sum(a => a.AttachmentSize) <= 2_000_000_000) // 2 GB
-                            {
-                                var dialogId = correspondence.ExternalReferences.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
-                                if (dialogId == null)
-                                {
-                                    totalErrors++;
-                                    continue;
-                                }
-                                bool hasDownloadAll = await dialogportenService.HasDownloadAllAttachments(dialogId, cancellationToken);
-                                if (hasDownloadAll){
-                                    totalAlreadyHadDownloadAll++;
-                                    continue;
-                                } 
-                                var patched = await ProcessSingleCorrespondence(correspondence, cancellationToken);
-                                if (patched){
-                                    totalPatched++;
-                                }
-                            }
-                            else
-                            {
-                                totalNotMatchingDownloadAllCriteria++;
-                            }
-                        } else
-                        {
-                            totalNotMatchingDownloadAllCriteria++;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        totalErrors++;
-                        var errorMessage = $"Error processing correspondence {correspondence.Id}: {ex.Message}";
-                        allErrors.Add(errorMessage);
-                        _logger.LogError(ex, errorMessage);
-                    }
-                }
-                if (correspondencesWindow.Count == 0)
-                {
-                    isMoreCorrespondences = false;
+                    batchNotMatchingCriteria++;
                 }
             }
-            logger.LogInformation("Background update completed. Total processed: {processedCount}, Total patched: {patchedCount}, Already ok: {alreadyOkCount}, Total errors: {errorCount}, Not matching criteria: {notMatchingCriteriaCount}", 
-                totalProcessed, totalPatched, totalAlreadyHadDownloadAll, totalErrors, totalNotMatchingDownloadAllCriteria);
-                
-            if (allErrors.Count > 0)
+            catch (Exception ex)
             {
-                logger.LogWarning("Background update completed with {errorCount} errors: {errors}", totalErrors, string.Join("; ", allErrors));
+                batchErrors++;
+                _logger.LogError(ex, "Error processing correspondence {correspondenceId}", correspondence.Id);
             }
         }
-        catch (Exception ex)
+
+        var totalProcessed = request.TotalProcessed + batchProcessed;
+        var totalPatched = request.TotalPatched + batchPatched;
+        var totalNotMatchingCriteria = request.TotalNotMatchingCriteria + batchNotMatchingCriteria;
+        var totalErrors = request.TotalErrors + batchErrors;
+
+        if (isMore)
         {
-            logger.LogError(ex, "Failed to execute background update of old correspondences with download all");
-            throw;
+            var last = window[^1];
+            var nextRequest = new UpdateOldCorrespondencesWithDownloadAllRequest
+            {
+                windowSize = request.windowSize,
+                CursorCreated = last.Created,
+                CursorId = last.Id,
+                TotalProcessed = totalProcessed,
+                TotalPatched = totalPatched,
+                TotalNotMatchingCriteria = totalNotMatchingCriteria,
+                TotalErrors = totalErrors
+            };
+            _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(
+                handler => handler.ExecutePatchingInBackground(nextRequest, CancellationToken.None));
+            _logger.LogInformation(
+                "Batch complete. Processed: {processed}, Patched: {patched}, Not matching criteria: {notMatchingCriteria}, Errors: {errors}",
+                batchProcessed, batchPatched, batchNotMatchingCriteria, batchErrors);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "No more correspondences to process. Job complete. Total processed: {processed}, Patched: {patched}, Not matching criteria: {notMatchingCriteria}, Errors: {errors}",
+                totalProcessed, totalPatched, totalNotMatchingCriteria, totalErrors);
         }
     }
 
-    private async Task<bool> ProcessSingleCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
+    private void ProcessSingleCorrespondence(CorrespondenceEntity correspondence)
     {
-        var dialogId = correspondence.ExternalReferences.FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
-        if (dialogId == null)
-        {
-            _logger.LogWarning("Correspondence {correspondenceId} has no DialogportenDialogId reference, skipping", correspondence.Id);
-            return false;
-        }
-        try
-        {
-            _backgroundJobClient.Enqueue<IDialogportenService>(service => service.TryAddDownloadAllAttachmentsToDialog(dialogId, correspondence, CancellationToken.None));
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to patch correspondence {correspondenceId} with download all information activity", correspondence.Id);
-            throw;
-        }
+        _backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.Migration, service => service.TryAddDownloadAllAttachmentsToDialog(correspondence.Id, CancellationToken.None));
     }
 }
