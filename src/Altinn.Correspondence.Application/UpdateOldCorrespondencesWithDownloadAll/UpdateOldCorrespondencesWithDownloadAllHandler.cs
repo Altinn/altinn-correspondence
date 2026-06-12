@@ -60,7 +60,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                 lastId,
                 false,
                 cancellationToken);
-
+                _logger.LogInformation("Window retrieval succeeded. Retrieved {retrievedCount} correspondences", correspondencesWindow.Count);
                 isMoreCorrespondences = correspondencesWindow.Count > windowSize;
                 if (isMoreCorrespondences)
                 {
@@ -111,17 +111,17 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                     isMoreCorrespondences = false;
                 }
             }
-            logger.LogInformation("Background update completed. Total processed: {processedCount}, Total patched: {patchedCount}, Total errors: {errorCount}, Not matching criteria: {notMatchingCriteriaCount}", 
+            _logger.LogInformation("Background update completed. Total processed: {processedCount}, Total patched: {patchedCount}, Total errors: {errorCount}, Not matching criteria: {notMatchingCriteriaCount}", 
                 totalProcessed, totalPatched, totalErrors, totalNotMatchingDownloadAllCriteria);
                 
             if (allErrors.Count > 0)
             {
-                logger.LogWarning("Background update completed with {errorCount} errors: {errors}", totalErrors, string.Join("; ", allErrors));
+                _logger.LogWarning("Background update completed with {errorCount} errors: {errors}", totalErrors, string.Join("; ", allErrors));
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to execute background update of old correspondences with download all");
+            _logger.LogError(ex, "Failed to execute background update of old correspondences with download all");
             throw;
         }
     }
