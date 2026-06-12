@@ -76,8 +76,11 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 || (resourceType == "AltinnApp" && isTransmissionCorrespondence);
             if (!resourceTypeAllowed)
             {
-                logger.LogError("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, request.Correspondence.ResourceId);
-                return AuthorizationErrors.IncorrectResourceType;
+                logger.LogError(
+                    "Incorrect resource type {ResourceType} for {ResourceId}. Resource must be of type CorrespondenceService or AltinnApp (AltinnApp allowed for Dialogporten transmissions)",
+                    resourceType,
+                    request.Correspondence.ResourceId);
+                return AuthorizationErrors.IncorrectCorrespondenceResourceType;
             }
 
             var caller = user?.GetCallerPartyUrn();
