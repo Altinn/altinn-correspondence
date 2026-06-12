@@ -70,10 +70,17 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 logger.LogError("Resource type not found for {ResourceId} despite successful authorization", request.Correspondence.ResourceId);
                 throw new Exception($"Resource type not found for {request.Correspondence.ResourceId}. This should be impossible as authorization worked.");
             }
-            if (resourceType != "CorrespondenceService")
+            var isTransmissionCorrespondence = request.Correspondence.ExternalReferences?
+                .Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId) == true;
+            var resourceTypeAllowed = resourceType == "CorrespondenceService"
+                || (resourceType == "AltinnApp" && isTransmissionCorrespondence);
+            if (!resourceTypeAllowed)
             {
-                logger.LogError("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, request.Correspondence.ResourceId);
-                return AuthorizationErrors.IncorrectResourceType;
+                logger.LogError(
+                    "Incorrect resource type {ResourceType} for {ResourceId}. Resource must be of type CorrespondenceService or AltinnApp (AltinnApp allowed for Dialogporten transmissions)",
+                    resourceType,
+                    request.Correspondence.ResourceId);
+                return AuthorizationErrors.IncorrectCorrespondenceResourceType;
             }
 
             var caller = user?.GetCallerPartyUrn();
