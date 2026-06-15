@@ -1,4 +1,5 @@
 using Altinn.Correspondence.API.Auth;
+using Altinn.Correspondence.API.Caching;
 using Altinn.Correspondence.API.Filters;
 using Altinn.Correspondence.API.Helpers;
 using Altinn.Correspondence.API.Middleware;
@@ -130,6 +131,12 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     });
     var generalSettings = new GeneralSettings();
     config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
+    if (hostEnvironment.IsDevelopment())
+    {
+        // Run Garnet in-process for local development and tests instead of a Docker Redis container.
+        // The StackExchange.Redis clients below connect to it via RedisConnectionString unchanged.
+        EmbeddedGarnetServer.EnsureStarted(generalSettings.RedisConnectionString, bootstrapLogger);
+    }
     services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = generalSettings.RedisConnectionString;
