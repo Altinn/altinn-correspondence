@@ -713,6 +713,71 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondence_WithAnAltinnApp_FailsWithBadRequest()
+        {
+            // Arrange
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var resourceRegistryService = new Mock<IResourceRegistryService>();
+                resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-app-test-resource");
+                resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("AltinnApp");
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-app-test-resource");
+                services.AddScoped(_ => resourceRegistryService.Object);
+            });
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+
+            // Act
+            var unitSenderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await unitSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+            var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
+            Assert.NotNull(responseObject);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithAnAltinnApp_AsTransmission_Succeeds()
+        {
+            // Arrange
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var resourceRegistryService = new Mock<IResourceRegistryService>();
+                resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-app-test-resource");
+                resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("AltinnApp");
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-app-test-resource");
+                resourceRegistryService.Setup(x => x.GetConfidentialType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(Core.Models.Enums.ConfidentialTypeEnum.NotConfidential);
+                services.AddScoped(_ => resourceRegistryService.Object);
+
+                var mockDialogporten = new Mock<IDialogportenService>();
+                mockDialogporten
+                    .Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+                mockDialogporten
+                    .Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+                var existingDialogporten = services.FirstOrDefault(d => d.ServiceType == typeof(IDialogportenService));
+                if (existingDialogporten != null) services.Remove(existingDialogporten);
+                services.AddScoped(_ => mockDialogporten.Object);
+            });
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd")
+                .Build();
+
+            // Act
+            var unitSenderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await unitSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
+        }
+
+        [Fact]
         public async Task InitializeCorrespondence_WithoutAttachments_SchedulesPublish()
         {
             // Arrange
