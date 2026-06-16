@@ -1,4 +1,4 @@
-using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 
@@ -8,18 +8,21 @@ namespace Altinn.Correspondence.Persistence.Helpers
     {
         public static IQueryable<CorrespondenceEntity> FilterBySenderOrRecipient(this IQueryable<CorrespondenceEntity> query, string orgNo, CorrespondencesRoleType role)
         {
+            var orgNoUrn = orgNo.WithUrnPrefix();
             return role switch
             {
-                CorrespondencesRoleType.RecipientAndSender => query.Where(c => 
-                    c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo) || c.Recipient.Contains(orgNo)),
-                CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient.Contains(orgNo)),
-                CorrespondencesRoleType.Sender => query.Where(c => c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo)),
+                CorrespondencesRoleType.RecipientAndSender => query.Where(c =>
+                    c.ServiceOwnerId == orgNo || c.Sender == orgNoUrn || c.Recipient == orgNoUrn),
+                CorrespondencesRoleType.Recipient => query.Where(c => c.Recipient == orgNoUrn),
+                CorrespondencesRoleType.Sender => query.Where(c => c.ServiceOwnerId == orgNo || c.Sender == orgNoUrn),
                 _ => query.Where(c => false),
             };
         }
 
         public static IQueryable<CorrespondenceEntity> FilterByStatus(this IQueryable<CorrespondenceEntity> query, CorrespondenceStatus? status, string orgNo, CorrespondencesRoleType role)
         {
+            var orgNoUrn = orgNo.WithUrnPrefix();
+
             var blacklistSender = new List<CorrespondenceStatus?>();
 
             var blacklistRecipient = new List<CorrespondenceStatus?>
@@ -32,7 +35,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
             // Helper functions for common query patterns
             IQueryable<CorrespondenceEntity> FilterForSender()
             {
-                return query.Where(c => (c.ServiceOwnerId == orgNo || c.Sender.Contains(orgNo)) &&
+                return query.Where(c => (c.ServiceOwnerId == orgNo || c.Sender == orgNoUrn) &&
                     status.HasValue ?
                     (!blacklistSender.Contains(status)) && c.Statuses.Any(statusEntity => statusEntity.Status == status) :
                     (!blacklistSender.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).ThenBy(cs => cs.Id).Last().Status)));
@@ -40,7 +43,7 @@ namespace Altinn.Correspondence.Persistence.Helpers
 
             IQueryable<CorrespondenceEntity> FilterForRecipient()
             {
-                return query.Where(c => c.Recipient.Contains(orgNo) &&
+                return query.Where(c => c.Recipient == orgNoUrn &&
                     status.HasValue ?
                     (!blacklistRecipient.Contains(status)) && c.Statuses.Any(statusEntity => statusEntity.Status == status) :
                     (!blacklistRecipient.Contains(c.Statuses.OrderBy(cs => cs.StatusChanged).ThenBy(cs => cs.Id).Last().Status)));
