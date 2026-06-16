@@ -20,21 +20,26 @@ namespace Altinn.Correspondence.API.Models
         public string? Language { get; set; }
 
         /// <summary>
-        /// Gets or sets the correspondence message title. Subject.
+        /// Gets or sets the correspondence message title. Subject. Must be plaintext.
         /// </summary>
         [JsonPropertyName("messageTitle")]
+        [Required]
+        [StringLength(255, MinimumLength = 1)]
         public required string MessageTitle { get; set; }
 
         /// <summary>
-        /// Gets or sets a summary text of the correspondence.
+        /// Gets or sets a summary text of the correspondence. Must be plaintext.
         /// </summary>
         [JsonPropertyName("messageSummary")]
+        [StringLength(255)]
         public string? MessageSummary { get; set; }
 
         /// <summary>
-        /// Gets or sets the main body of the correspondence.
+        /// Gets or sets the main body of the correspondence. Must be (CommonMark) Markdown.
         /// </summary>
         [JsonPropertyName("messageBody")]
+        [Required]
+        [StringLength(30000, MinimumLength = 1)]
         public required string MessageBody { get; set; }
 
         /// <summary>
