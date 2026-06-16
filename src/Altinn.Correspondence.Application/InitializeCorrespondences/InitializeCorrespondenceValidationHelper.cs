@@ -92,16 +92,19 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             }
             validatedData.PartyUuid = partyUuid;
 
-            var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
-            if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
-            {
-                logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
-                return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
-            }
-            if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
-            {
-                logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
-                return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
+            if (resourceType != "AltinnApp") 
+            { 
+                var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
+                if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
+                {
+                    logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
+                    return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
+                }
+                if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
+                {
+                    logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
+                    return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
+                }
             }
             if (request.Recipients.Count != request.Recipients.Distinct().Count())
             {
