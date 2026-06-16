@@ -14,20 +14,17 @@
     - Supports resume from checkpoint on interruption
     - Uses Azure AD authentication by default
 
+    Note:
+    Data is pre-filtered in helper table A2Iss1716A2Events during creation.
+    The export includes all data from this table.
+
 .PARAMETER OutputPath
     Path to output CSV file
     Default: C:\temp\dialog_activity_export_1716_{timestamp}.csv
 
-.PARAMETER CutoffDate
-    Export records with StatusChanged/SyncedFromAltinn2 before this date
-    Default: Current date/time
-    Format: yyyy-MM-dd HH:mm:ss (e.g., "2026-02-15 14:30:00")
-
 .PARAMETER BatchSize
-    Number of rows per batch (default: 2500)
-    Each query fetches up to batchSize rows, total processed per batch: ~2x batchSize
-    Recommended: 2500-5000 (processes ~5,000-10,000 rows per batch)
-    Note: Smaller batch sizes don't improve performance due to cursor pagination overhead
+    Number of rows per batch (default: 5000)
+    Recommended: 5000-10000 for optimal performance
 
 .PARAMETER UseAzureAd
     Use Azure AD authentication (default: true)
@@ -43,29 +40,23 @@
     Use if you want to restart from beginning
 
 .EXAMPLE
-    .\export-production-1716.ps1
+    .\export-1716-production.ps1
     # Run full export with defaults:
     # - Output: C:\temp\dialog_activity_export_1716_{dynamic-timestamp}.csv
-    # - Cutoff: Current date/time
-    # - Batch size: 2,500 rows (processes ~5,000 per batch)
+    # - Batch size: 5,000 rows
     # - Azure AD authentication
     # - Checkpoint saved after every batch
 
 .EXAMPLE
-    .\export-production-1716.ps1 -OutputPath "D:\exports\issue_1716.csv"
+    .\export-1716-production.ps1 -OutputPath "D:\exports\issue_1716.csv"
     # Export to specific location
 
 .EXAMPLE
-    .\export-production-1716.ps1 -CutoffDate "2026-02-15 14:30:00"
-    # Export records before specific date/time
+    .\export-1716-production.ps1 -BatchSize 10000
+    # Use larger batch size for potentially faster export
 
 .EXAMPLE
-    .\export-production-1716.ps1 -BatchSize 2500
-    # Use smaller batch size (if needed for testing)
-    # Note: Throughput will be similar to 5000 due to cursor pagination
-
-.EXAMPLE
-    .\export-production-1716.ps1 -FreshStart
+    .\export-1716-production.ps1 -FreshStart
     # Start fresh, ignoring checkpoint file
 
 .NOTES
@@ -87,15 +78,14 @@
 
     Expected Performance:
     - Total rows: ~9.97M (Status 4 + Status 6)
-    - Batch size 2,500 (default): Each batch processes ~5,000 rows (2500 from each status)
-    - Time per batch: 40-80 seconds (varies with database load)
-    - Estimated batches: ~2,000 batches
-    - Total time: 22-44 hours (depends on query performance)
-    - Throughput: 60-125 rows/sec
+    - Batch size 5,000 (default): Processes ~10,000 rows per batch
+    - Time per batch: ~100-200ms
+    - Throughput: ~25,000 rows/sec
+    - Total time: ~7-15 minutes
     - Output size: ~2 GB
 
     Progress Display:
-    - Shows: "Processed: 5,234,567 / 9,970,000 (52.5%) | 150 rows/sec | ETA: 12:30:45"
+    - Shows: "Processed: 5,234,567 / 9,970,000 (52.5%) | 25,000 rows/sec | ETA: 00:03:15"
     - Updates every batch
     - Checkpoint saved after EVERY batch (for maximum resume safety)
 
@@ -107,12 +97,11 @@
 
     Monitoring:
     - Check logs for timing: "Batch timing: Fetch=...ms, Merge=...ms, Write=...ms"
-    - Fast batches: 100-500ms (when database is responsive)
-    - Slow batches: 40,000-80,000ms (when cursor pagination is expensive)
+    - Fast batches: 100-200ms (when database is responsive)
     - Checkpoint saved after each batch for safe interruption
 
     Troubleshooting:
-    - If slow (>80s per batch): Expected behavior due to cursor pagination
+    - If slow (>1s per batch): Check database load and index usage
     - If connection fails: Verify Azure AD login (az account show)
     - If out of disk: Need ~2.5 GB for output CSV
     - If interrupted: Just restart - will resume from last completed batch
@@ -128,11 +117,8 @@ param(
     [string]$OutputPath = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$CutoffDate = "2026-02-15",
-
-    [Parameter(Mandatory=$false)]
     [ValidateRange(1000, 100000)]
-    [int]$BatchSize = 2500,
+    [int]$BatchSize = 5000,
 
     [Parameter(Mandatory=$false)]
     [bool]$UseAzureAd = $true,
@@ -152,11 +138,6 @@ Set-Location $scriptPath
 if ([string]::IsNullOrEmpty($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $OutputPath = "C:\temp\dialog_activity_export_1716_$($timestamp).csv"
-}
-
-# Use current date/time as cutoff if not provided
-if ([string]::IsNullOrEmpty($CutoffDate)) {
-    $CutoffDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 }
 
 # Ensure output directory exists
@@ -194,7 +175,6 @@ if ((Test-Path $checkpointPath) -and -not $FreshStart) {
 $commandArgs = @(
     "--issue", "1716",
     "--output", $OutputPath,
-    "--cutoff", $CutoffDate,
     "--batch-size", $BatchSize,
     "--yes"
 )
@@ -220,11 +200,10 @@ Write-Host "============================================================" -Foreg
 Write-Host ""
 Write-Host "Issue:         1716 (Synced from Altinn2)" -ForegroundColor White
 Write-Host "Output:        $OutputPath" -ForegroundColor White
-Write-Host "Cutoff Date:   $CutoffDate" -ForegroundColor White
 Write-Host "Batch Size:    $($BatchSize.ToString('N0')) rows" -ForegroundColor White
 Write-Host "Mode:          $(if ($isResume) { 'RESUME from checkpoint' } else { 'FULL EXPORT (fresh start)' })" -ForegroundColor $(if ($isResume) { 'Yellow' } else { 'Green' })
 Write-Host ""
-Write-Host "Estimated:     ~9.97M rows, 9-12 minutes, ~2 GB output" -ForegroundColor DarkGray
+Write-Host "Estimated:     ~9.97M rows, 7-15 minutes, ~2 GB output" -ForegroundColor DarkGray
 Write-Host "Checkpoint:    Saved after each batch (resume support)" -ForegroundColor DarkGray
 Write-Host ""
 

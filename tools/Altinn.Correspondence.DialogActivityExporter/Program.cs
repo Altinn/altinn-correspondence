@@ -54,7 +54,6 @@ Console.ResetColor();
 Console.WriteLine();
 Console.WriteLine($"Issue:        {(options.ExportBoth ? "ALL (1716 + 1951)" : options.IssueNumber.ToString())}");
 Console.WriteLine($"Output:       {options.OutputPath}");
-Console.WriteLine($"Cutoff Date:  {options.CutoffTimestamp:yyyy-MM-dd HH:mm:ss}");
 Console.WriteLine($"Batch Size:   {options.BatchSize:N0} rows");
 if (options.MaxBatches.HasValue)
 {
@@ -156,7 +155,6 @@ try
         // Export both issues to single CSV
         await exportService.ExportBothToCSVAsync(
             options.OutputPath,
-            options.CutoffTimestamp,
             preCalcCount1716,
             preCalcCount1951,
             options.MaxBatches,
@@ -171,7 +169,6 @@ try
         await exportService.ExportToCSVAsync(
             options.OutputPath,
             options.IssueNumber,
-            options.CutoffTimestamp,
             preCalcCount,
             options.MaxBatches,
             options.FreshStart,
@@ -221,9 +218,7 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
     var issue = GetArgument(args, "--issue", config["Issue"]);
     var output = GetArgument(args, "--output", config["OutputPath"]);
     var connectionString = GetArgument(args, "--connection", config["ConnectionString"]);
-    var cutoff = GetArgument(args, "--cutoff", config["CutoffTimestamp"]);
-    var oldest = GetArgument(args, "--oldest", config["OldestDate"]);
-    var batchSizeStr = GetArgument(args, "--batch-size", config["BatchSize"] ?? "50000");
+    var batchSizeStr = GetArgument(args, "--batch-size", config["BatchSize"] ?? "5000");
     var maxBatchesStr = GetArgument(args, "--max-batches", config["MaxBatches"]);
     var skipConfirm = args.Contains("--yes") || args.Contains("-y");
     var useAzureAd = args.Contains("--azure-ad") || args.Contains("--azure");
@@ -236,7 +231,7 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
         return null;
     }
 
-    if (string.IsNullOrEmpty(issue) || string.IsNullOrEmpty(output) || string.IsNullOrEmpty(cutoff))
+    if (string.IsNullOrEmpty(issue) || string.IsNullOrEmpty(output))
     {
         logger.LogError("Missing required arguments. Use --help for usage information.");
         return null;
@@ -253,18 +248,6 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
     {
         logger.LogError("Invalid issue number. Must be 1951, 1716, or 'all'.");
         return null;
-    }
-
-    if (!DateTime.TryParse(cutoff, out var cutoffDate))
-    {
-        logger.LogError("Invalid cutoff date format. Use 'yyyy-MM-dd HH:mm:ss'");
-        return null;
-    }
-
-    // Warn if deprecated parameter is present
-    if (!string.IsNullOrEmpty(oldest))
-    {
-        logger.LogWarning("WARNING: --oldest parameter is deprecated and no longer used (performance optimization)");
     }
 
     if (!int.TryParse(batchSizeStr, out var batchSize) || batchSize < 1000)
@@ -290,7 +273,6 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
         ExportBoth = exportBoth,
         OutputPath = output,
         ConnectionString = connectionString ?? "", // Will be populated later if using Azure AD
-        CutoffTimestamp = cutoffDate,
         BatchSize = batchSize,
         MaxBatches = maxBatches,
         SkipConfirmation = skipConfirm,
@@ -317,7 +299,6 @@ static void ShowHelp()
     Console.WriteLine("Required Arguments:");
     Console.WriteLine("  --issue        Issue number (1951, 1716, or 'all' for both)");
     Console.WriteLine("  --output       Output CSV file path");
-    Console.WriteLine("  --cutoff       Cutoff timestamp (yyyy-MM-dd HH:mm:ss)");
     Console.WriteLine();
     Console.WriteLine("Connection (choose one):");
     Console.WriteLine("  --connection   PostgreSQL connection string");
@@ -325,42 +306,36 @@ static void ShowHelp()
     Console.WriteLine("                 (Azure CLI, Visual Studio, VS Code, or other Azure credentials)");
     Console.WriteLine();
     Console.WriteLine("Optional Arguments:");
-    Console.WriteLine("  --batch-size   Batch size (default: 50000)");
+    Console.WriteLine("  --batch-size   Batch size (default: 5000)");
     Console.WriteLine("  --max-batches  Limit export to N batches (for testing format/function)");
     Console.WriteLine("  -f, --fresh    Force fresh start, ignore any existing checkpoint");
     Console.WriteLine("  -y, --yes      Skip confirmation prompt");
     Console.WriteLine("  -h, --help     Show this help");
     Console.WriteLine();
+    Console.WriteLine("Note:");
+    Console.WriteLine("  Data is pre-filtered in helper tables (A2Iss1716A2Events, A2Iss1951A2Events).");
+    Console.WriteLine("  The export includes all data from these tables.");
+    Console.WriteLine();
     Console.WriteLine("Examples:");
     Console.WriteLine("  # Export Issue #1951");
     Console.WriteLine("  DialogActivityExporter --issue 1951 \\");
     Console.WriteLine("    --output C:\\temp\\issue1951.csv \\");
-    Console.WriteLine("    --connection \"Host=localhost;Database=correspondence;Username=user;Password=pass\" \\");
-    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\"");
+    Console.WriteLine("    --azure-ad");
     Console.WriteLine();
     Console.WriteLine("  # Export Issue #1716");
     Console.WriteLine("  DialogActivityExporter --issue 1716 \\");
     Console.WriteLine("    --output C:\\temp\\issue1716.csv \\");
-    Console.WriteLine("    --connection \"Host=localhost;Database=correspondence;Username=user;Password=pass\" \\");
-    Console.WriteLine("    --cutoff \"2026-02-15 00:00:00\"");
+    Console.WriteLine("    --connection \"Host=localhost;Database=correspondence;Username=user;Password=pass\"");
     Console.WriteLine();
     Console.WriteLine("  # Export BOTH issues to single CSV");
     Console.WriteLine("  DialogActivityExporter --issue all \\");
     Console.WriteLine("    --output C:\\temp\\all_issues.csv \\");
-    Console.WriteLine("    --connection \"Host=localhost;Database=correspondence;Username=user;Password=pass\" \\");
-    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\"");
-    Console.WriteLine();
-    Console.WriteLine("  # Use Azure AD authentication (automatic)");
-    Console.WriteLine("  DialogActivityExporter --issue all \\");
-    Console.WriteLine("    --output C:\\temp\\all_issues.csv \\");
-    Console.WriteLine("    --azure-ad \\");
-    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\"");
+    Console.WriteLine("    --azure-ad");
     Console.WriteLine();
     Console.WriteLine("  # Test mode: Export only first 2 batches to verify format");
     Console.WriteLine("  DialogActivityExporter --issue 1951 \\");
     Console.WriteLine("    --output C:\\temp\\test_export.csv \\");
     Console.WriteLine("    --azure-ad \\");
-    Console.WriteLine("    --cutoff \"2026-05-19 11:35:59\" \\");
     Console.WriteLine("    --max-batches 2");
 }
 
@@ -476,7 +451,6 @@ class ExportOptions
     public bool ExportBoth { get; set; }
     public string OutputPath { get; set; } = null!;
     public string ConnectionString { get; set; } = null!;
-    public DateTime CutoffTimestamp { get; set; }
     public int BatchSize { get; set; }
     public int? MaxBatches { get; set; }
     public bool SkipConfirmation { get; set; }

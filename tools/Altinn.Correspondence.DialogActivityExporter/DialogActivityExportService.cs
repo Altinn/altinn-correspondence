@@ -26,7 +26,6 @@ public class DialogActivityExportService
     public async Task ExportToCSVAsync(
         string outputFilePath,
         int issueNumber,
-        DateTime cutoffTimestamp,
         long preCalculatedCount = 0,
         int? maxBatches = null,
         bool freshStart = false,
@@ -52,7 +51,6 @@ public class DialogActivityExportService
         var checkpoint = freshStart ? null : await LoadCheckpointAsync(checkpointPath);
         var isResuming = checkpoint != null 
             && checkpoint.IssueNumber == issueNumber 
-            && checkpoint.CutoffTimestamp == cutoffTimestamp
             && File.Exists(outputFilePath);
 
         if (isResuming && checkpoint != null)
@@ -114,7 +112,6 @@ public class DialogActivityExportService
                 connection,
                 writer,
                 issueNumber,
-                cutoffTimestamp,
                 lastStatus4CorrespondenceId,
                 lastStatus6CorrespondenceId,
                 status4Exhausted,
@@ -164,7 +161,6 @@ public class DialogActivityExportService
             await SaveCheckpointAsync(checkpointPath, new ExportCheckpoint
             {
                 IssueNumber = issueNumber,
-                CutoffTimestamp = cutoffTimestamp,
                 TotalProcessed = totalProcessed,
                 BatchNumber = batchNumber,
                 LastStatus4CorrespondenceId = lastStatus4CorrespondenceId,
@@ -183,7 +179,6 @@ public class DialogActivityExportService
                 await SaveCheckpointAsync(checkpointPath, new ExportCheckpoint
                 {
                     IssueNumber = issueNumber,
-                    CutoffTimestamp = cutoffTimestamp,
                     TotalProcessed = totalProcessed,
                     BatchNumber = batchNumber,
                     LastStatus4CorrespondenceId = lastStatus4CorrespondenceId,
@@ -211,7 +206,6 @@ public class DialogActivityExportService
 
     public async Task ExportBothToCSVAsync(
         string outputFilePath,
-        DateTime cutoffTimestamp,
         long preCalculatedCount1716 = 0,
         long preCalculatedCount1951 = 0,
         int? maxBatches = null,
@@ -262,14 +256,14 @@ public class DialogActivityExportService
         // Export Issue #1716 first (smaller dataset)
         _logger.LogInformation("Exporting Issue #1716...");
         var processed1716 = await ExportIssueToWriter(
-            connection, writer, 1716, cutoffTimestamp, 
+            connection, writer, 1716, 
             count1716, totalProcessed, totalCount, maxBatches, progress, stopwatch, cancellationToken);
         totalProcessed += processed1716;
 
         // Export Issue #1951
         _logger.LogInformation("Exporting Issue #1951...");
         var processed1951 = await ExportIssueToWriter(
-            connection, writer, 1951, cutoffTimestamp,
+            connection, writer, 1951,
             count1951, totalProcessed, totalCount, maxBatches, progress, stopwatch, cancellationToken);
         totalProcessed += processed1951;
 
@@ -283,7 +277,6 @@ public class DialogActivityExportService
         NpgsqlConnection connection,
         StreamWriter writer,
         int issueNumber,
-        DateTime cutoffTimestamp,
         long issueTotal,
         long currentTotal,
         long grandTotal,
@@ -307,7 +300,6 @@ public class DialogActivityExportService
                 connection,
                 writer,
                 issueNumber,
-                cutoffTimestamp,
                 lastStatus4CorrespondenceId,
                 lastStatus6CorrespondenceId,
                 status4Exhausted,
@@ -359,58 +351,10 @@ public class DialogActivityExportService
         return totalProcessed;
     }
 
-    private async Task<long> GetTotalCountAsync(
-        NpgsqlConnection connection,
-        int issueNumber,
-        DateTime cutoffTimestamp,
-        CancellationToken cancellationToken)
-    {
-        string countQuery;
-
-        if (issueNumber == 1716)
-        {
-            // Use helper table for Issue #1716 - much faster count
-            countQuery = @"
-                SELECT COUNT(*)
-                FROM correspondence.""A2Iss1716A2Events""
-                WHERE ""Status"" IN (4, 6)";
-        }
-        else
-        {
-            // Standard count for Issue #1951
-            var (syncFilter, timestampFilter) = GetFiltersForIssue(issueNumber);
-
-            countQuery = $@"
-                SELECT COUNT(*)
-                FROM correspondence.""CorrespondenceStatuses"" stats
-                INNER JOIN correspondence.""Correspondences"" corr 
-                    ON stats.""CorrespondenceId"" = corr.""Id"" 
-                    AND corr.""Altinn2CorrespondenceId"" IS NOT NULL 
-                    AND corr.""IsMigrating"" = FALSE
-                    AND {syncFilter}
-                INNER JOIN correspondence.""A2Parties"" ap 
-                    ON stats.""PartyUuid"" = ap.""PartyUuid""
-                    AND corr.""Recipient"" <> ap.""RecipientUrn""
-                WHERE stats.""Status"" IN (4, 6)
-                  {timestampFilter}";
-        }
-
-        await using var cmd = new NpgsqlCommand(countQuery, connection);
-        if (issueNumber == 1951)
-        {
-            cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
-        }
-        cmd.CommandTimeout = 120;
-
-        var result = await cmd.ExecuteScalarAsync(cancellationToken);
-        return result != null ? Convert.ToInt64(result) : 0;
-    }
-
     private async Task<(int Count, Guid? LastStatus4CorrespondenceId, Guid? LastStatus6CorrespondenceId)> ProcessBatchAsync(
         NpgsqlConnection connection,
         StreamWriter writer,
         int issueNumber,
-        DateTime cutoffTimestamp,
         Guid? lastStatus4CorrespondenceId,
         Guid? lastStatus6CorrespondenceId,
         bool status4Exhausted,
@@ -438,14 +382,14 @@ public class DialogActivityExportService
         var status4Results = status4Exhausted 
             ? new List<DialogActivityRecord>()
             : await FetchStatusRecordsAsync(
-                connection, issueNumber, cutoffTimestamp,
+                connection, issueNumber,
                 statusValue: 4, lastStatus4CorrespondenceId, _batchSize, cancellationToken);
 
         // Only query Status 6 if not exhausted
         var status6Results = status6Exhausted
             ? new List<DialogActivityRecord>()
             : await FetchStatusRecordsAsync(
-                connection, issueNumber, cutoffTimestamp,
+                connection, issueNumber,
                 statusValue: 6, lastStatus6CorrespondenceId, _batchSize, cancellationToken);
 
         var fetchTime = fetchTimer.ElapsedMilliseconds;
@@ -507,7 +451,6 @@ public class DialogActivityExportService
     private async Task<List<DialogActivityRecord>> FetchStatusRecordsAsync(
         NpgsqlConnection connection,
         int issueNumber,
-        DateTime cutoffTimestamp,
         int statusValue,
         Guid? lastCorrespondenceId,
         int fetchLimit,
@@ -527,25 +470,55 @@ public class DialogActivityExportService
             ? "AND stats.\"SyncedFromAltinn2\" IS NOT NULL"
             : "AND stats.\"SyncedFromAltinn2\" IS NULL";
 
+        var a2HelperTableName = issueNumber == 1716 ? "A2Iss1716A2Events" : "A2Iss1951A2Events";
+
         // Issue #1716: Use helper table for optimized performance
         // Issue #1951: Use standard CTE approach (no helper table yet)
         string query;
 
-        if (issueNumber == 1716)
-        {
-            // Build cursor predicate for helper table query
-            // Each status now has independent cursor based only on CorrespondenceId
-            var a2EventsCursorPredicate = lastCorrespondenceId.HasValue 
-                ? "AND a2Events.\"CorrespondenceId\" > @lastId"
-                : "";
+        // Build cursor predicate for helper table query (used inside subquery)
+        // Reference column directly without alias since a2Events alias is defined outside subquery
+        var a2EventsCursorPredicate = lastCorrespondenceId.HasValue
+            ? "AND \"CorrespondenceId\" > @lastId"
+            : "";
 
-            // Optimized query using A2Iss1716A2Events helper table
-            // This table pre-filters to only the affected correspondence events from Altinn 2
-            // Performance: Query execution is fast (~100ms), bottleneck is network transfer
-            // DISTINCT is REQUIRED: IdempotencyKeys can have multiple entries per CorrespondenceId+StatusAction
-            // Analysis showed 41.8% of records have duplicates (2-16x per correspondence)
-            query = $@"
-                SELECT DISTINCT
+        // Optimized query using helper tables with limited initial scan
+        // These tables pre-filter to only the affected correspondence events from Altinn 2
+        // The helper tables (A2Iss1716A2Events, A2Iss1951A2Events) have already filtered for:
+        //   - Valid correspondences (Altinn2CorrespondenceId IS NOT NULL, IsMigrating = FALSE)
+        //   - Correct recipient/actor combinations (Recipient <> RecipientUrn)
+        //   - Cleaned up duplicates (helper table maintenance has removed duplicate events)
+        //
+        // PERFORMANCE CHALLENGE: Status 4 has 190M rows, Status 6 has 846K rows
+        // Solution: Use row limiting with proper index usage to avoid sequential scans
+        //
+        // INDEX OPTIMIZATION: Query must use index IX_A2Iss1951A2Events_Status_CorrId or similar
+        // Key: Filter on Status first (WHERE Status = X), then order by CorrespondenceId
+        // This ensures index scan, not sequential scan on massive Status 4 dataset
+        //
+        // DISTINCT: Likely redundant now that helper table duplicates have been cleaned up
+        // and IdempotencyKeys don't have multiple entries per CorrespondenceId+StatusAction.
+        // Kept for safety but could be removed after verification.
+        //
+        // TIMESTAMP MATCHING: Ensures precise matching between a2Events and CorrespondenceStatuses
+        // We filter by matching a2Events.Timestamp = stats.StatusChanged to export the exact
+        // event that was synced.
+
+        // Use 1:1 ratio: scan exactly fetchLimit rows from helper table
+        // Simple and efficient - some batches may return slightly fewer rows due to join failures
+        // Status 4: ~99.86% efficient (6 out of 5000 don't match joins)
+        // Status 6: ~95% efficient (255 out of 5010 don't match joins)
+        // Result: Status 6 needs ~5% more batches, but each is still fast (~73ms)
+        var helperTableScanLimit = fetchLimit;
+
+        // Use subquery with LIMIT to force early row limiting while preserving index usage
+        // PostgreSQL can push down the LIMIT and use the index efficiently
+        //
+        // NO DISTINCT: Helper table has been cleaned of duplicates, and IdempotencyKeys
+        // doesn't have multiple entries per CorrespondenceId+StatusAction.
+        // Removing DISTINCT improves performance by ~65% (163ms → 57ms in testing).
+        query = $@"
+                SELECT
                     er.""ReferenceValue"" AS DialogId,
                     {idcJoinAlias}.""Id"" AS DialogActivityId,
                     stats.""CorrespondenceId"",
@@ -554,11 +527,19 @@ public class DialogActivityExportService
                     ap.""Name"" AS ActorName,
                     {statusValue} AS Status,
                     '{activityType}' AS ActivityType
-                FROM correspondence.""A2Iss1716A2Events"" a2Events
+                FROM (
+                    SELECT ""CorrespondenceId"", ""Status"", ""PartyUuid"", ""Timestamp""
+                    FROM correspondence.""{a2HelperTableName}""
+                    WHERE ""Status"" = {statusValue}
+                      {a2EventsCursorPredicate}
+                    ORDER BY ""CorrespondenceId""
+                    LIMIT @helperTableScanLimit
+                ) a2Events
                 INNER JOIN correspondence.""CorrespondenceStatuses"" stats 
                     ON a2Events.""CorrespondenceId"" = stats.""CorrespondenceId"" 
                     AND a2Events.""Status"" = stats.""Status"" 
                     AND a2Events.""PartyUuid"" = stats.""PartyUuid""
+                    AND a2Events.""Timestamp"" = stats.""StatusChanged""
                 INNER JOIN correspondence.""ExternalReferences"" er
                     ON a2Events.""CorrespondenceId"" = er.""CorrespondenceId""
                     AND er.""ReferenceType"" = 3
@@ -567,89 +548,30 @@ public class DialogActivityExportService
                     AND {idcJoinAlias}.""StatusAction"" = '{statusActionValue}'
                 INNER JOIN correspondence.""A2Parties"" ap 
                     ON stats.""PartyUuid"" = ap.""PartyUuid""
-                WHERE a2Events.""Status"" = {statusValue}
-                  {a2EventsCursorPredicate}
-                ORDER BY stats.""CorrespondenceId""
+                ORDER BY stats.""CorrespondenceId"", {statusValue}
                 LIMIT @fetchLimit";
-        }
-        else
-        {
-            // Get filters for Issue #1951
-            var (syncFilter, timestampFilter) = GetFiltersForIssue(issueNumber);
-
-            // Build cursor predicate for standard CTE query
-            // Each status now has independent cursor based only on CorrespondenceId
-            var cursorPredicate = lastCorrespondenceId.HasValue 
-                ? "AND stats.\"CorrespondenceId\" > @lastId"
-                : "";
-
-            // Standard CTE approach for Issue #1951
-            // NOTE: CTE filters CorrespondenceStatuses only, keeping it simple for index optimization
-            // The subsequent JOINs filter the result set further
-            query = $@"
-                WITH filtered AS (
-                    SELECT 
-                        stats.""CorrespondenceId"",
-                        stats.""PartyUuid"",
-                        stats.""StatusChanged"",
-                        stats.""Status""
-                    FROM correspondence.""CorrespondenceStatuses"" stats
-                    WHERE stats.""Status"" = {statusValue}
-                      {timestampFilter}
-                      {cteSyncFilter}
-                      {cursorPredicate}
-                    ORDER BY stats.""CorrespondenceId""
-                    LIMIT @fetchLimit
-                )
-                SELECT 
-                    er.""ReferenceValue"" AS DialogId,
-                    {idcJoinAlias}.""Id"" AS DialogActivityId,
-                    filtered.""CorrespondenceId"",
-                    filtered.""StatusChanged"" AS Timestamp,
-                    ap.""OutputActorId"" AS ActorId,
-                    ap.""Name"" AS ActorName,
-                    {statusValue} AS Status,
-                    '{activityType}' AS ActivityType
-                FROM filtered
-                INNER JOIN correspondence.""Correspondences"" corr 
-                    ON filtered.""CorrespondenceId"" = corr.""Id"" 
-                    AND corr.""Altinn2CorrespondenceId"" IS NOT NULL 
-                    AND corr.""IsMigrating"" = FALSE
-                INNER JOIN correspondence.""A2Parties"" ap 
-                    ON filtered.""PartyUuid"" = ap.""PartyUuid""
-                    AND corr.""Recipient"" <> ap.""RecipientUrn""
-                INNER JOIN correspondence.""ExternalReferences"" er
-                    ON filtered.""CorrespondenceId"" = er.""CorrespondenceId"" 
-                    AND er.""ReferenceType"" = 3
-                INNER JOIN correspondence.""IdempotencyKeys"" {idcJoinAlias}
-                    ON filtered.""CorrespondenceId"" = {idcJoinAlias}.""CorrespondenceId"" 
-                    AND {idcJoinAlias}.""StatusAction"" = '{statusActionValue}'
-                ORDER BY filtered.""CorrespondenceId""";
-        }
 
         await using var cmd = new NpgsqlCommand(query, connection);
-        cmd.Parameters.AddWithValue("cutoffTimestamp", cutoffTimestamp);
-
-        // Only add cursor parameter if we have a cursor value
+        cmd.Parameters.AddWithValue("helperTableScanLimit", helperTableScanLimit);
+        cmd.Parameters.AddWithValue("fetchLimit", fetchLimit);
         if (lastCorrespondenceId.HasValue)
         {
             cmd.Parameters.AddWithValue("lastId", lastCorrespondenceId.Value);
         }
-
-        cmd.Parameters.AddWithValue("fetchLimit", fetchLimit);
-
         cmd.CommandTimeout = 300;
 
         // Log query in test mode for verification
         if (_isTestMode)
         {
             var logQuery = query
-                .Replace("@cutoffTimestamp", $"'{cutoffTimestamp:yyyy-MM-dd HH:mm:ss}'")
                 .Replace("@lastId", lastCorrespondenceId.HasValue ? $"'{lastCorrespondenceId.Value}'" : "NULL")
+                .Replace("@helperTableScanLimit", helperTableScanLimit.ToString())
                 .Replace("@fetchLimit", fetchLimit.ToString());
 
-            _logger.LogInformation("TEST MODE - Executing query for Status {StatusValue} (fetchLimit={FetchLimit}):", statusValue, fetchLimit);
+            _logger.LogInformation("TEST MODE - Executing query for Status {StatusValue} (fetchLimit={FetchLimit}, scanLimit={ScanLimit}):", 
+                statusValue, fetchLimit, helperTableScanLimit);
             _logger.LogInformation("{Query}", logQuery);
+            _logger.LogInformation("IMPORTANT: Verify EXPLAIN plan uses index scan (IX_A2Iss1951A2Events_Status_CorrId or similar), NOT sequential scan");
         }
 
         var results = new List<DialogActivityRecord>(fetchLimit);
@@ -718,30 +640,6 @@ public class DialogActivityExportService
         }
     }
 
-    private static (string SyncFilter, string TimestampFilter) GetFiltersForIssue(
-        int issueNumber)
-    {
-        return issueNumber switch
-        {
-            // Issue #1951: Migrated Events (NOT Synced from Altinn2)
-            // Records: ~150 million
-            // Uses StatusChanged BETWEEN for better index selectivity on large dataset
-            // OPTIMIZATION: corr.Created filter removed (caused 3s → 12+ min degradation)
-            1951 => (
-                "stats.\"SyncedFromAltinn2\" IS NULL",
-                "AND stats.\"StatusChanged\" BETWEEN '2019-03-23 00:00:00' AND @cutoffTimestamp"
-            ),
-            // Issue #1716: Synced Events from Altinn2
-            // Records: ~7-9 million
-            // Uses SyncedFromAltinn2 < cutoff (simple less-than on smaller dataset)
-            1716 => (
-                "stats.\"SyncedFromAltinn2\" IS NOT NULL",
-                "AND stats.\"SyncedFromAltinn2\" < @cutoffTimestamp"
-            ),
-            _ => throw new ArgumentException($"Invalid issue number: {issueNumber}")
-        };
-    }
-
     private static string FormatCSVLine(params string[] fields)
     {
         return string.Join(",", fields.Select(f => $"\"{f}\""));
@@ -791,7 +689,6 @@ public class DialogActivityExportService
     internal record ExportCheckpoint
     {
         public int IssueNumber { get; init; }
-        public DateTime CutoffTimestamp { get; init; }
         public long TotalProcessed { get; init; }
         public int BatchNumber { get; init; }
         public Guid? LastStatus4CorrespondenceId { get; init; }

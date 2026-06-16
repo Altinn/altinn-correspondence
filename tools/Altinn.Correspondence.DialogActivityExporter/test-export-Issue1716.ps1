@@ -1,31 +1,28 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Quick test script for DialogActivityExporter with limited results
+    Quick test script for Issue #1716 with limited results
 
 .DESCRIPTION
-    Runs a quick test export with a small batch size (1000 rows by default)
+    Runs a quick test export with a small batch size (default: 2500 rows)
     to verify functionality and output format before running full production export.
 
-    Test mode automatically skips expensive COUNT queries - progress shows processed
+    Test mode automatically limits to 2 batches - progress shows processed
     records only (no percentage/ETA).
 
-.PARAMETER Issue
-    Issue number: 1951, 1716, or 'all' (default: 1951)
+    Note:
+    Data is pre-filtered in helper table A2Iss1716A2Events during creation.
+    The export includes all data from this table.
 
 .PARAMETER BatchSize
-    Number of rows to fetch per batch (default: 1000, minimum: 1000)
+    Number of rows to fetch per batch (default: 2500, minimum: 1000)
 
 .PARAMETER OutputPath
-    Path to output CSV file (default: C:\temp\test_export_{issue}_{timestamp}.csv)
-
-.PARAMETER CutoffDate
-    Cutoff timestamp (default: 2026-05-19 11:35:59)
+    Path to output CSV file (default: C:\temp\test_export_1716_{timestamp}.csv)
 
 .PARAMETER MaxBatches
     Maximum number of batches to export (default: 2)
     Limits the export to test format and function without full dataset
-    Automatically skips COUNT queries for faster startup
 
 .PARAMETER UseAzureAd
     Use Azure AD authentication (default: true)
@@ -36,48 +33,40 @@
     Can also be configured in appsettings.json
 
 .EXAMPLE
-    .\\run-export.ps1
-    # Quick test with 2 batches (2000 rows) for Issue #1951
-    # Shows: "Processed: 2,000 | 1,234 rows/sec | Elapsed: 00:00:02"
+    .\test-export-Issue1716.ps1
+    # Quick test with 2 batches (5000 rows) for Issue #1716
+    # Shows: "Processed: 5,000 | 1,234 rows/sec | Elapsed: 00:00:04"
 
 .EXAMPLE
-    .\\run-export.ps1 -Issue 1716 -BatchSize 5000 -MaxBatches 1
-    # Test Issue #1716 with 1 batch of 5000 rows
-    # Fast startup (no COUNT query)
+    .\test-export-Issue1716.ps1 -BatchSize 5000 -MaxBatches 1
+    # Test with 1 batch of 5000 rows
 
 .EXAMPLE
-    .\\run-export.ps1 -MaxBatches 5
+    .\test-export-Issue1716.ps1 -MaxBatches 5
     # Test with 5 batches to get more data for verification
 
 .EXAMPLE
-    .\\run-export.ps1 -Issue all -OutputPath C:\temp\my_test.csv
-    # Test both issues combined (fast startup, no COUNT queries)
+    .\test-export-Issue1716.ps1 -OutputPath C:\temp\my_test.csv
+    # Test with custom output path
 
 .EXAMPLE
-    .\\run-export.ps1 -ConnectionString "Host=localhost;Database=correspondence_dev;Username=dev;Password=dev"
+    .\test-export-Issue1716.ps1 -ConnectionString "Host=localhost;Database=correspondence_dev;Username=dev;Password=dev"
     # Test against local dev database
 
 .NOTES
     Test mode benefits:
-    - Instant startup (no expensive COUNT queries)
+    - Fast startup (limited batches)
     - Shows processed records, rate, and elapsed time
     - Perfect for verifying query correctness and CSV format
 #>
 
 param(
     [Parameter(Mandatory=$false)]
-    [ValidateSet('1951', '1716', 'all')]
-    [string]$Issue = '1951',
-
-    [Parameter(Mandatory=$false)]
     [ValidateRange(1000, 100000)]
-    [int]$BatchSize = 1000,
+    [int]$BatchSize = 2500,
 
     [Parameter(Mandatory=$false)]
     [string]$OutputPath = "",
-
-    [Parameter(Mandatory=$false)]
-    [string]$CutoffDate = "2026-05-19 11:35:59",
 
     [Parameter(Mandatory=$false)]
     [ValidateRange(1, 100)]
@@ -97,8 +86,7 @@ Set-Location $scriptPath
 # Generate default output path if not provided
 if ([string]::IsNullOrEmpty($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $tempPath = [System.IO.Path]::GetTempPath()
-    $OutputPath = Join-Path $tempPath "test_export_$($Issue)_$($timestamp).csv"
+    $OutputPath = "C:\temp\test_export_1716_$($timestamp).csv"
 }
 
 # Ensure output directory exists
@@ -110,9 +98,8 @@ if (-not (Test-Path $outputDir)) {
 
 # Build command arguments
 $commandArgs = @(
-    "--issue", $Issue,
+    "--issue", "1716",
     "--output", $OutputPath,
-    "--cutoff", $CutoffDate,
     "--batch-size", $BatchSize,
     "--max-batches", $MaxBatches,
     "--yes"
@@ -129,14 +116,13 @@ if (-not [string]::IsNullOrEmpty($ConnectionString)) {
 # Display test configuration
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "   DialogActivityExporter - Quick Test" -ForegroundColor Cyan
+Write-Host "   DialogActivityExporter - Quick Test (Issue #1716)" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Issue:         $Issue" -ForegroundColor White
+Write-Host "Issue:         1716 (Synced from Altinn2)" -ForegroundColor White
 Write-Host "Batch Size:    $BatchSize rows" -ForegroundColor White
-Write-Host "Max Batches:   $MaxBatches (TEST MODE - No COUNT queries)" -ForegroundColor Yellow
+Write-Host "Max Batches:   $MaxBatches (TEST MODE)" -ForegroundColor Yellow
 Write-Host "Output:        $OutputPath" -ForegroundColor White
-Write-Host "Cutoff Date:   $CutoffDate" -ForegroundColor White
 Write-Host ""
 Write-Host "Progress Format: Processed records only (no percentage/ETA)" -ForegroundColor DarkGray
 Write-Host ""

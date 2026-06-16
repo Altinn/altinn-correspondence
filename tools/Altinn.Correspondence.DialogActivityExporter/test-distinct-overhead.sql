@@ -14,6 +14,7 @@ FROM (
         ON a2Events."CorrespondenceId" = stats."CorrespondenceId" 
         AND a2Events."Status" = stats."Status" 
         AND a2Events."PartyUuid" = stats."PartyUuid"
+        AND a2Events."StatusChanged" = stats."StatusChanged"
     WHERE a2Events."Status" = 4
     LIMIT 10000
 ) subq;
@@ -24,6 +25,7 @@ INNER JOIN correspondence."CorrespondenceStatuses" stats
     ON a2Events."CorrespondenceId" = stats."CorrespondenceId" 
     AND a2Events."Status" = stats."Status" 
     AND a2Events."PartyUuid" = stats."PartyUuid"
+    AND a2Events."StatusChanged" = stats."StatusChanged"
 WHERE a2Events."Status" = 4
 LIMIT 10000;
 
@@ -47,6 +49,7 @@ INNER JOIN correspondence."CorrespondenceStatuses" stats
     ON a2Events."CorrespondenceId" = stats."CorrespondenceId" 
     AND a2Events."Status" = stats."Status" 
     AND a2Events."PartyUuid" = stats."PartyUuid"
+    AND a2Events."StatusChanged" = stats."StatusChanged"
 INNER JOIN correspondence."ExternalReferences" er
     ON a2Events."CorrespondenceId" = er."CorrespondenceId"
     AND er."ReferenceType" = 3
