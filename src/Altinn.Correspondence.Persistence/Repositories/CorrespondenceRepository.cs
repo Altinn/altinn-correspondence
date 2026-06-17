@@ -282,6 +282,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public Task<List<CorrespondenceEntity>> GetCandidatesForMigrationToDialogporten(int batchSize, DateTimeOffset? cursorCreated, Guid? cursorId, DateTimeOffset? createdFrom, DateTimeOffset? createdTo, CancellationToken cancellationToken = default)
         {
+            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
             var query = _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId != null && c.IsMigrating)
                 .ExcludePurged()
@@ -306,7 +307,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw new InvalidOperationException("Either cursorCreated or createdTo must be provided");
             }
 
-
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromMinutes(2));
             return query
                     .OrderByDescending(c => c.Created)
                     .ThenBy(c => c.Id)
