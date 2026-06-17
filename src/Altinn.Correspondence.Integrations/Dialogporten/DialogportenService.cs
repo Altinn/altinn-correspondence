@@ -20,6 +20,7 @@ using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
 using Hangfire;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
@@ -986,6 +987,8 @@ public class DialogportenService(HttpClient _httpClient,
             enableDownloadAll: generalSettings.Value.EnableDownloadAll,
             partyUrnsByPartyUuid: partyUrnsByPartyUuid);
         string updateType = enableEvents ? "" : "?IsSilentUpdate=true";
+        var rawJson = JsonSerializer.Serialize(createDialogRequest);
+        logger.LogInformation("Body was: " + rawJson);
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs{updateType}", createDialogRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
