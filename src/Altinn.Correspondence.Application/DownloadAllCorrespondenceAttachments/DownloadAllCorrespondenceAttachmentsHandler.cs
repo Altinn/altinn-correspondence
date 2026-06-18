@@ -99,41 +99,35 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             _logger.LogError("Total size of attachments for correspondence {CorrespondenceId} exceeds the maximum allowed for zip download: {TotalSize} bytes", request.CorrespondenceId, totalSize);
             return AttachmentErrors.TotalAttachmentSizeExceedsLimit;
         }
-        var zipStream = new MemoryStream();
-        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+        
+        var entries = new List<ZipAttachmentEntry>(attachments.Count);
+        var usedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var attachment in attachments)
         {
-            var usedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var attachment in attachments)
+            var originalFileName = attachment.FileName ?? attachment.Id.ToString();
+            var zipEntryName = originalFileName;
+            var fileNameBytes = Encoding.UTF8.GetByteCount(originalFileName);
+            if (fileNameBytes > 255)
             {
-                var originalFileName = attachment.FileName ?? attachment.Id.ToString();
-                var zipEntryName = originalFileName;
-                var fileNameBytes = Encoding.UTF8.GetByteCount(originalFileName);
-                if (fileNameBytes > 255)
-                {
-                    _logger.LogInformation("Attachment {AttachmentId} in correspondence {CorrespondenceId} has a filename that exceeds the maximum length for zip entries. It will be truncated to fit within the limit.", attachment.Id, request.CorrespondenceId);
-                    var ext = Path.GetExtension(originalFileName);
-                    var nameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
-                    zipEntryName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext)) + ext;
-                }
-                var baseName = zipEntryName;
-                var uniqueName = baseName;
-                var counter = 1;
-                while (!usedEntryNames.Add(uniqueName))
-                {
-                    var ext = Path.GetExtension(baseName);
-                    var nameWithoutExt = Path.GetFileNameWithoutExtension(baseName);
-                    var suffix = $"({counter})";
-                    var truncatedName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext) - Encoding.UTF8.GetByteCount(suffix));
-                    uniqueName = $"{truncatedName}{suffix}{ext}";
-                    counter++;
-                }
-                var entry = archive.CreateEntry(uniqueName);
-                using var entryStream = entry.Open();
-                using var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-                await attachmentStream.CopyToAsync(entryStream, cancellationToken);
+                _logger.LogInformation("Attachment {AttachmentId} in correspondence {CorrespondenceId} has a filename that exceeds the maximum length for zip entries. It will be truncated to fit within the limit.", attachment.Id, request.CorrespondenceId);
+                var ext = Path.GetExtension(originalFileName);
+                var nameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
+                zipEntryName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext)) + ext;
             }
+            var baseName = zipEntryName;
+            var uniqueName = baseName;
+            var counter = 1;
+            while (!usedEntryNames.Add(uniqueName))
+            {
+                var ext = Path.GetExtension(baseName);
+                var nameWithoutExt = Path.GetFileNameWithoutExtension(baseName);
+                var suffix = $"({counter})";
+                var truncatedName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext) - Encoding.UTF8.GetByteCount(suffix));
+                uniqueName = $"{truncatedName}{suffix}{ext}";
+                counter++;
+            }
+            entries.Add(new ZipAttachmentEntry(attachment, uniqueName));
         }
-        zipStream.Position = 0;
 
         await TransactionWithRetriesPolicy.Execute<bool>(async (cancellationToken) =>
         {
@@ -167,7 +161,33 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         }
 
         _logger.LogInformation("Successfully processed download of all attachments for correspondence {CorrespondenceId}", request.CorrespondenceId);
-        return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream, zipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence) };
+        return new DownloadAllCorrespondenceAttachmentsResponse
+        {
+            Entries = entries,
+            ZipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence)
+        };
+    }
+
+    /// <summary>
+    /// Streams the attachments as a zip archive directly to <paramref name="output"/>, downloading each
+    /// attachment from storage and copying it into the archive one at a time. Memory use stays small and
+    /// constant regardless of total size.
+    /// </summary>
+    /// <remarks>
+    /// Call only after <see cref="Process"/> has succeeded. Once writing begins the HTTP response is
+    /// already committed, so a failure here (e.g. a storage error) cannot be turned into an error
+    /// response — it surfaces as an aborted/truncated download.
+    /// </remarks>
+    public async Task WriteZip(IReadOnlyList<ZipAttachmentEntry> entries, Stream output, CancellationToken cancellationToken)
+    {
+        using var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
+        foreach (var (attachment, entryName) in entries)
+        {
+            var entry = archive.CreateEntry(entryName);
+            using var entryStream = entry.Open();
+            using var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
+            await attachmentStream.CopyToAsync(entryStream, cancellationToken);
+        }
     }
 
     private static string TruncateToUtf8Bytes(string text, int maxBytes)
