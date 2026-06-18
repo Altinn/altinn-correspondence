@@ -1,5 +1,11 @@
 # Issue #1951 Production Export - Optimization Summary
 
+## Overview
+
+This document covers the optimized production export for Issue #1951 (Migrated Events - NOT synced from Altinn2).
+
+**Data Source**: The export reads from the `A2Iss1951A2Events` helper table, which was **imported from Altinn 2**. This table is pre-filtered and contains ~190.8M events that need to be exported.
+
 ## Test Results (Production Database)
 
 ### Performance Metrics
