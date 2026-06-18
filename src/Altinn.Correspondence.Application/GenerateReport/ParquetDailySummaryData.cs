@@ -49,6 +49,12 @@ public class ParquetDailySummaryData
     /// </summary>
     [JsonPropertyName("messagesender")]
     public string MessageSender { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Sender organization number (if available in correspondence propertyList)
+    /// </summary>
+    [JsonPropertyName("senderorgnr")]
+    public string SenderOrgNumber { get; set; } = string.Empty;
     
     /// <summary>
     /// Resource ID

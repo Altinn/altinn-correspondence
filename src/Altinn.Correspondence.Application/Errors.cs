@@ -125,6 +125,7 @@ public static class AuthorizationErrors
     public static Error CouldNotDetermineCaller = new Error(4006, "Could not determine caller", HttpStatusCode.Unauthorized);
     public static Error CouldNotFindOrgNo = new Error(4007, "Could not identify orgnumber from user", HttpStatusCode.Unauthorized);
     public static Error IncorrectResourceType = new Error(4009, "Resource type is not supported. Resource must be of type CorrespondenceService.", HttpStatusCode.BadRequest);
+    public static Error IncorrectCorrespondenceResourceType = new Error(4010, "Resource type is not supported. Resource must be of type CorrespondenceService. If creating a Correspondence as a transmission with reference to an existing DialogId AltinnApp is also allowed.", HttpStatusCode.BadRequest);
 }
 
 public static class SyncErrors

@@ -64,6 +64,15 @@ module appIdentity '../../modules/identity/create.bicep' = {
   }
 }
 
+module auditStorageBlobLogsTransform '../../modules/logAnalytics/workspaceStorageBlobLogsTransform.bicep' = {
+  name: 'auditStorageBlobLogsTransform'
+  scope: resourceGroup
+  params: {
+    location: location
+    namePrefix: namePrefix
+  }
+}
+
 module addContributorAccess '../../modules/identity/addContributorAccess.bicep' = {
   name: 'appDeployToAzureAccess'
   params: {
@@ -73,6 +82,13 @@ module addContributorAccess '../../modules/identity/addContributorAccess.bicep' 
 
 module addStorageBlobDataContributor '../../modules/identity/addStorageBlobDataContributorRole.bicep' = {
   name: 'storageBlobDataContributorAccess'
+  params: {
+    userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
+  }
+}
+
+module addDefenderForStorageScannerOperator '../../modules/identity/addDefenderForStorageScannerOperatorRole.bicep' = {
+  name: 'defenderForStorageScannerOperatorAccess'
   params: {
     userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
   }
@@ -144,7 +160,7 @@ resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bicep' = {
   name: 'fetchAzureEventGridIpsScript'
   scope: resourceGroup
-  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess, addContributorAccess]
+  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess, addContributorAccess, addDefenderForStorageScannerOperator]
   params: {
     location: location
     principal_id: appIdentity.outputs.id

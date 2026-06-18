@@ -109,5 +109,13 @@ namespace Altinn.Correspondence.Core.Repositories
             Guid? cursorId,
             CancellationToken cancellationToken);
         Task<List<CorrespondenceEntity>> GetUnopenedConfidentialCorrespondencesForParty(string partyId, TimeSpan minAge, CancellationToken cancellationToken);
+
+        Task<List<CorrespondenceEntity>> GetCorrespondencesCreatedInRange(
+            DateTimeOffset from,
+            DateTimeOffset to,
+            DateTimeOffset? cursorCreated,
+            Guid? cursorId,
+            int batchSize,
+            CancellationToken cancellationToken);
     }
 }

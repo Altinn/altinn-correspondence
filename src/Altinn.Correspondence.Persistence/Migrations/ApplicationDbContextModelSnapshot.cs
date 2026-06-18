@@ -341,8 +341,20 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("ServiceOwnerId");
 
+                    b.HasIndex("Recipient", "RequestedPublishTime")
+                        .HasDatabaseName("IX_Correspondences_Confidential_Recipient_PublishTime")
+                        .HasFilter("\"IsConfidential\" = true");
+
                     b.HasIndex("Recipient", "RequestedPublishTime", "Id")
                         .IsDescending(false, true, false);
+
+                    b.HasIndex("Recipient", "ResourceId", "RequestedPublishTime", "Id")
+                        .IsDescending(false, false, true, false)
+                        .HasDatabaseName("IX_Correspondences_Recipient_ResourceId_RequestedPublishTime");
+
+                    b.HasIndex("Sender", "ResourceId", "RequestedPublishTime", "Id")
+                        .IsDescending(false, false, true, false)
+                        .HasDatabaseName("IX_Correspondences_Sender_ResourceId_RequestedPublishTime");
 
                     b.ToTable("Correspondences", "correspondence");
                 });

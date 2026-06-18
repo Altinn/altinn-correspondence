@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
+using Altinn.Correspondence.Tests.Extensions;
 using Altinn.Correspondence.Tests.Factories;
 
 namespace Altinn.Correspondence.Tests.Dialogporten;
@@ -222,14 +224,8 @@ public class DialogportenServiceTests
 
         // Setup party lookup
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(delegatedUserPartyUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = delegatedUserPartyUuid,
-                SSN = "12345678901",
-                PartyTypeName = PartyType.Person,
-                Name = "Test Person"
-            });
+            .Setup(a => a.LookUpPartyById(delegatedUserPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(delegatedUserPartyUuid, "10108000398", displayName: "Test Person"));
 
         // Act
         var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
@@ -241,7 +237,7 @@ public class DialogportenServiceTests
         forwardingRepoMock.Verify(r => r.SetDialogActivityId(forwardingEventId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify party lookup was called
-        altinnRegisterMock.Verify(a => a.LookUpPartyByPartyUuid(delegatedUserPartyUuid, It.IsAny<CancellationToken>()), Times.Once);
+        altinnRegisterMock.Verify(a => a.LookUpPartyById(delegatedUserPartyUuid.ToString(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify the request body contains the forwarding activity
         var capturedRequestBody = getBody();
@@ -260,7 +256,7 @@ public class DialogportenServiceTests
         Assert.NotNull(forwardingActivity);
         Assert.Equal("Information", forwardingActivity!.Type);
         Assert.Equal("PartyRepresentative", forwardingActivity.PerformedBy.ActorType);
-        Assert.Contains("urn:altinn:person:identifier-no:12345678901", forwardingActivity.PerformedBy.ActorId);
+        Assert.Contains("urn:altinn:person:identifier-no:10108000398", forwardingActivity.PerformedBy.ActorId);
     }
 
     [Fact]
@@ -298,14 +294,8 @@ public class DialogportenServiceTests
         var (service, forwardingRepoMock, altinnRegisterMock, getBody) = CreateServiceWithForwardingEventSupport(correspondence);
 
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(delegatedUserPartyUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = delegatedUserPartyUuid,
-                SSN = "12345678901",
-                PartyTypeName = PartyType.Person,
-                Name = "Test Person"
-            });
+            .Setup(a => a.LookUpPartyById(delegatedUserPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(delegatedUserPartyUuid, "10108000398", displayName: "Test Person"));
 
         // Act
         var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
@@ -324,9 +314,9 @@ public class DialogportenServiceTests
         Assert.NotNull(deserialized);
         Assert.NotNull(deserialized!.Activities);
 
-        var mailboxForwardingActivity = deserialized.Activities.FirstOrDefault(a => 
-            a.Type == "Information" && 
-            a.Description != null && 
+        var mailboxForwardingActivity = deserialized.Activities.FirstOrDefault(a =>
+            a.Type == "Information" &&
+            a.Description != null &&
             a.Description.Any(d => d.LanguageCode == "nb" && d.Value.Contains("Digipost")));
 
         Assert.NotNull(mailboxForwardingActivity);
@@ -374,24 +364,12 @@ public class DialogportenServiceTests
         var (service, forwardingRepoMock, altinnRegisterMock, getBody) = CreateServiceWithForwardingEventSupport(correspondence);
 
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(delegatedUserPartyUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = delegatedUserPartyUuid,
-                SSN = "12345678901",
-                PartyTypeName = PartyType.Person,
-                Name = "Sender Person"
-            });
+            .Setup(a => a.LookUpPartyById(delegatedUserPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(delegatedUserPartyUuid, "10108000398", displayName: "Sender Person"));
 
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(forwardedToUserUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = forwardedToUserUuid,
-                SSN = "98765432109",
-                PartyTypeName = PartyType.Person,
-                Name = "Recipient Person"
-            });
+            .Setup(a => a.LookUpPartyById(forwardedToUserUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(forwardedToUserUuid, "13076800124", displayName: "Recipient Person"));
 
         // Act
         var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
@@ -402,8 +380,8 @@ public class DialogportenServiceTests
         forwardingRepoMock.Verify(r => r.SetDialogActivityId(forwardingEventId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify both party lookups were called
-        altinnRegisterMock.Verify(a => a.LookUpPartyByPartyUuid(delegatedUserPartyUuid, It.IsAny<CancellationToken>()), Times.Once);
-        altinnRegisterMock.Verify(a => a.LookUpPartyByPartyUuid(forwardedToUserUuid, It.IsAny<CancellationToken>()), Times.Once);
+        altinnRegisterMock.Verify(a => a.LookUpPartyById(delegatedUserPartyUuid.ToString(), It.IsAny<CancellationToken>()), Times.Once);
+        altinnRegisterMock.Verify(a => a.LookUpPartyById(forwardedToUserUuid.ToString(), It.IsAny<CancellationToken>()), Times.Once);
 
         var capturedRequestBody = getBody();
         var deserialized = JsonSerializer.Deserialize<CreateDialogRequest>(capturedRequestBody, new JsonSerializerOptions
@@ -484,24 +462,12 @@ public class DialogportenServiceTests
         var (service, forwardingRepoMock, altinnRegisterMock, getBody) = CreateServiceWithForwardingEventSupport(correspondence);
 
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(delegatedUserPartyUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = delegatedUserPartyUuid,
-                SSN = "12345678901",
-                PartyTypeName = PartyType.Person,
-                Name = "Forwarder"
-            });
+            .Setup(a => a.LookUpPartyById(delegatedUserPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(delegatedUserPartyUuid, "10108000398", displayName: "Forwarder"));
 
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(forwardedToUserUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = forwardedToUserUuid,
-                SSN = "98765432109",
-                PartyTypeName = PartyType.Person,
-                Name = "Delegate"
-            });
+            .Setup(a => a.LookUpPartyById(forwardedToUserUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(forwardedToUserUuid, "13076800124", displayName: "Delegate"));
 
         // Act
         var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
@@ -610,13 +576,8 @@ public class DialogportenServiceTests
         var (service, forwardingRepoMock, altinnRegisterMock, getBody) = CreateServiceWithForwardingEventSupport(correspondence);
 
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(forwardedByPartyUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = forwardedByPartyUuid,
-                SSN = "12345678901",
-                PartyTypeName = PartyType.Person
-            });
+            .Setup(a => a.LookUpPartyById(forwardedByPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(forwardedByPartyUuid, "10108000398"));
 
         // Act
         var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
@@ -667,14 +628,8 @@ public class DialogportenServiceTests
 
         // Setup party lookup to return the person who actually performed the read action
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(personPartyUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = personPartyUuid,
-                SSN = "12345678901",
-                PartyTypeName = PartyType.Person,
-                Name = "Test Person"
-            });
+            .Setup(a => a.LookUpPartyById(personPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(personPartyUuid, "10108000398", displayName: "Test Person"));
 
         // Act
         var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
@@ -698,7 +653,7 @@ public class DialogportenServiceTests
         Assert.Equal("PartyRepresentative", readActivity!.PerformedBy.ActorType);
 
         // ActorId should be the person URN, NOT the organization URN
-        Assert.Contains("urn:altinn:person:identifier-no:12345678901", readActivity.PerformedBy.ActorId);
+        Assert.Contains("urn:altinn:person:identifier-no:10108000398", readActivity.PerformedBy.ActorId);
         Assert.DoesNotContain("urn:altinn:organizationnumber:910000001", readActivity.PerformedBy.ActorId);
     }
 
@@ -737,14 +692,8 @@ public class DialogportenServiceTests
 
         // Setup party lookup
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(personPartyUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = personPartyUuid,
-                SSN = "12345678901",
-                PartyTypeName = PartyType.Person,
-                Name = "Test Person"
-            });
+            .Setup(a => a.LookUpPartyById(personPartyUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(personPartyUuid, "10108000398", displayName: "Test Person"));
 
         // Act
         var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
@@ -768,7 +717,7 @@ public class DialogportenServiceTests
         Assert.Equal("PartyRepresentative", confirmedActivity!.PerformedBy.ActorType);
 
         // ActorId should be the person URN, NOT the organization URN
-        Assert.Contains("urn:altinn:person:identifier-no:12345678901", confirmedActivity.PerformedBy.ActorId);
+        Assert.Contains("urn:altinn:person:identifier-no:10108000398", confirmedActivity.PerformedBy.ActorId);
         Assert.DoesNotContain("urn:altinn:organizationnumber:910000001", confirmedActivity.PerformedBy.ActorId);
     }
 
@@ -808,24 +757,12 @@ public class DialogportenServiceTests
 
         // Setup party lookups for both persons
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(personWhoReadUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = personWhoReadUuid,
-                SSN = "11111111111",
-                PartyTypeName = PartyType.Person,
-                Name = "Person One"
-            });
+            .Setup(a => a.LookUpPartyById(personWhoReadUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(personWhoReadUuid, "10108000398", displayName: "Person One"));
 
         altinnRegisterMock
-            .Setup(a => a.LookUpPartyByPartyUuid(personWhoConfirmedUuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Party
-            {
-                PartyUuid = personWhoConfirmedUuid,
-                SSN = "22222222222",
-                PartyTypeName = PartyType.Person,
-                Name = "Person Two"
-            });
+            .Setup(a => a.LookUpPartyById(personWhoConfirmedUuid.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterServiceMockExtensions.BuildPerson(personWhoConfirmedUuid, "13076800124", displayName: "Person Two"));
 
         // Act
         var resultId = await service.CreateCorrespondenceDialogForMigratedCorrespondence(correspondenceId, correspondence);
@@ -849,9 +786,9 @@ public class DialogportenServiceTests
         Assert.NotNull(confirmedActivity);
 
         // Verify read activity uses the person who read
-        Assert.Contains("urn:altinn:person:identifier-no:11111111111", readActivity!.PerformedBy.ActorId);
+        Assert.Contains("urn:altinn:person:identifier-no:10108000398", readActivity!.PerformedBy.ActorId);
 
         // Verify confirmed activity uses the person who confirmed
-        Assert.Contains("urn:altinn:person:identifier-no:22222222222", confirmedActivity!.PerformedBy.ActorId);
+        Assert.Contains("urn:altinn:person:identifier-no:13076800124", confirmedActivity!.PerformedBy.ActorId);
     }
 }

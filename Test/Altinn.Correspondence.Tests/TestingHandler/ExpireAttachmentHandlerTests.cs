@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Tests.Extensions;
 using Hangfire;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
@@ -90,7 +91,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(DateTimeOffset.UtcNow.AddDays(-1));
             _altinnRegisterServiceMock
                 .Setup(s => s.LookUpPartyById(attachment.Sender, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Party { PartyUuid = partyUuid });
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _idempotencyKeyRepositoryMock
                 .Setup(r => r.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((IdempotencyKeyEntity key, CancellationToken _) => key);

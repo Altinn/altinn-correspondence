@@ -1,10 +1,12 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Register.Contracts;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -68,31 +70,41 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 logger.LogError("Resource type not found for {ResourceId} despite successful authorization", request.Correspondence.ResourceId);
                 throw new Exception($"Resource type not found for {request.Correspondence.ResourceId}. This should be impossible as authorization worked.");
             }
-            if (resourceType != "CorrespondenceService")
+            var isTransmissionCorrespondence = request.Correspondence.ExternalReferences?
+                .Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId) == true;
+            var resourceTypeAllowed = resourceType == "CorrespondenceService"
+                || (resourceType == "AltinnApp" && isTransmissionCorrespondence);
+            if (!resourceTypeAllowed)
             {
-                logger.LogError("Incorrect resource type {ResourceType} for {ResourceId}", resourceType, request.Correspondence.ResourceId);
-                return AuthorizationErrors.IncorrectResourceType;
+                logger.LogError(
+                    "Incorrect resource type {ResourceType} for {ResourceId}. Resource must be of type CorrespondenceService or AltinnApp (AltinnApp allowed for Dialogporten transmissions)",
+                    resourceType,
+                    request.Correspondence.ResourceId);
+                return AuthorizationErrors.IncorrectCorrespondenceResourceType;
             }
 
             var caller = user?.GetCallerPartyUrn();
             var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
-            if (party?.PartyUuid is not Guid partyUuid)
+            if (party?.Uuid is not Guid partyUuid)
             {
                 logger.LogError("Could not find party UUID for caller {caller}", caller);
                 return AuthorizationErrors.CouldNotFindPartyUuid;
             }
             validatedData.PartyUuid = partyUuid;
 
-            var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
-            if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
-            {
-                logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
-                return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
-            }
-            if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
-            {
-                logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
-                return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
+            if (resourceType != "AltinnApp") 
+            { 
+                var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
+                if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
+                {
+                    logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
+                    return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
+                }
+                if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
+                {
+                    logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
+                    return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
+                }
             }
             if (request.Recipients.Count != request.Recipients.Distinct().Count())
             {
@@ -242,14 +254,14 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 {
                     return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(
                         validatedData.RecipientDetails != null ?
-                        validatedData.RecipientDetails.Select(r => r.SSN ?? r.OrgNumber) :
+                        validatedData.RecipientDetails.Select(r => r.GetExternalUrn()?.WithoutPrefix() ?? string.Empty) :
                         new List<string>()).ToList());
                 }
                 foreach (var details in validatedData.RecipientDetails)
                 {
-                    if (details.PartyUuid == Guid.Empty)
+                    if (details.Uuid == Guid.Empty)
                     {
-                        return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.SSN ?? details.OrgNumber });
+                        return CorrespondenceErrors.RecipientLookupFailed(new List<string> { details.GetExternalUrn()?.WithoutPrefix() ?? string.Empty });
                     }
                 }
             }
@@ -311,16 +323,16 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             foreach (var recipient in request.Recipients)
             {
                 var recipientParty = await altinnRegisterService.LookUpPartyById(recipient, cancellationToken);
-                if (recipientParty is null || recipientParty.PartyUuid is null)
+                if (recipientParty is null || recipientParty.Uuid == Guid.Empty)
                 {
                     recipientsNotFound.Add(recipient);
                     continue;
                 }
 
-                if (string.IsNullOrEmpty(recipientParty.OrgNumber)) continue;
+                if (string.IsNullOrEmpty(recipientParty.GetOrganizationIdentifier())) continue;
                 if (request.Correspondence.IsConfidential)
                 {
-                    var hasRequired = await altinnRegisterService.HasPartyRequiredRolesForConfidential(recipient, recipientParty.PartyUuid.Value, cancellationToken);
+                    var hasRequired = await altinnRegisterService.HasPartyRequiredRolesForConfidential(recipient, recipientParty.Uuid, cancellationToken);
                     if (!hasRequired)
                     {
                         recipientsWithoutRequiredRoles.Add(recipient);

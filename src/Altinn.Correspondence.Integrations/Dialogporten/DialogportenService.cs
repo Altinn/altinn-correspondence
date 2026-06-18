@@ -2,8 +2,10 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Exceptions;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Register.Contracts;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -17,6 +19,7 @@ using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
+using Hangfire;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
@@ -891,6 +894,66 @@ public class DialogportenService(HttpClient _httpClient,
         return dialogResponse;
     }
 
+    [AutomaticRetry(Attempts = 10)]
+    public async Task TryAddDownloadAllAttachmentsToDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
+    {
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        if (correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByAltinn) || correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient))
+        {
+            logger.LogError("Correspondence with id {correspondenceId} has been purged", correspondenceId);
+            return;
+        }
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            logger.LogError("No dialog found on correspondence with id {correspondenceId} when attempting to add download all attachments", correspondenceId);
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId} when attempting to add download all attachments");
+        }
+        var dialog = await GetDialog(dialogId);
+        if (dialog is null)
+        {
+            throw new Exception($"Dialog {dialogId} not found when attempting to add download all attachments");
+        }
+
+        if (dialog.Attachments?.Any(a => a.Urls != null && a.Urls.Any(u => u.Url.Contains("downloadall"))) == true)
+        {
+            logger.LogInformation("Dialog {dialogId} already has download all attachments, skipping adding it again", dialogId);
+            return;
+        }
+
+
+        List<Attachment> attachments = dialog.Attachments ?? new List<Attachment>();
+        bool hasAttachments = attachments.Count > 0;
+        if (!hasAttachments){
+            attachments = CreateDialogRequestMapper.GetAttachmentsForDialogPatchRequest(correspondence, generalSettings.Value.CorrespondenceBaseUrl);
+        } else{
+            logger.LogInformation("Trying to remove attachments from correspondence: {correspondenceId}", correspondence.Id);
+            var patchRequestBuilderRemoveAttachments = new DialogPatchRequestBuilder()
+                .WithRemoveAttachmentsOperation();
+            var patchRequestRemoveAttachments = patchRequestBuilderRemoveAttachments.Build();
+            var responseRemoveAttachments = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}?isSilentUpdate=true", patchRequestRemoveAttachments, cancellationToken);
+            if (!responseRemoveAttachments.IsSuccessStatusCode){
+                logger.LogError($"Response from Dialogporten when removing attachments for {dialogId} was not successful: {responseRemoveAttachments.StatusCode}: {await responseRemoveAttachments.Content.ReadAsStringAsync()}");
+                throw new Exception($"Response from Dialogporten when removing attachments was not successful: {responseRemoveAttachments.StatusCode}: {await responseRemoveAttachments.Content.ReadAsStringAsync()}");
+            }
+        }
+
+        logger.LogInformation("Trying to add download all attachments to correspondence: {correspondenceId}", correspondence.Id);
+        var patchRequestBuilder = new DialogPatchRequestBuilder()
+            .WithAddDownloadAllAttachmentsOperation(baseUrl: generalSettings.Value.CorrespondenceBaseUrl, correspondence: correspondence, attachments: attachments);
+        var patchRequest = patchRequestBuilder.Build();
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}?isSilentUpdate=true", patchRequest, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError($"Response from Dialogporten when adding download all attachments for {dialogId} was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            throw new Exception($"Response from Dialogporten when adding download all attachments was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        }
+    }
 
     #region MigrationRelated
    
@@ -1263,33 +1326,28 @@ public class DialogportenService(HttpClient _httpClient,
 
         // Resolve forwardedBy party
         var forwardedByParty = await altinnRegisterService
-            .LookUpPartyByPartyUuid(forwardingEvent.ForwardedByPartyUuid, cancellationToken);
+            .LookUpPartyById(forwardingEvent.ForwardedByPartyUuid.ToString(), cancellationToken);
         if (forwardedByParty == null)
         {
             throw new Exception($"Could not find party for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
         }
 
         string? forwardedByUrn;
-        if (forwardedByParty.PartyTypeName == PartyType.SelfIdentified)
+        if (forwardedByParty is SelfIdentifiedUser)
         {
             // Special handling for self-identified users in dialog activities
-            forwardedByUrn = await GetDialogActivityParty(forwardedByParty.ExternalUrn);
+            var externalUrn = forwardedByParty.GetExternalUrn();
+            forwardedByUrn = await GetDialogActivityParty(externalUrn);
             if (string.IsNullOrWhiteSpace(forwardedByUrn))
             {
-                forwardedByUrn = forwardedByParty.ExternalUrn;
+                forwardedByUrn = externalUrn;
             }
         }
         else
         {
-            // Use the common helper for Person and Organization types
-            try
-            {
-                forwardedByUrn = partyUrnHelper.ConvertPartyToUrn(forwardedByParty);
-            }
-            catch (ArgumentException ex)
-            {
-                throw new Exception($"Unsupported party type {forwardedByParty.PartyTypeName} for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}", ex);
-            }
+            forwardedByUrn = forwardedByParty.GetExternalUrn();
+            if (string.IsNullOrWhiteSpace(forwardedByUrn))
+                throw new Exception($"Party type {forwardedByParty.GetType().Name} has no externalUrn for ForwardedByPartyUuid {forwardingEvent.ForwardedByPartyUuid} in forwarding event {forwardingEvent.Id}");
         }
 
         // Determine forwarding type and create appropriate activity
@@ -1299,7 +1357,7 @@ public class DialogportenService(HttpClient _httpClient,
         if (forwardingEvent.ForwardedToUserUuid is not null)
         {
             // Instance delegation
-            var forwardedToUser = await altinnRegisterService.LookUpPartyByPartyUuid(forwardingEvent.ForwardedToUserUuid.Value, cancellationToken);
+            var forwardedToUser = await altinnRegisterService.LookUpPartyById(forwardingEvent.ForwardedToUserUuid.Value.ToString(), cancellationToken);
             if (forwardedToUser == null)
             {
                 throw new Exception($"Could not find party for ForwardedToUserUuid {forwardingEvent.ForwardedToUserUuid} in forwarding event {forwardingEvent.Id}");
@@ -1308,7 +1366,7 @@ public class DialogportenService(HttpClient _httpClient,
             tokens = new[]
             {
                 correspondence.Content?.MessageTitle ?? string.Empty,
-                forwardedToUser.Name ?? throw new Exception($"No name found for user {forwardedToUser.PartyUuid}"),
+                forwardedToUser.GetDisplayName() ?? throw new Exception($"No name found for user {forwardedToUser.Uuid}"),
                 forwardingEvent.ForwardingText ?? string.Empty
             };
         }
@@ -1399,11 +1457,12 @@ public class DialogportenService(HttpClient _httpClient,
         if (dialogParty?.StartsWith(UrnConstants.PartyUuid) == true)
         {
             var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence.Recipient.WithUrnPrefix(), cancellationToken: CancellationToken.None);
-            if (recipientParty == null || recipientParty.Username is null)
+            var recipientUsername = recipientParty?.GetUsername();
+            if (recipientParty is null || recipientUsername is null)
             {
                 throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {correspondence.Recipient.WithUrnPrefix()}");
             }
-            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
+            dialogParty = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientUsername}";
         }
         return dialogParty;
     }
@@ -1422,12 +1481,15 @@ public class DialogportenService(HttpClient _httpClient,
             {
                 throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {dialogParty}");
             }
-            if (recipientParty.Username is not null)
+            var recipientUsername = recipientParty.GetUsername();
+            if (recipientUsername is not null)
             {
-                return $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientParty.Username}";
-            } else if (recipientParty.ExternalUrn is not null)
+                return $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{recipientUsername}";
+            }
+            var externalUrn = recipientParty.GetExternalUrn();
+            if (externalUrn is not null)
             {
-                return recipientParty.ExternalUrn;
+                return externalUrn;
             }
             throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {dialogParty}");
         }

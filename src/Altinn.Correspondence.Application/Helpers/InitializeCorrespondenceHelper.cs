@@ -1,12 +1,13 @@
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Application.UploadAttachment;
-using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Register.Contracts;
 using Altinn.Notifications.Core.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -332,9 +333,9 @@ namespace Altinn.Correspondence.Application.Helpers
                         ExpirationTime = a.ExpirationInDays.HasValue ? expirationAnchorTime.AddDays(a.ExpirationInDays.Value) : null,
                     }).ToList(),
                     Language = request.Correspondence.Content.Language,
-                    MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.Name),
-                    MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.Name),
-                    MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.Name),
+                    MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.GetDisplayName() ?? string.Empty),
+                    MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.GetDisplayName() ?? string.Empty),
+                    MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.GetDisplayName() ?? string.Empty),
                 },
                 RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 DueDateTime = request.Correspondence.DueDateTime,

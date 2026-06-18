@@ -55,7 +55,7 @@ public class ExpireAttachmentHandler(
         }
 
         var party = await altinnRegisterService.LookUpPartyById(attachment.Sender, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for sender {Sender} when expiring attachment", attachment.Sender);
             throw new InvalidOperationException($"Could not find party UUID for sender {attachment.Sender}");

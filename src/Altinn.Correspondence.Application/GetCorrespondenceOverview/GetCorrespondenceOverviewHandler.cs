@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -75,13 +76,14 @@ public class GetCorrespondenceOverviewHandler(
 
         var caller = user?.GetCallerPartyUrn();
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
         return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceOverviewResponse, Error>>(async (cancellationToken) =>
         {
+            DateTimeOffset? readTimestamp = null;
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
@@ -109,7 +111,7 @@ public class GetCorrespondenceOverviewHandler(
                     cancellationToken);
                 if (request.OnlyGettingContent)
                 {
-                    if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read)) { 
+                    if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read)) {
                         await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                         {
                             CorrespondenceId = correspondence.Id,
@@ -118,6 +120,7 @@ public class GetCorrespondenceOverviewHandler(
                             StatusChanged = operationTimestamp,
                             PartyUuid = partyUuid
                         }, cancellationToken);
+                        readTimestamp = operationTimestamp;
                         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
                             AltinnEventType.CorrespondenceReceiverRead,
                             correspondence.ResourceId,
@@ -130,7 +133,7 @@ public class GetCorrespondenceOverviewHandler(
                             backgroundJobClient.Enqueue<IAltinnStorageService>(
                                 syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
                                     correspondence.Altinn2CorrespondenceId.Value,
-                                    party.PartyId,
+                                    party.GetPartyId(),
                                     operationTimestamp,
                                     SyncEventType.Read,
                                     CancellationToken.None));
@@ -193,6 +196,7 @@ public class GetCorrespondenceOverviewHandler(
                 RequestedPublishTime = correspondence.RequestedPublishTime,
                 IgnoreReservation = correspondence.IgnoreReservation ?? false,
                 Published = correspondence.Published,
+                Read = readTimestamp ?? correspondence.GetReadTimestamp(),
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 IsConfidential = correspondence.IsConfidential,
                 Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId

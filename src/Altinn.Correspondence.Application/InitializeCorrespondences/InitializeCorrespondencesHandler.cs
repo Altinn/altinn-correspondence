@@ -5,6 +5,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondence;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -95,7 +96,7 @@ public class InitializeCorrespondencesHandler(
         foreach (var recipient in request.Recipients)
         {
             var isReserved = validatedData.ReservedRecipients.Contains(recipient.WithoutPrefix());
-            var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.SSN == recipient.WithoutPrefix() || r.OrgNumber == recipient.WithoutPrefix());
+            var recipientParty = validatedData.RecipientDetails.FirstOrDefault(r => r.GetPersonIdentifier() == recipient.WithoutPrefix() || r.GetOrganizationIdentifier() == recipient.WithoutPrefix());
             var correspondence = await initializeCorrespondenceHelper.MapToCorrespondenceEntityAsync(request, recipient, validatedData.AttachmentsToBeUploaded, validatedData.PartyUuid, recipientParty, isReserved, serviceOwnerOrgNumber, cancellationToken);
             correspondences.Add(correspondence);
         }
@@ -260,7 +261,10 @@ public class InitializeCorrespondencesHandler(
 
     public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
     {
-        var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), requestedPublishTime);
+        var scheduleAt = requestedPublishTime < DateTimeOffset.UtcNow
+            ? DateTimeOffset.UtcNow
+            : requestedPublishTime;
+        var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), scheduleAt);
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
             await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);

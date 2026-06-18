@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -62,7 +63,7 @@ public class MarkCorrespondenceAsReadHandler(
         }
         
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());
             return AuthorizationErrors.CouldNotFindPartyUuid;
@@ -85,7 +86,7 @@ public class MarkCorrespondenceAsReadHandler(
             {
                 backgroundJobClient.Enqueue<IAltinnStorageService>(syncEventToAltinn2 => syncEventToAltinn2.SyncCorrespondenceEventToSblBridge(
                     correspondence.Altinn2CorrespondenceId.Value,
-                    party.PartyId,
+                    party.GetPartyId(),
                     operationTimestamp,
                     SyncEventType.Read,
                     CancellationToken.None));

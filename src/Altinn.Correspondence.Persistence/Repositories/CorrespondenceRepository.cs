@@ -321,9 +321,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool filterMigrated,
             CancellationToken cancellationToken)
         {
+            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
             var query = _context.Correspondences
                 .AsNoTracking()
                 .FilterMigrated(filterMigrated)
+                .Where(c => c.IsMigrating == false)
                 .AsQueryable();
 
             if (lastCreated.HasValue)
@@ -543,14 +545,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             // Aggregate data directly in SQL using EF Core GroupBy
             // Now using RecipientType column directly for better performance
-            var groupedData = await query
+            // Note: PropertyList and raw MessageSender are included here for SQL-translation compatibility.
+            // We do a second grouping pass in-memory below to avoid splitting identical output rows.
+            var groupedDataByPropertyList = await query
                 .GroupBy(c => new
                 {
                     c.Created.Date,
                     c.ServiceOwnerId,
                     c.MessageSender,
                     c.ResourceId,
-                    c.RecipientType
+                    c.RecipientType,
+                    c.PropertyList
                 })
                 .Select(g => new
                 {
@@ -559,9 +564,32 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     g.Key.MessageSender,
                     g.Key.ResourceId,
                     g.Key.RecipientType,
+                    g.Key.PropertyList,
                     MessageCount = g.Count()
                 })
                 .ToListAsync(cancellationToken);
+
+            var groupedData = groupedDataByPropertyList
+                .GroupBy(g => new
+                {
+                    g.Date,
+                    g.ServiceOwnerId,
+                    MessageSender = g.MessageSender ?? string.Empty,
+                    g.ResourceId,
+                    g.RecipientType,
+                    SenderOrgNumber = GetSenderOrgNumberFromPropertyList(g.PropertyList)
+                })
+                .Select(g => new
+                {
+                    g.Key.Date,
+                    g.Key.ServiceOwnerId,
+                    g.Key.MessageSender,
+                    g.Key.SenderOrgNumber,
+                    g.Key.ResourceId,
+                    g.Key.RecipientType,
+                    MessageCount = g.Sum(x => x.MessageCount)
+                })
+                .ToList();
 
             // Get service owner names in bulk
             var serviceOwnerIds = groupedData
@@ -586,6 +614,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     ServiceOwnerId = g.ServiceOwnerId!,
                     ServiceOwnerName = serviceOwners[g.ServiceOwnerId!],
                     MessageSender = g.MessageSender,
+                    SenderOrgNumber = g.SenderOrgNumber,
                     ResourceId = g.ResourceId,
                     RecipientType = g.RecipientType switch
                     {
@@ -609,6 +638,29 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToList();
 
             return aggregatedData;
+        }
+
+        private static string? GetSenderOrgNumberFromPropertyList(Dictionary<string, string>? propertyList)
+        {
+            if (propertyList is null || propertyList.Count == 0)
+            {
+                return null;
+            }
+
+            if (propertyList.TryGetValue("senderOrgNumber", out var value))
+            {
+                return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            }
+
+            foreach (var kvp in propertyList)
+            {
+                if (string.Equals(kvp.Key, "senderOrgNumber", StringComparison.OrdinalIgnoreCase))
+                {
+                    return string.IsNullOrWhiteSpace(kvp.Value) ? null : kvp.Value.Trim();
+                }
+            }
+
+            return null;
         }
 
         public async Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken)
@@ -706,6 +758,37 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Published))
                 .Where(c => !c.Statuses.Any(s => s.Status == CorrespondenceStatus.Read))
                 .Where(c => c.RequestedPublishTime < cutoff)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<CorrespondenceEntity>> GetCorrespondencesCreatedInRange(
+            DateTimeOffset from,
+            DateTimeOffset to,
+            DateTimeOffset? cursorCreated,
+            Guid? cursorId,
+            int batchSize,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.Created >= from && c.Created < to)
+                .Where(c => c.Altinn2CorrespondenceId == null);
+
+            if (cursorCreated.HasValue && cursorId.HasValue)
+            {
+                var cursorCreatedValue = cursorCreated.Value;
+                var cursorIdValue = cursorId.Value;
+                query = query.Where(c =>
+                    c.Created < cursorCreatedValue ||
+                    (c.Created == cursorCreatedValue && c.Id > cursorIdValue));
+            }
+
+            return await query
+                .OrderByDescending(c => c.Created)
+                .ThenBy(c => c.Id)
+                .Take(batchSize)
+                .Include(c => c.Content)
+                .Include(c => c.Notifications)
                 .ToListAsync(cancellationToken);
         }
     }

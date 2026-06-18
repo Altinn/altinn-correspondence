@@ -35,4 +35,5 @@ public interface IDialogportenService
     Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken);
     Task AddNotificationActivity(Guid notificationId, CancellationToken cancellationToken);
     Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder);
+    Task TryAddDownloadAllAttachmentsToDialog(Guid correspondenceId, CancellationToken cancellationToken = default);
 }

@@ -59,6 +59,7 @@ public class GenerateDailySummaryReportHandlerTests
                 Day = (int)DateTime.UtcNow.DayOfWeek,
                 MessageCount = 1,
                 MessageSender = "",
+                SenderOrgNumber = "910753614",
                 Month = DateTime.UtcNow.Month,
                 RecipientType = Core.Models.Enums.RecipientType.Organization,
                 ResourceId = "test-resource",
@@ -102,6 +103,7 @@ public class GenerateDailySummaryReportHandlerTests
             "serviceownerorgnr",
             "serviceownercode", 
             "messagesender",
+            "senderorgnr",
             "serviceresourceid",
             "serviceresourcetitle",
             "recipienttype",
@@ -122,6 +124,12 @@ public class GenerateDailySummaryReportHandlerTests
             Assert.True(columnName == columnName.ToLowerInvariant(), 
                 $"Column name '{columnName}' should be lowercase");
         }
+
+        // Verify sender org number value is actually present in the parquet data
+        response.FileStream.Position = 0;
+        var rows = await ParquetSerializer.DeserializeAsync<ParquetDailySummaryData>(response.FileStream, cancellationToken: CancellationToken.None);
+        Assert.Single(rows);
+        Assert.Equal("910753614", rows[0].SenderOrgNumber);
     }
 
 

@@ -1,8 +1,8 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Core.Models.Enums;
 using Hangfire;
 using OneOf;
 using System.Security.Claims;
@@ -27,8 +27,8 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         {
             return AuthorizationErrors.InvalidPartyId;
         }
-        var party = await altinnRegisterService.LookUpPartyByPartyId(partyId.Value, cancellationToken);
-        if (party is null || (string.IsNullOrEmpty(party.SSN) && string.IsNullOrEmpty(party.OrgNumber) && string.IsNullOrEmpty(party.ExternalUrn)))
+        var party = await altinnRegisterService.LookUpPartyById(partyId.Value.ToString(), cancellationToken);
+        if (party is null || string.IsNullOrEmpty(party.GetExternalUrn()))
         {
             return AuthorizationErrors.CouldNotFindOrgNo;
         }
@@ -54,13 +54,8 @@ public class LegacyDownloadCorrespondenceAttachmentHandler(
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        string caller = party.SSN;
-        if (string.IsNullOrEmpty(caller))
-        {
-            caller = party.OrgNumber;
-        }
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateDownloadStartedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, operationTimestamp, party.ExternalUrn ?? caller, attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
+        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateDownloadStartedActivity(request.CorrespondenceId, DialogportenActorType.Recipient, operationTimestamp, party.GetExternalUrn(), attachment.DisplayName ?? attachment.FileName, attachment.Id.ToString()));
         return new DownloadCorrespondenceAttachmentResponse()
         {
             FileName = attachment.FileName,

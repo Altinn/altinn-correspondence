@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -20,7 +21,6 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
     IAttachmentRepository attachmentRepository,
     ICorrespondenceRepository correspondenceRepository,
     IBackgroundJobClient backgroundJobClient,
-    IIdempotencyKeyRepository idempotencyKeyRepository,
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     AttachmentHelper attachmentHelper,
@@ -29,7 +29,6 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
     private readonly ILogger<DownloadAllCorrespondenceAttachmentsHandler> _logger = logger;
-    private readonly IIdempotencyKeyRepository _idempotencyKeyRepository = idempotencyKeyRepository;
     private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
 
     public async Task<OneOf<DownloadAllCorrespondenceAttachmentsResponse, Error>> Process(DownloadAllCorrespondenceAttachmentsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -59,7 +58,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         }
 
         var latestStatus = correspondence.GetHighestStatus();
-        if (!latestStatus.Status.IsAvailableForRecipient())
+        if (!latestStatus!.Status.IsAvailableForRecipient())
         {
             _logger.LogWarning("Correspondence {CorrespondenceId} is not available for recipient - current status: {Status}", request.CorrespondenceId, latestStatus.Status);
             return CorrespondenceErrors.CorrespondenceNotFound;
@@ -85,15 +84,15 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             }
         }
 
-        var caller = user.GetCallerPartyUrn();
+        var caller = user!.GetCallerPartyUrn()!;
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
-        if (party?.PartyUuid is not Guid partyUuid)
+        if (party?.Uuid is not Guid partyUuid)
         {
             _logger.LogError("Could not find party UUID for caller {Caller}", caller.SanitizeForLogging());
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }   
 
-        const long maxAttachmentSizeForZip = 25_000_000; // 25 MB
+        const long maxAttachmentSizeForZip = 2_000_000_000; // 2 GB
         var totalSize = attachments.Sum(a => a.AttachmentSize);
         if (totalSize > maxAttachmentSizeForZip)
         {
@@ -162,7 +161,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
                 request.CorrespondenceId,
                 DialogportenActorType.Recipient,
                 operationTimestamp,
-                party.ExternalUrn ?? caller,
+                party.GetExternalUrn() ?? caller,
                 attachment.DisplayName ?? attachment.FileName ?? string.Empty,
                 attachment.Id.ToString()));
         }

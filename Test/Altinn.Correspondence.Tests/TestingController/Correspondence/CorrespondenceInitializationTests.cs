@@ -4,11 +4,13 @@ using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Exceptions;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Tests.Extensions;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
+using Altinn.Register.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -708,6 +710,71 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
             var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
             Assert.NotNull(responseObject);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithAnAltinnApp_FailsWithBadRequest()
+        {
+            // Arrange
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var resourceRegistryService = new Mock<IResourceRegistryService>();
+                resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-app-test-resource");
+                resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("AltinnApp");
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-app-test-resource");
+                services.AddScoped(_ => resourceRegistryService.Object);
+            });
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+
+            // Act
+            var unitSenderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await unitSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+            var responseObject = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
+            Assert.NotNull(responseObject);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithAnAltinnApp_AsTransmission_Succeeds()
+        {
+            // Arrange
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var resourceRegistryService = new Mock<IResourceRegistryService>();
+                resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-app-test-resource");
+                resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("AltinnApp");
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("altinn-app-test-resource");
+                resourceRegistryService.Setup(x => x.GetConfidentialType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(Core.Models.Enums.ConfidentialTypeEnum.NotConfidential);
+                services.AddScoped(_ => resourceRegistryService.Object);
+
+                var mockDialogporten = new Mock<IDialogportenService>();
+                mockDialogporten
+                    .Setup(x => x.DialogValidForTransmission(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+                mockDialogporten
+                    .Setup(x => x.ValidateDialogRecipientMatch(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(true);
+                var existingDialogporten = services.FirstOrDefault(d => d.ServiceType == typeof(IDialogportenService));
+                if (existingDialogporten != null) services.Remove(existingDialogporten);
+                services.AddScoped(_ => mockDialogporten.Object);
+            });
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd")
+                .Build();
+
+            // Act
+            var unitSenderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await unitSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
         }
 
         [Fact]
@@ -1595,12 +1662,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 // Mock to return a valid party for existing recipients
                 mockRegisterService
                     .Setup(service => service.LookUpPartyById(validRecipient, It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), OrgNumber = "986252932" });
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "986252932"));
 
                 // Mock for sender lookup (needed for authorization)
                 mockRegisterService
                     .Setup(service => service.LookUpPartyById(It.Is<string>(s => s.Contains("991825827")), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new Party { PartyUuid = Guid.NewGuid(), OrgNumber = "991825827" });
+                    .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(Guid.NewGuid(), "991825827"));
 
                 services.AddSingleton(mockRegisterService.Object);
             });
@@ -1771,8 +1838,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task InitializeCorrespondence_ValidatesRolesForOrgRecipient(bool subUnit, bool hasRequiredRoles, HttpStatusCode expectedStatus)
         {
             // Arrange
-            var orgNo = "100000001";
-            var mainUnitOrgNo = "100000002";
+            var orgNo = "100000008";
+            var mainUnitOrgNo = "100000113";
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
                 var mockRegisterService = new Mock<IAltinnRegisterService>();
@@ -2452,8 +2519,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task WhenDialogCreationFails_PublishCorrespondenceHandlerIsStillScheduledAndSetsFailedStatus()
         {
             var correspondenceId = Guid.NewGuid();
-            const string senderOrgNo = "123456789";
-            const string recipientOrgNo = "987654321";
+            const string senderOrgNo = "991825827";
+            const string recipientOrgNo = "200000005";
             const string dialogJobId = "dialog-job-failed-123";
 
             var scheduleClientMock = new Mock<IBackgroundJobClient>();

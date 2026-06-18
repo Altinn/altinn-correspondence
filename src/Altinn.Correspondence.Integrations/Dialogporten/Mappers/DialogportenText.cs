@@ -29,6 +29,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.NotificationOrderCancelled => "Varslingsordre kansellert.",
             DialogportenTextType.NotificationSent => tokens.Length >= 2 ? string.Format("Varsel om mottatt melding sendt til {0} på {1}.", tokens) : throw new ArgumentException("NotificationSent expects two tokens (destination, channel)"),
             DialogportenTextType.NotificationReminderSent => tokens.Length >= 2 ? string.Format("Revarsel om mottatt melding sendt til {0} på {1}.", tokens) : throw new ArgumentException("NotificationReminderSent expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationDeliveryUnconfirmed => tokens.Length >= 2 ? string.Format("Kunne ikke bekrefte at varsel om mottatt melding ble levert til {0} på {1}.", tokens) : throw new ArgumentException("NotificationDeliveryUnconfirmed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationReminderDeliveryUnconfirmed => tokens.Length >= 2 ? string.Format("Kunne ikke bekrefte at revarsel om mottatt melding ble levert til {0} på {1}.", tokens) : throw new ArgumentException("NotificationReminderDeliveryUnconfirmed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationFailed => tokens.Length >= 2 ? string.Format("Varsel om mottatt melding kunne ikke leveres til {0} på {1}.", tokens) : throw new ArgumentException("NotificationFailed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationReminderFailed => tokens.Length >= 2 ? string.Format("Revarsel om mottatt melding kunne ikke leveres til {0} på {1}.", tokens) : throw new ArgumentException("NotificationReminderFailed expects two tokens (destination, channel)"),
             DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
@@ -44,6 +48,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.NotificationOrderCancelled => "Varslingsordre kansellert.",
             DialogportenTextType.NotificationSent => tokens.Length >= 2 ? string.Format("Varsel om mottatt melding sendt til {0} på {1}.", tokens) : throw new ArgumentException("NotificationSent expects two tokens (destination, channel)"),
             DialogportenTextType.NotificationReminderSent => tokens.Length >= 2 ? string.Format("Revarsel om mottatt melding sendt til {0} på {1}.", tokens) : throw new ArgumentException("NotificationReminderSent expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationDeliveryUnconfirmed => tokens.Length >= 2 ? string.Format("Kunne ikkje stadfeste at varsel om mottatt melding vart levert til {0} på {1}.", tokens) : throw new ArgumentException("NotificationDeliveryUnconfirmed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationReminderDeliveryUnconfirmed => tokens.Length >= 2 ? string.Format("Kunne ikkje stadfeste at revarsel om mottatt melding vart levert til {0} på {1}.", tokens) : throw new ArgumentException("NotificationReminderDeliveryUnconfirmed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationFailed => tokens.Length >= 2 ? string.Format("Varsel om mottatt melding kunne ikkje leverast til {0} på {1}.", tokens) : throw new ArgumentException("NotificationFailed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationReminderFailed => tokens.Length >= 2 ? string.Format("Revarsel om mottatt melding kunne ikkje leverast til {0} på {1}.", tokens) : throw new ArgumentException("NotificationReminderFailed expects two tokens (destination, channel)"),
             DialogportenTextType.DownloadStarted => string.Format("Startet nedlastning av vedlegg {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
@@ -59,6 +67,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.NotificationOrderCancelled => "Notification order cancelled.",
             DialogportenTextType.NotificationSent => tokens.Length >= 2 ? string.Format("Notification about received message sent to {0} on {1}.", tokens) : throw new ArgumentException("NotificationSent expects two tokens (destination, channel)"),
             DialogportenTextType.NotificationReminderSent => tokens.Length >= 2 ? string.Format("Reminder notification about received message sent to {0} on {1}.", tokens) : throw new ArgumentException("NotificationReminderSent expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationDeliveryUnconfirmed => tokens.Length >= 2 ? string.Format("Could not confirm that the notification about the received message was delivered to {0} on {1}.", tokens) : throw new ArgumentException("NotificationDeliveryUnconfirmed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationReminderDeliveryUnconfirmed => tokens.Length >= 2 ? string.Format("Could not confirm that the reminder notification about the received message was delivered to {0} on {1}.", tokens) : throw new ArgumentException("NotificationReminderDeliveryUnconfirmed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationFailed => tokens.Length >= 2 ? string.Format("Notification about the received message could not be delivered to {0} on {1}.", tokens) : throw new ArgumentException("NotificationFailed expects two tokens (destination, channel)"),
+            DialogportenTextType.NotificationReminderFailed => tokens.Length >= 2 ? string.Format("Reminder notification about the received message could not be delivered to {0} on {1}.", tokens) : throw new ArgumentException("NotificationReminderFailed expects two tokens (destination, channel)"),
             DialogportenTextType.DownloadStarted => string.Format("Started downloading attachment {0}", tokens),
             DialogportenTextType.CorrespondencePublished => "Message published.",
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
@@ -75,7 +87,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 return NormalizeDownloadStartedTokens(tokens);
             }
 
-            if (type is not (DialogportenTextType.NotificationSent or DialogportenTextType.NotificationReminderSent) || tokens.Length < 2)
+            if (type is not (DialogportenTextType.NotificationSent
+                    or DialogportenTextType.NotificationReminderSent
+                    or DialogportenTextType.NotificationFailed
+                    or DialogportenTextType.NotificationReminderFailed
+                    or DialogportenTextType.NotificationDeliveryUnconfirmed
+                    or DialogportenTextType.NotificationReminderDeliveryUnconfirmed) || tokens.Length < 2)
             {
                 return tokens;
             }

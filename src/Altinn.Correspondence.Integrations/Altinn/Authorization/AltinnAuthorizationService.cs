@@ -2,6 +2,7 @@ using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Common.Helpers.Models;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -110,9 +111,9 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         if (!resolvedRecipient.IsPartyId())
         {
             var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedRecipient, cancellationToken);
-            if (registerParty is not null && registerParty.PartyId > 0)
+            if (registerParty is not null && registerParty.GetPartyId() > 0)
             {
-                resolvedRecipient = registerParty.PartyId.ToString();
+                resolvedRecipient = registerParty.GetPartyId().ToString();
             }
         }
 
@@ -166,9 +167,9 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             if (!resolvedRecipient.IsPartyId())
             {
                 var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedRecipient, cancellationToken);
-                if (registerParty is not null && registerParty.PartyId > 0)
+                if (registerParty is not null && registerParty.GetPartyId() > 0)
                 {
-                    resolvedRecipient = registerParty.PartyId.ToString();
+                    resolvedRecipient = registerParty.GetPartyId().ToString();
                 }
             }
 
@@ -298,9 +299,9 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         if (!party.IsPartyId())
         {
             var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedParty, cancellationToken);
-            if (registerParty is not null && registerParty.PartyId > 0)
+            if (registerParty is not null && registerParty.GetPartyId() > 0)
             {
-                resolvedParty = registerParty.PartyId.ToString();
+                resolvedParty = registerParty.GetPartyId().ToString();
             }
         }
 
