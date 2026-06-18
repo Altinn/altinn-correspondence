@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -37,7 +38,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
     [AutomaticRetry(Attempts = 0)]
     public async Task ExecutePatchingInBackground(UpdateOldCorrespondencesWithDownloadAllRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Executing batch starting after cursor {cursorId}", request.CursorId);
+        _logger.LogInformation("Executing batch starting after cursor {cursorId}", request.CursorId?.ToString().SanitizeForLogging());
 
         var queueLimit = request.windowSize * 2;
         var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
