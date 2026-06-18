@@ -1,6 +1,30 @@
 -- ============================================================================
 -- Altinn Correspondence - Index Creation Scripts  
 -- ============================================================================
+-- ⚠️  IMPORTANT: THESE INDEXES ARE NOT USED IN THE FINAL EXPORT IMPLEMENTATION
+-- ============================================================================
+--
+-- This file is kept for HISTORICAL REFERENCE ONLY.
+--
+-- BACKGROUND:
+-- During development, we created indexes on the CorrespondenceStatuses table
+-- (1.94 billion rows) to optimize direct queries. However, the FINAL solution
+-- uses pre-filtered helper tables (A2Iss1716A2Events, A2Iss1951A2Events) that
+-- were imported from Altinn 2, making these indexes unnecessary.
+--
+-- FINAL IMPLEMENTATION:
+-- The export queries use helper tables with their own indexes:
+--   - A2Iss1716A2Events (~10M rows) - see Optimize_A2Iss1716A2Events_Indexes.sql
+--   - A2Iss1951A2Events (~191M rows) - similar index structure
+--
+-- CLEANUP RECOMMENDATION:
+-- After completing both exports, these indexes can be dropped to reclaim ~27 GB:
+--   DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced";
+--   DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_CorrespondenceStatuses_Status_StatusChanged_Migrated";
+--
+-- See README.md "POST-EXPORT CLEANUP" section for complete cleanup checklist.
+-- ============================================================================
+--
 -- Purpose: Optimize dialog activity export queries for Issues #1951 and #1716
 -- Database: Correspondence Production
 -- Schema: correspondence

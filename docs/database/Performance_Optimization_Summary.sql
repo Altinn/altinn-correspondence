@@ -2,6 +2,18 @@
 -- PERFORMANCE OPTIMIZATION SUMMARY - Issue #1951 Migrated Events
 -- =====================================================================================
 --
+-- ⚠️  NOTE: THIS IS HISTORICAL DOCUMENTATION, NOT AN EXECUTABLE SCRIPT
+-- =====================================================================================
+-- This file documents the optimization journey and performance improvements made
+-- during development. It serves as a reference for understanding:
+--   - Why certain approaches were rejected
+--   - Performance comparison metrics (BEFORE/AFTER)
+--   - Query optimization decisions
+--
+-- This file is NOT meant to be executed. The final optimized queries are in
+-- DialogActivityExportService.cs and use helper tables imported from Altinn 2.
+-- =====================================================================================
+--
 -- DATE: 2026-06-01
 -- ISSUE: Query taking 42+ minutes, even without ORDER BY taking 12+ minutes
 --

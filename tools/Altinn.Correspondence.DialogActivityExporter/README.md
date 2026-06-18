@@ -2,6 +2,89 @@
 
 Console application for exporting dialog activities from the Correspondence database to CSV format.
 
+## ⚠️ POST-EXPORT CLEANUP REQUIRED
+
+**IMPORTANT**: After completing both exports, the following cleanup tasks must be performed manually to reclaim disk space and remove temporary infrastructure.
+
+### TODO: Cleanup Checklist
+
+#### 1. Drop Helper Tables (After Export Completion)
+```sql
+-- Drop Issue #1716 helper table (~10M rows, imported from Altinn 2)
+DROP TABLE IF EXISTS correspondence."A2Iss1716A2Events";
+
+-- Drop Issue #1951 helper table (~191M rows, imported from Altinn 2)
+DROP TABLE IF EXISTS correspondence."A2Iss1951A2Events";
+
+-- Drop A2Parties helper table (used for actor name lookups)
+DROP TABLE IF EXISTS correspondence."A2Parties";
+```
+
+**Estimated space reclaimed**: ~50-60 GB
+
+**Verification**:
+```sql
+-- Verify tables are dropped
+SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
+FROM pg_tables 
+WHERE schemaname = 'correspondence' 
+  AND tablename IN ('A2Iss1716A2Events', 'A2Iss1951A2Events', 'A2Parties');
+```
+
+#### 2. Drop Unused Indexes on CorrespondenceStatuses (Not Used in Final Export)
+```sql
+-- These indexes were created during development but are NOT used by the final export
+-- The final export uses helper tables (A2Iss1716A2Events, A2Iss1951A2Events) instead
+
+-- Drop Issue #1716 index (created in development, not used in final)
+DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced";
+
+-- Drop Issue #1951 index (created in development, not used in final)
+DROP INDEX CONCURRENTLY IF EXISTS correspondence."IX_CorrespondenceStatuses_Status_StatusChanged_Migrated";
+```
+
+**Estimated space reclaimed**: ~27 GB (Index #1: ~3 GB, Index #2: ~24 GB)
+
+**Verification**:
+```sql
+-- Verify indexes are dropped
+SELECT 
+    schemaname,
+    tablename,
+    indexname,
+    pg_size_pretty(pg_relation_size(schemaname||'.'||indexname)) as size
+FROM pg_indexes
+WHERE schemaname = 'correspondence'
+  AND indexname IN (
+      'IX_CorrespondenceStatuses_Status_SyncedTimestamp_Synced',
+      'IX_CorrespondenceStatuses_Status_StatusChanged_Migrated'
+  );
+```
+
+#### 3. Drop Indexes on Helper Tables (After Dropping Tables)
+```sql
+-- Indexes on A2Iss1716A2Events (automatically dropped with table, but listed for reference)
+-- - IX_A2Iss1716A2Events_Status_CorrId
+-- - IX_A2Iss1716A2Events_CorrId_Status_Party
+
+-- Indexes on A2Iss1951A2Events (automatically dropped with table, but listed for reference)
+-- - IX_A2Iss1951A2Events_Status_CorrId
+-- - IX_A2Iss1951A2Events_CorrId_Status_Party
+
+-- Note: These indexes are automatically dropped when their parent tables are dropped
+```
+
+#### 4. Vacuum and Analyze After Cleanup
+```sql
+-- Reclaim disk space and update statistics
+VACUUM FULL correspondence."CorrespondenceStatuses";
+ANALYZE correspondence."CorrespondenceStatuses";
+```
+
+**Total estimated space reclaimed**: ~80-90 GB
+
+---
+
 ## Purpose
 
 Export dialog activity data for two separate data quality issues:
@@ -77,12 +160,19 @@ For production use, we provide dedicated PowerShell scripts:
 
 # Larger batch size for faster export
 .\export-1951-production.ps1 -BatchSize 10000
+
+# Adjust throttle delay (default 1000ms) to avoid Azure throttling
+.\export-1951-production.ps1 -ThrottleDelayMs 5000
+
+# Resume from checkpoint (use same output path as original export)
+.\export-1951-production.ps1 -OutputPath C:\temp\dialog_activity_export_1951_20260618_093638.csv
 ```
 
 **Features**:
 - Resumable: Can be stopped/restarted (checkpoint file tracks progress)
 - Progress tracking: Shows processed rows, rate, elapsed time
 - Optimized queries: Uses index scans for fast batch processing
+- Throttle mitigation: Configurable delay between batches to avoid Azure rate limiting
 
 ### Issue #1716 (Synced Events)
 ```powershell
@@ -91,6 +181,12 @@ For production use, we provide dedicated PowerShell scripts:
 
 # Custom output path
 .\export-1716-production.ps1 -OutputPath D:\exports\issue1716.csv
+
+# Adjust throttle delay for Azure database throttling
+.\export-1716-production.ps1 -ThrottleDelayMs 5000
+
+# Resume from checkpoint
+.\export-1716-production.ps1 -OutputPath C:\temp\dialog_activity_export_1716_20260618_093638.csv
 ```
 
 ## Test Scripts
@@ -138,6 +234,7 @@ dotnet run -- --issue 1951 --output C:\temp\export.csv --azure-ad --max-batches 
 
 **Optional**:
 - `--batch-size` - Batch size (default: 5000)
+- `--throttle-delay` - Delay in ms between fast batches (default: 1000, 0=disabled)
 - `--max-batches` - Limit export to N batches (for testing)
 - `-f, --fresh` - Force fresh start, ignore existing checkpoint
 - `-y, --yes` - Skip confirmation prompt
@@ -163,8 +260,12 @@ dotnet run -- --issue 1951 --output C:\temp\issue1951.csv --azure-ad
 ## Performance
 
 With proper database indexes on helper tables:
-- **Issue #1716**: ~7-15 minutes for ~10M records (~25,000 rows/sec)
-- **Issue #1951**: ~2-3 hours for ~190M records (~25,000 rows/sec)
+- **Issue #1716**: ~7-15 minutes for ~10M records (~25,000 rows/sec without throttling)
+  - With default 1s throttle delay: ~2-3 hours (avoids Azure rate limiting)
+- **Issue #1951**: ~2-3 hours for ~190M records (~25,000 rows/sec without throttling)
+  - With default 1s throttle delay: ~3-5 hours (avoids Azure rate limiting)
+
+**Note**: Azure PostgreSQL Flexible Server may throttle sustained high-speed exports. The `--throttle-delay` parameter adds a configurable delay between batches to avoid hitting Azure IOPS/network limits. Default is 1000ms (1 second). Increase to 5000ms (5 seconds) if throttling still occurs.
 
 Without indexes, queries will be very slow and may timeout.
 
@@ -178,19 +279,159 @@ CSV with columns:
 - ActorName
 - ActivityType ("CorrespondenceOpened" or "CorrespondenceConfirmed")
 
-## Helper Tables
+## Issue Documentation
 
-The export reads from pre-filtered helper tables that were **imported from Altinn 2**:
+### Issue #1716: Synced Events from Altinn2
 
-- **A2Iss1951A2Events**: Contains migrated events (NOT synced from Altinn2) - ~190M rows
-  - Status 4 (Read/Opened): ~190M rows
-  - Status 6 (Confirmed): ~846K rows
+**Data Source**: Events that were synced from Altinn 2 to Correspondence database.
 
-- **A2Iss1716A2Events**: Contains synced events from Altinn2 - ~10M rows
-  - Status 4 (Read/Opened): ~9.5M rows
-  - Status 6 (Confirmed): ~500K rows
+#### Summary
+| Metric | Value |
+|--------|-------|
+| **Total Rows** | ~9,970,000 |
+| **Status 4 (Opened)** | ~9.5M rows |
+| **Status 6 (Confirmed)** | ~500K rows |
+| **Helper Table** | `A2Iss1716A2Events` (imported from Altinn 2) |
+| **Export Time (1s throttle)** | ~2-3 hours (recommended) |
+| **Export Time (no throttle)** | ~9-12 minutes (may hit Azure throttling) |
+| **Output Size** | ~2.0 GB |
+| **Batch Size** | 5,000 rows (optimal) |
+| **Total Batches** | ~1,994 |
 
-These tables have the required indexes for optimal export performance.
+#### Helper Table Structure
+```sql
+CREATE TABLE correspondence."A2Iss1716A2Events" (
+    "CorrespondenceId" uuid NOT NULL,
+    "PartyUuid" uuid NOT NULL,
+    "Status" integer NOT NULL,
+    "Timestamp" timestamp with time zone NOT NULL,
+    "Source" integer -- 0=ServiceEngine, 1=Archive (for troubleshooting only)
+);
+```
+
+#### Indexes
+```sql
+-- Primary lookup by Status and CorrespondenceId
+CREATE INDEX "IX_A2Iss1716A2Events_Status_CorrId"
+ON "A2Iss1716A2Events" ("Status", "CorrespondenceId")
+INCLUDE ("PartyUuid", "Timestamp");
+
+-- Composite covering index for joins
+CREATE INDEX "IX_A2Iss1716A2Events_CorrId_Status_Party"
+ON "A2Iss1716A2Events" ("CorrespondenceId", "Status", "PartyUuid")
+INCLUDE ("Timestamp");
+```
+
+#### Production Script
+```powershell
+# Default export (recommended)
+.\export-1716-production.ps1
+
+# Custom output path
+.\export-1716-production.ps1 -OutputPath D:\exports\issue1716.csv
+
+# Adjust throttle delay if Azure throttling occurs
+.\export-1716-production.ps1 -ThrottleDelayMs 5000
+
+# Resume from checkpoint
+.\export-1716-production.ps1 -OutputPath C:\temp\dialog_activity_export_1716_20260618_093638.csv
+```
+
+#### Test Script
+```powershell
+# Test with 2 batches (~10,000 rows)
+.\test-export-Issue1716.ps1
+
+# Test with more batches
+.\test-export-Issue1716.ps1 -MaxBatches 5
+```
+
+---
+
+### Issue #1951: Migrated Events (NOT Synced from Altinn2)
+
+**Data Source**: Events that were migrated to Correspondence database but NOT synced from Altinn 2.
+
+#### Summary
+| Metric | Value |
+|--------|-------|
+| **Total Rows** | ~190,846,000 |
+| **Status 4 (Opened)** | ~190M rows |
+| **Status 6 (Confirmed)** | ~846K rows |
+| **Helper Table** | `A2Iss1951A2Events` (imported from Altinn 2) |
+| **Export Time (1s throttle)** | ~3-5 hours (recommended) |
+| **Export Time (no throttle)** | ~2-3 hours (may hit Azure throttling) |
+| **Output Size** | ~40-50 GB |
+| **Batch Size** | 5,000 rows (optimal) |
+| **Total Batches** | ~38,170 |
+
+#### Helper Table Structure
+```sql
+CREATE TABLE correspondence."A2Iss1951A2Events" (
+    "CorrespondenceId" uuid NOT NULL,
+    "PartyUuid" uuid NOT NULL,
+    "Status" integer NOT NULL,
+    "Timestamp" timestamp with time zone NOT NULL,
+    "Source" integer -- 0=ServiceEngine, 1=Archive (for troubleshooting only)
+);
+```
+
+#### Indexes
+```sql
+-- Primary lookup by Status and CorrespondenceId
+CREATE INDEX "IX_A2Iss1951A2Events_Status_CorrId"
+ON "A2Iss1951A2Events" ("Status", "CorrespondenceId")
+INCLUDE ("PartyUuid", "Timestamp");
+
+-- Composite covering index for joins
+CREATE INDEX "IX_A2Iss1951A2Events_CorrId_Status_Party"
+ON "A2Iss1951A2Events" ("CorrespondenceId", "Status", "PartyUuid")
+INCLUDE ("Timestamp");
+```
+
+#### Production Script
+```powershell
+# Default export (recommended)
+.\export-1951-production.ps1
+
+# Custom output path
+.\export-1951-production.ps1 -OutputPath D:\exports\issue1951.csv
+
+# Larger batch size (if network permits)
+.\export-1951-production.ps1 -BatchSize 10000
+
+# Adjust throttle delay
+.\export-1951-production.ps1 -ThrottleDelayMs 5000
+
+# Resume from checkpoint
+.\export-1951-production.ps1 -OutputPath C:\exports\dialog_activity_1951.csv
+```
+
+#### Test Script
+```powershell
+# Test with 2 batches (~10,000 rows)
+.\test-export-Issue1951.ps1
+
+# Test with more batches
+.\test-export-Issue1951.ps1 -MaxBatches 5
+```
+
+---
+
+### A2Parties Helper Table
+
+**Purpose**: Provides actor names for party UUIDs in exported data.
+
+#### Structure
+```sql
+CREATE TABLE correspondence."A2Parties" (
+    "PartyUuid" uuid PRIMARY KEY,
+    "OutputActorId" text NOT NULL,
+    "Name" text NOT NULL
+);
+```
+
+**Note**: This table is used by both Issue #1716 and #1951 exports for actor name lookups. It should be dropped after both exports are complete (see cleanup checklist above).
 
 ## Checkpoint/Resume Feature
 
@@ -229,6 +470,14 @@ Example checkpoint:
 - Verify required indexes exist on helper tables
 - Check batch size (default 5000 is optimal for most cases)
 - Monitor database load during export
+- **Azure throttling**: If batches suddenly slow down after first 10-20 batches, increase `--throttle-delay` to 5000ms or higher
+
+### Azure Database Throttling
+- Azure PostgreSQL Flexible Server has IOPS and network throughput limits
+- Sustained high-speed exports may trigger throttling after ~80K-100K rows
+- Symptoms: First batches fast (150-200ms), then suddenly slow (30-60 seconds)
+- Solution: Increase `-ThrottleDelayMs` parameter (try 5000ms)
+- To disable throttling mitigation: `-ThrottleDelayMs 0` (not recommended for large exports)
 
 ### Memory Issues
 - Reduce batch size (try 2500 or 1000)
@@ -248,6 +497,20 @@ Processed: 50,000,000 | 25,000 rows/sec | Elapsed: 00:33:20
 
 ## Related Documentation
 
-- **Production Guide**: `ISSUE-1951-PRODUCTION-EXPORT.md`
-- **Quick Reference**: `../docs/Export_Scripts_Quick_Reference.md`
-- **Issue #1716 Specs**: `../docs/Issue_1716_Export_Final_Specifications.md`
+This README contains comprehensive documentation for both Issue #1716 and #1951, consolidating all information in one place.
+
+## Diagnostic Tools
+
+SQL files for troubleshooting and analysis (in this folder):
+- **`calculate-counts.sql`** - Calculate total row counts for validation and progress estimates
+- **`diagnose-query-performance.sql`** - Diagnose slow query performance, check indexes, get EXPLAIN plans
+- **`find-duplicate-source.sql`** - Find duplicate records in helper tables or related tables
+
+**Database reference files** (in `docs/database/`):
+- **`Optimize_A2Iss1716A2Events_Indexes.sql`** - Index definitions for Issue #1716 helper table (ACTIVE - used in production)
+- **`Check_Disk_Space_And_Table_Stats.sql`** - Check disk space, table statistics, and index health
+- **`Performance_Optimization_Summary.sql`** - Historical documentation of optimization decisions (reference only)
+- **`Index_Creation_Scripts.sql`** - **HISTORICAL ONLY** - Unused indexes on CorrespondenceStatuses (see cleanup TODO)
+- **`Test_Export_Query.sql`** - Test query examples for validation
+
+**Note**: Helper table creation scripts removed - helper tables (`A2Iss1716A2Events`, `A2Iss1951A2Events`) were imported from Altinn 2, not created from Correspondence database.
