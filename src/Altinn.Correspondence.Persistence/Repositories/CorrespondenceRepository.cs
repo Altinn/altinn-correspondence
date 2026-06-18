@@ -321,10 +321,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool filterMigrated,
             CancellationToken cancellationToken)
         {
+            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
             var query = _context.Correspondences
                 .AsNoTracking()
-                .Include(c => c.ExternalReferences)
                 .FilterMigrated(filterMigrated)
+                .Where(c => c.IsMigrating == false)
                 .AsQueryable();
 
             if (lastCreated.HasValue)
