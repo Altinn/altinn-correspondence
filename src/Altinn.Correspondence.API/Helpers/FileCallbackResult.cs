@@ -28,7 +28,8 @@ public sealed class FileCallbackResult(string contentType, string fileDownloadNa
         // The length is unknown up front; stream out as it is produced rather than buffering.
         context.HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
 
-        // ZipArchive writes to the underlying stream synchronously, which Kestrel disallows by default.
+        //.NET 10's ZipArchive still flushes a small per-entry data descriptor (~16 bytes)
+        // synchronously when an entry is closed
         var bodyControl = context.HttpContext.Features.Get<IHttpBodyControlFeature>();
         if (bodyControl is not null)
         {

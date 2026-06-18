@@ -99,7 +99,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             _logger.LogError("Total size of attachments for correspondence {CorrespondenceId} exceeds the maximum allowed for zip download: {TotalSize} bytes", request.CorrespondenceId, totalSize);
             return AttachmentErrors.TotalAttachmentSizeExceedsLimit;
         }
-        
+
         var entries = new List<ZipAttachmentEntry>(attachments.Count);
         var usedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var attachment in attachments)
@@ -168,24 +168,14 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         };
     }
 
-    /// <summary>
-    /// Streams the attachments as a zip archive directly to <paramref name="output"/>, downloading each
-    /// attachment from storage and copying it into the archive one at a time. Memory use stays small and
-    /// constant regardless of total size.
-    /// </summary>
-    /// <remarks>
-    /// Call only after <see cref="Process"/> has succeeded. Once writing begins the HTTP response is
-    /// already committed, so a failure here (e.g. a storage error) cannot be turned into an error
-    /// response — it surfaces as an aborted/truncated download.
-    /// </remarks>
     public async Task WriteZip(IReadOnlyList<ZipAttachmentEntry> entries, Stream output, CancellationToken cancellationToken)
     {
-        using var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
+        await using var archive = await ZipArchive.CreateAsync(output, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: null);
         foreach (var (attachment, entryName) in entries)
         {
             var entry = archive.CreateEntry(entryName);
-            using var entryStream = entry.Open();
-            using var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
+            await using var entryStream = await entry.OpenAsync(cancellationToken);
+            await using var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
             await attachmentStream.CopyToAsync(entryStream, cancellationToken);
         }
     }
