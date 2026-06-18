@@ -323,8 +323,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             var query = _context.Correspondences
                 .AsNoTracking()
-                .Include(c => c.ExternalReferences)
                 .FilterMigrated(filterMigrated)
+                .Where(c => c.IsMigrating == false)
                 .AsQueryable();
 
             if (lastCreated.HasValue)
