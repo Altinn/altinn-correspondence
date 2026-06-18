@@ -75,11 +75,31 @@ WHERE schemaname = 'correspondence'
 ```
 
 #### 4. Vacuum and Analyze After Cleanup
+
+**⚠️ CRITICAL WARNING**: `VACUUM FULL` takes an **exclusive lock** on the table and will **block all queries** (reads and writes) for the duration of the operation. On a 1.94 billion row table like CorrespondenceStatuses, this can take **several hours** and will cause **production outage**.
+
+**Recommended Approach** (choose one):
+
+**Option A: Non-Blocking VACUUM (Recommended for Production)**
 ```sql
--- Reclaim disk space and update statistics
+-- Non-blocking, safe for production (reclaims space gradually)
+VACUUM correspondence."CorrespondenceStatuses";
+ANALYZE correspondence."CorrespondenceStatuses";
+```
+- ✅ No locks, production traffic continues
+- ✅ Safe to run anytime
+- ⚠️ May not reclaim all space immediately
+
+**Option B: VACUUM FULL During Maintenance Window (Maximum Space Reclaim)**
+```sql
+-- BLOCKS ALL ACCESS - Only run during scheduled maintenance window!
 VACUUM FULL correspondence."CorrespondenceStatuses";
 ANALYZE correspondence."CorrespondenceStatuses";
 ```
+- ⚠️ **Requires maintenance window** (several hours)
+- ⚠️ **Blocks all queries** during operation
+- ✅ Reclaims maximum disk space
+- ✅ Rebuilds table and indexes optimally
 
 **Total estimated space reclaimed**: ~80-90 GB
 
@@ -286,6 +306,7 @@ CSV with columns:
 **Data Source**: Events that were synced from Altinn 2 to Correspondence database.
 
 #### Summary
+
 | Metric | Value |
 |--------|-------|
 | **Total Rows** | ~9,970,000 |
@@ -353,6 +374,7 @@ INCLUDE ("Timestamp");
 **Data Source**: Events that were migrated to Correspondence database but NOT synced from Altinn 2.
 
 #### Summary
+
 | Metric | Value |
 |--------|-------|
 | **Total Rows** | ~190,846,000 |
