@@ -10,16 +10,19 @@ public class DialogActivityExportService
 {
     private readonly string _connectionString;
     private readonly int _batchSize;
+    private readonly int _throttleDelayMs;
     private readonly ILogger<DialogActivityExportService> _logger;
     private bool _isTestMode; // Track test mode for query logging
 
     public DialogActivityExportService(
         string connectionString,
         int batchSize,
-        ILogger<DialogActivityExportService> logger)
+        ILogger<DialogActivityExportService> logger,
+        int throttleDelayMs = 1000)
     {
         _connectionString = connectionString;
         _batchSize = batchSize;
+        _throttleDelayMs = throttleDelayMs;
         _logger = logger;
     }
 
@@ -170,6 +173,13 @@ public class DialogActivityExportService
                 CheckpointTime = DateTime.UtcNow
             });
             _logger.LogDebug("Checkpoint saved at batch {BatchNumber}", batchNumber);
+
+            // Add a delay to avoid Azure database or network throttling
+            if (_throttleDelayMs > 0)
+            {
+                await Task.Delay(_throttleDelayMs, cancellationToken);
+                _logger.LogDebug("Throttling mitigation: {DelayMs}ms delay after batch {BatchNumber}", _throttleDelayMs, batchNumber);
+            }
 
             // Check if we've reached the max batch limit (test mode)
             if (maxBatches.HasValue && batchNumber >= maxBatches.Value)

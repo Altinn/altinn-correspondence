@@ -90,7 +90,8 @@ if (!options.SkipConfirmation)
 var exportService = new DialogActivityExportService(
     options.ConnectionString,
     options.BatchSize,
-    loggerFactory.CreateLogger<DialogActivityExportService>());
+    loggerFactory.CreateLogger<DialogActivityExportService>(),
+    options.ThrottleDelayMs);
 
 // Read pre-calculated counts from configuration (0 means calculate at runtime)
 var preCalcCount1716 = config.GetValue<long>("PreCalculatedCounts:Issue1716", 0);
@@ -219,6 +220,7 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
     var output = GetArgument(args, "--output", config["OutputPath"]);
     var connectionString = GetArgument(args, "--connection", config["ConnectionString"]);
     var batchSizeStr = GetArgument(args, "--batch-size", config["BatchSize"] ?? "5000");
+    var throttleDelayStr = GetArgument(args, "--throttle-delay", config["ThrottleDelayMs"] ?? "1000");
     var maxBatchesStr = GetArgument(args, "--max-batches", config["MaxBatches"]);
     var skipConfirm = args.Contains("--yes") || args.Contains("-y");
     var useAzureAd = args.Contains("--azure-ad") || args.Contains("--azure");
@@ -256,6 +258,12 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
         return null;
     }
 
+    if (!int.TryParse(throttleDelayStr, out var throttleDelayMs) || throttleDelayMs < 0)
+    {
+        logger.LogError("Invalid throttle delay. Must be 0 or positive (milliseconds)");
+        return null;
+    }
+
     int? maxBatches = null;
     if (!string.IsNullOrEmpty(maxBatchesStr))
     {
@@ -274,6 +282,7 @@ static ExportOptions? ParseArguments(string[] args, IConfiguration config, ILogg
         OutputPath = output,
         ConnectionString = connectionString ?? "", // Will be populated later if using Azure AD
         BatchSize = batchSize,
+        ThrottleDelayMs = throttleDelayMs,
         MaxBatches = maxBatches,
         SkipConfirmation = skipConfirm,
         UseAzureAd = useAzureAd,
@@ -306,11 +315,12 @@ static void ShowHelp()
     Console.WriteLine("                 (Azure CLI, Visual Studio, VS Code, or other Azure credentials)");
     Console.WriteLine();
     Console.WriteLine("Optional Arguments:");
-    Console.WriteLine("  --batch-size   Batch size (default: 5000)");
-    Console.WriteLine("  --max-batches  Limit export to N batches (for testing format/function)");
-    Console.WriteLine("  -f, --fresh    Force fresh start, ignore any existing checkpoint");
-    Console.WriteLine("  -y, --yes      Skip confirmation prompt");
-    Console.WriteLine("  -h, --help     Show this help");
+    Console.WriteLine("  --batch-size      Batch size (default: 5000)");
+    Console.WriteLine("  --throttle-delay  Delay between fast batches in ms (default: 1000, 0=disabled)");
+    Console.WriteLine("  --max-batches     Limit export to N batches (for testing format/function)");
+    Console.WriteLine("  -f, --fresh       Force fresh start, ignore any existing checkpoint");
+    Console.WriteLine("  -y, --yes         Skip confirmation prompt");
+    Console.WriteLine("  -h, --help        Show this help");
     Console.WriteLine();
     Console.WriteLine("Note:");
     Console.WriteLine("  Data is pre-filtered in helper tables (A2Iss1716A2Events, A2Iss1951A2Events).");
@@ -412,8 +422,8 @@ static async Task<string?> TryBuildAzureConnectionAsync(ILogger logger)
                               $"Keepalive=30;" +                         // TCP keepalive (seconds)
                               $"Command Timeout=300;" +                  // Command timeout (5 minutes)
                               $"Timeout=300;" +                          // Connection timeout (5 minutes)
-                              $"Read Buffer Size=65536;" +               // 64KB read buffer
-                              $"Write Buffer Size=65536;";               // 64KB write buffer
+                              $"Read Buffer Size=8388608;" +             // 8MB read buffer (was 64KB)
+                              $"Write Buffer Size=8388608;";             // 8MB write buffer (was 64KB)
 
         logger.LogInformation("Successfully built Azure AD connection string using Azure.Identity SDK");
         return connectionString;
@@ -452,6 +462,7 @@ class ExportOptions
     public string OutputPath { get; set; } = null!;
     public string ConnectionString { get; set; } = null!;
     public int BatchSize { get; set; }
+    public int ThrottleDelayMs { get; set; } = 1000;
     public int? MaxBatches { get; set; }
     public bool SkipConfirmation { get; set; }
     public bool UseAzureAd { get; set; }

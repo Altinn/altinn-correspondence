@@ -26,6 +26,11 @@
     Number of rows per batch (default: 5000)
     Recommended: 5000-10000 for optimal performance
 
+.PARAMETER ThrottleDelayMs
+    Delay in milliseconds between fast batches to avoid Azure throttling (default: 1000)
+    Set to 0 to disable throttling mitigation
+    Recommended: 1000-5000ms depending on Azure database tier
+
 .PARAMETER UseAzureAd
     Use Azure AD authentication (default: true)
     Supports: Azure CLI, Visual Studio, VS Code, Managed Identity
@@ -54,6 +59,14 @@
 .EXAMPLE
     .\export-1716-production.ps1 -BatchSize 10000
     # Use larger batch size for potentially faster export
+
+.EXAMPLE
+    .\export-1716-production.ps1 -ThrottleDelayMs 5000
+    # Use 5-second delay between batches to avoid Azure throttling
+
+.EXAMPLE
+    .\export-1716-production.ps1 -ThrottleDelayMs 0
+    # Disable throttling delay for maximum speed (may hit Azure limits)
 
 .EXAMPLE
     .\export-1716-production.ps1 -FreshStart
@@ -118,7 +131,11 @@ param(
 
     [Parameter(Mandatory=$false)]
     [ValidateRange(1000, 100000)]
-    [int]$BatchSize = 5000,
+    [int]$BatchSize = 2500,
+
+    [Parameter(Mandatory=$false)]
+    [ValidateRange(0, 60000)]
+    [int]$ThrottleDelayMs = 1000,
 
     [Parameter(Mandatory=$false)]
     [bool]$UseAzureAd = $true,
@@ -176,6 +193,7 @@ $commandArgs = @(
     "--issue", "1716",
     "--output", $OutputPath,
     "--batch-size", $BatchSize,
+    "--throttle-delay", $ThrottleDelayMs,
     "--yes"
 )
 

@@ -27,6 +27,11 @@
 	Number of rows to fetch per batch (default: 5000)
 	Recommended: 5000-10000 for optimal performance
 
+.PARAMETER ThrottleDelayMs
+	Delay in milliseconds between fast batches to avoid Azure throttling (default: 1000)
+	Set to 0 to disable throttling mitigation
+	Recommended: 1000-5000ms depending on Azure database tier
+
 .PARAMETER FreshStart
 	Force fresh start (ignore existing checkpoint)
 	Use this if you want to restart from beginning
@@ -50,6 +55,10 @@
 .EXAMPLE
 	.\export-1951-production.ps1 -BatchSize 10000
 	# Larger batches for potentially faster export (if network/DB can handle it)
+
+.EXAMPLE
+	.\export-1951-production.ps1 -ThrottleDelayMs 5000
+	# Use 5-second delay between batches to avoid Azure throttling
 
 .EXAMPLE
 	.\export-1951-production.ps1 -OutputPath C:\exports\1951.csv -FreshStart
@@ -80,6 +89,10 @@ param(
 	[Parameter(Mandatory=$false)]
 	[ValidateRange(1000, 100000)]
 	[int]$BatchSize = 5000,
+
+	[Parameter(Mandatory=$false)]
+	[ValidateRange(0, 60000)]
+	[int]$ThrottleDelayMs = 1000,
 
 	[Parameter(Mandatory=$false)]
 	[switch]$FreshStart,
@@ -117,6 +130,7 @@ $commandArgs = @(
 	"--issue", "1951",
 	"--output", $OutputPath,
 	"--batch-size", $BatchSize,
+	"--throttle-delay", $ThrottleDelayMs,
 	"--yes"
 )
 
