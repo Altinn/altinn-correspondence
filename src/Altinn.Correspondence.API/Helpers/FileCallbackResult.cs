@@ -5,9 +5,8 @@ using Microsoft.Net.Http.Headers;
 namespace Altinn.Correspondence.API.Helpers;
 
 /// <summary>
-/// An <see cref="IActionResult"/> that streams content directly to the HTTP response body via a callback,
-/// without buffering the whole payload in memory first. Used for the
-/// "download all attachments" zip download, where buffering in a <see cref="MemoryStream"/> can exhaust memory.
+/// An <see cref="IActionResult"/> that streams content directly to the HTTP response body via a callback. Used for the
+/// "download all attachments" zip download.
 /// </summary>
 /// <remarks>
 /// Once the callback starts writing to the response body the status code and headers are already
