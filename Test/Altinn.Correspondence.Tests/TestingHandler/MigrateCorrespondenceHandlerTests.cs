@@ -90,6 +90,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _idempotencyKeyRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 mockPartyUrnHelper.Object,
+                TestDbContextFactory.Create(),
                 _eventHelperLoggerMock.Object);
 
             // Ensure Create returns a non-null job id by default (needed for continuations)

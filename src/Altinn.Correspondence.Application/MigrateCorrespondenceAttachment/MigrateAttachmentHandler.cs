@@ -1,8 +1,10 @@
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateUploadAttachment;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,6 +18,7 @@ public class MigrateAttachmentHandler(
     IAttachmentRepository attachmentRepository,
     IAttachmentStatusRepository attachmentStatusRepository,
     MigrateAttachmentHelper attachmentHelper,
+    ApplicationDbContext dbContext,
     ILogger<MigrateAttachmentHandler> logger) : IHandler<MigrateAttachmentRequest, MigrateAttachmentResponse>
 {
     public async Task<OneOf<MigrateAttachmentResponse, Error>> Process(MigrateAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -25,28 +28,28 @@ public class MigrateAttachmentHandler(
             return AttachmentErrors.InvalidFileSize("2GB");
         }
 
-        AttachmentEntity? attachment = null;
-        using (var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+        var attempt = await DatabaseTransactionHelper.ExecuteWithRetryAsync(dbContext, async ct =>
         {
-            IsolationLevel = IsolationLevel.ReadCommitted,
-            Timeout = TimeSpan.FromSeconds(30)
-        }, TransactionScopeAsyncFlowOption.Enabled))
-        {
-            var uploadResult = await attachmentHelper.UploadAttachment(request, request.SenderPartyUuid, cancellationToken);
+            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30)
+            }, TransactionScopeAsyncFlowOption.Enabled);
+
+            var uploadResult = await attachmentHelper.UploadAttachment(request, request.SenderPartyUuid, ct);
             if (uploadResult.IsT1)
             {
-                return AttachmentErrors.UploadFailed;
+                return MigrateAttachmentAttempt.UploadFailed();
             }
-            else
-            {
-                request.Attachment.DataLocationUrl = uploadResult.AsT0.DataLocationUrl;
-                request.Attachment.Checksum = uploadResult.AsT0.Checksum;
-                request.Attachment.AttachmentSize = uploadResult.AsT0.Size;
-                request.Attachment.StorageProvider = uploadResult.AsT0.StorageProviderEntity;
-            }
+
+            request.Attachment.DataLocationUrl = uploadResult.AsT0.DataLocationUrl;
+            request.Attachment.Checksum = uploadResult.AsT0.Checksum;
+            request.Attachment.AttachmentSize = uploadResult.AsT0.Size;
+            request.Attachment.StorageProvider = uploadResult.AsT0.StorageProviderEntity;
+
             try
             {
-                attachment = await attachmentRepository.InitializeAttachment(request.Attachment, cancellationToken);
+                var attachment = await attachmentRepository.InitializeAttachment(request.Attachment, ct);
 
                 var attachmentStatus = new AttachmentStatusEntity()
                 {
@@ -57,10 +60,10 @@ public class MigrateAttachmentHandler(
                     PartyUuid = request.SenderPartyUuid
                 };
 
-                await attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, cancellationToken);
+                await attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, ct);
                 transaction.Complete();
 
-                return new MigrateAttachmentResponse
+                return MigrateAttachmentAttempt.Created(new MigrateAttachmentResponse
                 {
                     AttachmentId = attachment.Id,
                     ResourceId = attachment.ResourceId,
@@ -74,7 +77,7 @@ public class MigrateAttachmentHandler(
                     FileName = attachment.FileName,
                     DisplayName = attachment.DisplayName,
                     Sender = attachment.Sender,
-                };
+                });
             }
             catch (DbUpdateException e)
             {
@@ -82,26 +85,48 @@ public class MigrateAttachmentHandler(
                 {
                     throw;
                 }
-            }
-        }
 
-        // If we reach here, it means the attachment already exists in the database,
-        // and we need to return the existing attachment information.
-        attachment = await attachmentRepository.GetAttachmentByAltinn2Id(request.Attachment.Altinn2AttachmentId, cancellationToken);
+                return MigrateAttachmentAttempt.Duplicate();
+            }
+        }, cancellationToken);
+
+        return attempt switch
+        {
+            MigrateAttachmentAttempt.CreatedAttempt created => created.Response,
+            MigrateAttachmentAttempt.ErrorAttempt error => error.Error,
+            MigrateAttachmentAttempt.DuplicateAttempt => await BuildDuplicateResponse(request, cancellationToken),
+            _ => AttachmentErrors.UploadFailed
+        };
+    }
+
+    private async Task<MigrateAttachmentResponse> BuildDuplicateResponse(MigrateAttachmentRequest request, CancellationToken cancellationToken)
+    {
+        var existingAttachment = await attachmentRepository.GetAttachmentByAltinn2Id(request.Attachment.Altinn2AttachmentId, cancellationToken);
         return new MigrateAttachmentResponse
         {
-            AttachmentId = attachment.Id,
-            ResourceId = attachment.ResourceId,
-            Name = attachment.FileName,
-            Checksum = attachment.Checksum,
+            AttachmentId = existingAttachment.Id,
+            ResourceId = existingAttachment.ResourceId,
+            Name = existingAttachment.FileName,
+            Checksum = existingAttachment.Checksum,
             Status = AttachmentStatus.Published,
             StatusText = "Duplicate",
-            StatusChanged = attachment.Created,
-            DataLocationType = attachment.DataLocationType,
-            SendersReference = attachment.SendersReference,
-            FileName = attachment.FileName,
-            DisplayName = attachment.DisplayName,
-            Sender = attachment.Sender,
+            StatusChanged = existingAttachment.Created,
+            DataLocationType = existingAttachment.DataLocationType,
+            SendersReference = existingAttachment.SendersReference,
+            FileName = existingAttachment.FileName,
+            DisplayName = existingAttachment.DisplayName,
+            Sender = existingAttachment.Sender,
         };
+    }
+
+    private abstract record MigrateAttachmentAttempt
+    {
+        public sealed record CreatedAttempt(MigrateAttachmentResponse Response) : MigrateAttachmentAttempt;
+        public sealed record ErrorAttempt(Error Error) : MigrateAttachmentAttempt;
+        public sealed record DuplicateAttempt : MigrateAttachmentAttempt;
+
+        public static MigrateAttachmentAttempt Created(MigrateAttachmentResponse response) => new CreatedAttempt(response);
+        public static MigrateAttachmentAttempt UploadFailed() => new ErrorAttempt(AttachmentErrors.UploadFailed);
+        public static MigrateAttachmentAttempt Duplicate() => new DuplicateAttempt();
     }
 }

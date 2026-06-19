@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ public class CorrespondenceMigrationEventHelper(
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IBackgroundJobClient backgroundJobClient,
     PartyUrnHelper partyUrnHelper,
+    ApplicationDbContext dbContext,
     ILogger<CorrespondenceMigrationEventHelper> logger)
 {
     private static readonly CorrespondenceStatus[] _validSyncStatuses = { CorrespondenceStatus.Read, CorrespondenceStatus.Confirmed, CorrespondenceStatus.Archived };
@@ -36,100 +38,96 @@ public class CorrespondenceMigrationEventHelper(
     public async Task<bool> ProcessStatusEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> actorIdByPartyUuid, CorrespondenceStatusEntity eventToExecute, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         logger.LogDebug("Process {OperationName} status event {Status} for {CorrespondenceId}", operationName, eventToExecute.Status, correspondenceId);
-        
-        using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
-        {
-            IsolationLevel = IsolationLevel.ReadCommitted,
-            Timeout = TimeSpan.FromSeconds(30)
-        }, TransactionScopeAsyncFlowOption.Enabled);
-        
-        try
-        {
-            // 1 - Save status to Correspondence Database first
-            bool wasSaved = await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, operationName, cancellationToken);
-        
-            if (!wasSaved)
-            {
-                logger.LogDebug("Status event was a duplicate for correspondence {CorrespondenceId}, skipping background job processing.", correspondenceId);
-                // Transaction rolls back (duplicate is not an error, but no changes to commit)
-                return false;
-            }
 
-            // Update the in-memory correspondence instance to reflect the new status
-            // This ensures subsequent event processing in the same batch has accurate state
-            correspondence.Statuses.Add(new CorrespondenceStatusEntity
+        return await DatabaseTransactionHelper.ExecuteWithRetryAsync(dbContext, async ct =>
+        {
+            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
             {
-                CorrespondenceId = correspondenceId,
-                StatusText = $"{operationName} event {eventToExecute.Status} from Altinn 2",
-                Status = eventToExecute.Status,
-                StatusChanged = eventToExecute.StatusChanged,
-                PartyUuid = eventToExecute.PartyUuid,
-                SyncedFromAltinn2 = DateTimeOffset.UtcNow
-            });
-        
-            // 2 - Enqueue background jobs only if the event was actually saved (not a duplicate) and has been made available
-            if (correspondence.IsMigrating == false)
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30)
+            }, TransactionScopeAsyncFlowOption.Enabled);
+
+            try
             {
-                switch (eventToExecute.Status)
+                bool wasSaved = await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, operationName, ct);
+
+                if (!wasSaved)
                 {
-                    case CorrespondenceStatus.Confirmed:
-                        {
-                            var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId, CancellationToken.None));
-                            if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
-                            {
-                                logger.LogWarning("Skipping updating dialog for Confirm for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
-                            }
-                            else
-                            {
-                                backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: patchJobId, queue: HangfireQueues.LiveMigration, methodCall: (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, actorId), options: JobContinuationOptions.OnlyOnSucceededState); // Set the operationtime to the time the status was changed in Altinn 2                            
-                            }                        
-                            backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-                            break;
-                        }
-
-                    case CorrespondenceStatus.Read:
-                        {
-
-                            if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
-                            {
-                                logger.LogWarning("Skipping updating dialog for Read for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
-                            }
-                            else
-                            {
-                                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, actorId));
-                            }
-                            backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-                            break;
-                        }
-
-                    case CorrespondenceStatus.Archived:
-                        {
-                            if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
-                            {
-                                logger.LogWarning("Skipping updating dialog for Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
-                            }
-                            else
-                            {
-                                backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondence.Id, actorId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
-                            }                        
-                            break;
-                        }
-                    default:
-                        logger.LogInformation("Status Event type {Status} for Correspondence {CorrespondenceId} at {StatusChanged} has updates against Dialogporten. The event will be ignored.", eventToExecute.Status, correspondenceId, eventToExecute.StatusChanged);
-                        break;
+                    logger.LogDebug("Status event was a duplicate for correspondence {CorrespondenceId}, skipping background job processing.", correspondenceId);
+                    return false;
                 }
-            }
 
-            // 3 - Only reached if both database save and job enqueuing succeeded
-            transaction.Complete();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to process {OperationName} status event {Status} for correspondence {CorrespondenceId}. Transaction will be rolled back.",
-                operationName, eventToExecute.Status, correspondenceId);
-            throw;
-        }
+                correspondence.Statuses.Add(new CorrespondenceStatusEntity
+                {
+                    CorrespondenceId = correspondenceId,
+                    StatusText = $"{operationName} event {eventToExecute.Status} from Altinn 2",
+                    Status = eventToExecute.Status,
+                    StatusChanged = eventToExecute.StatusChanged,
+                    PartyUuid = eventToExecute.PartyUuid,
+                    SyncedFromAltinn2 = DateTimeOffset.UtcNow
+                });
+
+                if (correspondence.IsMigrating == false)
+                {
+                    switch (eventToExecute.Status)
+                    {
+                        case CorrespondenceStatus.Confirmed:
+                            {
+                                var patchJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.PatchCorrespondenceDialogToConfirmed(correspondenceId, CancellationToken.None));
+                                if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
+                                {
+                                    logger.LogWarning("Skipping updating dialog for Confirm for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                                }
+                                else
+                                {
+                                    backgroundJobClient.ContinueJobWith<IDialogportenService>(parentId: patchJobId, queue: HangfireQueues.LiveMigration, methodCall: (dialogportenService) => dialogportenService.CreateConfirmedActivity(correspondenceId, DialogportenActorType.Recipient, eventToExecute.StatusChanged, actorId), options: JobContinuationOptions.OnlyOnSucceededState);
+                                }
+                                backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverConfirmed, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                                break;
+                            }
+
+                        case CorrespondenceStatus.Read:
+                            {
+                                if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
+                                {
+                                    logger.LogWarning("Skipping updating dialog for Read for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                                }
+                                else
+                                {
+                                    backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, (dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, eventToExecute.StatusChanged, actorId));
+                                }
+                                backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceReceiverRead, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                                break;
+                            }
+
+                        case CorrespondenceStatus.Archived:
+                            {
+                                if (!actorIdByPartyUuid.TryGetValue(eventToExecute.PartyUuid, out var actorId))
+                                {
+                                    logger.LogWarning("Skipping updating dialog for Archived for correspondence {CorrespondenceId} at {StatusChanged} due to missing Dialogporten actorId for party {PartyUuid}.", correspondence.Id, eventToExecute.StatusChanged, eventToExecute.PartyUuid);
+                                }
+                                else
+                                {
+                                    backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.UpdateSystemLabelsOnDialog(correspondence.Id, actorId, DialogportenActorType.PartyRepresentative, new List<DialogPortenSystemLabel> { DialogPortenSystemLabel.Archive }, null));
+                                }
+                                break;
+                            }
+                        default:
+                            logger.LogInformation("Status Event type {Status} for Correspondence {CorrespondenceId} at {StatusChanged} has updates against Dialogporten. The event will be ignored.", eventToExecute.Status, correspondenceId, eventToExecute.StatusChanged);
+                            break;
+                    }
+                }
+
+                transaction.Complete();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to process {OperationName} status event {Status} for correspondence {CorrespondenceId}. Transaction will be rolled back.",
+                    operationName, eventToExecute.Status, correspondenceId);
+                throw;
+            }
+        }, cancellationToken);
     }
 
     public async Task<bool> ProcessDeleteEvent(Guid correspondenceId, CorrespondenceEntity correspondence, Dictionary<Guid, string> actorIdByPartyUuid, CorrespondenceDeleteEventEntity deletionEvent, MigrationOperationType operationName, CancellationToken cancellationToken)
@@ -283,96 +281,94 @@ public class CorrespondenceMigrationEventHelper(
             _ => throw new ArgumentException($"Cannot perform PurgeCorrespondence for {deleteEventToSync.EventType}")
         };
 
-        using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+        return await DatabaseTransactionHelper.ExecuteWithRetryAsync(dbContext, async ct =>
         {
-            IsolationLevel = IsolationLevel.ReadCommitted,
-            Timeout = TimeSpan.FromSeconds(30)
-        }, TransactionScopeAsyncFlowOption.Enabled);
-        
-        try
-        {
-            // Create idempotency key inside transaction so it rolls back with other writes if transaction fails
-            var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
+            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30)
+            }, TransactionScopeAsyncFlowOption.Enabled);
+
             try
             {
-                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
+                try
                 {
-                    Id = purgeIdempotencyId,
+                    await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                    {
+                        Id = purgeIdempotencyId,
+                        CorrespondenceId = correspondence.Id,
+                        AttachmentId = null,
+                        PartyUrn = null,
+                        StatusAction = null,
+                        IdempotencyType = IdempotencyType.PurgeCorrespondence
+                    }, ct);
+                }
+                catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+                {
+                    logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
+                    return false;
+                }
+
+                DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
+
+                bool statusSaved = await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, operationName, ct);
+                bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, ct);
+
+                if (!statusSaved || !eventSaved)
+                {
+                    logger.LogDebug("Purge events were duplicates for correspondence {CorrespondenceId}, skipping background job processing", correspondence.Id);
+                    return false;
+                }
+
+                correspondence.Statuses.Add(new CorrespondenceStatusEntity
+                {
                     CorrespondenceId = correspondence.Id,
-                    AttachmentId = null,
-                    PartyUrn = null,
-                    StatusAction = null,
-                    IdempotencyType = IdempotencyType.PurgeCorrespondence
-                }, cancellationToken);
+                    Status = corrStatus,
+                    StatusChanged = deleteEventToSync.EventOccurred,
+                    StatusText = $"{operationName} event {corrStatus} from Altinn 2",
+                    PartyUuid = deleteEventToSync.PartyUuid,
+                    SyncedFromAltinn2 = syncedTimestamp
+                });
+
+                if (correspondence.IsMigrating == false)
+                {
+                    backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                }
+
+                await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, ct);
+
+                var dialogReference = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
+                if (dialogReference is not null)
+                {
+                    var dialogId = dialogReference.ReferenceValue;
+                    var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.TrySoftDeleteDialog(dialogId));
+                    bool isSender = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner;
+
+#pragma warning disable CS4014
+                    backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
+                        parentId: trySoftDeleteJobId,
+                        queue: HangfireQueues.LiveMigration,
+                        methodCall: helper => helper.ReportActivityToDialogporten(isSender, correspondence.Id, deleteEventToSync.EventOccurred, partyUrn),
+                        options: JobContinuationOptions.OnlyOnSucceededState);
+
+                    backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
+                        parentId: trySoftDeleteJobId,
+                        queue: HangfireQueues.LiveMigration,
+                        methodCall: helper => helper.ReportNotificationCancelledToDialogporten(correspondence.Id, deleteEventToSync.EventOccurred),
+                        options: JobContinuationOptions.OnlyOnSucceededState);
+#pragma warning restore CS4014
+                }
+
+                transaction.Complete();
+                return true;
             }
-            catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+            catch (Exception ex)
             {
-                logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
-                return false;
+                logger.LogError(ex, "Failed to purge correspondence {CorrespondenceId}. Transaction will be rolled back.", correspondence.Id);
+                throw;
             }
-
-            DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
-
-            // Save to Correspondence Database
-            bool statusSaved = await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, operationName, cancellationToken);
-            bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
-
-            // Only proceed with background jobs if events were actually saved (not duplicates)
-            if (!statusSaved || !eventSaved)
-            {
-                logger.LogDebug("Purge events were duplicates for correspondence {CorrespondenceId}, skipping background job processing", correspondence.Id);
-                return false;
-            }
-
-            // Update the in-memory correspondence instance to reflect the purge status
-            // This ensures subsequent event processing in the same batch knows the correspondence has been purged
-            correspondence.Statuses.Add(new CorrespondenceStatusEntity
-            {
-                CorrespondenceId = correspondence.Id,
-                Status = corrStatus,
-                StatusChanged = deleteEventToSync.EventOccurred,
-                StatusText = $"{operationName} event {corrStatus} from Altinn 2",
-                PartyUuid = deleteEventToSync.PartyUuid,
-                SyncedFromAltinn2 = syncedTimestamp
-            });
-
-            if (correspondence.IsMigrating == false)
-            {
-                backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-            }
-
-            await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, cancellationToken);
-
-            var dialogReference = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
-            if (dialogReference is not null)
-            {
-                var dialogId = dialogReference.ReferenceValue;                
-                var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.TrySoftDeleteDialog(dialogId));
-                bool isSender = deleteEventToSync.EventType == CorrespondenceDeleteEventType.HardDeletedByServiceOwner;
-
-                #pragma warning disable CS4014 // Intended: Hangfire will run these async methods as jobs
-                backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(                    
-                    parentId: trySoftDeleteJobId,
-                    queue: HangfireQueues.LiveMigration,
-                    methodCall: helper => helper.ReportActivityToDialogporten(isSender, correspondence.Id, deleteEventToSync.EventOccurred, partyUrn),
-                    options: JobContinuationOptions.OnlyOnSucceededState);
-
-                backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
-                    parentId: trySoftDeleteJobId,
-                    queue: HangfireQueues.LiveMigration,
-                    methodCall: helper => helper.ReportNotificationCancelledToDialogporten(correspondence.Id, deleteEventToSync.EventOccurred),
-                    options: JobContinuationOptions.OnlyOnSucceededState);
-                #pragma warning restore CS4014
-            }
-
-            transaction.Complete();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to purge correspondence {CorrespondenceId}. Transaction will be rolled back.", correspondence.Id);
-            throw;
-        }
+        }, cancellationToken);
     }
 
     public async Task<bool> SoftDeleteOrRestoreCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, Dictionary<Guid, string> actorIdByPartyUuid, CancellationToken cancellationToken)
@@ -382,51 +378,51 @@ public class CorrespondenceMigrationEventHelper(
             throw new ArgumentException($"Cannot perform SoftDeleteOrRestoreCorrespondence for {deleteEventToSync.EventType}");
         }
 
-        using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+        return await DatabaseTransactionHelper.ExecuteWithRetryAsync(dbContext, async ct =>
         {
-            IsolationLevel = IsolationLevel.ReadCommitted,
-            Timeout = TimeSpan.FromSeconds(30)
-        }, TransactionScopeAsyncFlowOption.Enabled);
-        
-        try
-        {
-            DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
-            // Save to Correspondence Database, no CorrespondenceStatus for soft delete / restore
-            bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, cancellationToken);
-
-            // Only proceed with Dialogporten updates if event was actually saved (not a duplicate)
-            if (!eventSaved)
+            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
             {
-                logger.LogDebug("Soft delete/restore event was a duplicate for correspondence {CorrespondenceId}, skipping Dialogporten update", correspondence.Id);
-                return false;
-            }
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30)
+            }, TransactionScopeAsyncFlowOption.Enabled);
 
-            if (correspondence.IsMigrating == false)
+            try
             {
-                if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn) || correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
+                DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
+                bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, ct);
+
+                if (!eventSaved)
                 {
-                    logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to the Correspondence being purged.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
+                    logger.LogDebug("Soft delete/restore event was a duplicate for correspondence {CorrespondenceId}, skipping Dialogporten update", correspondence.Id);
+                    return false;
                 }
-                else if (!actorIdByPartyUuid.TryGetValue(deleteEventToSync.PartyUuid, out var actorId))
+
+                if (correspondence.IsMigrating == false)
                 {
-                    logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to missing Dialogporten actorId for party {PartyUuid}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred, deleteEventToSync.PartyUuid);
+                    if (correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByAltinn) || correspondence.StatusHasBeen(CorrespondenceStatus.PurgedByRecipient))
+                    {
+                        logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to the Correspondence being purged.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred);
+                    }
+                    else if (!actorIdByPartyUuid.TryGetValue(deleteEventToSync.PartyUuid, out var actorId))
+                    {
+                        logger.LogWarning("Skipping updating dialog for {EventType} for correspondence {CorrespondenceId} at {EventOccurred} due to missing Dialogporten actorId for party {PartyUuid}.", deleteEventToSync.EventType, correspondence.Id, deleteEventToSync.EventOccurred, deleteEventToSync.PartyUuid);
+                    }
+                    else
+                    {
+                        bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
+                        SetSoftDeleteOrRestoreOnDialog(correspondence.Id, actorId, deleteEventToSync.EventType, isArchived);
+                    }
                 }
-                else
-                {
-                    // Enqueue SoftDelete or Restore in Dialogporten
-                    bool isArchived = correspondence.StatusHasBeen(CorrespondenceStatus.Archived);
-                    SetSoftDeleteOrRestoreOnDialog(correspondence.Id, actorId, deleteEventToSync.EventType, isArchived);
-                }
+
+                transaction.Complete();
+                return true;
             }
-            
-            transaction.Complete();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to soft delete/restore correspondence {CorrespondenceId}. Transaction will be rolled back.", correspondence.Id);
-            throw;
-        }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to soft delete/restore correspondence {CorrespondenceId}. Transaction will be rolled back.", correspondence.Id);
+                throw;
+            }
+        }, cancellationToken);
     }
 
     public async Task<bool> StoreStatusEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, DateTimeOffset syncedTimestamp, MigrationOperationType operationName, CancellationToken cancellationToken)
@@ -612,62 +608,63 @@ public class CorrespondenceMigrationEventHelper(
             logger.LogInformation("Processing {OperationName} notification event for correspondence {CorrespondenceId} at {NotificationSent}",
                 operationName, correspondenceId, notification.NotificationSent);
 
-            // Wrap each notification save in its own transaction
-            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+            await DatabaseTransactionHelper.ExecuteWithRetryAsync(dbContext, async ct =>
             {
-                IsolationLevel = IsolationLevel.ReadCommitted,
-                Timeout = TimeSpan.FromSeconds(30)
-            }, TransactionScopeAsyncFlowOption.Enabled);
-
-            try
-            {
-                notification.CorrespondenceId = correspondenceId;
-                notification.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
-                notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-
-                var savedId = await correspondenceNotificationRepository.AddNotificationForSync(notification, cancellationToken);
-
-                // Check if notification was actually saved (not a duplicate)
-                if (savedId != Guid.Empty)
+                using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
                 {
-                    savedCount++;
-                    logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+                    IsolationLevel = IsolationLevel.ReadCommitted,
+                    Timeout = TimeSpan.FromSeconds(30)
+                }, TransactionScopeAsyncFlowOption.Enabled);
 
-                    if (correspondence.IsMigrating == false && notification.NotificationSent.HasValue)
-                    {  
-                        var textType = notification.IsReminder 
-                            ? DialogportenTextType.NotificationReminderSent 
-                            : DialogportenTextType.NotificationSent;
-                        string channelType = notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS";
+                try
+                {
+                    notification.CorrespondenceId = correspondenceId;
+                    notification.Correspondence = null;
+                    notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
 
-                        // Create activity with the same parameters used during initial migration
-                        backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, 
-                            (dialogportenService) => dialogportenService.CreateInformationActivity(
-                                correspondenceId,
-                                DialogportenActorType.ServiceOwner,
-                                textType,
-                                notification.NotificationSent.Value,
-                                notification.NotificationAddress ?? string.Empty,
-                                channelType));
+                    var savedId = await correspondenceNotificationRepository.AddNotificationForSync(notification, ct);
 
-                        logger.LogInformation("Enqueued Dialogporten activity for {OperationName} notification {NotificationId} at {NotificationSent}", 
-                            operationName, savedId, notification.NotificationSent.Value);
+                    if (savedId != Guid.Empty)
+                    {
+                        savedCount++;
+                        logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+
+                        if (correspondence.IsMigrating == false && notification.NotificationSent.HasValue)
+                        {
+                            var textType = notification.IsReminder
+                                ? DialogportenTextType.NotificationReminderSent
+                                : DialogportenTextType.NotificationSent;
+                            string channelType = notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS";
+
+                            backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration,
+                                (dialogportenService) => dialogportenService.CreateInformationActivity(
+                                    correspondenceId,
+                                    DialogportenActorType.ServiceOwner,
+                                    textType,
+                                    notification.NotificationSent.Value,
+                                    notification.NotificationAddress ?? string.Empty,
+                                    channelType));
+
+                            logger.LogInformation("Enqueued Dialogporten activity for {OperationName} notification {NotificationId} at {NotificationSent}",
+                                operationName, savedId, notification.NotificationSent.Value);
+                        }
+
+                        transaction.Complete();
+                    }
+                    else
+                    {
+                        logger.LogDebug("Notification event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
                     }
 
-                    transaction.Complete();
+                    return true;
                 }
-                else
+                catch (Exception ex)
                 {
-                    logger.LogDebug("Notification event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
-                    // No transaction.Complete() - rollback (though nothing was saved)
+                    logger.LogError(ex, "Failed to process {OperationName} notification event for correspondence {CorrespondenceId}. Transaction will be rolled back.",
+                        operationName, correspondenceId);
+                    throw;
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to process {OperationName} notification event for correspondence {CorrespondenceId}. Transaction will be rolled back.",
-                    operationName, correspondenceId);
-                throw;
-            }
+            }, cancellationToken);
         }
 
         logger.LogInformation("Successfully processed {OperationName} of {SavedCount}/{TotalCount} notification events for correspondence {CorrespondenceId}",
@@ -690,47 +687,48 @@ public class CorrespondenceMigrationEventHelper(
             logger.LogInformation("Processing {OperationName} forwarding event for correspondence {CorrespondenceId} at {ForwardedOnDate}",
                 operationName, correspondenceId, forwardingEvent.ForwardedOnDate);
 
-            // Wrap each forwarding event save and job enqueue in its own transaction
-            using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
+            await DatabaseTransactionHelper.ExecuteWithRetryAsync(dbContext, async ct =>
             {
-                IsolationLevel = IsolationLevel.ReadCommitted,
-                Timeout = TimeSpan.FromSeconds(30)
-            }, TransactionScopeAsyncFlowOption.Enabled);
-            
-            try
-            {
-                forwardingEvent.CorrespondenceId = correspondenceId;
-                forwardingEvent.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
-                forwardingEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
-                
-                var savedId = await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, cancellationToken);
-                
-                // Check if forwarding event was actually saved (not a duplicate)
-                if (savedId != Guid.Empty)
+                using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
                 {
-                    savedCount++;
-                    logger.LogDebug("Added new forwarding event {ForwardingEventId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
-                    
-                    // Enqueue Dialogporten background job only if not in migration mode
-                    if (correspondence.IsMigrating == false)
+                    IsolationLevel = IsolationLevel.ReadCommitted,
+                    Timeout = TimeSpan.FromSeconds(30)
+                }, TransactionScopeAsyncFlowOption.Enabled);
+
+                try
+                {
+                    forwardingEvent.CorrespondenceId = correspondenceId;
+                    forwardingEvent.Correspondence = null;
+                    forwardingEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
+
+                    var savedId = await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, ct);
+
+                    if (savedId != Guid.Empty)
                     {
-                        backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(savedId, CancellationToken.None));
+                        savedCount++;
+                        logger.LogDebug("Added new forwarding event {ForwardingEventId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
+
+                        if (correspondence.IsMigrating == false)
+                        {
+                            backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(savedId, CancellationToken.None));
+                        }
+
+                        transaction.Complete();
                     }
-                    
-                    transaction.Complete();
+                    else
+                    {
+                        logger.LogDebug("Forwarding event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
+                    }
+
+                    return true;
                 }
-                else
+                catch (Exception ex)
                 {
-                    logger.LogDebug("Forwarding event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
-                    // No transaction.Complete() - rollback (though nothing was saved)
+                    logger.LogError(ex, "Failed to process {OperationName} forwarding event for correspondence {CorrespondenceId}. Transaction will be rolled back.",
+                        operationName, correspondenceId);
+                    throw;
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to process {OperationName} forwarding event for correspondence {CorrespondenceId}. Transaction will be rolled back.",
-                    operationName, correspondenceId);
-                throw;
-            }
+            }, cancellationToken);
         }
 
         logger.LogInformation("Successfully processed {OperationName} of {SavedCount}/{TotalCount} forwarding events for correspondence {CorrespondenceId}",
