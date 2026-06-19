@@ -5,7 +5,6 @@ using Altinn.Correspondence.Persistence.Repositories;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,23 +15,13 @@ public static class DependencyInjection
 {
     public static void AddPersistence(this IServiceCollection services, IConfiguration config, ILogger bootstrapLogger)
     {
-        var databaseOptions = new DatabaseOptions() { ConnectionString = "" };
-        config.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
-
         services.AddSingleton(BuildAzureNpgsqlDataSource(config, bootstrapLogger));
         services.AddDbContext<ApplicationDbContext>(entityFrameworkConfig =>
         {
             entityFrameworkConfig.UseNpgsql(npgsql =>
             {
-                if (databaseOptions.MaxRetryCount == 0)
-                {
-                    npgsql.ExecutionStrategy(dependencies => new NonRetryingExecutionStrategy(dependencies));
-                }
-                else
-                {
-                    npgsql.ExecutionStrategy(dependencies =>
-                        new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies, databaseOptions.MaxRetryCount));
-                }
+                npgsql.ExecutionStrategy(dependencies =>
+                    new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies));
             });
         });
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
