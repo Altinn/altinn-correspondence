@@ -1,6 +1,7 @@
 ﻿using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Testcontainers.PostgreSql;
 
 namespace Altinn.Correspondence.Tests.Fixtures;
@@ -34,8 +35,7 @@ public class PostgresTestcontainerFixture : IAsyncLifetime
             .UseNpgsql(_container.GetConnectionString(), x =>
             {
                 x.MigrationsAssembly("Altinn.Correspondence.Persistence");
-                x.ExecutionStrategy(dependencies =>
-                    new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies));
+                x.ExecutionStrategy(dependencies => new NonRetryingExecutionStrategy(dependencies));
             })
             .Options;
 
