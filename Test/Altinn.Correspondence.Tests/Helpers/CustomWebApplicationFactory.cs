@@ -46,8 +46,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             .AddJsonFile("appsettings.Development.json")
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["GeneralSettings:MalwareScanBypassWhiteList"] = TestConstants.ResourceWhitelistedForMalwareScanBypass,
-                ["DatabaseOptions:MaxRetryCount"] = "1"
+                ["GeneralSettings:MalwareScanBypassWhiteList"] = TestConstants.ResourceWhitelistedForMalwareScanBypass
             })
             .Build());
 

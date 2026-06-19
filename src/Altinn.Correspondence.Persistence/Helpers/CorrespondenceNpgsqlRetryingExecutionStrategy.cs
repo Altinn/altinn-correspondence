@@ -9,10 +9,11 @@ namespace Altinn.Correspondence.Persistence.Helpers;
 
 public class CorrespondenceNpgsqlRetryingExecutionStrategy : NpgsqlRetryingExecutionStrategy
 {
+    private const int MaxRetries = 5;
     private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromSeconds(10);
 
-    public CorrespondenceNpgsqlRetryingExecutionStrategy(ExecutionStrategyDependencies dependencies, int maxRetryCount = 5)
-        : base(dependencies, maxRetryCount, MaxRetryDelay, ["40001", "40P01"])
+    public CorrespondenceNpgsqlRetryingExecutionStrategy(ExecutionStrategyDependencies dependencies)
+        : base(dependencies, MaxRetries, MaxRetryDelay, ["40001", "40P01"])
     {
     }
 
