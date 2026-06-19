@@ -41,8 +41,8 @@ public static class TransactionWithRetriesPolicy
         .Or<PostgreSqlDistributedLockException>()
         .Or<DbUpdateConcurrencyException>()
         .WaitAndRetryAsync(
-            10,
-            retryAttempt => TimeSpan.FromMilliseconds(10),
+            5,
+            retryAttempt => TimeSpan.FromMilliseconds(Math.Pow(2, retryAttempt) * 50),
             (exception, timeSpan, retryCount, context) =>
             {
                 logger.LogWarning($"Attempt {retryCount} failed with exception {exception.Message}. Retrying in {timeSpan.Milliseconds} milliseconds.");
