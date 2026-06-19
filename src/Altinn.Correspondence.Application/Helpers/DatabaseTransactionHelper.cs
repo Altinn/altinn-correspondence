@@ -14,7 +14,8 @@ public static class DatabaseTransactionHelper
         Func<CancellationToken, Task<T>> operation,
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteWithRetryAsync(dbContext, async ct =>
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
             using var transaction = new TransactionScope(
                 TransactionScopeOption.Required,
@@ -24,21 +25,9 @@ public static class DatabaseTransactionHelper
                     Timeout = TimeSpan.FromSeconds(30)
                 },
                 TransactionScopeAsyncFlowOption.Enabled);
-            var result = await operation(ct);
+            var result = await operation(cancellationToken);
             transaction.Complete();
             return result;
-        }, cancellationToken);
-    }
-
-    /// <summary>
-    /// Runs the operation inside the EF execution strategy only. The caller owns transaction boundaries and Commit/Complete.
-    /// </summary>
-    public static async Task<T> ExecuteWithRetryAsync<T>(
-        ApplicationDbContext dbContext,
-        Func<CancellationToken, Task<T>> operation,
-        CancellationToken cancellationToken = default)
-    {
-        var strategy = dbContext.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(operation, cancellationToken);
+        });
     }
 }

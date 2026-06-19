@@ -48,7 +48,7 @@ public static class TestDbContextFactory
         }
         else
         {
-            npgsql.ExecutionStrategy(dependencies =>
+                npgsql.ExecutionStrategy(dependencies =>
                 new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies));
         }
     }
