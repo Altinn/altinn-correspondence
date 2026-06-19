@@ -11,7 +11,7 @@ public static class TestDbContextFactory
 {
     // Matches docker-compose.yml and appsettings.Development.json
     private const string ConnectionString =
-        "Host=localhost:5432;Username=postgres;Password=postgres;Database=correspondence";
+        "Host=localhost:5432;Username=postgres;Password=postgres;Database=correspondence;Maximum Pool Size=50;Timeout=30";
 
     private static readonly Lazy<DbContextOptions<ApplicationDbContext>> Options = new(BuildOptions);
 
