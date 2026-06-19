@@ -9,6 +9,7 @@ using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests.TestingHandler;
 
@@ -37,7 +38,8 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             _correspondenceStatusRepositoryMock.Object,
             _backgroundJobClientMock.Object,
             _dialogportenServiceMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            TestDbContextFactory.Create());
     }
 
     [Fact]

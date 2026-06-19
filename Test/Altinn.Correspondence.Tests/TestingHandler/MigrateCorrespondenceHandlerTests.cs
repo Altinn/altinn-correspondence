@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Register.Contracts;
 using Hangfire;
@@ -104,7 +105,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _backgroundJobClientMock.Object,
                 _hostEnvironmentMock.Object,
                 correspondenceEventHelper,
-                _loggerMock.Object);
+                _loggerMock.Object,
+                TestDbContextFactory.Create());
         }
 
         [Fact]

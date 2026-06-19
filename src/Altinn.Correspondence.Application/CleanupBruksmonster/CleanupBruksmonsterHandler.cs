@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Hangfire;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence;
 
 namespace Altinn.Correspondence.Application.CleanupBruksmonster;
 
@@ -14,7 +15,8 @@ public class CleanupBruksmonsterHandler(
     IDialogportenService dialogportenService,
     ICorrespondenceRepository correspondenceRepository,
 	IIdempotencyKeyRepository idempotencyKeyRepository,
-	IAttachmentRepository attachmentRepository
+	IAttachmentRepository attachmentRepository,
+	ApplicationDbContext dbContext
 ) : IHandler<CleanupBruksmonsterRequest, CleanupBruksmonsterResponse>
 {
     public async Task<OneOf<CleanupBruksmonsterResponse, Error>> Process(CleanupBruksmonsterRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -33,7 +35,7 @@ public class CleanupBruksmonsterHandler(
         correspondenceIds = await correspondenceRepository.GetCorrespondenceIdsByResourceId(resourceId, minAge, cancellationToken);
         attachmentIds = await attachmentRepository.GetAttachmentIdsOnResource(resourceId, minAge, cancellationToken);
 
-		return await TransactionWithRetriesPolicy.Execute<CleanupBruksmonsterResponse>(async (ct) =>
+		return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (ct) =>
         {
             var deleteDialogsJobId = backgroundJobClient.Enqueue<CleanupBruksmonsterHandler>(h => h.PurgeCorrespondenceDialogs(correspondenceIds));
 			var deleteCorrespondencesJobId = backgroundJobClient.ContinueJobWith<CleanupBruksmonsterHandler>(deleteDialogsJobId, h => h.PurgeCorrespondences(correspondenceIds, attachmentIds, resourceId, CancellationToken.None));
@@ -49,7 +51,7 @@ public class CleanupBruksmonsterHandler(
                 DeleteCorrespondencesJobId = deleteCorrespondencesJobId
             };
             return resp;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 
     public async Task PurgeCorrespondenceDialogs(List<Guid> correspondenceIds)
@@ -63,7 +65,7 @@ public class CleanupBruksmonsterHandler(
 
 	public async Task PurgeCorrespondences(List<Guid> correspondenceIds, List<Guid> attachmentIds, string resourceId, CancellationToken cancellationToken)
     {
-        await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
+        await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (ct) =>
         {
             await idempotencyKeyRepository.DeleteByCorrespondenceIds(correspondenceIds, cancellationToken);
             await correspondenceRepository.HardDeleteCorrespondencesByIds(correspondenceIds, cancellationToken);
@@ -78,6 +80,6 @@ public class CleanupBruksmonsterHandler(
 			logger.LogInformation("Deleted {deletedAttachments} rows/entities for {totalAttachments} attachments on resource {resourceId}", deletedAttachments, attachmentIds.Count, resourceId);
 
             return Task.CompletedTask;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 }

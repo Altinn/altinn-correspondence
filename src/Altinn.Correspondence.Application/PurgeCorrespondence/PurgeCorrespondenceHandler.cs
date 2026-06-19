@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -15,7 +16,8 @@ public class PurgeCorrespondenceHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceRepository correspondenceRepository,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
-    ILogger<PurgeCorrespondenceHandler> logger) : IHandler<PurgeCorrespondenceRequest, Guid>
+    ILogger<PurgeCorrespondenceHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<PurgeCorrespondenceRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(PurgeCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -73,13 +75,13 @@ public class PurgeCorrespondenceHandler(
             correspondenceId,
             isSender ? "sender" : "recipient");
 
-        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             var partyUrn = user?.GetCallerPartyUrn();
             var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.GetPartyId(), operationTimestamp, cancellationToken, partyUrn);
             logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", result);
             return result;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 
     private Error? CheckUserPermissions(ClaimsPrincipal user, CorrespondenceEntity correspondence, bool hasAccessAsSender, bool hasAccessAsRecipient, out bool isSender)

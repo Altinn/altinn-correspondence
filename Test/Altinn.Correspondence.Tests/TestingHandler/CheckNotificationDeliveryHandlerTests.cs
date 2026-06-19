@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -36,7 +37,8 @@ public class CheckNotificationDeliveryHandlerTests
             _notificationRepositoryMock.Object,
             _notificationServiceMock.Object,
             _backgroundJobClientMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            TestDbContextFactory.Create());
     }
 
     [Fact]

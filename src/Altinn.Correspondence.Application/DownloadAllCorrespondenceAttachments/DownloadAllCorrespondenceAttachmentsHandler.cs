@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -24,7 +25,8 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     AttachmentHelper attachmentHelper,
-    ILogger<DownloadAllCorrespondenceAttachmentsHandler> logger) : IHandler<DownloadAllCorrespondenceAttachmentsRequest, DownloadAllCorrespondenceAttachmentsResponse>
+    ILogger<DownloadAllCorrespondenceAttachmentsHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<DownloadAllCorrespondenceAttachmentsRequest, DownloadAllCorrespondenceAttachmentsResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
@@ -135,7 +137,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         }
         zipStream.Position = 0;
 
-        await TransactionWithRetriesPolicy.Execute<bool>(async (cancellationToken) =>
+        await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             try
             {
@@ -153,7 +155,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
                 _logger.LogError(e, "Error when adding status to correspondence {CorrespondenceId}", request.CorrespondenceId);
             }
             return true;
-        }, logger, cancellationToken);
+        }, cancellationToken);
 
         foreach (var attachment in attachments)
         {

@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Persistence;
+using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 
@@ -30,7 +31,12 @@ public class PostgresTestcontainerFixture : IAsyncLifetime
         await _container.StartAsync();
 
         _dbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(_container.GetConnectionString(), x => x.MigrationsAssembly("Altinn.Correspondence.Persistence"))
+            .UseNpgsql(_container.GetConnectionString(), x =>
+            {
+                x.MigrationsAssembly("Altinn.Correspondence.Persistence");
+                x.ExecutionStrategy(dependencies =>
+                    new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies));
+            })
             .Options;
 
         // Apply migrations

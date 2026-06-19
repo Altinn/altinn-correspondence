@@ -2636,7 +2636,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 correspondenceStatusRepositoryMock.Object,
                 new Mock<IContactReservationRegistryService>().Object,
                 publishClientMock.Object,
-                idempotencyKeyRepositoryMock.Object);
+                idempotencyKeyRepositoryMock.Object,
+                TestDbContextFactory.Create());
 
             await publishHandler.Process(correspondenceId, null, CancellationToken.None);
 

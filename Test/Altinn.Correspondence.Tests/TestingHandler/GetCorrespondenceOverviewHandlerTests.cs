@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Register.Contracts;
 using Hangfire;
@@ -63,7 +64,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceStatusRepositoryMock.Object,
                 Mock.Of<IContactReservationRegistryService>(),
                 _backgroundJobClientMock.Object,
-                Mock.Of<IIdempotencyKeyRepository>());
+                Mock.Of<IIdempotencyKeyRepository>(),
+                TestDbContextFactory.Create());
 
             _handler = new GetCorrespondenceOverviewHandler(
                 _altinnAuthorizationServiceMock.Object,
@@ -75,7 +77,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _dialogportenServiceMock.Object,
                 _cacheMock.Object,
                 publishCorrespondenceHandler,
-                _loggerMock.Object);
+                _loggerMock.Object,
+                TestDbContextFactory.Create());
         }
 
         [Fact]

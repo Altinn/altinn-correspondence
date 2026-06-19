@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,8 @@ public class SendNotificationOrderHandler(
     IAltinnNotificationService altinnNotificationService,
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IBackgroundJobClient backgroundJobClient,
-    ILogger<SendNotificationOrderHandler> logger)
+    ILogger<SendNotificationOrderHandler> logger,
+    ApplicationDbContext dbContext)
 {
     private const int NotificationDeliveryCheckDelayMinutes = 5;
 
@@ -108,7 +110,7 @@ public class SendNotificationOrderHandler(
         }
         else
         {
-            await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
+            await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (ct) =>
             {
                 await UpdateDatabaseNotificationOrder(notificationOrder, notificationResponse, ct);
                 SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
@@ -132,7 +134,7 @@ public class SendNotificationOrderHandler(
                     }
                 }
                 return Task.CompletedTask;
-            }, logger, cancellationToken);
+            }, cancellationToken);
         }
 
         return successful;
