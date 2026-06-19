@@ -17,7 +17,7 @@ public class DatabaseTransactionHelperTests
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql("Host=localhost;Database=test;Username=test;Password=test", npgsql =>
                 npgsql.ExecutionStrategy(dependencies =>
-                    new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies)))
+                    new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies, maxRetryCount: 5)))
             .Options;
         return new ApplicationDbContext(options);
     }
