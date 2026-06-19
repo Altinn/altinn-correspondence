@@ -13,7 +13,7 @@ namespace Altinn.Correspondence.API.Helpers;
 /// committed, so the callback cannot signal an error via the response. All validation that can fail
 /// must happen before this result is returned.
 /// </remarks>
-public sealed class FileCallbackResult(string contentType, string fileDownloadName, Func<Stream, CancellationToken, Task> callback) : ActionResult
+public sealed class FileCallbackResult(string contentType, string fileDownloadName, long? contentLength, Func<Stream, CancellationToken, Task> callback) : ActionResult
 {
     public override async Task ExecuteResultAsync(ActionContext context)
     {
@@ -24,7 +24,12 @@ public sealed class FileCallbackResult(string contentType, string fileDownloadNa
             FileNameStar = fileDownloadName
         }.ToString();
 
-        // The length is unknown up front; stream out as it is produced rather than buffering.
+        if (contentLength.HasValue)
+        {
+            response.ContentLength = contentLength.Value;
+        }
+
+        // Stream out as produced rather than buffering the whole payload.
         context.HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
 
         //.NET 10's ZipArchive still flushes a small per-entry data descriptor (~16 bytes)

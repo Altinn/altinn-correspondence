@@ -642,7 +642,7 @@ namespace Altinn.Correspondence.API.Controllers
                 CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
-                result => new FileCallbackResult("application/zip", result.ZipFileName,
+                result => new FileCallbackResult("application/zip", result.ZipFileName, result.ContentLength,
                     (stream, ct) => handler.WriteZip(result.Entries, stream, ct)),
                 Problem
             );

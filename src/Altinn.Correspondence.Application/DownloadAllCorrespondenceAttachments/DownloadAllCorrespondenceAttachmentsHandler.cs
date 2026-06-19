@@ -164,16 +164,17 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         return new DownloadAllCorrespondenceAttachmentsResponse
         {
             Entries = entries,
-            ZipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence)
+            ZipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence),
+            ContentLength = ZipContentLengthCalculator.TryCalculate(entries)
         };
     }
 
     public async Task WriteZip(IReadOnlyList<ZipAttachmentEntry> entries, Stream output, CancellationToken cancellationToken)
     {
-        await using var archive = await ZipArchive.CreateAsync(output, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: null);
+        await using var archive = await ZipArchive.CreateAsync(output, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: null, cancellationToken);
         foreach (var (attachment, entryName) in entries)
         {
-            var entry = archive.CreateEntry(entryName);
+            var entry = archive.CreateEntry(entryName, CompressionLevel.NoCompression);
             await using var entryStream = await entry.OpenAsync(cancellationToken);
             await using var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
             await attachmentStream.CopyToAsync(entryStream, cancellationToken);
