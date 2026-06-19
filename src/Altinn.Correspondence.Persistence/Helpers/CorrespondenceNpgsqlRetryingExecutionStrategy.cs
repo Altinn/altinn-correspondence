@@ -2,7 +2,6 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Npgsql;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using System.Transactions;
 
@@ -22,7 +21,6 @@ public class CorrespondenceNpgsqlRetryingExecutionStrategy : NpgsqlRetryingExecu
     {
         return base.ShouldRetryOn(exception)
             || exception is TransactionAbortedException
-            || exception is PostgresException
             || exception is DbUpdateConcurrencyException
             || exception is BackgroundJobClientException
             || exception is PostgreSqlDistributedLockException;
