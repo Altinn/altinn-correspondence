@@ -24,7 +24,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
     public Task<OneOf<UpdateOldCorrespondencesWithDownloadAllResponse, Error>> Process(UpdateOldCorrespondencesWithDownloadAllRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting update of old correspondences with download all. Window size: {windowSize}", request.windowSize);
-        var jobId = _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(HangfireQueues.Migration,handler => handler.ExecutePatchingInBackground(request, CancellationToken.None));
+        var jobId = _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(HangfireQueues.LiveMigration,handler => handler.ExecutePatchingInBackground(request, CancellationToken.None));
 
         _logger.LogInformation("Orchestrator job {jobId} has been enqueued", jobId);
 
