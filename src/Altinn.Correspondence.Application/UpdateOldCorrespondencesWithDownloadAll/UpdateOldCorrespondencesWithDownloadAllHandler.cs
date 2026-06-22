@@ -47,7 +47,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
             _logger.LogInformation(
                 "Queue has {enqueuedJobs} jobs (limit {limit}), rescheduling in 1 minute",
                 enqueuedJobs, queueLimit);
-            _backgroundJobClient.Schedule<UpdateOldCorrespondencesWithDownloadAllHandler>(
+            _backgroundJobClient.Schedule<UpdateOldCorrespondencesWithDownloadAllHandler>(HangfireQueues.LiveMigration,
                 handler => handler.ExecutePatchingInBackground(request, CancellationToken.None),
                 TimeSpan.FromMinutes(1));
             return;
@@ -113,7 +113,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                 TotalNotMatchingCriteria = totalNotMatchingCriteria,
                 TotalErrors = totalErrors
             };
-            _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(
+            _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(HangfireQueues.LiveMigration,
                 handler => handler.ExecutePatchingInBackground(nextRequest, CancellationToken.None));
             _logger.LogInformation(
                 "Batch complete. Processed: {processed}, Patched: {patched}, Not matching criteria: {notMatchingCriteria}, Errors: {errors}",
