@@ -28,6 +28,17 @@ public class MigrateAttachmentHandler(
             return AttachmentErrors.InvalidFileSize("2GB");
         }
 
+        var uploadResult = await attachmentHelper.UploadAttachment(request, request.SenderPartyUuid, cancellationToken);
+        if (uploadResult.IsT1)
+        {
+            return AttachmentErrors.UploadFailed;
+        }
+
+        request.Attachment.DataLocationUrl = uploadResult.AsT0.DataLocationUrl;
+        request.Attachment.Checksum = uploadResult.AsT0.Checksum;
+        request.Attachment.AttachmentSize = uploadResult.AsT0.Size;
+        request.Attachment.StorageProvider = uploadResult.AsT0.StorageProviderEntity;
+
         var attempt = await DatabaseTransactionHelper.ExecuteWithRetryAsync(dbContext, async ct =>
         {
             using var transaction = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions()
@@ -35,17 +46,6 @@ public class MigrateAttachmentHandler(
                 IsolationLevel = IsolationLevel.ReadCommitted,
                 Timeout = TimeSpan.FromSeconds(30)
             }, TransactionScopeAsyncFlowOption.Enabled);
-
-            var uploadResult = await attachmentHelper.UploadAttachment(request, request.SenderPartyUuid, ct);
-            if (uploadResult.IsT1)
-            {
-                return MigrateAttachmentAttempt.UploadFailed();
-            }
-
-            request.Attachment.DataLocationUrl = uploadResult.AsT0.DataLocationUrl;
-            request.Attachment.Checksum = uploadResult.AsT0.Checksum;
-            request.Attachment.AttachmentSize = uploadResult.AsT0.Size;
-            request.Attachment.StorageProvider = uploadResult.AsT0.StorageProviderEntity;
 
             try
             {
@@ -93,9 +93,7 @@ public class MigrateAttachmentHandler(
         return attempt switch
         {
             MigrateAttachmentAttempt.CreatedAttempt created => created.Response,
-            MigrateAttachmentAttempt.ErrorAttempt error => error.Error,
             MigrateAttachmentAttempt.DuplicateAttempt => await BuildDuplicateResponse(request, cancellationToken),
-            _ => AttachmentErrors.UploadFailed
         };
     }
 
@@ -122,11 +120,9 @@ public class MigrateAttachmentHandler(
     private abstract record MigrateAttachmentAttempt
     {
         public sealed record CreatedAttempt(MigrateAttachmentResponse Response) : MigrateAttachmentAttempt;
-        public sealed record ErrorAttempt(Error Error) : MigrateAttachmentAttempt;
         public sealed record DuplicateAttempt : MigrateAttachmentAttempt;
 
         public static MigrateAttachmentAttempt Created(MigrateAttachmentResponse response) => new CreatedAttempt(response);
-        public static MigrateAttachmentAttempt UploadFailed() => new ErrorAttempt(AttachmentErrors.UploadFailed);
         public static MigrateAttachmentAttempt Duplicate() => new DuplicateAttempt();
     }
 }
