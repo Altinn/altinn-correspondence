@@ -39,6 +39,6 @@ public static class DatabaseTransactionHelper
         CancellationToken cancellationToken = default)
     {
         var strategy = dbContext.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(() => operation(cancellationToken));
+        return await strategy.ExecuteAsync(operation, cancellationToken);
     }
 }
