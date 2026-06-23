@@ -152,14 +152,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken)
         {
             return await _context.CorrespondenceNotifications
-                .Include(n => n.Correspondence)
-                .ThenInclude(c => c.Content)
-                .Include(n => n.Correspondence)
-                .ThenInclude(c => c.ExternalReferences)
                 .Where(n => n.Altinn2NotificationId != null 
                          && n.SyncedFromAltinn2 != null
-                         && (n.NotificationSent ?? n.RequestedSendTime) < lastProcessed)
-                .OrderByDescending(n => n.NotificationSent ?? n.RequestedSendTime)
+                         && n.NotificationSent < lastProcessed)
+                .OrderByDescending(n => n.NotificationSent)
                 .Take(count)
                 .ToListAsync(cancellationToken);
         }

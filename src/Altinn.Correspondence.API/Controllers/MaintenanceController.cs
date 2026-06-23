@@ -21,6 +21,7 @@ using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
+using Altinn.Correspondence.Application.MigrateNotificationEventsBatch;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -435,6 +436,39 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             Ok,
             Problem
         );
+    }
+
+    /// <summary>
+    /// Starts batch cleanup of missing synced notification events to Dialogporten for migrated correspondences
+    /// </summary>
+    /// <param name="handler">The handler for processing notification events batch</param>
+    /// <param name="batchCount">Number of notifications to process per batch</param>
+    /// <param name="startDate">Start processing from this date (defaults to DateTime.MaxValue to process newest first)</param>
+    /// <returns></returns>
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [Route("cleanup-missing-synced-notification-events")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    public ActionResult CleanupMissingSyncedNotificationEvents(
+        [FromServices] MigrateNotificationEventsBatchHandler handler,
+        [FromQuery] int batchCount = 100,
+        [FromQuery] DateTimeOffset? startDate = null)
+    {
+        var processFromDate = startDate ?? DateTimeOffset.MaxValue;
+
+        _logger.LogInformation(
+            "Starting notification events cleanup batch processing. Batch size: {BatchCount}, Starting from: {StartDate}", 
+            batchCount, 
+            processFromDate);
+
+        handler.Process(batchCount, processFromDate);
+
+        return Ok(new 
+        { 
+            Message = "Notification events cleanup started", 
+            BatchCount = batchCount, 
+            StartingFrom = processFromDate 
+        });
     }
 
     private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);

@@ -17,6 +17,14 @@ namespace Altinn.Correspondence.Application.MigrateNotificationEventsBatch
             if (enqueuedJobs > batchCount * 5)
             {
                 // If there are more than 5 batches worth of jobs already enqueued, we should wait before enqueuing more to avoid overwhelming the system
+                logger.LogWarning(
+                    "Migration queue has {EnqueuedJobs} jobs (threshold: {Threshold}). " +
+                    "Delaying next batch by 1 minute to prevent queue overflow. " +
+                    "Current processing threshold: {LastProcessed}",
+                    enqueuedJobs,
+                    batchCount * 5,
+                    lastProcessed);
+
                 backgroundJobClient.Schedule<MigrateNotificationEventsBatchHandler>(
                     HangfireQueues.Migration, 
                     handler => handler.Process(batchCount, lastProcessed), 
@@ -35,10 +43,18 @@ namespace Altinn.Correspondence.Application.MigrateNotificationEventsBatch
                     return; // No more events to process
                 }
 
+                // Calculate actual date range of notifications in this batch
+                var oldestNotification = batch.Min(n => n.NotificationSent);
+                var newestNotification = batch.Max(n => n.NotificationSent);
+
                 logger.LogInformation(
-                    "Processing {Count} notification events. Last processed date: {LastProcessed}", 
-                    batch.Count, 
-                    lastProcessed);
+                    "Processing batch of {Count} notification events. " +
+                    "Date range: {OldestDate} to {NewestDate}. " +
+                    "Next batch will process notifications older than {NextThreshold}",
+                    batch.Count,
+                    oldestNotification,
+                    newestNotification,
+                    oldestNotification);
 
                 foreach (var notification in batch)
                 {
@@ -48,13 +64,11 @@ namespace Altinn.Correspondence.Application.MigrateNotificationEventsBatch
                 }
 
                 // Process in reverse chronological order (newest to oldest)
-                var lastProcessedInBatch = batch.Count > 0 
-                    ? batch.Min(n => n.NotificationSent ?? n.RequestedSendTime) 
-                    : lastProcessed;
+                var lastProcessedInBatch = oldestNotification ?? lastProcessed;
 
                 backgroundJobClient.Enqueue<MigrateNotificationEventsBatchHandler>(
                     HangfireQueues.Migration, 
-                    handler => handler.Process(batchCount, lastProcessedInBatch));
+                    handler => handler.Process(batchCount, (DateTimeOffset)lastProcessedInBatch));
             }
         }
     }

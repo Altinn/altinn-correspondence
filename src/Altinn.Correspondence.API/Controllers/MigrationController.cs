@@ -6,7 +6,6 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
-using Altinn.Correspondence.Application.MigrateNotificationEventsBatch;
 using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Helpers;
@@ -194,38 +193,6 @@ namespace Altinn.Correspondence.API.Controllers
                 data => Ok(data),
                 Problem
             );
-        }
-
-        /// <summary>
-        /// Starts batch migration of notification events to Dialogporten for migrated correspondences
-        /// </summary>
-        /// <param name="batchCount">Number of notifications to process per batch</param>
-        /// <param name="startDate">Start processing from this date (defaults to DateTime.MaxValue to process newest first)</param>
-        /// <returns></returns>
-        [HttpPost]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [Route("correspondence/migrateNotificationEvents")]
-        [Authorize(Policy = AuthorizationConstants.Migrate)]
-        public ActionResult MigrateNotificationEvents(
-            [FromServices] MigrateNotificationEventsBatchHandler handler,
-            [FromQuery] int batchCount = 100,
-            [FromQuery] DateTimeOffset? startDate = null)
-        {
-            var processFromDate = startDate ?? DateTimeOffset.MaxValue;
-
-            _logger.LogInformation(
-                "Starting notification events migration batch processing. Batch size: {BatchCount}, Starting from: {StartDate}", 
-                batchCount, 
-                processFromDate);
-
-            handler.Process(batchCount, processFromDate);
-
-            return Ok(new 
-            { 
-                Message = "Notification events migration started", 
-                BatchCount = batchCount, 
-                StartingFrom = processFromDate 
-            });
         }
 
         private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
