@@ -21,6 +21,7 @@ using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
+using Altinn.Correspondence.Application.BatchJobs;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -435,6 +436,49 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             Ok,
             Problem
         );
+    }
+
+    /// <summary>
+    /// Poll the latest reported status for all chained batch jobs.
+    /// </summary>
+    [HttpGet]
+    [Route("batch-jobs/status")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IReadOnlyList<ChainedBatchJobProgress>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<ChainedBatchJobProgress>>> GetChainedBatchJobStatuses(
+        [FromServices] IChainedBatchJobProgressStore progressStore,
+        CancellationToken cancellationToken)
+    {
+        var statuses = await progressStore.GetAllAsync(cancellationToken);
+        return Ok(statuses);
+    }
+
+    /// <summary>
+    /// Poll the latest reported status for a single chained batch job (by <see cref="ChainedBatchJobSettings.JobName"/>).
+    /// </summary>
+    [HttpGet]
+    [Route("batch-jobs/status/{jobName}")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(ChainedBatchJobProgress), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ChainedBatchJobProgress>> GetChainedBatchJobStatus(
+        string jobName,
+        [FromServices] IChainedBatchJobProgressStore progressStore,
+        CancellationToken cancellationToken)
+    {
+        var status = await progressStore.GetAsync(jobName, cancellationToken);
+        if (status is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(status);
     }
 
     private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);

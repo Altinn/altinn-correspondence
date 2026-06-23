@@ -125,6 +125,8 @@ public static class DependencyInjection
         services.AddScoped<MigrateAttachmentHelper>();
         services.AddScoped<MigrateAttachmentHandler>();
         services.AddScoped<ChainedBatchJobOrchestrator>();
+        services.AddScoped<ChainedBatchJobProgressReporter>();
+        services.AddSingleton<IChainedBatchJobProgressStore, HybridCacheChainedBatchJobProgressStore>();
         services.AddScoped<MakeCorrespondenceAvailableBatchJob>();
         services.AddScoped<MigrateCorrespondenceHandler>();
         services.AddScoped<MigrateToStorageProviderHandler>();

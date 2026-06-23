@@ -53,6 +53,14 @@ public class UpdateOldCorrespondencesWithDownloadAllBatchJob(
                 request.TotalPatched,
                 request.TotalNotMatchingCriteria,
                 request.TotalErrors),
+            BuildProgressMetrics = request => new Dictionary<string, object?>
+            {
+                ["windowSize"] = request.windowSize,
+                ["totalProcessed"] = request.TotalProcessed,
+                ["totalPatched"] = request.TotalPatched,
+                ["totalNotMatchingCriteria"] = request.TotalNotMatchingCriteria,
+                ["totalErrors"] = request.TotalErrors,
+            },
         };
 
     private async Task<ChainedBatchJobFetchResult<CorrespondenceEntity>> FetchBatchAsync(

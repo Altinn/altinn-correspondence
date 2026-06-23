@@ -21,4 +21,9 @@ public class ChainedBatchJobDefinition<TState, TItem>
     public Action<TState>? OnComplete { get; init; }
 
     public Func<TState, int>? ResolveBackpressureLimit { get; init; }
+
+    /// <summary>
+    /// Optional job-specific counters and filters exposed in status polling and logs.
+    /// </summary>
+    public Func<TState, IReadOnlyDictionary<string, object?>>? BuildProgressMetrics { get; init; }
 }
