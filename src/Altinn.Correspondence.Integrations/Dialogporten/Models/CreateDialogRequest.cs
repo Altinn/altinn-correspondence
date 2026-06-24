@@ -108,6 +108,9 @@ public class ApiAction
 
     [JsonPropertyName("endpoints")]
     public List<Endpoint> Endpoints { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 }
 
 public class Attachment
