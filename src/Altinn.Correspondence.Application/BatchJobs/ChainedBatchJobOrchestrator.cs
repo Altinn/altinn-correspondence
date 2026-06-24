@@ -44,7 +44,35 @@ public class ChainedBatchJobOrchestrator(
         }
 
         logger.LogInformation("{JobName}: querying database", settings.JobName);
-        var fetchResult = await definition.FetchBatchAsync(state, cancellationToken);
+        ChainedBatchJobFetchResult<TItem> fetchResult;
+        try
+        {
+            fetchResult = await definition.FetchBatchAsync(state, cancellationToken);
+        }
+        catch (Exception ex) when (IsFetchTimeout(ex, cancellationToken))
+        {
+            logger.LogWarning(
+                ex,
+                "{JobName}: database fetch timed out, rescheduling in {Delay}",
+                settings.JobName,
+                settings.BackpressureRescheduleDelay);
+
+            await progressReporter.ReportAsync(
+                settings.JobName,
+                ChainedBatchJobPhase.FetchFailed,
+                state,
+                lastBatchItemCount: null,
+                hasMoreBatches: null,
+                workerQueueDepth: enqueuedJobs,
+                backpressureLimit: backpressureLimit,
+                batchEndCursor: null,
+                definition.BuildProgressMetrics,
+                cancellationToken);
+
+            definition.RescheduleBatch(state);
+            return;
+        }
+
         logger.LogInformation("{JobName}: found {Count} items", settings.JobName, fetchResult.Items.Count);
 
         if (fetchResult.Items.Count == 0)
@@ -123,5 +151,20 @@ public class ChainedBatchJobOrchestrator(
                 definition.BuildProgressMetrics,
                 cancellationToken);
         }
+    }
+
+    private static bool IsFetchTimeout(Exception ex, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+
+        return ex switch
+        {
+            TimeoutException => true,
+            OperationCanceledException => true,
+            _ => ex.InnerException is not null && IsFetchTimeout(ex.InnerException, cancellationToken),
+        };
     }
 }

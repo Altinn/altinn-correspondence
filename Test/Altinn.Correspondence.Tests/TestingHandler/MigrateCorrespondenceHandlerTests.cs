@@ -101,7 +101,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var makeCorrespondenceAvailableBatchJob = new MakeCorrespondenceAvailableBatchJob(
                 _correspondenceRepositoryMock.Object,
                 _backgroundJobClientMock.Object);
-            var chainedBatchJobOrchestrator = new ChainedBatchJobOrchestrator(new NullLogger<ChainedBatchJobOrchestrator>());
+            var chainedBatchJobOrchestrator = new ChainedBatchJobOrchestrator(
+                new NullLogger<ChainedBatchJobOrchestrator>(),
+                new ChainedBatchJobProgressReporter(
+                    new NullLogger<ChainedBatchJobProgressReporter>(),
+                    new NullChainedBatchJobProgressStore()));
             _handler = new MigrateCorrespondenceHandler(
                 _correspondenceRepositoryMock.Object,
                 _dialogportenServiceMock.Object,

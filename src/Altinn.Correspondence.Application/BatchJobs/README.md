@@ -52,7 +52,7 @@ The migration server processes `live-migration` before `migration`.
 `ChainedBatchJobOrchestrator.RunBatchAsync` executes one batch per Hangfire invocation:
 
 1. **Backpressure check** — if the monitored queue exceeds the limit, reschedule the same state and return
-2. **Fetch** — query the next window of entities using a keyset cursor
+2. **Fetch** — query the next window of entities using a keyset cursor. On command timeout (`TimeoutException` or `OperationCanceledException` from the database, not from job cancellation), report `FetchFailed` and reschedule with the **same** cursor
 3. **Stop on empty** — call `OnComplete` and return (never call `.Last()` on an empty list)
 4. **Process** — either fan out workers (`EnqueueWorkerJob`) or run custom batch logic (`ProcessBatchAsync`)
 5. **Chain** — if `HasMoreBatches` is true, enqueue the next orchestrator job with an advanced cursor
@@ -154,6 +154,7 @@ Example response:
 |-------|---------|
 | `Running` | Batch processed; more data remains |
 | `WaitingForBackpressure` | Worker queue full; orchestrator rescheduled |
+| `FetchFailed` | Database fetch timed out; orchestrator rescheduled with same cursor |
 | `Completed` | No more items (or final batch finished) |
 
 ### Opt-in cursor and metrics

@@ -4,5 +4,6 @@ public enum ChainedBatchJobPhase
 {
     Running,
     WaitingForBackpressure,
+    FetchFailed,
     Completed,
 }
