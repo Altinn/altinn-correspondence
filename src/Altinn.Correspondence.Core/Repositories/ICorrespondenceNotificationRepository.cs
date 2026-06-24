@@ -21,7 +21,8 @@ namespace Altinn.Correspondence.Core.Repositories
             CancellationToken cancellationToken);
         Task<List<CorrespondenceNotificationEntity>> GetSyncedNotificationsWithoutDialogActivityBatch(
             int count, 
-            DateTimeOffset lastProcessed, 
+            DateTimeOffset lastProcessedTimestamp,
+            Guid? lastProcessedId,
             CancellationToken cancellationToken);
     }
 }

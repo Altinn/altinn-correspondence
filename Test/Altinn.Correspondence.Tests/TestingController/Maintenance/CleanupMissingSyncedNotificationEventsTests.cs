@@ -3,12 +3,14 @@ using Altinn.Correspondence.Application.MigrateNotificationEventsBatch;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -115,6 +117,22 @@ public class CleanupMissingSyncedNotificationEventsTests
         // Arrange - Create test correspondences with notifications first
         var correspondence1 = await CreateCorrespondenceWithSyncedNotifications(2, new DateTime(2024, 1, 5));
 
+        // Mark the notifications as synced (simulate sync job having run)
+        using (var updateScope = _factory.Services.CreateScope())
+        {
+            var dbContext = updateScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var notificationsToSync = await dbContext.CorrespondenceNotifications
+                .Where(n => n.CorrespondenceId == correspondence1)
+                .ToListAsync();
+
+            foreach (var notification in notificationsToSync)
+            {
+                notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow.AddDays(-1);
+            }
+
+            await dbContext.SaveChangesAsync();
+        }
+
         // Create a mock IBackgroundJobClient to capture enqueued jobs
         var mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
         var enqueuedJobs = new List<(Type serviceType, string methodName)>();
@@ -129,6 +147,7 @@ public class CleanupMissingSyncedNotificationEventsTests
             });
 
         // Get the handler dependencies from the factory
+        // Keep scope alive until after handler completes to prevent DbContext disposal
         using var scope = _factory.Services.CreateScope();
         var notificationRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceNotificationRepository>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<MigrateNotificationEventsBatchHandler>>();
@@ -140,9 +159,9 @@ public class CleanupMissingSyncedNotificationEventsTests
             logger);
 
         // Act - Call the handler directly with a batch size that will process our notifications
-        await handler.Process(batchCount: 50, lastProcessed: DateTimeOffset.MaxValue);
+        await handler.Process(batchCount: 50, lastProcessedTimestamp: DateTimeOffset.MaxValue, lastProcessedId: null);
 
-        // Assert - Verify that jobs were enqueued
+        // Assert - Verify that jobs were enqueued (scope still alive here)
         Assert.NotEmpty(enqueuedJobs);
 
         // Should have enqueued AddNotificationActivity jobs for notifications

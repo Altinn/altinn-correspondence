@@ -42,11 +42,12 @@ WHERE tablename = 'CorrespondenceNotifications'
 	AND indexname = 'IX_CorrespondenceNotifications_Cleanup';
 
 -- 2. Total count of notifications that need processing
+-- Note: Altinn2 synced notifications always have NotificationSent, so NULL check is redundant
 SELECT COUNT(*) as total_to_process
 FROM correspondence."CorrespondenceNotifications"
 WHERE "Altinn2NotificationId" IS NOT NULL 
   AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" IS NOT NULL;
+  AND "NotificationSent" < '2026-04-25'::timestamptz;  -- Altinn2 cutoff date
 
 -- 3. Check progress by date range (shows distribution by month)
 SELECT 
@@ -55,7 +56,7 @@ SELECT
 FROM correspondence."CorrespondenceNotifications"
 WHERE "Altinn2NotificationId" IS NOT NULL 
   AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" IS NOT NULL
+  AND "NotificationSent" < '2026-04-25'::timestamptz
 GROUP BY DATE_TRUNC('month', "NotificationSent")
 ORDER BY month DESC
 LIMIT 50;
@@ -67,7 +68,7 @@ SELECT
 FROM correspondence."CorrespondenceNotifications"
 WHERE "Altinn2NotificationId" IS NOT NULL 
   AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" IS NOT NULL
+  AND "NotificationSent" < '2026-04-25'::timestamptz
 GROUP BY DATE_PART('year', "NotificationSent")
 ORDER BY year DESC;
 
@@ -79,10 +80,10 @@ SELECT
 FROM correspondence."CorrespondenceNotifications"
 WHERE "Altinn2NotificationId" IS NOT NULL 
   AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" IS NOT NULL;
+  AND "NotificationSent" < '2026-04-25'::timestamptz;
 
 -- 6. Check remaining work after a specific timestamp (use this to track progress)
--- Replace @timestamp with the "Next batch will process notifications older than" value from logs
+-- Replace timestamp with the "Next batch will process notifications older than" value from logs
 SELECT 
 	COUNT(*) as remaining_notifications,
 	MIN("NotificationSent") as oldest_remaining,
@@ -90,27 +91,20 @@ SELECT
 FROM correspondence."CorrespondenceNotifications"
 WHERE "Altinn2NotificationId" IS NOT NULL 
   AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" < '2024-01-01T00:00:00Z'::timestamptz; -- Replace with your timestamp
+  AND "NotificationSent" < '2024-01-01T00:00:00Z'::timestamptz; -- Replace with your timestamp from logs
 
 -- 7. Estimate query performance (EXPLAIN ANALYZE - be careful in production)
--- This will actually run the query, so use a recent date to limit results
+-- This will actually run the query, so use a reasonable date limit
 EXPLAIN ANALYZE
 SELECT *
 FROM correspondence."CorrespondenceNotifications"
 WHERE "Altinn2NotificationId" IS NOT NULL 
   AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" < NOW()
+  AND "NotificationSent" < '2026-04-25'::timestamptz
 ORDER BY "NotificationSent" DESC
 LIMIT 1000;
 
--- 8. Check for notifications with NULL NotificationSent (these will be skipped)
-SELECT COUNT(*) as notifications_with_null_sent
-FROM correspondence."CorrespondenceNotifications"
-WHERE "Altinn2NotificationId" IS NOT NULL 
-  AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" IS NULL;
-
--- 9. Sample of oldest notifications that will be processed
+-- 8. Sample of oldest notifications that will be processed
 SELECT 
 	"Id",
 	"NotificationSent",
@@ -120,11 +114,11 @@ SELECT
 FROM correspondence."CorrespondenceNotifications"
 WHERE "Altinn2NotificationId" IS NOT NULL 
   AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" IS NOT NULL
+  AND "NotificationSent" < '2026-04-25'::timestamptz
 ORDER BY "NotificationSent" ASC
 LIMIT 10;
 
--- 10. Sample of newest notifications that will be processed
+-- 9. Sample of newest notifications that will be processed
 SELECT 
 	"Id",
 	"NotificationSent",
@@ -134,7 +128,7 @@ SELECT
 FROM correspondence."CorrespondenceNotifications"
 WHERE "Altinn2NotificationId" IS NOT NULL 
   AND "SyncedFromAltinn2" IS NOT NULL
-  AND "NotificationSent" IS NOT NULL
+  AND "NotificationSent" < '2026-04-25'::timestamptz
 ORDER BY "NotificationSent" DESC
 LIMIT 10;
 
@@ -174,3 +168,68 @@ FROM RankedNotifications;
 -- ✅ Index filter already excludes rows with NULL Altinn2NotificationId/SyncedFromAltinn2
 -- ✅ Scans only ~16M rows instead of 918M rows
 -- ✅ No need for additional index creation
+
+-- ========================================
+-- Batch Boundary Risk Analysis
+-- ========================================
+-- Note: Altinn2 synced notifications always have NotificationSent populated
+-- We filter to before 2026-04-25 as that's when Altinn2 data ends
+
+-- 12. Detect duplicate NotificationSent timestamps (batch boundary risk)
+-- These could cause notifications to be skipped if they fall across batch boundaries
+SELECT 
+	"NotificationSent",
+	COUNT(*) as duplicate_count,
+	ARRAY_AGG("Id" ORDER BY "Id") as notification_ids
+FROM correspondence."CorrespondenceNotifications"
+WHERE "Altinn2NotificationId" IS NOT NULL 
+  AND "SyncedFromAltinn2" IS NOT NULL
+  AND "NotificationSent" < '2026-04-25'::timestamptz  -- Altinn2 cutoff date
+GROUP BY "NotificationSent"
+HAVING COUNT(*) > 1
+ORDER BY duplicate_count DESC, "NotificationSent" DESC
+LIMIT 50;
+
+-- 13. Count how many timestamps have duplicates
+-- Run this first to quickly assess if batch boundary is a real problem
+SELECT 
+	COUNT(DISTINCT "NotificationSent") as timestamps_with_duplicates,
+	SUM(duplicate_count) as total_notifications_affected,
+	ROUND(100.0 * SUM(duplicate_count) / (SELECT COUNT(*) 
+		FROM correspondence."CorrespondenceNotifications"
+		WHERE "Altinn2NotificationId" IS NOT NULL 
+		  AND "SyncedFromAltinn2" IS NOT NULL
+		  AND "NotificationSent" < '2026-04-25'::timestamptz), 2) as percent_affected
+FROM (
+	SELECT 
+		"NotificationSent",
+		COUNT(*) as duplicate_count
+	FROM correspondence."CorrespondenceNotifications"
+	WHERE "Altinn2NotificationId" IS NOT NULL 
+	  AND "SyncedFromAltinn2" IS NOT NULL
+	  AND "NotificationSent" < '2026-04-25'::timestamptz
+	GROUP BY "NotificationSent"
+	HAVING COUNT(*) > 1
+) as duplicates;
+
+-- 14. Check for high-risk scenarios (many notifications with same timestamp)
+-- These are most likely to span batch boundaries
+-- Adjust HAVING threshold based on your batch size (e.g., if batch=100, use 10+)
+SELECT 
+	"NotificationSent",
+	COUNT(*) as count,
+	MIN("Id") as min_id,
+	MAX("Id") as max_id,
+	ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) 
+		FROM correspondence."CorrespondenceNotifications"
+		WHERE "Altinn2NotificationId" IS NOT NULL 
+		  AND "SyncedFromAltinn2" IS NOT NULL
+		  AND "NotificationSent" < '2026-04-25'::timestamptz), 4) as percent_of_total
+FROM correspondence."CorrespondenceNotifications"
+WHERE "Altinn2NotificationId" IS NOT NULL 
+  AND "SyncedFromAltinn2" IS NOT NULL
+  AND "NotificationSent" < '2026-04-25'::timestamptz
+GROUP BY "NotificationSent"
+HAVING COUNT(*) >= 10  -- High risk: 10+ notifications with same timestamp
+ORDER BY count DESC
+LIMIT 20;

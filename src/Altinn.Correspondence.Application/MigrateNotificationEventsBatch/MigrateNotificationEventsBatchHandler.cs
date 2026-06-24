@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.Application.MigrateNotificationEventsBatch
         IBackgroundJobClient backgroundJobClient,
         ILogger<MigrateNotificationEventsBatchHandler> logger)
     {
-        public async Task Process(int batchCount, DateTimeOffset lastProcessed)
+        public async Task Process(int batchCount, DateTimeOffset lastProcessedTimestamp, Guid? lastProcessedId = null)
         {
             var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
             if (enqueuedJobs > batchCount * 5)
@@ -20,21 +20,23 @@ namespace Altinn.Correspondence.Application.MigrateNotificationEventsBatch
                 logger.LogWarning(
                     "Migration queue has {EnqueuedJobs} jobs (threshold: {Threshold}). " +
                     "Delaying next batch by 1 minute to prevent queue overflow. " +
-                    "Current processing threshold: {LastProcessed}",
+                    "Current processing threshold: {LastProcessedTimestamp} / {LastProcessedId}",
                     enqueuedJobs,
                     batchCount * 5,
-                    lastProcessed);
+                    lastProcessedTimestamp,
+                    lastProcessedId);
 
                 backgroundJobClient.Schedule<MigrateNotificationEventsBatchHandler>(
                     HangfireQueues.Migration, 
-                    handler => handler.Process(batchCount, lastProcessed), 
+                    handler => handler.Process(batchCount, lastProcessedTimestamp, lastProcessedId), 
                     DateTime.UtcNow.AddMinutes(1));
             }
             else
             {
                 var batch = await notificationRepository.GetSyncedNotificationsWithoutDialogActivityBatch(
                     batchCount, 
-                    lastProcessed, 
+                    lastProcessedTimestamp,
+                    lastProcessedId,
                     CancellationToken.None);
 
                 if (batch.Count == 0)
@@ -43,18 +45,24 @@ namespace Altinn.Correspondence.Application.MigrateNotificationEventsBatch
                     return; // No more events to process
                 }
 
-                // Calculate actual date range of notifications in this batch
-                var oldestNotification = batch.Min(n => n.NotificationSent);
-                var newestNotification = batch.Max(n => n.NotificationSent);
+                // Find the oldest notification in batch using composite ordering (timestamp, then Id)
+                var oldestNotification = batch
+                    .OrderBy(n => n.NotificationSent)
+                    .ThenBy(n => n.Id)
+                    .First();
+
+                var oldestTimestamp = oldestNotification.NotificationSent;
+                var newestTimestamp = batch.Max(n => n.NotificationSent);
 
                 logger.LogInformation(
                     "Processing batch of {Count} notification events. " +
                     "Date range: {OldestDate} to {NewestDate}. " +
-                    "Next batch will process notifications older than {NextThreshold}",
+                    "Next batch will process notifications older than {NextThreshold} (Id: {NextId})",
                     batch.Count,
-                    oldestNotification,
-                    newestNotification,
-                    oldestNotification);
+                    oldestTimestamp,
+                    newestTimestamp,
+                    oldestTimestamp,
+                    oldestNotification.Id);
 
                 foreach (var notification in batch)
                 {
@@ -63,12 +71,10 @@ namespace Altinn.Correspondence.Application.MigrateNotificationEventsBatch
                         service => service.AddNotificationActivity(notification.Id, CancellationToken.None));
                 }
 
-                // Process in reverse chronological order (newest to oldest)
-                var lastProcessedInBatch = oldestNotification ?? lastProcessed;
-
+                // Enqueue next batch with composite cursor to ensure no notifications are skipped at timestamp boundaries
                 backgroundJobClient.Enqueue<MigrateNotificationEventsBatchHandler>(
                     HangfireQueues.Migration, 
-                    handler => handler.Process(batchCount, (DateTimeOffset)lastProcessedInBatch));
+                    handler => handler.Process(batchCount, oldestTimestamp.Value, oldestNotification.Id));
             }
         }
     }

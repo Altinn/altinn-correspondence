@@ -148,14 +148,31 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
         public async Task<List<CorrespondenceNotificationEntity>> GetSyncedNotificationsWithoutDialogActivityBatch(
             int count, 
-            DateTimeOffset lastProcessed, 
+            DateTimeOffset lastProcessedTimestamp,
+            Guid? lastProcessedId,
             CancellationToken cancellationToken)
         {
-            return await _context.CorrespondenceNotifications
+            var query = _context.CorrespondenceNotifications
                 .Where(n => n.Altinn2NotificationId != null 
-                         && n.SyncedFromAltinn2 != null
-                         && n.NotificationSent < lastProcessed)
+                         && n.SyncedFromAltinn2 != null);
+
+            // Composite cursor: use both timestamp and Id to prevent skipping at batch boundaries
+            if (lastProcessedId.HasValue)
+            {
+                // Standard case: filter by timestamp OR (same timestamp AND id)
+                query = query.Where(n => 
+                    n.NotificationSent < lastProcessedTimestamp
+                    || (n.NotificationSent == lastProcessedTimestamp && n.Id < lastProcessedId.Value));
+            }
+            else
+            {
+                // Initial call: only timestamp filter
+                query = query.Where(n => n.NotificationSent < lastProcessedTimestamp);
+            }
+
+            return await query
                 .OrderByDescending(n => n.NotificationSent)
+                .ThenByDescending(n => n.Id)  // Secondary sort for deterministic ordering
                 .Take(count)
                 .ToListAsync(cancellationToken);
         }

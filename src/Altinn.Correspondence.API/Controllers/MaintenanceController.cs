@@ -452,22 +452,25 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     public ActionResult CleanupMissingSyncedNotificationEvents(
         [FromServices] MigrateNotificationEventsBatchHandler handler,
         [FromQuery] int batchCount = 100,
-        [FromQuery] DateTimeOffset? startDate = null)
+        [FromQuery] DateTimeOffset? startDate = null,
+        [FromQuery] Guid? startId = null)
     {
         var processFromDate = startDate ?? DateTimeOffset.MaxValue;
 
         _logger.LogInformation(
-            "Starting notification events cleanup batch processing. Batch size: {BatchCount}, Starting from: {StartDate}", 
+            "Starting notification events cleanup batch processing. Batch size: {BatchCount}, Starting from: {StartDate}, Start Id: {StartId}", 
             batchCount, 
-            processFromDate);
+            processFromDate,
+            startId);
 
-        handler.Process(batchCount, processFromDate);
+        handler.Process(batchCount, processFromDate, startId);
 
         return Ok(new 
         { 
             Message = "Notification events cleanup started", 
             BatchCount = batchCount, 
-            StartingFrom = processFromDate 
+            StartingFrom = processFromDate,
+            StartingId = startId
         });
     }
 

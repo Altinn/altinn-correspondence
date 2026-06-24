@@ -72,6 +72,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 It.IsAny<int>(),
                 It.IsAny<DateTimeOffset>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -94,6 +95,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 lastProcessed,
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(notifications);
 
@@ -109,6 +111,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 lastProcessed,
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
@@ -136,6 +139,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 lastProcessed,
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceNotificationEntity>());
 
@@ -176,6 +180,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 lastProcessed,
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(notifications);
 
@@ -221,6 +226,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 It.IsAny<DateTimeOffset>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(notifications);
 
@@ -261,6 +267,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 lastProcessed,
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CorrespondenceNotificationEntity>());
 
@@ -311,6 +318,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 It.IsAny<DateTimeOffset>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(notifications);
 
@@ -364,6 +372,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 It.IsAny<DateTimeOffset>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(notifications);
 
@@ -403,6 +412,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 lastProcessed,
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(notifications);
 
@@ -444,6 +454,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 lastProcessed,
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(notifications);
 
@@ -459,6 +470,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
                 batchCount,
                 lastProcessed,
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
