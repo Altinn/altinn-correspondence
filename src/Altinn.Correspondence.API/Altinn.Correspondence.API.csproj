@@ -34,6 +34,7 @@
     </PackageReference>
     <PackageReference Include="StackExchange.Redis" Version="2.9.32" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Garnet" Version="1.1.10" />
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.0.0" />
   </ItemGroup>
 
