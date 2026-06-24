@@ -616,6 +616,11 @@ public class DialogportenService(HttpClient _httpClient,
         {
             throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
+        var externalReferencesRemoved = await _correspondenceRepository.RemoveExternalReference(correspondence, ReferenceType.DialogportenDialogId, cancellationToken);
+        if (!externalReferencesRemoved)
+        {
+            logger.LogWarning("Failed to remove Dialogporten dialog reference for correspondence {correspondenceId} after purging dialog {dialogId}", correspondenceId, dialogId);
+        }
     }
 
     public async Task SoftDeleteDialog(string dialogId)
