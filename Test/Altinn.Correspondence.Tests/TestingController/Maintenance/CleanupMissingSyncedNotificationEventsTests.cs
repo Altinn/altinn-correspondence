@@ -1,20 +1,16 @@
-using Altinn.Correspondence.API.Models;
 using Altinn.Correspondence.Application.MigrateNotificationEventsBatch;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -117,22 +113,6 @@ public class CleanupMissingSyncedNotificationEventsTests
         // Arrange - Create test correspondences with notifications first
         var correspondence1 = await CreateCorrespondenceWithSyncedNotifications(2, new DateTime(2024, 1, 5));
 
-        // Mark the notifications as synced (simulate sync job having run)
-        using (var updateScope = _factory.Services.CreateScope())
-        {
-            var dbContext = updateScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var notificationsToSync = await dbContext.CorrespondenceNotifications
-                .Where(n => n.CorrespondenceId == correspondence1)
-                .ToListAsync();
-
-            foreach (var notification in notificationsToSync)
-            {
-                notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow.AddDays(-1);
-            }
-
-            await dbContext.SaveChangesAsync();
-        }
-
         // Create a mock IBackgroundJobClient to capture enqueued jobs
         var mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
         var enqueuedJobs = new List<(Type serviceType, string methodName)>();
@@ -183,27 +163,19 @@ public class CleanupMissingSyncedNotificationEventsTests
 
     private async Task<Guid> CreateCorrespondenceWithSyncedNotifications(int notificationCount, DateTime notificationSentDate)
     {
-        // Create a migrated correspondence with Altinn2 notification history
+        // Create a migrated correspondence with 1 initial notification from Altinn2
         var migrateCorrespondence = new MigrateCorrespondenceBuilder()
             .CreateMigrateCorrespondence()
+            .WithNotificationHistoryEvent(
+                1000,                                              // altinn2NotificationId
+                "initial@example.com",                            // notificationAddress
+                API.Models.Enums.NotificationChannelExt.Email,   // notificationChannelExt
+                notificationSentDate,                             // notificationSent
+                false)                                            // isReminder
             .Build();
+        migrateCorrespondence.MakeAvailable = true;
 
-        // Add notification history with Altinn2 data
-        var notifications = new List<API.Models.MigrateCorrespondenceNotificationExt>();
-        for (int i = 0; i < notificationCount; i++)
-        {
-            notifications.Add(new API.Models.MigrateCorrespondenceNotificationExt
-            {
-                Altinn2NotificationId = 1000 + i,
-                NotificationAddress = $"test{i}@example.com",
-                NotificationChannel = API.Models.Enums.NotificationChannelExt.Email,
-                NotificationSent = new DateTimeOffset(notificationSentDate.AddHours(i)),
-                IsReminder = false
-            });
-        }
-        migrateCorrespondence.NotificationHistory = notifications;
-
-        // Use migration endpoint to create correspondence with Altinn2 data
+        // Use migration endpoint to create correspondence with initial Altinn2 notification
         var migrationClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.MigrateScope));
         var migrateResponse = await migrationClient.PostAsJsonAsync(
             "correspondence/api/v1/migration/correspondence",
@@ -214,7 +186,36 @@ public class CleanupMissingSyncedNotificationEventsTests
 
         var responseContent = await migrateResponse.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<API.Models.CorrespondenceMigrationStatusExt>(responseContent, _responseSerializerOptions);
+        var correspondenceId = result!.CorrespondenceId;
 
-        return result!.CorrespondenceId;
+        // Now sync additional notifications (this sets SyncedFromAltinn2 field)
+        var syncedNotifications = new List<API.Models.MigrateCorrespondenceNotificationExt>();
+        for (int i = 1; i < notificationCount; i++) // Start at 1 since we already have 1 notification
+        {
+            syncedNotifications.Add(new API.Models.MigrateCorrespondenceNotificationExt
+            {
+                Altinn2NotificationId = 1000 + i,
+                NotificationAddress = $"test{i}@example.com",
+                NotificationChannel = API.Models.Enums.NotificationChannelExt.Email,
+                NotificationSent = new DateTimeOffset(notificationSentDate.AddHours(i)),
+                IsReminder = false
+            });
+        }
+
+        var syncRequest = new API.Models.SyncCorrespondenceNotificationEventRequestExt
+        {
+            CorrespondenceId = correspondenceId,
+            SyncedEvents = syncedNotifications
+        };
+
+        var syncResponse = await migrationClient.PostAsJsonAsync(
+            "correspondence/api/v1/migration/correspondence/syncNotificationEvent",
+            syncRequest,
+            _responseSerializerOptions);
+
+        Assert.True(syncResponse.IsSuccessStatusCode, 
+            $"Sync failed with status {syncResponse.StatusCode}: {await syncResponse.Content.ReadAsStringAsync()}");
+
+        return correspondenceId;
     }
 }

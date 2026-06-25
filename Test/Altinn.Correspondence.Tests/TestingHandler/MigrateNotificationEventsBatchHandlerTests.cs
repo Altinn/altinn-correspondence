@@ -8,7 +8,6 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
-using Hangfire.Storage.Monitoring;
 using Microsoft.Extensions.Logging;
 using Moq;
 
