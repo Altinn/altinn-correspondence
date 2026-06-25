@@ -22,14 +22,17 @@ public class MakeCorrespondenceAvailableBatchJob(
             },
             FetchBatchAsync = async (request, cancellationToken) =>
             {
+                var remaining = request.BatchSize ?? BatchSize;
+                var fetchSize = Math.Min(remaining, BatchSize);
                 var items = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(
-                    BatchSize,
+                    fetchSize,
                     request.CursorCreated,
                     request.CursorId,
                     request.CreatedFrom,
                     request.CreatedTo,
                     cancellationToken);
-                return new ChainedBatchJobFetchResult<CorrespondenceEntity>(items, items.Count == BatchSize);
+                var hasMoreBatches = items.Count == fetchSize && remaining > items.Count;
+                return new ChainedBatchJobFetchResult<CorrespondenceEntity>(items, hasMoreBatches);
             },
             GetCursorFromItem = correspondence => new KeysetCursor(correspondence.Created, correspondence.Id),
             EnqueueWorkerJob = (correspondence, request) =>
@@ -60,12 +63,5 @@ public class MakeCorrespondenceAvailableBatchJob(
                     ChainedBatchJobQueues.Orchestrator,
                     handler => handler.MakeCorrespondenceAvailable(state, CancellationToken.None),
                     TimeSpan.FromMinutes(1)),
-            BuildProgressMetrics = request => new Dictionary<string, object?>
-            {
-                ["batchSizeRemaining"] = request.BatchSize,
-                ["createdFrom"] = request.CreatedFrom,
-                ["createdTo"] = request.CreatedTo,
-                ["createEvents"] = request.CreateEvents,
-            },
         };
 }

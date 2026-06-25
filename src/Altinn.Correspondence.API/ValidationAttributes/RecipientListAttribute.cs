@@ -40,7 +40,7 @@ internal class RecipientListAttribute : ValidationAttribute
             var orgRegex = new Regex($@"^(?:0192:|{UrnConstants.OrganizationNumberAttribute}:)\d{{9}}$");
             var personRegex = new Regex($@"^(?:{UrnConstants.PersonIdAttribute}:)?\d{{11}}$");
             var emailUrnRegex = new Regex($@"^{Regex.Escape(UrnConstants.PersonIdPortenEmailAttribute)}:.+$");
-            var legacySelfIdentifiedUrnRegex = new Regex($@"^{Regex.Escape(UrnConstants.PersonLegacySelfIdentifiedAttribute)}:.+$");
+            var legacySelfIdentifiedUrnRegex = new Regex($@"^{Regex.Escape(UrnConstants.PersonLegacySelfIdentifiedAttribute)}:[^:]+$");
             
             if (!orgRegex.IsMatch(recipient) && !personRegex.IsMatch(recipient) && !emailUrnRegex.IsMatch(recipient) && !legacySelfIdentifiedUrnRegex.IsMatch(recipient))
             {
