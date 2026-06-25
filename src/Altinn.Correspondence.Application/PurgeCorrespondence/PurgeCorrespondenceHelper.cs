@@ -5,9 +5,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
-using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.PurgeCorrespondence;
@@ -86,23 +84,26 @@ public class PurgeCorrespondenceHelper(
     public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, int partyId, DateTimeOffset operationTimestamp, CancellationToken cancellationToken, string? partyUrn)
     {
         var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
-        try
-        {
-            await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
-            {
-                Id = purgeIdempotencyId,
-                CorrespondenceId = correspondence.Id,
-                AttachmentId = null,
-                PartyUrn = null,
-                StatusAction = null,
-                IdempotencyType = IdempotencyType.PurgeCorrespondence
-            }, cancellationToken);
-        }
-        catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+        var duplicateCheck = await DatabaseTransactionHelper.Idempotency.CheckAsync(
+            idempotencyKeyRepository,
+            purgeIdempotencyId,
+            () => correspondence.Id,
+            cancellationToken);
+        if (duplicateCheck.IsDuplicate)
         {
             logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
-            return correspondence.Id;
+            return duplicateCheck.DuplicateResult!;
         }
+
+        await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
+        {
+            Id = purgeIdempotencyId,
+            CorrespondenceId = correspondence.Id,
+            AttachmentId = null,
+            PartyUrn = null,
+            StatusAction = null,
+            IdempotencyType = IdempotencyType.PurgeCorrespondence
+        }, cancellationToken);
 
         var status = isSender ? CorrespondenceStatus.PurgedByAltinn : CorrespondenceStatus.PurgedByRecipient;
         await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity()

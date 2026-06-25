@@ -56,10 +56,18 @@ public class LegacyPurgeCorrespondenceHandler(
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
-        {
-            var partyUrn = user?.GetCallerPartyUrn();
-            return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, partyId, operationTimestamp, cancellationToken, partyUrn);
-        }, cancellationToken);
+        return await DatabaseTransactionHelper.ExecuteAsync(
+            dbContext,
+            async cancellationToken =>
+            {
+                var partyUrn = user?.GetCallerPartyUrn();
+                return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, partyId, operationTimestamp, cancellationToken, partyUrn);
+            },
+            cancellationToken,
+            DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
+            {
+                logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondenceId);
+                return correspondenceId;
+            }));
     }
 }

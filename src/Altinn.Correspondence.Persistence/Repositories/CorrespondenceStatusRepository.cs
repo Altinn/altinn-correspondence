@@ -14,7 +14,7 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
     {
         logger.LogDebug("Adding {Status} status for correspondence {CorrespondenceId}", status.StatusText, status.CorrespondenceId);
         await _context.CorrespondenceStatuses.AddAsync(status, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
         return status.Id;
     }
 
@@ -24,7 +24,7 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
         _context.CorrespondenceStatuses.Add(status);
         try
         {
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return status.Id;
         }
         catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
@@ -43,7 +43,7 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
     {
         logger.LogDebug("Adding fetched {Status} status for correspondence {CorrespondenceId}", status.StatusText, status.CorrespondenceId);
         await _context.CorrespondenceFetches.AddAsync(status, cancellationToken);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesUnlessDeferredAsync();
         return status.Id;
     }
 
@@ -70,7 +70,7 @@ public class CorrespondenceStatusRepository(ApplicationDbContext context, ILogge
         if (status != null)
         {
             _context.CorrespondenceFetches.Remove(status);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
         }
     }
 }

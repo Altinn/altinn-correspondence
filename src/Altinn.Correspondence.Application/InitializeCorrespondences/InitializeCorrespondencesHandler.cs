@@ -13,9 +13,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
-using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -50,20 +48,15 @@ public class InitializeCorrespondencesHandler(
                 return CorrespondenceErrors.IdempotencyKeyNotAllowedWithMultipleRecipients;
             }
             logger.LogInformation("Checking idempotency key {Key}", request.IdempotentKey.Value);
-            var result = await DatabaseTransactionHelper.ExecuteAsync<OneOf<InitializeCorrespondencesResponse, Error>>(dbContext, async (cancellationToken) =>
+            var duplicateCheck = await DatabaseTransactionHelper.Idempotency.CheckAsync(
+                idempotencyKeyRepository,
+                request.IdempotentKey.Value,
+                () => CorrespondenceErrors.DuplicateInitCorrespondenceRequest,
+                cancellationToken);
+            if (duplicateCheck.IsDuplicate)
             {
-                var existingKey = await idempotencyKeyRepository.GetByIdAsync(request.IdempotentKey.Value, cancellationToken);
-                if (existingKey != null)
-                {
-                    logger.LogWarning("Duplicate idempotency key {Key} found", request.IdempotentKey.Value);
-                    return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
-                }
-                return new OneOf<InitializeCorrespondencesResponse, Error>();
-            }, cancellationToken);
-
-            if (result.IsT1)
-            {
-                return result.AsT1;
+                logger.LogWarning("Duplicate idempotency key {Key} found", request.IdempotentKey.Value);
+                return duplicateCheck.DuplicateResult!;
             }
         }
 
@@ -75,13 +68,17 @@ public class InitializeCorrespondencesHandler(
 
         var validatedData = validationResult.AsT0;
         logger.LogInformation("Initializing correspondences with validated data");
-        return await DatabaseTransactionHelper.ExecuteAsync<OneOf<InitializeCorrespondencesResponse, Error>>(dbContext, async (cancellationToken) =>
-        {
-            return await InitializeCorrespondences(
-                request,
-                validatedData,
-                cancellationToken);
-        }, cancellationToken);
+        return await DatabaseTransactionHelper.ExecuteAsync(
+            dbContext,
+            async cancellationToken => await InitializeCorrespondences(request, validatedData, cancellationToken),
+            cancellationToken,
+            request.IdempotentKey.HasValue
+                ? DatabaseTransactionHelper.Idempotency.OnDuplicate<OneOf<InitializeCorrespondencesResponse, Error>>(() =>
+                {
+                    logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey!.Value);
+                    return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
+                })
+                : default);
     }
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(
@@ -119,19 +116,7 @@ public class InitializeCorrespondencesHandler(
                     StatusAction = null,
                     IdempotencyType = IdempotencyType.Correspondence
                 };
-                try
-                {
-                    await idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
-                }
-                catch (DbUpdateException e)
-                {
-                    if (e.IsPostgresUniqueViolation()) // PostgreSQL unique constraint violation
-                    {
-                        logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey.Value);
-                        return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
-                    }
-                    throw;
-                }
+                await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, idempotencyKey, cancellationToken);
             }
             
             string? notificationJobId = null;

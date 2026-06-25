@@ -15,7 +15,7 @@ public class CorrespondenceDeleteEventRepository(ApplicationDbContext context, I
         try
         {
             await _context.AddAsync(correspondenceDeleteEventEntity, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return correspondenceDeleteEventEntity.Id;
         }
         catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())

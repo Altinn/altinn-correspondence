@@ -19,11 +19,14 @@ public class CorrespondenceNpgsqlRetryingExecutionStrategy : NpgsqlRetryingExecu
 
     protected override bool ShouldRetryOn(Exception? exception)
     {
+        if (exception is BackgroundJobClientException or PostgreSqlDistributedLockException)
+        {
+            return false;
+        }
+
         return base.ShouldRetryOn(exception)
             || exception is TransactionAbortedException
-            || exception is DbUpdateConcurrencyException
-            || exception is BackgroundJobClientException
-            || exception is PostgreSqlDistributedLockException;
+            || exception is DbUpdateConcurrencyException;
     }
 
     protected override TimeSpan? GetNextDelay(Exception lastException)

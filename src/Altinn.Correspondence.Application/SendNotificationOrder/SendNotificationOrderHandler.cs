@@ -8,9 +8,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
-using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
@@ -110,31 +108,32 @@ public class SendNotificationOrderHandler(
         }
         else
         {
-            await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (ct) =>
+            await DatabaseTransactionHelper.ExecuteAsync(dbContext, async ct =>
             {
                 await UpdateDatabaseNotificationOrder(notificationOrder, notificationResponse, ct);
                 SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
                 logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notificationOrder.Id);
                 ScheduleNotificationDeliveryCheck(notificationOrder);
-                if (orderRequest.Reminders != null && orderRequest.Reminders.Count != 0)
-                {
-                    foreach (var reminderResponse in notificationResponse.Notification.Reminders)
-                    {
-                        var reminderNotification = await PersistReminderNotification(
-                            notificationOrder,
-                            orderRequest,
-                            notificationResponse.NotificationOrderId,
-                            reminderResponse,
-                            ct);
-                        if (reminderNotification != null)
-                        {
-                            logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminderNotification.Id);
-                            ScheduleNotificationDeliveryCheck(reminderNotification);
-                        }
-                    }
-                }
                 return Task.CompletedTask;
             }, cancellationToken);
+
+            if (orderRequest.Reminders != null && orderRequest.Reminders.Count != 0)
+            {
+                foreach (var reminderResponse in notificationResponse.Notification.Reminders)
+                {
+                    var reminderNotification = await PersistReminderNotification(
+                        notificationOrder,
+                        orderRequest,
+                        notificationResponse.NotificationOrderId,
+                        reminderResponse,
+                        cancellationToken);
+                    if (reminderNotification != null)
+                    {
+                        logger.LogInformation("Scheduling notification delivery check for reminder notification {NotificationId}", reminderNotification.Id);
+                        ScheduleNotificationDeliveryCheck(reminderNotification);
+                    }
+                }
+            }
         }
 
         return successful;
@@ -171,39 +170,44 @@ public class SendNotificationOrderHandler(
         ReminderResponse reminderResponse,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+        return await DatabaseTransactionHelper.ExecuteAsync(
+            dbContext,
+            async ct =>
             {
-                Id = reminderResponse.ShipmentId,
-                CorrespondenceId = mainNotificationOrder.CorrespondenceId,
-                IdempotencyType = IdempotencyType.NotificationOrder
-            }, cancellationToken);
-        }
-        catch (DbUpdateException e)
-        {
-            if (e.IsPostgresUniqueViolation())
+                if (await DatabaseTransactionHelper.Idempotency.ExistsAsync(idempotencyKeyRepository, reminderResponse.ShipmentId, ct))
+                {
+                    logger.LogWarning("Reminder notification already persisted for shipment {ShipmentId} on correspondence {CorrespondenceId}. Skipping.", reminderResponse.ShipmentId, mainNotificationOrder.CorrespondenceId);
+                    return (CorrespondenceNotificationEntity?)null;
+                }
+
+                await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
+                {
+                    Id = reminderResponse.ShipmentId,
+                    CorrespondenceId = mainNotificationOrder.CorrespondenceId,
+                    IdempotencyType = IdempotencyType.NotificationOrder
+                }, ct);
+
+                var reminderNotification = new CorrespondenceNotificationEntity
+                {
+                    Created = DateTimeOffset.UtcNow,
+                    NotificationTemplate = mainNotificationOrder.NotificationTemplate,
+                    NotificationChannel = mainNotificationOrder.NotificationChannel,
+                    CorrespondenceId = mainNotificationOrder.CorrespondenceId,
+                    RequestedSendTime = mainNotificationOrder.RequestedSendTime.AddDays(orderRequest.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
+                    IsReminder = true,
+                    ShipmentId = reminderResponse.ShipmentId,
+                    NotificationOrderId = notificationOrderId,
+                    OrderRequest = JsonSerializer.Serialize(orderRequest)
+                };
+                await correspondenceNotificationRepository.AddNotification(reminderNotification, ct);
+
+                return reminderNotification;
+            },
+            cancellationToken,
+            DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
             {
                 logger.LogWarning("Reminder notification already persisted for shipment {ShipmentId} on correspondence {CorrespondenceId}. Skipping.", reminderResponse.ShipmentId, mainNotificationOrder.CorrespondenceId);
-                return null;
-            }
-            throw;
-        }
-
-        var reminderNotification = new CorrespondenceNotificationEntity
-        {
-            Created = DateTimeOffset.UtcNow,
-            NotificationTemplate = mainNotificationOrder.NotificationTemplate,
-            NotificationChannel = mainNotificationOrder.NotificationChannel,
-            CorrespondenceId = mainNotificationOrder.CorrespondenceId,
-            RequestedSendTime = mainNotificationOrder.RequestedSendTime.AddDays(orderRequest.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
-            IsReminder = true,
-            ShipmentId = reminderResponse.ShipmentId,
-            NotificationOrderId = notificationOrderId,
-            OrderRequest = JsonSerializer.Serialize(orderRequest)
-        };
-        await correspondenceNotificationRepository.AddNotification(reminderNotification, cancellationToken);
-
-        return reminderNotification;
+                return (CorrespondenceNotificationEntity?)null;
+            }));
     }
 }

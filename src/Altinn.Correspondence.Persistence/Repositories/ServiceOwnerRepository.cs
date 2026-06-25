@@ -39,7 +39,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             };
 
             await context.ServiceOwners.AddAsync(serviceOwner, cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return true;
         }
 
@@ -69,7 +69,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 };
 
                 serviceOwner.StorageProviders.Add(storageProvider);
-                await context.SaveChangesAsync();
+                await context.SaveChangesUnlessDeferredAsync();
             }
         }
     }
