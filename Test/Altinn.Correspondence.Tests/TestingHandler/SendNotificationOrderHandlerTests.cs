@@ -108,6 +108,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockCorrespondenceNotificationRepository.Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Guid.NewGuid());
 
+            _mockIdempotencyKeyRepository
+                .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity?)null);
+            _mockIdempotencyKeyRepository
+                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity key, CancellationToken _) => key);
+
             return (correspondenceId, correspondence, notification, orderRequest, response);
         }
 
@@ -147,29 +154,49 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         [Fact]
         public async Task Process_ShouldSkipReminderPersist_WhenIdempotencyKeyExists()
         {
-            // Arrange
             var (correspondenceId, _, _, _, response) = SetupData();
-
-            var inner = new Exception();
-            inner.Data["SqlState"] = "23505";
-            var dupEx = new DbUpdateException("duplicate", inner);
+            var reminderShipmentId = response.Notification.Reminders![0].ShipmentId;
 
             _mockIdempotencyKeyRepository
-                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(dupEx);
+                .Setup(x => x.GetByIdAsync(reminderShipmentId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new IdempotencyKeyEntity { Id = reminderShipmentId });
 
-            // Act
             await _handler.Process(correspondenceId, CancellationToken.None);
 
-            _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+            _mockCorrespondenceNotificationRepository.Verify(
+                x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _mockIdempotencyKeyRepository.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
 
-            // Only the main notification delivery check should be scheduled (once)
             _mockBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job =>
                     job.Type == typeof(CheckNotificationDeliveryHandler) &&
                     job.Method.Name == nameof(CheckNotificationDeliveryHandler.Process)),
                 It.Is<IState>(state => state is ScheduledState)),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_ShouldSkipReminderPersist_WhenUniqueViolationOnFlush()
+        {
+            var (correspondenceId, _, _, _, _) = SetupData();
+
+            var handler = new SendNotificationOrderHandler(
+                _mockCorrespondenceNotificationRepository.Object,
+                _mockCorrespondenceRepository.Object,
+                _mockAltinnNotificationService.Object,
+                _mockIdempotencyKeyRepository.Object,
+                _mockBackgroundJobClient.Object,
+                _mockLogger.Object,
+                TestDbContextFactory.CreateUniqueViolationOnDeferredSave(onAttempt: 2));
+
+            await handler.Process(correspondenceId, CancellationToken.None);
+
+            _mockIdempotencyKeyRepository.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.AtLeastOnce);
         }
     }
 }

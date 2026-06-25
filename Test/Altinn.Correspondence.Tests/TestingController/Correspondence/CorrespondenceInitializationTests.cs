@@ -1327,6 +1327,32 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondence_WithDuplicateIdempotentKey_SkipsValidation()
+        {
+            var idempotentKey = Guid.NewGuid();
+            var validCorrespondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(idempotentKey)
+                .Build();
+
+            var firstResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", validCorrespondence);
+            Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+            var invalidIfValidated = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(idempotentKey)
+                .WithExternalReferencesDialogId("not-a-guid")
+                .Build();
+
+            var duplicateResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", invalidIfValidated);
+
+            Assert.Equal(HttpStatusCode.Conflict, duplicateResponse.StatusCode);
+            var errorContent = await duplicateResponse.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.DuplicateInitCorrespondenceRequest.Message, errorContent);
+            Assert.DoesNotContain(CorrespondenceErrors.InvalidCorrespondenceDialogId.Message, errorContent);
+        }
+
+        [Fact]
         public async Task InitializeCorrespondence_WithDifferentContentAndSameIdempotentKey_ShouldReturnConflict()
         {
             // Arrange

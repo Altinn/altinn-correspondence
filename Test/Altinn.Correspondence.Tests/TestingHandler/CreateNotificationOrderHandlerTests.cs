@@ -37,6 +37,12 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
             _mockCorrespondenceNotificationRepository = new Mock<ICorrespondenceNotificationRepository>();
             _mockIdempotencyKeyRepository = new Mock<IIdempotencyKeyRepository>();
+            _mockIdempotencyKeyRepository
+                .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity?)null);
+            _mockIdempotencyKeyRepository
+                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity entity, CancellationToken _) => entity);
             _mockResourceRegistryService = new Mock<IResourceRegistryService>();
             _mockHostEnvironment = new Mock<IHostEnvironment>();
             _mockGeneralSettings = new Mock<IOptions<GeneralSettings>>();
@@ -321,22 +327,46 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         [Fact]
         public async Task Process_ShouldSkipPersist_WhenIdempotencyKeyExists()
         {
-            // Arrange
             var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
             var (request, _, _) = SetupOrderData(requestedPublishTime);
 
-            var inner = new Exception();
-            inner.Data["SqlState"] = "23505";
-            var dupEx = new DbUpdateException("duplicate", inner);
-
             _mockIdempotencyKeyRepository
-                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(dupEx);
+                .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new IdempotencyKeyEntity { Id = Guid.NewGuid() });
 
-            // Act
             await _handler.Process(request, CancellationToken.None);
 
-            _mockCorrespondenceNotificationRepository.Verify(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+            _mockCorrespondenceNotificationRepository.Verify(
+                x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _mockIdempotencyKeyRepository.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_ShouldSkipPersist_WhenUniqueViolationOnFlush()
+        {
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, _, _) = SetupOrderData(requestedPublishTime);
+
+            var handler = new CreateNotificationOrderHandler(
+                _mockCorrespondenceRepository.Object,
+                _mockAltinnRegisterService.Object,
+                _mockNotificationTemplateRepository.Object,
+                _mockCorrespondenceNotificationRepository.Object,
+                _mockIdempotencyKeyRepository.Object,
+                _mockResourceRegistryService.Object,
+                _mockHostEnvironment.Object,
+                _mockGeneralSettings.Object,
+                _mockLogger.Object,
+                TestDbContextFactory.CreateUniqueViolationOnDeferredSave());
+
+            await handler.Process(request, CancellationToken.None);
+
+            _mockIdempotencyKeyRepository.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.AtLeastOnce);
         }
     }
 }
