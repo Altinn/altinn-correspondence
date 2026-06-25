@@ -612,9 +612,14 @@ public class DialogportenService(HttpClient _httpClient,
         }
 
         var response = await _httpClient.PostAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/actions/purge", null, cancellationToken);
+        var statusCode = response.StatusCode;
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            if (statusCode != HttpStatusCode.NotFound)
+            {
+                throw new Exception($"Response from Dialogporten was not successful: {statusCode}: {await response.Content.ReadAsStringAsync()}");
+            }
+            logger.LogWarning("Dialog {dialogId} was already purged in Dialogporten; proceeding with local reference removal for correspondence {correspondenceId}", dialogId, correspondenceId);
         }
         var externalReferencesRemoved = await _correspondenceRepository.RemoveExternalReference(correspondence, ReferenceType.DialogportenDialogId, cancellationToken);
         if (!externalReferencesRemoved)
