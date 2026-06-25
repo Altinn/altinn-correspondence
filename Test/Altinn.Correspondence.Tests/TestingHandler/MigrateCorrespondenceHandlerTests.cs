@@ -98,7 +98,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
                 .Returns(() => Guid.NewGuid().ToString());
 
-            var hangfireScheduleHelper = new HangfireScheduleHelper(_backgroundJobClientMock.Object, mockCache.Object, _correspondenceRepositoryMock.Object, new NullLogger<HangfireScheduleHelper>());
+            var hangfireScheduleHelper = new HangfireScheduleHelper(_backgroundJobClientMock.Object, mockCache.Object, _correspondenceRepositoryMock.Object, Mock.Of<IIdempotencyKeyRepository>(), TestDbContextFactory.Create(), new NullLogger<HangfireScheduleHelper>());
             _handler = new MigrateCorrespondenceHandler(
                 _correspondenceRepositoryMock.Object,
                 _dialogportenServiceMock.Object,
