@@ -110,8 +110,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 hangfireScheduleHelper,
                 _backgroundJobClientMock.Object,
                 _hostEnvironmentMock.Object,
+                null!,
                 correspondenceEventHelper,
-
                 chainedBatchJobOrchestrator,
                 makeCorrespondenceAvailableBatchJob,
                 _loggerMock.Object);
