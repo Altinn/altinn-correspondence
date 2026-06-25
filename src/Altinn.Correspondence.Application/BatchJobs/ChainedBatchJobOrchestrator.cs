@@ -13,6 +13,11 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
         var settings = definition.Settings;
 
         var backpressureLimit = definition.ResolveBackpressureLimit?.Invoke(state) ?? settings.BackpressureLimit;
+        if (backpressureLimit <= 0)
+        {
+            throw new InvalidOperationException(
+                $"{settings.JobName} has invalid backpressure limit {backpressureLimit}. It must be > 0.");
+        }
 
         var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(settings.BackpressureMonitorQueue);
         if (enqueuedJobs >= backpressureLimit)
