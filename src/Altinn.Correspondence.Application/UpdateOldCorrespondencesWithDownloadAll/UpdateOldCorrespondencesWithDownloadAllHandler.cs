@@ -15,6 +15,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
 {
     public Task<OneOf<UpdateOldCorrespondencesWithDownloadAllResponse, Error>> Process(UpdateOldCorrespondencesWithDownloadAllRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+
         logger.LogInformation("Starting update of old correspondences with download all. Window size: {windowSize}", request.windowSize);
         var jobId = backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(
             ChainedBatchJobQueues.Orchestrator,

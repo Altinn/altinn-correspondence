@@ -117,5 +117,7 @@ namespace Altinn.Correspondence.Core.Repositories
             Guid? cursorId,
             int batchSize,
             CancellationToken cancellationToken);
+
+        Task<bool> RemoveExternalReference(CorrespondenceEntity correspondence, ReferenceType referenceType, CancellationToken cancellationToken);
     }
 }
