@@ -1,4 +1,5 @@
-using Altinn.Correspondence.Application.MigrateNotificationEventsBatch;
+using Altinn.Correspondence.Application.BatchJobs;
+using Altinn.Correspondence.Application.CleanupMissingSyncedNotificationsBatch;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -130,13 +131,19 @@ public class CleanupMissingSyncedNotificationEventsTests
         // Keep scope alive until after handler completes to prevent DbContext disposal
         using var scope = _factory.Services.CreateScope();
         var notificationRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceNotificationRepository>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<MigrateNotificationEventsBatchHandler>>();
-
-        // Create handler with mocked IBackgroundJobClient
-        var handler = new MigrateNotificationEventsBatchHandler(
+        var batchJob = new CleanupMissingSyncedNotificationsBatchJob(
             notificationRepository,
             mockBackgroundJobClient.Object,
-            logger);
+            Mock.Of<ILogger<CleanupMissingSyncedNotificationsBatchJob>>());
+        var orchestrator = scope.ServiceProvider.GetRequiredService<ChainedBatchJobOrchestrator>();
+        var handlerLogger = scope.ServiceProvider.GetRequiredService<ILogger<CleanupMissingSyncedNotificationsBatchHandler>>();
+
+        // Create handler with orchestrator
+        var handler = new CleanupMissingSyncedNotificationsBatchHandler(
+            mockBackgroundJobClient.Object,
+            orchestrator,
+            batchJob,
+            handlerLogger);
 
         // Act - Call the handler directly with a batch size that will process our notifications
         await handler.Process(batchCount: 50, lastProcessedTimestamp: DateTimeOffset.MaxValue, lastProcessedId: null);
@@ -155,7 +162,7 @@ public class CleanupMissingSyncedNotificationEventsTests
 
         // Should also have enqueued the next batch processing job
         var nextBatchJobs = enqueuedJobs
-            .Where(j => j.serviceType == typeof(MigrateNotificationEventsBatchHandler) && j.methodName == nameof(MigrateNotificationEventsBatchHandler.Process))
+            .Where(j => j.serviceType == typeof(CleanupMissingSyncedNotificationsBatchHandler) && j.methodName == nameof(CleanupMissingSyncedNotificationsBatchHandler.Process))
             .ToList();
 
         Assert.Single(nextBatchJobs);

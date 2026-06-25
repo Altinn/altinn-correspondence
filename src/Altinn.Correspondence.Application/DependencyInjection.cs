@@ -43,7 +43,7 @@ using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
-using Altinn.Correspondence.Application.MigrateNotificationEventsBatch;
+using Altinn.Correspondence.Application.CleanupMissingSyncedNotificationsBatch;
 
 namespace Altinn.Correspondence.Application;
 
@@ -96,7 +96,8 @@ public static class DependencyInjection
         services.AddScoped<SmsNotificationLengthStatisticsHandler>();
         services.AddScoped<PurgeDialogAndDeleteReminderForReadCorrespondencesHandler>();
         services.AddScoped<UpdateOldCorrespondencesWithDownloadAllHandler>();
-        services.AddScoped<MigrateNotificationEventsBatchHandler>();
+        services.AddScoped<CleanupMissingSyncedNotificationsBatchHandler>();
+        services.AddScoped<CleanupMissingSyncedNotificationsBatchJob>();
 
         // Statistics & Reporting
         services.AddScoped<GenerateDailySummaryReportHandler>();

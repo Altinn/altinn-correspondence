@@ -21,7 +21,7 @@ using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
-using Altinn.Correspondence.Application.MigrateNotificationEventsBatch;
+using Altinn.Correspondence.Application.CleanupMissingSyncedNotificationsBatch;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -450,7 +450,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [Route("cleanup-missing-synced-notification-events")]
     [Authorize(Policy = AuthorizationConstants.Maintenance)]
     public ActionResult CleanupMissingSyncedNotificationEvents(
-        [FromServices] MigrateNotificationEventsBatchHandler handler,
+        [FromServices] CleanupMissingSyncedNotificationsBatchHandler handler,
         [FromQuery] int batchCount = 100,
         [FromQuery] DateTimeOffset? startDate = null,
         [FromQuery] Guid? startId = null)
