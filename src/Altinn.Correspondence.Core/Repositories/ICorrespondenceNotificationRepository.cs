@@ -24,5 +24,10 @@ namespace Altinn.Correspondence.Core.Repositories
             DateTimeOffset lastProcessedTimestamp,
             Guid? lastProcessedId,
             CancellationToken cancellationToken);
+        Task<CorrespondencesWithNotificationsBatch> GetCorrespondencesWithSyncedNotifications(
+            int count,
+            DateTimeOffset lastProcessedTimestamp,
+            Guid? lastProcessedId,
+            CancellationToken cancellationToken);
     }
 }

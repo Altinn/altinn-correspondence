@@ -33,48 +33,40 @@ namespace Altinn.Correspondence.Application.MigrateNotificationEventsBatch
             }
             else
             {
-                var batch = await notificationRepository.GetSyncedNotificationsWithoutDialogActivityBatch(
+                var batch = await notificationRepository.GetCorrespondencesWithSyncedNotifications(
                     batchCount, 
                     lastProcessedTimestamp,
                     lastProcessedId,
                     CancellationToken.None);
 
-                if (batch.Count == 0)
+                if (batch.Correspondences.Count == 0)
                 {
                     logger.LogInformation("No more notification events to process. Migration of notification events is complete.");
                     return; // No more events to process
                 }
 
-                // Find the oldest notification in batch using composite ordering (timestamp, then Id)
-                var oldestNotification = batch
-                    .OrderBy(n => n.NotificationSent)
-                    .ThenBy(n => n.Id)
-                    .First();
-
-                var oldestTimestamp = oldestNotification.NotificationSent;
-                var newestTimestamp = batch.Max(n => n.NotificationSent);
-
                 logger.LogInformation(
-                    "Processing batch of {Count} notification events. " +
-                    "Date range: {OldestDate} to {NewestDate}. " +
+                    "Processing {CorrespondenceCount} correspondences with {NotificationCount} total notification events. " +
                     "Next batch will process notifications older than {NextThreshold} (Id: {NextId})",
-                    batch.Count,
-                    oldestTimestamp,
-                    newestTimestamp,
-                    oldestTimestamp,
-                    oldestNotification.Id);
+                    batch.Correspondences.Count,
+                    batch.TotalNotificationCount,
+                    batch.OldestNotificationTimestamp,
+                    batch.OldestNotificationId);
 
-                foreach (var notification in batch)
+                foreach (var correspondenceGroup in batch.Correspondences)
                 {
                     backgroundJobClient.Enqueue<IDialogportenService>(
                         HangfireQueues.Migration, 
-                        service => service.AddNotificationActivity(notification.Id, CancellationToken.None));
+                        service => service.AddNotificationActivitiesWithDuplicateCheck(
+                            correspondenceGroup.CorrespondenceId, 
+                            correspondenceGroup.NotificationIds, 
+                            CancellationToken.None));
                 }
 
                 // Enqueue next batch with composite cursor to ensure no notifications are skipped at timestamp boundaries
                 backgroundJobClient.Enqueue<MigrateNotificationEventsBatchHandler>(
                     HangfireQueues.Migration, 
-                    handler => handler.Process(batchCount, oldestTimestamp.Value, oldestNotification.Id));
+                    handler => handler.Process(batchCount, batch.OldestNotificationTimestamp!.Value, batch.OldestNotificationId));
             }
         }
     }

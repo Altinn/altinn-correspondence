@@ -469,7 +469,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId");
 
-                    b.HasIndex("NotificationSent")
+                    b.HasIndex("NotificationSent", "Id")
                         .IsDescending()
                         .HasDatabaseName("IX_CorrespondenceNotifications_Cleanup")
                         .HasFilter("\"Altinn2NotificationId\" IS NOT NULL AND \"SyncedFromAltinn2\" IS NOT NULL");

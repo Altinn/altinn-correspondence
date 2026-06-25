@@ -176,5 +176,67 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Take(count)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<CorrespondencesWithNotificationsBatch> GetCorrespondencesWithSyncedNotifications(
+            int count,
+            DateTimeOffset lastProcessedTimestamp,
+            Guid? lastProcessedId,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.CorrespondenceNotifications
+                .Where(n => n.Altinn2NotificationId != null 
+                         && n.SyncedFromAltinn2 != null);
+
+            // Composite cursor: use both timestamp and Id to prevent skipping at batch boundaries
+            if (lastProcessedId.HasValue)
+            {
+                // Standard case: filter by timestamp OR (same timestamp AND id)
+                query = query.Where(n => 
+                    n.NotificationSent < lastProcessedTimestamp
+                    || (n.NotificationSent == lastProcessedTimestamp && n.Id < lastProcessedId.Value));
+            }
+            else
+            {
+                // Initial call: only timestamp filter
+                query = query.Where(n => n.NotificationSent < lastProcessedTimestamp);
+            }
+
+            // Fetch notifications and group by correspondence in the database
+            var notifications = await query
+                .OrderByDescending(n => n.NotificationSent)
+                .ThenByDescending(n => n.Id)
+                .Take(count)
+                .Select(n => new { n.Id, n.CorrespondenceId, n.NotificationSent })
+                .ToListAsync(cancellationToken);
+
+            if (notifications.Count == 0)
+            {
+                return new CorrespondencesWithNotificationsBatch();
+            }
+
+            // Find the oldest notification for cursor
+            var oldestNotification = notifications
+                .OrderBy(n => n.NotificationSent)
+                .ThenBy(n => n.Id)
+                .First();
+
+            // Group by CorrespondenceId
+            var grouped = notifications
+                .GroupBy(n => n.CorrespondenceId)
+                .Select(g => new CorrespondenceWithNotifications
+                {
+                    CorrespondenceId = g.Key,
+                    NotificationIds = g.Select(n => n.Id).ToList()
+                })
+                .ToList();
+
+            return new CorrespondencesWithNotificationsBatch
+            {
+                Correspondences = grouped,
+                OldestNotificationTimestamp = oldestNotification.NotificationSent,
+                OldestNotificationId = oldestNotification.Id,
+                TotalNotificationCount = notifications.Count
+            };
+        }
     }
 }

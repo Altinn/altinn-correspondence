@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.MigrateNotificationEventsBatch;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
@@ -68,7 +69,7 @@ public class MigrateNotificationEventsBatchHandlerTests
             Times.Once);
 
         _notificationRepositoryMock.Verify(
-            x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
+            x => x.GetCorrespondencesWithSyncedNotifications(
                 It.IsAny<int>(),
                 It.IsAny<DateTimeOffset>(),
                 It.IsAny<Guid?>(),
@@ -88,15 +89,15 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.EnqueuedCount(HangfireQueues.Migration))
             .Returns(enqueuedJobCount);
 
-        var notifications = CreateNotificationBatch(batchCount, lastProcessed);
+        var batch = CreateCorrespondenceBatch(5, batchCount, lastProcessed); // 5 correspondences with total 100 notifications
 
         _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
                 batchCount,
                 lastProcessed,
                 It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(notifications);
+            .ReturnsAsync(batch);
 
         _backgroundJobClientMock
             .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
@@ -107,20 +108,21 @@ public class MigrateNotificationEventsBatchHandlerTests
 
         // Assert
         _notificationRepositoryMock.Verify(
-            x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
+            x => x.GetCorrespondencesWithSyncedNotifications(
                 batchCount,
                 lastProcessed,
                 It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
+        // Should enqueue one job per correspondence (not per notification)
         _backgroundJobClientMock.Verify(
             x => x.Create(
                 It.Is<Job>(job => 
-                    job.Method.Name == nameof(IDialogportenService.AddNotificationActivity) &&
+                    job.Method.Name == nameof(IDialogportenService.AddNotificationActivitiesWithDuplicateCheck) &&
                     job.Type == typeof(IDialogportenService)),
                 It.Is<IState>(state => state is EnqueuedState)),
-            Times.Exactly(batchCount));
+            Times.Exactly(batch.Correspondences.Count));
     }
 
     [Fact]
@@ -135,12 +137,12 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Returns(0);
 
         _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
                 batchCount,
                 lastProcessed,
                 It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CorrespondenceNotificationEntity>());
+            .ReturnsAsync(new CorrespondencesWithNotificationsBatch());
 
         // Act
         await _handler.Process(batchCount, lastProcessed);
@@ -163,25 +165,25 @@ public class MigrateNotificationEventsBatchHandlerTests
     }
 
     [Fact]
-    public async Task Process_WithValidBatch_EnqueuesJobsForEachNotification()
+    public async Task Process_WithValidBatch_EnqueuesJobsForEachCorrespondence()
     {
         // Arrange
-        var batchCount = 5;
+        var batchCount = 50;
         var lastProcessed = DateTimeOffset.UtcNow.AddDays(-1);
 
         _monitoringApiMock
             .Setup(x => x.EnqueuedCount(HangfireQueues.Migration))
             .Returns(0);
 
-        var notifications = CreateNotificationBatch(batchCount, lastProcessed);
+        var batch = CreateCorrespondenceBatch(5, batchCount, lastProcessed); // 5 correspondences
 
         _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
                 batchCount,
                 lastProcessed,
                 It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(notifications);
+            .ReturnsAsync(batch);
 
         _backgroundJobClientMock
             .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
@@ -191,43 +193,55 @@ public class MigrateNotificationEventsBatchHandlerTests
         await _handler.Process(batchCount, lastProcessed);
 
         // Assert
-        foreach (var notification in notifications)
+        foreach (var correspondenceGroup in batch.Correspondences)
         {
             _backgroundJobClientMock.Verify(
                 x => x.Create(
                     It.Is<Job>(job => 
-                        job.Method.Name == nameof(IDialogportenService.AddNotificationActivity) &&
+                        job.Method.Name == nameof(IDialogportenService.AddNotificationActivitiesWithDuplicateCheck) &&
                         job.Type == typeof(IDialogportenService) &&
-                        job.Args[0].Equals(notification.Id)),
+                        job.Args[0].Equals(correspondenceGroup.CorrespondenceId) &&
+                        ((List<Guid>)job.Args[1]).Count == correspondenceGroup.NotificationIds.Count),
                     It.Is<IState>(state => state is EnqueuedState)),
                 Times.Once);
         }
     }
 
     [Fact]
-    public async Task Process_WithValidBatch_EnqueuesNextBatchWithCorrectLastProcessedTime()
+    public async Task Process_WithValidBatch_EnqueuesNextBatchWithCorrectCursor()
     {
         // Arrange
-        var batchCount = 3;
+        var batchCount = 50;
         var lastProcessed = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var oldestTimestamp = new DateTimeOffset(2024, 1, 5, 12, 0, 0, TimeSpan.Zero);
+        var oldestId = Guid.NewGuid();
 
         _monitoringApiMock
             .Setup(x => x.EnqueuedCount(HangfireQueues.Migration))
             .Returns(0);
 
-        var notification1 = CreateNotificationWithSpecificDate(Guid.NewGuid(), new DateTimeOffset(2024, 1, 10, 12, 0, 0, TimeSpan.Zero));
-        var notification2 = CreateNotificationWithSpecificDate(Guid.NewGuid(), new DateTimeOffset(2024, 1, 8, 12, 0, 0, TimeSpan.Zero));
-        var notification3 = CreateNotificationWithSpecificDate(Guid.NewGuid(), new DateTimeOffset(2024, 1, 5, 12, 0, 0, TimeSpan.Zero));
-
-        var notifications = new List<CorrespondenceNotificationEntity> { notification1, notification2, notification3 };
+        var batch = new CorrespondencesWithNotificationsBatch
+        {
+            Correspondences = new List<CorrespondenceWithNotifications>
+            {
+                new CorrespondenceWithNotifications
+                {
+                    CorrespondenceId = Guid.NewGuid(),
+                    NotificationIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() }
+                }
+            },
+            OldestNotificationTimestamp = oldestTimestamp,
+            OldestNotificationId = oldestId,
+            TotalNotificationCount = 2
+        };
 
         _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
                 batchCount,
                 It.IsAny<DateTimeOffset>(),
                 It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(notifications);
+            .ReturnsAsync(batch);
 
         _backgroundJobClientMock
             .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
@@ -236,16 +250,15 @@ public class MigrateNotificationEventsBatchHandlerTests
         // Act
         await _handler.Process(batchCount, lastProcessed);
 
-        // Assert - Should use the minimum (oldest) date from the batch
-        var expectedLastProcessed = new DateTimeOffset(2024, 1, 5, 12, 0, 0, TimeSpan.Zero);
-
+        // Assert - Should use cursor information from batch
         _backgroundJobClientMock.Verify(
             x => x.Create(
                 It.Is<Job>(job => 
                     job.Method.Name == nameof(MigrateNotificationEventsBatchHandler.Process) &&
                     job.Type == typeof(MigrateNotificationEventsBatchHandler) &&
                     job.Args[0].Equals(batchCount) &&
-                    job.Args[1].Equals(expectedLastProcessed)),
+                    job.Args[1].Equals(oldestTimestamp) &&
+                    job.Args[2].Equals(oldestId)),
                 It.Is<IState>(state => state is EnqueuedState)),
             Times.Once);
     }
@@ -261,14 +274,14 @@ public class MigrateNotificationEventsBatchHandlerTests
             .Setup(x => x.EnqueuedCount(HangfireQueues.Migration))
             .Returns(0);
 
-        // Repository returns empty list because notifications with null NotificationSent are filtered out
+        // Repository returns empty batch
         _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
                 batchCount,
                 lastProcessed,
                 It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CorrespondenceNotificationEntity>());
+            .ReturnsAsync(new CorrespondencesWithNotificationsBatch());
 
         // Act
         await _handler.Process(batchCount, lastProcessed);
@@ -291,129 +304,49 @@ public class MigrateNotificationEventsBatchHandlerTests
     }
 
     [Fact]
-    public async Task Process_WithNotificationsHavingOnlyNotificationSent_UsesMinimumNotificationSentForNextBatch()
+    public async Task Process_GroupsNotificationsByCorrespondence_LogsGroupingStats()
     {
         // Arrange
-        var batchCount = 2;
-        var lastProcessed = new DateTimeOffset(2024, 1, 15, 0, 0, 0, TimeSpan.Zero);
-
-        _monitoringApiMock
-            .Setup(x => x.EnqueuedCount(HangfireQueues.Migration))
-            .Returns(0);
-
-        // Both notifications have NotificationSent values (as required by the new query logic)
-        var notification1 = CreateNotificationWithRequestedTime(
-            Guid.NewGuid(), 
-            requestedSendTime: new DateTimeOffset(2024, 1, 10, 12, 0, 0, TimeSpan.Zero),
-            notificationSent: new DateTimeOffset(2024, 1, 10, 14, 0, 0, TimeSpan.Zero));
-        var notification2 = CreateNotificationWithRequestedTime(
-            Guid.NewGuid(), 
-            requestedSendTime: new DateTimeOffset(2024, 1, 5, 12, 0, 0, TimeSpan.Zero),
-            notificationSent: new DateTimeOffset(2024, 1, 5, 15, 0, 0, TimeSpan.Zero));
-
-        var notifications = new List<CorrespondenceNotificationEntity> { notification1, notification2 };
-
-        _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
-                batchCount,
-                It.IsAny<DateTimeOffset>(),
-                It.IsAny<Guid?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(notifications);
-
-        _backgroundJobClientMock
-            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-            .Returns("job-id");
-
-        // Act
-        await _handler.Process(batchCount, lastProcessed);
-
-        // Assert - Should use the minimum NotificationSent (with fallback to RequestedSendTime if null)
-        var expectedLastProcessed = new DateTimeOffset(2024, 1, 5, 15, 0, 0, TimeSpan.Zero);
-
-        _backgroundJobClientMock.Verify(
-            x => x.Create(
-                It.Is<Job>(job => 
-                    job.Method.Name == nameof(MigrateNotificationEventsBatchHandler.Process) &&
-                    job.Args[1].Equals(expectedLastProcessed)),
-                It.Is<IState>(state => state is EnqueuedState)),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Process_WithMultipleNotificationSent_UsesCorrectMinimumDate()
-    {
-        // Arrange
-        var batchCount = 3;
-        var lastProcessed = new DateTimeOffset(2024, 1, 20, 0, 0, 0, TimeSpan.Zero);
-
-        _monitoringApiMock
-            .Setup(x => x.EnqueuedCount(HangfireQueues.Migration))
-            .Returns(0);
-
-        // All notifications have NotificationSent (repository filters out null values)
-        var notification1 = CreateNotificationWithRequestedTime(
-            Guid.NewGuid(),
-            requestedSendTime: new DateTimeOffset(2024, 1, 10, 12, 0, 0, TimeSpan.Zero),
-            notificationSent: new DateTimeOffset(2024, 1, 10, 14, 0, 0, TimeSpan.Zero));
-        var notification2 = CreateNotificationWithRequestedTime(
-            Guid.NewGuid(),
-            requestedSendTime: new DateTimeOffset(2024, 1, 8, 12, 0, 0, TimeSpan.Zero),
-            notificationSent: new DateTimeOffset(2024, 1, 8, 13, 0, 0, TimeSpan.Zero));
-        var notification3 = CreateNotificationWithRequestedTime(
-            Guid.NewGuid(),
-            requestedSendTime: new DateTimeOffset(2024, 1, 5, 12, 0, 0, TimeSpan.Zero),
-            notificationSent: new DateTimeOffset(2024, 1, 5, 15, 0, 0, TimeSpan.Zero));
-
-        var notifications = new List<CorrespondenceNotificationEntity> { notification1, notification2, notification3 };
-
-        _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
-                batchCount,
-                It.IsAny<DateTimeOffset>(),
-                It.IsAny<Guid?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(notifications);
-
-        _backgroundJobClientMock
-            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-            .Returns("job-id");
-
-        // Act
-        await _handler.Process(batchCount, lastProcessed);
-
-        // Assert - Should use the minimum NotificationSent: notification3 (2024-01-05 15:00)
-        var expectedLastProcessed = new DateTimeOffset(2024, 1, 5, 15, 0, 0, TimeSpan.Zero);
-
-        _backgroundJobClientMock.Verify(
-            x => x.Create(
-                It.Is<Job>(job => 
-                    job.Method.Name == nameof(MigrateNotificationEventsBatchHandler.Process) &&
-                    job.Args[1].Equals(expectedLastProcessed)),
-                It.Is<IState>(state => state is EnqueuedState)),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Process_LogsProcessingInformation()
-    {
-        // Arrange
-        var batchCount = 3;
+        var batchCount = 100;
         var lastProcessed = DateTimeOffset.UtcNow.AddDays(-1);
 
         _monitoringApiMock
             .Setup(x => x.EnqueuedCount(HangfireQueues.Migration))
             .Returns(0);
 
-        var notifications = CreateNotificationBatch(batchCount, lastProcessed);
+        // 3 correspondences with different numbers of notifications
+        var batch = new CorrespondencesWithNotificationsBatch
+        {
+            Correspondences = new List<CorrespondenceWithNotifications>
+            {
+                new CorrespondenceWithNotifications
+                {
+                    CorrespondenceId = Guid.NewGuid(),
+                    NotificationIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() }
+                },
+                new CorrespondenceWithNotifications
+                {
+                    CorrespondenceId = Guid.NewGuid(),
+                    NotificationIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() }
+                },
+                new CorrespondenceWithNotifications
+                {
+                    CorrespondenceId = Guid.NewGuid(),
+                    NotificationIds = new List<Guid> { Guid.NewGuid() }
+                }
+            },
+            OldestNotificationTimestamp = DateTimeOffset.UtcNow.AddDays(-2),
+            OldestNotificationId = Guid.NewGuid(),
+            TotalNotificationCount = 6
+        };
 
         _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
                 batchCount,
                 lastProcessed,
                 It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(notifications);
+            .ReturnsAsync(batch);
 
         _backgroundJobClientMock
             .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
@@ -422,110 +355,62 @@ public class MigrateNotificationEventsBatchHandlerTests
         // Act
         await _handler.Process(batchCount, lastProcessed);
 
-        // Assert
+        // Assert - Should log information about grouping
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((o, t) => 
-                    o.ToString()!.Contains("Processing") && 
-                    o.ToString()!.Contains(batchCount.ToString())),
+                    o.ToString()!.Contains("3 correspondences") && 
+                    o.ToString()!.Contains("6 total notification events")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
-    }
 
-    [Fact]
-    public async Task Process_WhenQueueHasFewerThan5Batches_ProcessesBatch()
-    {
-        // Arrange
-        var batchCount = 100;
-        var lastProcessed = DateTimeOffset.UtcNow.AddDays(-1);
-        var enqueuedJobCount = 300; // Less than 5 batches worth
-
-        _monitoringApiMock
-            .Setup(x => x.EnqueuedCount(HangfireQueues.Migration))
-            .Returns(enqueuedJobCount);
-
-        var notifications = CreateNotificationBatch(batchCount, lastProcessed);
-
-        _notificationRepositoryMock
-            .Setup(x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
-                batchCount,
-                lastProcessed,
-                It.IsAny<Guid?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(notifications);
-
-        _backgroundJobClientMock
-            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-            .Returns("job-id");
-
-        // Act
-        await _handler.Process(batchCount, lastProcessed);
-
-        // Assert
-        _notificationRepositoryMock.Verify(
-            x => x.GetSyncedNotificationsWithoutDialogActivityBatch(
-                batchCount,
-                lastProcessed,
-                It.IsAny<Guid?>(),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        // Should not schedule, should process immediately
+        // Should enqueue exactly 3 jobs (one per correspondence)
         _backgroundJobClientMock.Verify(
             x => x.Create(
-                It.IsAny<Job>(),
-                It.Is<IState>(state => state is ScheduledState)),
-            Times.Never);
+                It.Is<Job>(job => 
+                    job.Method.Name == nameof(IDialogportenService.AddNotificationActivitiesWithDuplicateCheck)),
+                It.Is<IState>(state => state is EnqueuedState)),
+            Times.Exactly(3));
     }
 
     // Helper methods
-    private List<CorrespondenceNotificationEntity> CreateNotificationBatch(int count, DateTimeOffset baseDate)
+    private CorrespondencesWithNotificationsBatch CreateCorrespondenceBatch(int correspondenceCount, int totalNotifications, DateTimeOffset baseDate)
     {
-        var notifications = new List<CorrespondenceNotificationEntity>();
-        for (int i = 0; i < count; i++)
+        var correspondences = new List<CorrespondenceWithNotifications>();
+        var notificationsPerCorrespondence = totalNotifications / correspondenceCount;
+        var oldestTimestamp = baseDate;
+        Guid? oldestId = null;
+
+        for (int i = 0; i < correspondenceCount; i++)
         {
-            notifications.Add(CreateNotificationWithSpecificDate(Guid.NewGuid(), baseDate.AddHours(-i)));
+            var notificationIds = new List<Guid>();
+            for (int j = 0; j < notificationsPerCorrespondence; j++)
+            {
+                var notifId = Guid.NewGuid();
+                notificationIds.Add(notifId);
+
+                if (i == correspondenceCount - 1 && j == notificationsPerCorrespondence - 1)
+                {
+                    oldestId = notifId;
+                }
+            }
+
+            correspondences.Add(new CorrespondenceWithNotifications
+            {
+                CorrespondenceId = Guid.NewGuid(),
+                NotificationIds = notificationIds
+            });
         }
-        return notifications;
-    }
 
-    private CorrespondenceNotificationEntity CreateNotificationWithSpecificDate(
-        Guid id, 
-        DateTimeOffset notificationSent)
-    {
-        return new CorrespondenceNotificationEntity
+        return new CorrespondencesWithNotificationsBatch
         {
-            Id = id,
-            CorrespondenceId = Guid.NewGuid(),
-            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
-            NotificationChannel = NotificationChannel.Email,
-            RequestedSendTime = notificationSent.AddMinutes(-30),
-            Created = DateTimeOffset.UtcNow.AddDays(-2),
-            IsReminder = false,
-            NotificationSent = notificationSent,
-            SyncedFromAltinn2 = DateTimeOffset.UtcNow.AddDays(-1)
-        };
-    }
-
-    private CorrespondenceNotificationEntity CreateNotificationWithRequestedTime(
-        Guid id,
-        DateTimeOffset requestedSendTime,
-        DateTimeOffset? notificationSent)
-    {
-        return new CorrespondenceNotificationEntity
-        {
-            Id = id,
-            CorrespondenceId = Guid.NewGuid(),
-            NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
-            NotificationChannel = NotificationChannel.Email,
-            RequestedSendTime = requestedSendTime,
-            Created = DateTimeOffset.UtcNow.AddDays(-2),
-            IsReminder = false,
-            NotificationSent = notificationSent,
-            SyncedFromAltinn2 = DateTimeOffset.UtcNow.AddDays(-1)
+            Correspondences = correspondences,
+            OldestNotificationTimestamp = oldestTimestamp.AddHours(-(correspondenceCount * notificationsPerCorrespondence)),
+            OldestNotificationId = oldestId,
+            TotalNotificationCount = totalNotifications
         };
     }
 }
