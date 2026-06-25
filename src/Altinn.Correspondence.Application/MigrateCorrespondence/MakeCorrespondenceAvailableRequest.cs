@@ -1,6 +1,8 @@
+using Altinn.Correspondence.Application.BatchJobs;
+
 namespace Altinn.Correspondence.Application.MigrateCorrespondence;
 
-public class MakeCorrespondenceAvailableRequest
+public class MakeCorrespondenceAvailableRequest : IChainedBatchJobCursorState
 {
     public Guid? CorrespondenceId { get; set; }
     public bool CreateEvents { get; set; }

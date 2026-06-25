@@ -107,7 +107,6 @@ Use `ResolveBackpressureLimit` on the definition when the limit depends on reque
 | `ProcessBatchAsync` | One of two | Async batch logic: filter, count, selectively enqueue workers |
 | `OnComplete` | No | Called when the job finishes (empty fetch or final batch) |
 | `ResolveBackpressureLimit` | No | Override `Settings.BackpressureLimit` per state |
-
 Exactly one of `EnqueueWorkerJob` or `ProcessBatchAsync` must be defined.
 
 ## Processing modes

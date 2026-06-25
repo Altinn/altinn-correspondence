@@ -1,9 +1,6 @@
 using System.Security.Claims;
+using Altinn.Correspondence.Application.BatchJobs;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -11,16 +8,11 @@ using OneOf;
 namespace Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
 
 public class UpdateOldCorrespondencesWithDownloadAllHandler(
-    ICorrespondenceRepository correspondenceRepository,
-    IAttachmentRepository attachmentRepository,
     IBackgroundJobClient backgroundJobClient,
+    ChainedBatchJobOrchestrator chainedBatchJobOrchestrator,
+    UpdateOldCorrespondencesWithDownloadAllBatchJob updateOldCorrespondencesWithDownloadAllBatchJob,
     ILogger<UpdateOldCorrespondencesWithDownloadAllHandler> logger) : IHandler<UpdateOldCorrespondencesWithDownloadAllRequest, UpdateOldCorrespondencesWithDownloadAllResponse>
 {
-    private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
-    private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
-    private readonly ILogger<UpdateOldCorrespondencesWithDownloadAllHandler> _logger = logger;
-
     public Task<OneOf<UpdateOldCorrespondencesWithDownloadAllResponse, Error>> Process(UpdateOldCorrespondencesWithDownloadAllRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting update of old correspondences with download all. Window size: {windowSize}", request.windowSize);
@@ -28,7 +20,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
             HangfireQueues.LiveMigration,
             handler => handler.ExecutePatchingInBackground(request, CancellationToken.None));
 
-        _logger.LogInformation("Orchestrator job {jobId} has been enqueued", jobId);
+        logger.LogInformation("Orchestrator job {jobId} has been enqueued", jobId);
 
         return Task.FromResult<OneOf<UpdateOldCorrespondencesWithDownloadAllResponse, Error>>(new UpdateOldCorrespondencesWithDownloadAllResponse
         {

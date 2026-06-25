@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.BatchJobs;
 
+
 public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> logger)
 {
     public async Task RunBatchAsync<TState, TItem>(
@@ -13,6 +14,7 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
         var settings = definition.Settings;
 
         var backpressureLimit = definition.ResolveBackpressureLimit?.Invoke(state) ?? settings.BackpressureLimit;
+
         if (backpressureLimit <= 0)
         {
             throw new InvalidOperationException(
@@ -29,7 +31,7 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
                 enqueuedJobs,
                 backpressureLimit,
                 settings.BackpressureRescheduleDelay);
-
+          
             definition.RescheduleBatch(state);
             return;
         }
