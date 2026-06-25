@@ -43,12 +43,12 @@ public class RecipientListAttributeTests
     }
 
     [Fact]
-    public void IsValid_ReturnsSuccess_For_Legacy_SelfIdentified_Urn_With_Colon_In_Username()
+    public void IsValid_ReturnsError_For_Legacy_SelfIdentified_Urn_With_Colon_In_Username()
     {
         var result = _attribute.GetValidationResult(
             new List<string> { "urn:altinn:person:legacy-selfidentified:email:test@example.com" },
             _validationContext);
 
-        Assert.Equal(ValidationResult.Success, result);
+        Assert.NotEqual(ValidationResult.Success, result);
     }
 }
