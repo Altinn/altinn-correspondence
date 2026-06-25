@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.BatchJobs;
 using Altinn.Correspondence.Application.CheckNotification;
 using Altinn.Correspondence.Application.DownloadAttachment;
 using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
@@ -124,6 +125,8 @@ public static class DependencyInjection
         // Migration
         services.AddScoped<MigrateAttachmentHelper>();
         services.AddScoped<MigrateAttachmentHandler>();
+        services.AddScoped<ChainedBatchJobOrchestrator>();
+        services.AddScoped<MakeCorrespondenceAvailableBatchJob>();
         services.AddScoped<MigrateCorrespondenceHandler>();
         services.AddScoped<MigrateToStorageProviderHandler>();
 
