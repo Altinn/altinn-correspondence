@@ -9,6 +9,7 @@ using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Hangfire.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -136,6 +137,12 @@ public class CleanupMissingSyncedNotificationEventsTests
             mockBackgroundJobClient.Object,
             Mock.Of<ILogger<CleanupMissingSyncedNotificationsBatchJob>>());
         var orchestrator = scope.ServiceProvider.GetRequiredService<ChainedBatchJobOrchestrator>();
+
+        // Mock the monitoring API to avoid accessing disposed PostgreSQL connection in tests
+        var mockMonitoringApi = new Mock<Hangfire.Storage.IMonitoringApi>();
+        mockMonitoringApi.Setup(x => x.EnqueuedCount(It.IsAny<string>())).Returns(0);
+        orchestrator.MonitoringApi = mockMonitoringApi.Object;
+
         var handlerLogger = scope.ServiceProvider.GetRequiredService<ILogger<CleanupMissingSyncedNotificationsBatchHandler>>();
 
         // Create handler with orchestrator

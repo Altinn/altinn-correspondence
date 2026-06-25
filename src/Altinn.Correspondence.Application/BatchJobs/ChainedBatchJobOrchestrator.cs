@@ -1,10 +1,16 @@
 using Hangfire;
+using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.BatchJobs;
 
 public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> logger)
 {
+    /// <summary>
+    /// Optional monitoring API for testing. If null, uses JobStorage.Current.GetMonitoringApi()
+    /// </summary>
+    public IMonitoringApi? MonitoringApi { get; set; }
+
     public async Task RunBatchAsync<TState, TItem>(
         TState state,
         ChainedBatchJobDefinition<TState, TItem> definition,
@@ -19,7 +25,8 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
                 $"{settings.JobName} has invalid backpressure limit {backpressureLimit}. It must be > 0.");
         }
 
-        var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(settings.BackpressureMonitorQueue);
+        var monitoringApi = MonitoringApi ?? JobStorage.Current.GetMonitoringApi();
+        var enqueuedJobs = monitoringApi.EnqueuedCount(settings.BackpressureMonitorQueue);
         if (enqueuedJobs >= backpressureLimit)
         {
             logger.LogInformation(
