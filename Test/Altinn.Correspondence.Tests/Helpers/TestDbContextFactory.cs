@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
@@ -16,6 +17,9 @@ public static class TestDbContextFactory
     private static readonly Lazy<DbContextOptions<ApplicationDbContext>> Options = new(BuildOptions);
 
     public static TestApplicationDbContext Create() => new(Options.Value);
+
+    public static UniqueViolationOnDeferredSaveDbContext CreateUniqueViolationOnDeferredSave(int onAttempt = 1)
+        => new(Options.Value, onAttempt);
 
     public static TestApplicationDbContext Create(int maxRetryCount)
     {
