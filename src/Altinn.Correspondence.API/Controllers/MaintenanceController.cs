@@ -456,12 +456,13 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         [FromQuery] Guid? startId = null)
     {
         var processFromDate = startDate ?? DateTimeOffset.MaxValue;
+        var sanitizedStartIdForLog = startId?.ToString().Replace("\r", string.Empty).Replace("\n", string.Empty);
 
         _logger.LogInformation(
             "Starting notification events cleanup batch processing. Batch size: {BatchCount}, Starting from: {StartDate}, Start Id: {StartId}", 
             batchCount, 
             processFromDate,
-            startId);
+            sanitizedStartIdForLog);
 
         handler.Process(batchCount, processFromDate, startId);
 
