@@ -2,6 +2,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
@@ -38,6 +39,7 @@ public class AzureResourceManagerService : IResourceManager
     private readonly ArmClient _armClient;
     private readonly TokenCredential _credentials;
     private readonly IServiceOwnerRepository _serviceOwnerRepository;
+    private readonly ApplicationDbContext _dbContext;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly ILogger<AzureResourceManagerService> _logger;
     private string GetResourceGroupName(ServiceOwnerEntity serviceOwner) => $"serviceowner-{_resourceManagerOptions.Environment}-{serviceOwner.Name}-rg";
@@ -63,6 +65,7 @@ public class AzureResourceManagerService : IResourceManager
     public AzureResourceManagerService(
         IOptions<AzureResourceManagerOptions> resourceManagerOptions,
         IServiceOwnerRepository serviceOwnerRepository,
+        ApplicationDbContext dbContext,
         IHostEnvironment hostingEnvironment,
         IBackgroundJobClient backgroundJobClient,
         ILogger<AzureResourceManagerService> logger)
@@ -72,6 +75,7 @@ public class AzureResourceManagerService : IResourceManager
         _credentials = new DefaultAzureCredential();
         _armClient = new ArmClient(_credentials);
         _serviceOwnerRepository = serviceOwnerRepository;
+        _dbContext = dbContext;
         _backgroundJobClient = backgroundJobClient;
         _logger = logger;
     }
@@ -131,6 +135,7 @@ public class AzureResourceManagerService : IResourceManager
         await ConfigureBlobDiagnosticSettings(blobService, cancellationToken);
 
         await _serviceOwnerRepository.InitializeStorageProvider(serviceOwnerEntity.Id, storageAccountName, virusScan ? StorageProviderType.Altinn3Azure : StorageProviderType.Altinn3AzureWithoutVirusScan);
+        await _dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation($"Storage account {storageAccountName} created");
     }
 

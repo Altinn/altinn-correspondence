@@ -192,6 +192,7 @@ public class InitializeCorrespondencesHandler(
         logger.LogInformation("Creating Dialogporten dialog for correspondence {CorrespondenceId}", correspondenceId);
         var dialogId = await dialogportenService.CreateCorrespondenceDialog(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
         logger.LogInformation("Successfully created Dialogporten dialog for correspondence {CorrespondenceId}", correspondenceId);
     }
 
@@ -200,6 +201,7 @@ public class InitializeCorrespondencesHandler(
         logger.LogInformation("Creating Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
         var transmissionId = await dialogportenService.CreateDialogTransmission(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
     }
 

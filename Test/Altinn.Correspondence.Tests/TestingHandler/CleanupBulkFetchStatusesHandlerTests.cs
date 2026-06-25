@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -17,7 +18,7 @@ public class CleanupBulkFetchStatusesHandlerTests
         var repo = new Mock<ICorrespondenceStatusRepository>();
         var backgroundJobClient = new Mock<IBackgroundJobClient>();
         var logger = new Mock<ILogger<CleanupBulkFetchStatusesHandler>>();
-        var handler = new CleanupBulkFetchStatusesHandler(repo.Object, backgroundJobClient.Object, logger.Object);
+        var handler = new CleanupBulkFetchStatusesHandler(repo.Object, backgroundJobClient.Object, TestDbContextFactory.Create(), logger.Object);
         return (handler, repo);
     }
 

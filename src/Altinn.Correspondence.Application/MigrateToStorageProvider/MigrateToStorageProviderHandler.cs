@@ -2,6 +2,7 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -16,6 +17,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
         IStorageRepository storageRepository,
         AttachmentHelper attachmentHelper,
         IBackgroundJobClient backgroundJobClient,
+        ApplicationDbContext dbContext,
         ILogger<MigrateToStorageProviderHandler> logger) : IHandler<string, bool>
     {
         public async Task<OneOf<bool, Error>> Process(string resourceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -92,6 +94,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
                     throw new Exception($"Unsuccessful! Uploaded file size differed from one defined on attachment. Got {uploadResult.size} but expected {attachment.AttachmentSize}");
                 }
                 await attachmentRepository.SetStorageProvider(attachmentId, storageProvider, uploadResult.locationUrl, CancellationToken.None);
+                await dbContext.SaveChangesAsync(CancellationToken.None);
             } 
             catch (Exception e)
             {

@@ -412,14 +412,9 @@ public class DatabaseTransactionHelperTests
     {
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            if (DeferSaveChanges)
-            {
-                throw new DbUpdateException(
-                    "duplicate key",
-                    new PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505"));
-            }
-
-            return base.SaveChangesAsync(cancellationToken);
+            throw new DbUpdateException(
+                "duplicate key",
+                new PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505"));
         }
     }
 

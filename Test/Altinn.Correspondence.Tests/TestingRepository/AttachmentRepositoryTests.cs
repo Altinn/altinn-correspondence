@@ -72,6 +72,7 @@ public class AttachmentRepositoryTests
 
         // Act
         var deleted = await repo.HardDeleteOrphanedAttachments([orphanA.Id, linkedB.Id, orphanC.Id], CancellationToken.None);
+        await context.SaveChangesAsync();
 
         // Assert
         Assert.Equal(2, deleted); // orphanA and orphanC
@@ -147,6 +148,7 @@ public class AttachmentRepositoryTests
 
         // Act
         var deleted = await repo.HardDeleteOrphanedAttachments(idsToDelete, CancellationToken.None);
+        await context.SaveChangesAsync();
 
         // Assert
         Assert.Equal(1000, deleted);
@@ -158,7 +160,7 @@ public class AttachmentRepositoryTests
     }
 
     [Fact]
-    public async Task SetDataLocationUrl_WithDeferredSave_StagesUpdateAndReportsSuccess()
+    public async Task SetDataLocationUrl_StagesUpdateUntilExplicitSave()
     {
         await using var context = TestDbContextFactory.Create();
         var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
@@ -174,16 +176,14 @@ public class AttachmentRepositoryTests
         context.Attachments.Add(attachment);
         await context.SaveChangesAsync();
 
-        context.DeferSaveChanges = true;
-        var staged = await repo.SetDataLocationUrl(
+        await repo.SetDataLocationUrl(
             attachment,
             AttachmentDataLocationType.AltinnCorrespondenceAttachment,
             "https://storage.example/attachment",
             null,
             CancellationToken.None);
 
-        Assert.True(staged);
-        context.DeferSaveChanges = false;
+        Assert.Equal("https://storage.example/attachment", attachment.DataLocationUrl);
         await context.SaveChangesAsync();
 
         await context.Entry(attachment).ReloadAsync();

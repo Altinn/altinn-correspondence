@@ -1,10 +1,11 @@
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
-using Hangfire;
-using Altinn.Correspondence.Core.Services;
 
 namespace Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 
@@ -12,6 +13,7 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
     IConfidentialReminderRepository confidentialReminderRepository,
     IDialogportenService dialogportenService,
     IBackgroundJobClient backgroundJobClient,
+    ApplicationDbContext dbContext,
     ILogger<PurgeDialogAndDeleteReminderForReadCorrespondencesHandler> logger) : IHandler<PurgeDialogAndDeleteReminderForReadCorrespondencesResponse>
 {
     public Task<OneOf<PurgeDialogAndDeleteReminderForReadCorrespondencesResponse, Error>> Process(ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -105,6 +107,7 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
         try
         {
         await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(reminder.CorrespondenceId, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogInformation(
             "Deleted confidential reminder {reminderId} | CorrespondenceId: {correspondenceId} | DialogId: {dialogId}",
             reminder.Id, reminder.CorrespondenceId, reminder.DialogId);

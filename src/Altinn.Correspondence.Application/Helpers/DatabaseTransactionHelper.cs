@@ -99,40 +99,32 @@ public static class DatabaseTransactionHelper
     {
         return await ExecuteWithRetryAsync(dbContext, async ct =>
         {
-            dbContext.DeferSaveChanges = true;
+            using var transaction = new TransactionScope(
+                TransactionScopeOption.Required,
+                new TransactionOptions
+                {
+                    IsolationLevel = IsolationLevel.ReadCommitted,
+                    Timeout = TimeSpan.FromSeconds(30)
+                },
+                TransactionScopeAsyncFlowOption.Enabled);
+
+            var result = await operation(ct);
             try
             {
-                using var transaction = new TransactionScope(
-                    TransactionScopeOption.Required,
-                    new TransactionOptions
-                    {
-                        IsolationLevel = IsolationLevel.ReadCommitted,
-                        Timeout = TimeSpan.FromSeconds(30)
-                    },
-                    TransactionScopeAsyncFlowOption.Enabled);
-
-                var result = await operation(ct);
-                try
-                {
-                    await dbContext.SaveChangesAsync(ct);
-                }
-                catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
-                {
-                    if (options.OnUniqueViolation is { } onUniqueViolation)
-                    {
-                        return onUniqueViolation(ex);
-                    }
-
-                    throw;
-                }
-
-                transaction.Complete();
-                return result;
+                await dbContext.SaveChangesAsync(ct);
             }
-            finally
+            catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
             {
-                dbContext.DeferSaveChanges = false;
+                if (options.OnUniqueViolation is { } onUniqueViolation)
+                {
+                    return onUniqueViolation(ex);
+                }
+
+                throw;
             }
+
+            transaction.Complete();
+            return result;
         }, cancellationToken);
     }
 

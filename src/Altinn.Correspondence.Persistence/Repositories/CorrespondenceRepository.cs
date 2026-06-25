@@ -44,13 +44,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<CorrespondenceEntity> CreateCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
-            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return correspondence;
         }
         public async Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
-            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return correspondences;
         }
 
@@ -200,7 +198,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 ReferenceType = referenceType,
                 ReferenceValue = referenceValue
             });
-            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
         }
 
         public async Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
@@ -216,7 +213,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (correspondence != null)
             {
                 correspondence.Published = published;
-                await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             }
         }
         public async Task UpdateIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken)
@@ -225,7 +221,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (correspondence != null)
             {
                 correspondence.IsMigrating = isMigrating;
-                await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             }
         }
 
@@ -457,7 +452,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
             _context.Correspondences.RemoveRange(entities);
-            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return entities.Count;
         }
 

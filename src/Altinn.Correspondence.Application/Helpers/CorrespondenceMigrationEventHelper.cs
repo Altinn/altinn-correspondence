@@ -49,11 +49,10 @@ public class CorrespondenceMigrationEventHelper(
 
             try
             {
-                bool wasSaved = await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, operationName, ct);
+                await StoreStatusEventAsCorrespondenceStatus(correspondence, eventToExecute, DateTimeOffset.UtcNow, operationName, ct);
 
-                if (!wasSaved)
+                if (!await TrySaveChangesAsync(ct, $"Status event was a duplicate for correspondence {correspondenceId}, skipping background job processing."))
                 {
-                    logger.LogDebug("Status event was a duplicate for correspondence {CorrespondenceId}, skipping background job processing.", correspondenceId);
                     return false;
                 }
 
@@ -292,32 +291,25 @@ public class CorrespondenceMigrationEventHelper(
             try
             {
                 var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
-                try
+                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
                 {
-                    await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
-                    {
-                        Id = purgeIdempotencyId,
-                        CorrespondenceId = correspondence.Id,
-                        AttachmentId = null,
-                        PartyUrn = null,
-                        StatusAction = null,
-                        IdempotencyType = IdempotencyType.PurgeCorrespondence
-                    }, ct);
-                }
-                catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
-                {
-                    logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
-                    return false;
-                }
+                    Id = purgeIdempotencyId,
+                    CorrespondenceId = correspondence.Id,
+                    AttachmentId = null,
+                    PartyUrn = null,
+                    StatusAction = null,
+                    IdempotencyType = IdempotencyType.PurgeCorrespondence
+                }, ct);
 
                 DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
 
-                bool statusSaved = await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, operationName, ct);
-                bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, ct);
+                await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, operationName, ct);
+                await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, ct);
 
-                if (!statusSaved || !eventSaved)
+                await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, ct);
+
+                if (!await TrySaveChangesAsync(ct, $"Purge events were duplicates for correspondence {correspondence.Id}, skipping background job processing"))
                 {
-                    logger.LogDebug("Purge events were duplicates for correspondence {CorrespondenceId}, skipping background job processing", correspondence.Id);
                     return false;
                 }
 
@@ -335,8 +327,6 @@ public class CorrespondenceMigrationEventHelper(
                 {
                     backgroundJobClient.Enqueue<IEventBus>(HangfireQueues.LiveMigration, (eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
                 }
-
-                await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, ct);
 
                 var dialogReference = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
                 if (dialogReference is not null)
@@ -389,11 +379,10 @@ public class CorrespondenceMigrationEventHelper(
             try
             {
                 DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
-                bool eventSaved = await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, ct);
+                await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, ct);
 
-                if (!eventSaved)
+                if (!await TrySaveChangesAsync(ct, $"Soft delete/restore event was a duplicate for correspondence {correspondence.Id}, skipping Dialogporten update"))
                 {
-                    logger.LogDebug("Soft delete/restore event was a duplicate for correspondence {CorrespondenceId}, skipping Dialogporten update", correspondence.Id);
                     return false;
                 }
 
@@ -425,7 +414,7 @@ public class CorrespondenceMigrationEventHelper(
         }, cancellationToken);
     }
 
-    public async Task<bool> StoreStatusEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, DateTimeOffset syncedTimestamp, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public Task StoreStatusEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatusEntity statusEventToSync, DateTimeOffset syncedTimestamp, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         CorrespondenceStatusEntity statusToSave = new CorrespondenceStatusEntity()
         {
@@ -436,11 +425,10 @@ public class CorrespondenceMigrationEventHelper(
             PartyUuid = statusEventToSync.PartyUuid,
             SyncedFromAltinn2 = syncedTimestamp
         };
-        var savedId = await correspondenceStatusRepository.AddCorrespondenceStatusForSync(statusToSave, cancellationToken);
-        return savedId != Guid.Empty; // Return true if saved, false if duplicate
+        return correspondenceStatusRepository.AddCorrespondenceStatusForSync(statusToSave, cancellationToken);
     }
 
-    public async Task<bool> StoreDeleteEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatus statusCodeToSave, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, MigrationOperationType operationName, CancellationToken cancellationToken)
+    public Task StoreDeleteEventAsCorrespondenceStatus(CorrespondenceEntity correspondence, CorrespondenceStatus statusCodeToSave, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, MigrationOperationType operationName, CancellationToken cancellationToken)
     {
         CorrespondenceStatusEntity statusToSave = new CorrespondenceStatusEntity()
         {
@@ -451,18 +439,15 @@ public class CorrespondenceMigrationEventHelper(
             PartyUuid = deleteEventToSync.PartyUuid,
             SyncedFromAltinn2 = syncedTimestamp
         };
-        var savedId = await correspondenceStatusRepository.AddCorrespondenceStatusForSync(statusToSave, cancellationToken);
-        return savedId != Guid.Empty; // Return true if saved, false if duplicate
+        return correspondenceStatusRepository.AddCorrespondenceStatusForSync(statusToSave, cancellationToken);
     }
 
-    public async Task<bool> StoreDeleteEventForCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
+    public Task StoreDeleteEventForCorrespondence(CorrespondenceEntity correspondence, CorrespondenceDeleteEventEntity deleteEventToSync, DateTimeOffset syncedTimestamp, CancellationToken cancellationToken)
     {
         deleteEventToSync.CorrespondenceId = correspondence.Id;        
         deleteEventToSync.Correspondence = null; // Clear navigation property to prevent EF Core from tracking the correspondence entity
         deleteEventToSync.SyncedFromAltinn2 = syncedTimestamp;
-        var savedId = await correspondenceDeleteEventRepository.AddDeleteEventForSync(deleteEventToSync, cancellationToken);
-        // Check if the returned entity has an ID (was saved) or if it's a duplicate
-        return savedId != Guid.Empty;
+        return correspondenceDeleteEventRepository.AddDeleteEventForSync(deleteEventToSync, cancellationToken);
     }
 
     public void SetSoftDeleteOrRestoreOnDialog(Guid correspondenceId, string endUserId, CorrespondenceDeleteEventType eventType, bool isArchived)
@@ -622,40 +607,37 @@ public class CorrespondenceMigrationEventHelper(
                     notification.Correspondence = null;
                     notification.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
 
-                    var savedId = await correspondenceNotificationRepository.AddNotificationForSync(notification, ct);
+                    await correspondenceNotificationRepository.AddNotificationForSync(notification, ct);
 
-                    if (savedId != Guid.Empty)
+                    if (!await TrySaveChangesAsync(ct, $"Notification event was a duplicate for correspondence {correspondenceId}, skipping"))
                     {
-                        savedCount++;
-                        logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
-
-                        if (correspondence.IsMigrating == false && notification.NotificationSent.HasValue)
-                        {
-                            var textType = notification.IsReminder
-                                ? DialogportenTextType.NotificationReminderSent
-                                : DialogportenTextType.NotificationSent;
-                            string channelType = notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS";
-
-                            backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration,
-                                (dialogportenService) => dialogportenService.CreateInformationActivity(
-                                    correspondenceId,
-                                    DialogportenActorType.ServiceOwner,
-                                    textType,
-                                    notification.NotificationSent.Value,
-                                    notification.NotificationAddress ?? string.Empty,
-                                    channelType));
-
-                            logger.LogInformation("Enqueued Dialogporten activity for {OperationName} notification {NotificationId} at {NotificationSent}",
-                                operationName, savedId, notification.NotificationSent.Value);
-                        }
-
-                        transaction.Complete();
-                    }
-                    else
-                    {
-                        logger.LogDebug("Notification event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
+                        return true;
                     }
 
+                    savedCount++;
+                    logger.LogDebug("Added new notification {NotificationId} for correspondence {CorrespondenceId}", notification.Id, correspondenceId);
+
+                    if (correspondence.IsMigrating == false && notification.NotificationSent.HasValue)
+                    {
+                        var textType = notification.IsReminder
+                            ? DialogportenTextType.NotificationReminderSent
+                            : DialogportenTextType.NotificationSent;
+                        string channelType = notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS";
+
+                        backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration,
+                            (dialogportenService) => dialogportenService.CreateInformationActivity(
+                                correspondenceId,
+                                DialogportenActorType.ServiceOwner,
+                                textType,
+                                notification.NotificationSent.Value,
+                                notification.NotificationAddress ?? string.Empty,
+                                channelType));
+
+                        logger.LogInformation("Enqueued Dialogporten activity for {OperationName} notification {NotificationId} at {NotificationSent}",
+                            operationName, notification.Id, notification.NotificationSent.Value);
+                    }
+
+                    transaction.Complete();
                     return true;
                 }
                 catch (Exception ex)
@@ -701,25 +683,22 @@ public class CorrespondenceMigrationEventHelper(
                     forwardingEvent.Correspondence = null;
                     forwardingEvent.SyncedFromAltinn2 = DateTimeOffset.UtcNow;
 
-                    var savedId = await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, ct);
+                    await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, ct);
 
-                    if (savedId != Guid.Empty)
+                    if (!await TrySaveChangesAsync(ct, $"Forwarding event was a duplicate for correspondence {correspondenceId}, skipping"))
                     {
-                        savedCount++;
-                        logger.LogDebug("Added new forwarding event {ForwardingEventId} for correspondence {CorrespondenceId}", savedId, correspondenceId);
-
-                        if (correspondence.IsMigrating == false)
-                        {
-                            backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(savedId, CancellationToken.None));
-                        }
-
-                        transaction.Complete();
-                    }
-                    else
-                    {
-                        logger.LogDebug("Forwarding event was a duplicate for correspondence {CorrespondenceId}, skipping", correspondenceId);
+                        return true;
                     }
 
+                    savedCount++;
+                    logger.LogDebug("Added new forwarding event {ForwardingEventId} for correspondence {CorrespondenceId}", forwardingEvent.Id, correspondenceId);
+
+                    if (correspondence.IsMigrating == false)
+                    {
+                        backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.LiveMigration, service => service.AddForwardingEvent(forwardingEvent.Id, CancellationToken.None));
+                    }
+
+                    transaction.Complete();
                     return true;
                 }
                 catch (Exception ex)
@@ -872,5 +851,19 @@ public class CorrespondenceMigrationEventHelper(
         }
 
         return totalEventsProcessed;
+    }
+
+    private async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken, string duplicateLogMessage)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
+        {
+            logger.LogDebug(ex, duplicateLogMessage);
+            return false;
+        }
     }
 }

@@ -10,26 +10,23 @@ namespace Altinn.Correspondence.Tests.Fixtures;
 /// </summary>
 public sealed class UniqueViolationOnDeferredSaveDbContext(
     DbContextOptions<ApplicationDbContext> options,
-    int uniqueViolationOnDeferredSaveAttempt = 1)
+    int uniqueViolationOnSaveAttempt = 1)
     : TestApplicationDbContext(options)
 {
-    private int _deferredSaveAttempts;
+    private int _saveAttempts;
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        if (DeferSaveChanges)
+        _saveAttempts++;
+        if (_saveAttempts == uniqueViolationOnSaveAttempt)
         {
-            _deferredSaveAttempts++;
-            if (_deferredSaveAttempts == uniqueViolationOnDeferredSaveAttempt)
-            {
-                throw new DbUpdateException(
-                    "duplicate key",
-                    new PostgresException(
-                        "duplicate key value violates unique constraint",
-                        "ERROR",
-                        "ERROR",
-                        "23505"));
-            }
+            throw new DbUpdateException(
+                "duplicate key",
+                new PostgresException(
+                    "duplicate key value violates unique constraint",
+                    "ERROR",
+                    "ERROR",
+                    "23505"));
         }
 
         return await base.SaveChangesAsync(cancellationToken);

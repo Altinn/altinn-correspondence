@@ -10,6 +10,9 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Altinn.Correspondence.Persistence;
+using Altinn.Correspondence.Tests.Helpers;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -21,6 +24,8 @@ namespace Altinn.Correspondence.Tests.Dialogporten;
 
 public class DialogportenServiceTests
 {
+    private static ApplicationDbContext CreateTestDbContext() => TestDbContextFactory.Create();
+
     private static (DialogportenService service, Func<string> getLastRequestBody) CreateServiceWithMockedDialogPost(CorrespondenceEntity correspondence)
     {
         var capturedRequestBody = string.Empty;
@@ -76,6 +81,7 @@ public class DialogportenServiceTests
                                               mockLogger.Object,
                                               mockIdem.Object,
                                               mockResourceRegistryService.Object,
+                                              CreateTestDbContext(),
                                               mockPartyUrnHelper.Object);
         return (service, () => capturedRequestBody);
     }
@@ -141,6 +147,7 @@ public class DialogportenServiceTests
                                               mockLogger.Object,
                                               mockIdem.Object,
                                               mockResourceRegistryService.Object,
+                                              CreateTestDbContext(),
                                               mockPartyUrnHelper.Object);
         return (service, mockCorrespondenceForwardingEventRepository, mockAltinnRegisterService, () => capturedRequestBody);
     }

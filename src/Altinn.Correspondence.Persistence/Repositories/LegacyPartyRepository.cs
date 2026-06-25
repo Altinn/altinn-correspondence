@@ -11,7 +11,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task AddLegacyPartyId(int id, CancellationToken cancellationToken)
         {
             await _context.LegacyParties.AddAsync(new LegacyPartyEntity { PartyId = id }, cancellationToken);
-            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
         }
 
         public async Task<bool> PartyAlreadyExists(int partyId, CancellationToken cancellationToken)

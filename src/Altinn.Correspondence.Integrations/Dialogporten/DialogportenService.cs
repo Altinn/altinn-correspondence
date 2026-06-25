@@ -14,6 +14,7 @@ using Altinn.Correspondence.Integrations.Dialogporten.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Altinn.Correspondence.Persistence;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -31,6 +32,7 @@ public class DialogportenService(HttpClient _httpClient,
                                  ILogger<DialogportenService> logger,
                                  IIdempotencyKeyRepository _idempotencyKeyRepository,
                                  IResourceRegistryService _resourceRegistryService,
+                                 ApplicationDbContext dbContext,
                                  PartyUrnHelper partyUrnHelper) : IDialogportenService
 {
     public async Task<string> CreateCorrespondenceDialog(Guid correspondenceId)
@@ -229,6 +231,7 @@ public class DialogportenService(HttpClient _httpClient,
                     IdempotencyType = IdempotencyType.DialogportenActivity
                 },
                 cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         await CreateInformationActivity(correspondenceId, actorType, DialogportenTextType.DownloadStarted, partyUrn, existingIdempotencyKey.Id, activityTimestamp, tokens);
@@ -345,6 +348,7 @@ public class DialogportenService(HttpClient _httpClient,
                         IdempotencyType = IdempotencyType.DialogportenActivity
                     },
                     cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
             createDialogActivityRequest.Id = existingIdempotencyKey.Id.ToString();
         }
@@ -483,6 +487,7 @@ public class DialogportenService(HttpClient _httpClient,
                     IdempotencyType = IdempotencyType.DialogportenActivity
                 },
                 cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         var createDialogActivityRequest = CreateOpenedActivityRequest(correspondence, actorType, activityTimestamp, partyUrn);
@@ -563,6 +568,7 @@ public class DialogportenService(HttpClient _httpClient,
                     IdempotencyType = IdempotencyType.DialogportenActivity
                 },
                 cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.CorrespondenceConfirmed, partyUrn, activityTimestamp);
@@ -713,6 +719,7 @@ public class DialogportenService(HttpClient _httpClient,
                 IdempotencyType = IdempotencyType.DialogportenActivity
             };
             await _idempotencyKeyRepository.CreateAsync(existingIdempotencyKey, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         var createDialogActivityRequest = CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, Models.ActivityType.DialogDeleted, partyUrn, activityTimestamp);
@@ -802,6 +809,7 @@ public class DialogportenService(HttpClient _httpClient,
             attachmentIdempotencyKeys.Add(downloadIdempotencyKey);
         }
         await _idempotencyKeyRepository.CreateRangeAsync(attachmentIdempotencyKeys, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return (openActivityId, confirmActivityId);
     }
@@ -1323,6 +1331,7 @@ public class DialogportenService(HttpClient _httpClient,
         if (persistNewActivityId)
         {
             await correspondenceForwardingEventRepository.SetDialogActivityId(forwardingEvent.Id, dialogActivityId, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
             forwardingEvent.DialogActivityId = dialogActivityId;
         }
 
