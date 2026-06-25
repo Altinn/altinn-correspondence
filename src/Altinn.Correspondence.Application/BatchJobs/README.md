@@ -170,6 +170,9 @@ BuildProgressMetrics = request => new Dictionary<string, object?>
 },
 ```
 
+
+Exactly one of `EnqueueWorkerJob` or `ProcessBatchAsync` must be defined.
+
 ## Processing modes
 
 ### Mode A: Simple fan-out
@@ -351,7 +354,7 @@ services.AddScoped<MyBatchJob>();
 services.AddScoped<MyHandler>();
 ```
 
-`ChainedBatchJobOrchestrator` is a singleton-scoped service (registered as scoped, like all handlers). Only one registration is needed for the whole application.
+`ChainedBatchJobOrchestrator` is a scoped service (registered with `AddScoped`, like all handlers). Only one registration is needed for the whole application.
 
 ### 5. Add an API endpoint
 

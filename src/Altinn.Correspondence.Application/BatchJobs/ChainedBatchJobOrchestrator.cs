@@ -93,45 +93,38 @@ public class ChainedBatchJobOrchestrator(
             return;
         }
 
-        var processedState = definition.ProcessBatchAsync is not null
-            ? await definition.ProcessBatchAsync(state, fetchResult.Items, cancellationToken)
+        var hasProcessBatchAsync = definition.ProcessBatchAsync is not null;
+        var hasEnqueueWorkerJob = definition.EnqueueWorkerJob is not null;
+        if (hasProcessBatchAsync == hasEnqueueWorkerJob)
+        {
+            throw new InvalidOperationException(
+                hasProcessBatchAsync
+                    ? $"{settings.JobName} must define exactly one of ProcessBatchAsync or EnqueueWorkerJob, not both."
+                    : $"{settings.JobName} must define either ProcessBatchAsync or EnqueueWorkerJob.");
+        }
+
+        var processedState = hasProcessBatchAsync
+            ? await definition.ProcessBatchAsync!(state, fetchResult.Items, cancellationToken)
             : state;
 
-        KeysetCursor? batchEndCursor = null;
         if (fetchResult.HasMoreBatches)
         {
             var last = fetchResult.Items[^1];
-            batchEndCursor = definition.GetCursorFromItem(last);
-            var nextState = definition.CreateNextState(processedState, batchEndCursor, fetchResult.Items.Count);
-            logger.LogInformation("{JobName}: enqueuing next batch after cursor {CursorId}", settings.JobName, batchEndCursor.Id);
+            var cursor = definition.GetCursorFromItem(last);
+            var nextState = definition.CreateNextState(processedState, cursor, fetchResult.Items.Count);
+            logger.LogInformation("{JobName}: enqueuing next batch after cursor {CursorId}", settings.JobName, cursor.Id);
             definition.EnqueueNextBatch(nextState);
         }
         else
         {
-            await progressReporter.ReportAsync(
-                settings.JobName,
-                ChainedBatchJobPhase.Completed,
-                processedState,
-                lastBatchItemCount: fetchResult.Items.Count,
-                hasMoreBatches: false,
-                workerQueueDepth: enqueuedJobs,
-                backpressureLimit: backpressureLimit,
-                batchEndCursor: definition.GetCursorFromItem(fetchResult.Items[^1]),
-                definition.BuildProgressMetrics,
-                cancellationToken);
             definition.OnComplete?.Invoke(processedState);
         }
 
-        if (definition.ProcessBatchAsync is null)
+        if (hasEnqueueWorkerJob)
         {
-            if (definition.EnqueueWorkerJob is null)
-            {
-                throw new InvalidOperationException($"{settings.JobName} must define either ProcessBatchAsync or EnqueueWorkerJob.");
-            }
-
             foreach (var item in fetchResult.Items)
             {
-                definition.EnqueueWorkerJob(item, state);
+                definition.EnqueueWorkerJob!(item, state);
             }
 
             logger.LogInformation("{JobName}: finished queuing {Count} worker jobs", settings.JobName, fetchResult.Items.Count);
