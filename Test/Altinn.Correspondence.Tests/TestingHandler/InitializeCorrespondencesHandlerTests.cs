@@ -32,6 +32,8 @@ public class InitializeCorrespondencesHandlerTests
             hangfireBackgroundJobClient.Object,
             Mock.Of<IHybridCacheWrapper>(),
             correspondenceRepository.Object,
+            Mock.Of<IIdempotencyKeyRepository>(),
+            TestDbContextFactory.Create(),
             NullLogger<HangfireScheduleHelper>.Instance);
 
         var handler = new InitializeCorrespondencesHandler(
