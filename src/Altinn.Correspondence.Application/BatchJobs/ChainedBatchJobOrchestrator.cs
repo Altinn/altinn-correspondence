@@ -45,8 +45,18 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
             return;
         }
 
-        var processedState = definition.ProcessBatchAsync is not null
-            ? await definition.ProcessBatchAsync(state, fetchResult.Items, cancellationToken)
+        var hasProcessBatchAsync = definition.ProcessBatchAsync is not null;
+        var hasEnqueueWorkerJob = definition.EnqueueWorkerJob is not null;
+        if (hasProcessBatchAsync == hasEnqueueWorkerJob)
+        {
+            throw new InvalidOperationException(
+                hasProcessBatchAsync
+                    ? $"{settings.JobName} must define exactly one of ProcessBatchAsync or EnqueueWorkerJob, not both."
+                    : $"{settings.JobName} must define either ProcessBatchAsync or EnqueueWorkerJob.");
+        }
+
+        var processedState = hasProcessBatchAsync
+            ? await definition.ProcessBatchAsync!(state, fetchResult.Items, cancellationToken)
             : state;
 
         if (fetchResult.HasMoreBatches)
@@ -62,16 +72,11 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
             definition.OnComplete?.Invoke(processedState);
         }
 
-        if (definition.ProcessBatchAsync is null)
+        if (hasEnqueueWorkerJob)
         {
-            if (definition.EnqueueWorkerJob is null)
-            {
-                throw new InvalidOperationException($"{settings.JobName} must define either ProcessBatchAsync or EnqueueWorkerJob.");
-            }
-
             foreach (var item in fetchResult.Items)
             {
-                definition.EnqueueWorkerJob(item, state);
+                definition.EnqueueWorkerJob!(item, state);
             }
 
             logger.LogInformation("{JobName}: finished queuing {Count} worker jobs", settings.JobName, fetchResult.Items.Count);
