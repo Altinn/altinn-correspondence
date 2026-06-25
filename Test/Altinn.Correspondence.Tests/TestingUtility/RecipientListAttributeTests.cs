@@ -31,4 +31,24 @@ public class RecipientListAttributeTests
         Assert.NotEqual(ValidationResult.Success, result);
         Assert.Equal("The given Recipient email address is not valid", result?.ErrorMessage);
     }
+
+    [Fact]
+    public void IsValid_ReturnsSuccess_For_Valid_Legacy_SelfIdentified_Urn()
+    {
+        var result = _attribute.GetValidationResult(
+            new List<string> { "urn:altinn:person:legacy-selfidentified:axely123" },
+            _validationContext);
+
+        Assert.Equal(ValidationResult.Success, result);
+    }
+
+    [Fact]
+    public void IsValid_ReturnsSuccess_For_Legacy_SelfIdentified_Urn_With_Colon_In_Username()
+    {
+        var result = _attribute.GetValidationResult(
+            new List<string> { "urn:altinn:person:legacy-selfidentified:email:test@example.com" },
+            _validationContext);
+
+        Assert.Equal(ValidationResult.Success, result);
+    }
 }
