@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -20,7 +21,8 @@ public class MarkCorrespondenceAsReadHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
     IEventBus eventBus,
-    ILogger<MarkCorrespondenceAsReadHandler> logger) : IHandler<MarkCorrespondenceAsReadRequest, Guid>
+    ILogger<MarkCorrespondenceAsReadHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<MarkCorrespondenceAsReadRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(MarkCorrespondenceAsReadRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -70,7 +72,7 @@ public class MarkCorrespondenceAsReadHandler(
         }
 
         logger.LogInformation("Executing mark as read transaction for correspondence {CorrespondenceId}", request.CorrespondenceId);
-        await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+        await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             var operationTimestamp = DateTime.UtcNow;
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
@@ -92,7 +94,7 @@ public class MarkCorrespondenceAsReadHandler(
                     CancellationToken.None));
             }
             return Task.CompletedTask;
-        }, logger, cancellationToken);
+        }, cancellationToken);
 
         logger.LogInformation("Successfully marked correspondence {CorrespondenceId} as read", 
             request.CorrespondenceId);

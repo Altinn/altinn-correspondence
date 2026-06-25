@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence.Helpers;
 using Altinn.Correspondence.Persistence.Repositories;
 using Azure.Core;
 using Azure.Identity;
@@ -17,7 +18,11 @@ public static class DependencyInjection
         services.AddSingleton(BuildAzureNpgsqlDataSource(config, bootstrapLogger));
         services.AddDbContext<ApplicationDbContext>(entityFrameworkConfig =>
         {
-            entityFrameworkConfig.UseNpgsql();
+            entityFrameworkConfig.UseNpgsql(npgsql =>
+            {
+                npgsql.ExecutionStrategy(dependencies =>
+                    new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies));
+            });
         });
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<IAttachmentStatusRepository, AttachmentStatusRepository>();

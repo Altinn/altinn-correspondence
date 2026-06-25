@@ -3,6 +3,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using OneOf;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,8 @@ public class PurgeAttachmentHandler(
     IStorageRepository storageRepository,
     ICorrespondenceRepository correspondenceRepository,
     IBackgroundJobClient backgroundJobClient,
-    ILogger<PurgeAttachmentHandler> logger) : IHandler<Guid, Guid>
+    ILogger<PurgeAttachmentHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<Guid, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -76,7 +78,7 @@ public class PurgeAttachmentHandler(
         logger.LogInformation("Starting purge process for attachment {AttachmentId} with storage provider {StorageProvider}", 
             attachmentId,
             attachment.StorageProvider);
-        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             try
             {
@@ -101,6 +103,6 @@ public class PurgeAttachmentHandler(
                     attachment.StorageProvider);
                 throw;
             }
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 }

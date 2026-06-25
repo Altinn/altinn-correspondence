@@ -3,24 +3,18 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Tests.TestingRepository;
 
-public class IdempotencyKeyRepositoryTests : IClassFixture<PostgresTestcontainerFixture>
+public class IdempotencyKeyRepositoryTests
 {
-    private readonly PostgresTestcontainerFixture _fixture;
-
-    public IdempotencyKeyRepositoryTests(PostgresTestcontainerFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
     [Fact]
     public async Task DeleteByCorrespondenceIds_DeletesOnlyMatchingCorrespondenceKeys()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var idempotencyKeyRepository = new IdempotencyKeyRepository(context);
 
         var correspondenceA = new CorrespondenceEntityBuilder().Build();
@@ -50,7 +44,7 @@ public class IdempotencyKeyRepositoryTests : IClassFixture<PostgresTestcontainer
     public async Task DeleteByCorrespondenceIds_ExceedsSafetyMargin_ThrowsArgumentException()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new IdempotencyKeyRepository(context);
         var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
 
@@ -95,7 +89,7 @@ public class IdempotencyKeyRepositoryTests : IClassFixture<PostgresTestcontainer
     public async Task DeleteByCorrespondenceIds_ExactlyAtSafetyMargin_DeletesSuccessfully()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new IdempotencyKeyRepository(context);
         var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
 

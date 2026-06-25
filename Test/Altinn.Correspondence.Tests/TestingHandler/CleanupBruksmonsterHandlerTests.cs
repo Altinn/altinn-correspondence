@@ -9,6 +9,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Altinn.Correspondence.Tests.Helpers;
 using Moq;
 
 namespace Altinn.Correspondence.Tests.TestingHandler;
@@ -38,8 +39,8 @@ public class CleanupBruksmonsterHandlerTests
             dialogportenServiceMock.Object,
             correspondenceRepositoryMock.Object,
             idempotencyKeyRepositoryMock.Object,
-            attachmentRepositoryMock.Object
-        );
+            attachmentRepositoryMock.Object,
+            TestDbContextFactory.Create());
     }
 
     [Fact]

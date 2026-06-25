@@ -10,6 +10,7 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -28,7 +29,8 @@ public class CreateNotificationOrderHandler(
     IResourceRegistryService resourceRegistryService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
-    ILogger<CreateNotificationOrderHandler> logger)
+    ILogger<CreateNotificationOrderHandler> logger,
+    ApplicationDbContext dbContext)
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
 
@@ -363,7 +365,7 @@ public class CreateNotificationOrderHandler(
         logger.LogInformation("Persisting {Count} notification order requests for {NotificationId}", notificationOrderRequests.Count, context.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
         {
-            await TransactionWithRetriesPolicy.Execute<Task>(async (ct) =>
+            await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (ct) =>
             {
                 try
                 {
@@ -396,7 +398,7 @@ public class CreateNotificationOrderHandler(
                 };
                 await correspondenceNotificationRepository.AddNotification(notification, ct);
                 return Task.CompletedTask;
-            }, logger, cancellationToken);
+            }, cancellationToken);
         }
     }
 

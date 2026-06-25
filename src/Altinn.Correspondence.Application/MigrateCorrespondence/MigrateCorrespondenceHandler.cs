@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ IDialogportenService dialogportenService,
 HangfireScheduleHelper hangfireScheduleHelper,
 IBackgroundJobClient backgroundJobClient,
 IHostEnvironment hostEnvironment,
+ApplicationDbContext dbContext,
 CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
 ChainedBatchJobOrchestrator chainedBatchJobOrchestrator,
 MakeCorrespondenceAvailableBatchJob makeCorrespondenceAvailableBatchJob,
@@ -113,7 +115,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                 correspondenceRepository.ClearChangeTracker();
 
                 // Process all event types if they exist in the request
-                // Note: We don't use TransactionWithRetriesPolicy here because:
+                // Note: We don't use DatabaseTransactionHelper here because:
                 // 1. ProcessAllEventsForCorrespondence calls loops with multiple SaveChangesAsync() calls
                 // 2. TransactionScope + multiple SaveChanges causes "operation in progress" errors with PostgreSQL
                 // 3. Each event save is already atomic via EF Core's implicit transaction
@@ -245,7 +247,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
             logger.LogError($"Dialogporten service failed to create a dialog for correspondence with id {correspondenceId}");
             return string.Empty;
         }
-        var updateResult = await TransactionWithRetriesPolicy.Execute<string>(async (cancellationToken) =>
+        var updateResult = await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             if (correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
             {
@@ -255,7 +257,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
             await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenDialogId, dialogId);
             await SetIsMigrating(correspondenceId, false, cancellationToken);
             return dialogId;
-        }, logger, cancellationToken);
+        }, cancellationToken);
 
         return dialogId;
     }
