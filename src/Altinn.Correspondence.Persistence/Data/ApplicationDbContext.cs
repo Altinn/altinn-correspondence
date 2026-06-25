@@ -7,8 +7,24 @@ namespace Altinn.Correspondence.Persistence;
 
 public class ApplicationDbContext : DbContext
 {
+    /// <summary>
+    /// When true, repository writes are staged until <see cref="SaveChangesUnlessDeferredAsync"/> is called
+    /// with deferral disabled (e.g. by <c>DatabaseTransactionHelper.ExecuteAsync</c> before commit).
+    /// </summary>
+    public bool DeferSaveChanges { get; set; }
+
     public ApplicationDbContext(DbContextOptions options) : base(options)
     {
+    }
+
+    public async Task<int> SaveChangesUnlessDeferredAsync(CancellationToken cancellationToken = default)
+    {
+        if (DeferSaveChanges)
+        {
+            return 0;
+        }
+
+        return await SaveChangesAsync(cancellationToken);
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

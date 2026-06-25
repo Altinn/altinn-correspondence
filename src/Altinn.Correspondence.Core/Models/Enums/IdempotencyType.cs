@@ -41,3 +41,9 @@ public enum IdempotencyType
     /// </summary>
     NotificationDeliveryResolution = 6,
 }
+
+    /// <summary>
+    /// Indicates that a Hangfire publish job has been scheduled for a correspondence
+    /// </summary>
+    SchedulePublishCorrespondence = 7,
+} 

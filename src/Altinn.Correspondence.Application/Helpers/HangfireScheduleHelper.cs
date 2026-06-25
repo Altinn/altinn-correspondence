@@ -1,19 +1,26 @@
-﻿using Altinn.Correspondence.Application.PublishCorrespondence;
+﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
-    public class HangfireScheduleHelper(IBackgroundJobClient backgroundJobClient,
+    public class HangfireScheduleHelper(
+        IBackgroundJobClient backgroundJobClient,
         IHybridCacheWrapper hybridCacheWrapper,
         ICorrespondenceRepository correspondenceRepository,
+        IIdempotencyKeyRepository idempotencyKeyRepository,
+        ApplicationDbContext dbContext,
         ILogger<HangfireScheduleHelper> logger)
     {
 
@@ -63,18 +70,64 @@ namespace Altinn.Correspondence.Application.Helpers
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
             if (correspondence is null)
             {
-                throw new Exception($"Correspondence with id {correspondenceId} not found when scheduling publish");
+                logger.LogError("Correspondence with id {CorrespondenceId} not found when scheduling publish", correspondenceId);
+                return;
             }
 
-            SchedulePublishAtPublishTime(correspondence, cancellationToken);
+            if (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
+            {
+                logger.LogInformation("Skipping publish schedule for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
+                return;
+            }
+
+            var scheduleIdempotencyId = correspondenceId.CreateVersion5("SchedulePublishCorrespondence");
+            var duplicateCheck = await DatabaseTransactionHelper.Idempotency.CheckAsync(
+                idempotencyKeyRepository,
+                scheduleIdempotencyId,
+                () => Task.CompletedTask,
+                cancellationToken);
+            if (duplicateCheck.IsDuplicate)
+            {
+                logger.LogInformation("Publish already scheduled for correspondence {CorrespondenceId}; skipping", correspondenceId);
+                return;
+            }
+
+            var publishTime = GetActualPublishTime(correspondence.RequestedPublishTime);
+            await DatabaseTransactionHelper.ExecuteAsync(
+                dbContext,
+                async ct =>
+                {
+                    await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
+                    {
+                        Id = scheduleIdempotencyId,
+                        CorrespondenceId = correspondenceId,
+                        AttachmentId = null,
+                        PartyUrn = null,
+                        StatusAction = null,
+                        IdempotencyType = IdempotencyType.SchedulePublishCorrespondence
+                    }, ct);
+
+                    backgroundJobClient.Schedule<PublishCorrespondenceHandler>(
+                        HangfireQueues.Default,
+                        handler => handler.Process(correspondence.Id, null, ct),
+                        publishTime);
+
+                    logger.LogInformation(
+                        "Scheduled publish for correspondence {CorrespondenceId} at {PublishTime}",
+                        correspondenceId,
+                        publishTime);
+
+                    return Task.CompletedTask;
+                },
+                cancellationToken,
+                DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
+                {
+                    logger.LogInformation("Publish already scheduled for correspondence {CorrespondenceId}; skipping", correspondenceId);
+                    return Task.CompletedTask;
+                }));
         }
 
-        public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
-        {
-            backgroundJobClient.Schedule<PublishCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
-        }
-
-        private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now
+        private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime;
 
 
         public async Task CreateActivityAfterDialogCreated(Guid correspondenceId, NotificationOrderRequestV2 notification, DateTimeOffset operationTimestamp)

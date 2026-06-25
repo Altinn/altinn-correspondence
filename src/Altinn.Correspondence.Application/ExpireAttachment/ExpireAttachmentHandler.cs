@@ -6,9 +6,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Persistence;
-using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -63,12 +61,23 @@ public class ExpireAttachmentHandler(
             throw new InvalidOperationException($"Could not find party UUID for sender {attachment.Sender}");
         }
 
-        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
+        var expireIdempotencyId = attachmentId.CreateVersion5("ExpireAttachment");
+        var duplicateCheck = await DatabaseTransactionHelper.Idempotency.CheckAsync(
+            idempotencyKeyRepository,
+            expireIdempotencyId,
+            () => Task.CompletedTask,
+            cancellationToken);
+        if (duplicateCheck.IsDuplicate)
         {
-            var expireIdempotencyId = attachmentId.CreateVersion5("ExpireAttachment");
-            try
+            logger.LogInformation("Expire already processed for attachment {AttachmentId}; skipping", attachmentId);
+            return duplicateCheck.DuplicateResult!;
+        }
+
+        return await DatabaseTransactionHelper.ExecuteAsync(
+            dbContext,
+            async cancellationToken =>
             {
-                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
                 {
                     Id = expireIdempotencyId,
                     CorrespondenceId = null,
@@ -77,34 +86,34 @@ public class ExpireAttachmentHandler(
                     StatusAction = null,
                     IdempotencyType = IdempotencyType.ExpireAttachment
                 }, cancellationToken);
-            }
-            catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+
+                await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
+                {
+                    AttachmentId = attachment.Id,
+                    Status = AttachmentStatus.Expired,
+                    StatusText = "The attachment has expired",
+                    StatusChanged = DateTimeOffset.UtcNow,
+                    PartyUuid = partyUuid
+                }, cancellationToken);
+
+                await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
+
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
+                    AltinnEventType.AttachmentExpired,
+                    attachment.ResourceId,
+                    attachment.Id.ToString(),
+                    "attachment",
+                    attachment.Sender,
+                    CancellationToken.None));
+
+                logger.LogInformation("Successfully expired attachment {AttachmentId} with filename {FileName}", attachmentId, attachment.FileName);
+                return Task.CompletedTask;
+            },
+            cancellationToken,
+            DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
             {
                 logger.LogInformation("Expire already processed for attachment {AttachmentId}; skipping", attachmentId);
                 return Task.CompletedTask;
-            }
-
-            await attachmentStatusRepository.AddAttachmentStatus(new AttachmentStatusEntity
-            {
-                AttachmentId = attachment.Id,
-                Status = AttachmentStatus.Expired,
-                StatusText = "The attachment has expired",
-                StatusChanged = DateTimeOffset.UtcNow,
-                PartyUuid = partyUuid
-            }, cancellationToken);
-
-            await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
-                AltinnEventType.AttachmentExpired,
-                attachment.ResourceId,
-                attachment.Id.ToString(),
-                "attachment",
-                attachment.Sender,
-                CancellationToken.None));
-
-            logger.LogInformation("Successfully expired attachment {AttachmentId} with filename {FileName}", attachmentId, attachment.FileName);
-            return Task.CompletedTask;
-        }, cancellationToken);
+            }));
     }
 }

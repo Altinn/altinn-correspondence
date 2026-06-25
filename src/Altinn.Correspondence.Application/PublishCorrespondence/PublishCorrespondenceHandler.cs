@@ -10,9 +10,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Persistence;
-using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -84,14 +82,27 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
         }
-        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
+
+        var publishIdempotencyId = correspondenceId.CreateVersion5("PublishCorrespondence");
+        var duplicateCheck = await DatabaseTransactionHelper.Idempotency.CheckAsync(
+            idempotencyKeyRepository,
+            publishIdempotencyId,
+            () => Task.CompletedTask,
+            cancellationToken);
+        if (duplicateCheck.IsDuplicate)
         {
-            CorrespondenceStatusEntity status;
-            AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
-            var publishIdempotencyId = correspondenceId.CreateVersion5("PublishCorrespondence");
-            try
+            logger.LogInformation("Publish already completed for correspondence {CorrespondenceId}; skipping", correspondenceId);
+            return duplicateCheck.DuplicateResult!;
+        }
+
+        return await DatabaseTransactionHelper.ExecuteAsync(
+            dbContext,
+            async cancellationToken =>
             {
-                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                CorrespondenceStatusEntity status;
+                AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
+
+                await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
                 {
                     Id = publishIdempotencyId,
                     CorrespondenceId = correspondenceId,
@@ -100,12 +111,6 @@ public class PublishCorrespondenceHandler(
                     StatusAction = null,
                     IdempotencyType = IdempotencyType.PublishCorrespondence
                 }, cancellationToken);
-            }
-            catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
-            {
-                logger.LogInformation("Publish already completed for correspondence {CorrespondenceId}; skipping", correspondenceId);
-                return Task.CompletedTask;
-            }
 
             if (errorMessage.Length > 0)
             {

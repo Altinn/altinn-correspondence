@@ -33,14 +33,14 @@ public class IdempotencyKeyRepository(ApplicationDbContext dbContext, int maxHar
     public async Task<IdempotencyKeyEntity> CreateAsync(IdempotencyKeyEntity idempotencyKey, CancellationToken cancellationToken)
     {
         await _dbContext.IdempotencyKeys.AddAsync(idempotencyKey, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesUnlessDeferredAsync(cancellationToken);
         return idempotencyKey;
     }
 
     public async Task CreateRangeAsync(IEnumerable<IdempotencyKeyEntity> idempotencyKeys, CancellationToken cancellationToken)
     {
         await _dbContext.IdempotencyKeys.AddRangeAsync(idempotencyKeys, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesUnlessDeferredAsync(cancellationToken);
     }
 
     public async Task<IdempotencyKeyEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -54,7 +54,7 @@ public class IdempotencyKeyRepository(ApplicationDbContext dbContext, int maxHar
         if (idempotencyKey != null)
         {
             _dbContext.IdempotencyKeys.Remove(idempotencyKey);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesUnlessDeferredAsync(cancellationToken);
         }
     }
 
@@ -78,6 +78,6 @@ public class IdempotencyKeyRepository(ApplicationDbContext dbContext, int maxHar
             throw new ArgumentException($"Too many idempotency keys to delete. Total idempotency keys in requested hard delete operation: {keys.Count}");
         }
         _dbContext.IdempotencyKeys.RemoveRange(keys);
-        return await _dbContext.SaveChangesAsync(cancellationToken);
+        return await _dbContext.SaveChangesUnlessDeferredAsync(cancellationToken);
     }
 } 

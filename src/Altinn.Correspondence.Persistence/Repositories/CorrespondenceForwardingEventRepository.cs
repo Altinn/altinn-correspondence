@@ -16,7 +16,7 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
 
         try
         {            
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return forwardingEvent.Id;
         }
         catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
@@ -57,7 +57,7 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
         }
         forwardingEvent.DialogActivityId = dialogActivityId;
         _context.CorrespondenceForwardingEvents.Update(forwardingEvent);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
     }
 
     public async Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsWithoutDialogActivityBatch(int count, DateTimeOffset lastProcessed, CancellationToken cancellationToken)

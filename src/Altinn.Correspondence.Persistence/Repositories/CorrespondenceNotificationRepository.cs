@@ -14,7 +14,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<Guid> AddNotification(CorrespondenceNotificationEntity notification, CancellationToken cancellationToken)
         {
             await _context.CorrespondenceNotifications.AddAsync(notification, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return notification.Id;
         }
 
@@ -23,7 +23,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             _context.CorrespondenceNotifications.Add(notification);
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
                 return notification.Id;
             }
             catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
@@ -98,7 +98,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw new ArgumentException($"Notification with id {notificationId} not found");
             }
             notification.OrderRequest = null;
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
         }
 
         public async Task<List<CorrespondenceNotificationEntity>> GetPrimaryNotificationsByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
