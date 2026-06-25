@@ -103,6 +103,10 @@ public class UpdateOldCorrespondencesWithDownloadAllBatchJob(
                     batchNotMatchingCriteria++;
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 batchErrors++;
