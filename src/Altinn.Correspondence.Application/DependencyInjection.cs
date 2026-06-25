@@ -94,6 +94,7 @@ public static class DependencyInjection
         services.AddScoped<ManualRetryNotPublishedCorrespondencesHandler>();
         services.AddScoped<SmsNotificationLengthStatisticsHandler>();
         services.AddScoped<PurgeDialogAndDeleteReminderForReadCorrespondencesHandler>();
+        services.AddScoped<UpdateOldCorrespondencesWithDownloadAllBatchJob>();
         services.AddScoped<UpdateOldCorrespondencesWithDownloadAllHandler>();
 
         // Statistics & Reporting
@@ -124,6 +125,8 @@ public static class DependencyInjection
         services.AddScoped<MigrateAttachmentHelper>();
         services.AddScoped<MigrateAttachmentHandler>();
         services.AddScoped<ChainedBatchJobOrchestrator>();
+        services.AddScoped<ChainedBatchJobProgressReporter>();
+        services.AddSingleton<IChainedBatchJobProgressStore, HybridCacheChainedBatchJobProgressStore>();
         services.AddScoped<MakeCorrespondenceAvailableBatchJob>();
         services.AddScoped<MigrateCorrespondenceHandler>();
         services.AddScoped<MigrateToStorageProviderHandler>();

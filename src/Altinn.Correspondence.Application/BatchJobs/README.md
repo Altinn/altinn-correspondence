@@ -52,7 +52,7 @@ The migration server processes `live-migration` before `migration`.
 `ChainedBatchJobOrchestrator.RunBatchAsync` executes one batch per Hangfire invocation:
 
 1. **Backpressure check** — if the monitored queue exceeds the limit, reschedule the same state and return
-2. **Fetch** — query the next window of entities using a keyset cursor
+2. **Fetch** — query the next window of entities using a keyset cursor. On command timeout (`TimeoutException` or `OperationCanceledException` from the database, not from job cancellation), report `FetchFailed` and reschedule with the **same** cursor
 3. **Stop on empty** — call `OnComplete` and return (never call `.Last()` on an empty list)
 4. **Process** — either fan out workers (`EnqueueWorkerJob`) or run custom batch logic (`ProcessBatchAsync`)
 5. **Chain** — if `HasMoreBatches` is true, enqueue the next orchestrator job with an advanced cursor
@@ -107,6 +107,69 @@ Use `ResolveBackpressureLimit` on the definition when the limit depends on reque
 | `ProcessBatchAsync` | One of two | Async batch logic: filter, count, selectively enqueue workers |
 | `OnComplete` | No | Called when the job finishes (empty fetch or final batch) |
 | `ResolveBackpressureLimit` | No | Override `Settings.BackpressureLimit` per state |
+| `BuildProgressMetrics` | No | Job-specific counters/filters included in status polling and logs |
+
+Exactly one of `EnqueueWorkerJob` or `ProcessBatchAsync` must be defined.
+
+## Progress reporting and polling
+
+Every orchestrator batch automatically reports status through `ChainedBatchJobProgressReporter`:
+
+- **Structured logs** — search for `ChainedBatchJobStatus` in application logs. Each batch writes cursor position, phase, queue depth, and metrics.
+- **Pollable cache** — the latest snapshot per job is stored in hybrid cache (90-day TTL, refreshed each batch).
+
+### Polling via API
+
+```http
+GET /correspondence/api/v1/maintenance/batch-jobs/status
+GET /correspondence/api/v1/maintenance/batch-jobs/status/{jobName}
+```
+
+`jobName` matches `ChainedBatchJobSettings.JobName` (e.g. `MakeCorrespondenceAvailable`, `UpdateOldCorrespondencesWithDownloadAll`).
+
+Example response:
+
+```json
+{
+  "jobName": "UpdateOldCorrespondencesWithDownloadAll",
+  "phase": "Running",
+  "updatedAt": "2026-06-23T14:30:00Z",
+  "cursorCreated": "2024-03-15T08:12:33Z",
+  "cursorId": "a1b2c3d4-...",
+  "lastBatchItemCount": 10000,
+  "hasMoreBatches": true,
+  "workerQueueDepth": 15234,
+  "backpressureLimit": 20000,
+  "metrics": {
+    "windowSize": 10000,
+    "totalProcessed": 250000,
+    "totalPatched": 12000
+  }
+}
+```
+
+`phase` is one of:
+
+| Phase | Meaning |
+|-------|---------|
+| `Running` | Batch processed; more data remains |
+| `WaitingForBackpressure` | Worker queue full; orchestrator rescheduled |
+| `FetchFailed` | Database fetch timed out; orchestrator rescheduled with same cursor |
+| `Completed` | No more items (or final batch finished) |
+
+### Opt-in cursor and metrics
+
+Implement `IChainedBatchJobCursorState` on the job state type for automatic cursor reporting when no batch has been fetched yet (e.g. during backpressure waits).
+
+Add `BuildProgressMetrics` on the definition for job-specific counters:
+
+```csharp
+BuildProgressMetrics = request => new Dictionary<string, object?>
+{
+    ["totalProcessed"] = request.TotalProcessed,
+},
+```
+
 
 Exactly one of `EnqueueWorkerJob` or `ProcessBatchAsync` must be defined.
 

@@ -3,7 +3,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.BatchJobs;
 
-public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> logger)
+public class ChainedBatchJobOrchestrator(
+    ILogger<ChainedBatchJobOrchestrator> logger,
+    ChainedBatchJobProgressReporter progressReporter)
 {
     public async Task RunBatchAsync<TState, TItem>(
         TState state,
@@ -13,11 +15,6 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
         var settings = definition.Settings;
 
         var backpressureLimit = definition.ResolveBackpressureLimit?.Invoke(state) ?? settings.BackpressureLimit;
-        if (backpressureLimit <= 0)
-        {
-            throw new InvalidOperationException(
-                $"{settings.JobName} has invalid backpressure limit {backpressureLimit}. It must be > 0.");
-        }
 
         var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(settings.BackpressureMonitorQueue);
         if (enqueuedJobs >= backpressureLimit)
@@ -30,17 +27,68 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
                 backpressureLimit,
                 settings.BackpressureRescheduleDelay);
 
+            await progressReporter.ReportAsync(
+                settings.JobName,
+                ChainedBatchJobPhase.WaitingForBackpressure,
+                state,
+                lastBatchItemCount: null,
+                hasMoreBatches: null,
+                workerQueueDepth: enqueuedJobs,
+                backpressureLimit: backpressureLimit,
+                batchEndCursor: null,
+                definition.BuildProgressMetrics,
+                cancellationToken);
+
             definition.RescheduleBatch(state);
             return;
         }
 
         logger.LogInformation("{JobName}: querying database", settings.JobName);
-        var fetchResult = await definition.FetchBatchAsync(state, cancellationToken);
+        ChainedBatchJobFetchResult<TItem> fetchResult;
+        try
+        {
+            fetchResult = await definition.FetchBatchAsync(state, cancellationToken);
+        }
+        catch (Exception ex) when (IsFetchTimeout(ex, cancellationToken))
+        {
+            logger.LogWarning(
+                ex,
+                "{JobName}: database fetch timed out, rescheduling in {Delay}",
+                settings.JobName,
+                settings.BackpressureRescheduleDelay);
+
+            await progressReporter.ReportAsync(
+                settings.JobName,
+                ChainedBatchJobPhase.FetchFailed,
+                state,
+                lastBatchItemCount: null,
+                hasMoreBatches: null,
+                workerQueueDepth: enqueuedJobs,
+                backpressureLimit: backpressureLimit,
+                batchEndCursor: null,
+                definition.BuildProgressMetrics,
+                cancellationToken);
+
+            definition.RescheduleBatch(state);
+            return;
+        }
+
         logger.LogInformation("{JobName}: found {Count} items", settings.JobName, fetchResult.Items.Count);
 
         if (fetchResult.Items.Count == 0)
         {
             logger.LogInformation("{JobName}: no more items to process", settings.JobName);
+            await progressReporter.ReportAsync(
+                settings.JobName,
+                ChainedBatchJobPhase.Completed,
+                state,
+                lastBatchItemCount: 0,
+                hasMoreBatches: false,
+                workerQueueDepth: enqueuedJobs,
+                backpressureLimit: backpressureLimit,
+                batchEndCursor: null,
+                definition.BuildProgressMetrics,
+                cancellationToken);
             definition.OnComplete?.Invoke(state);
             return;
         }
@@ -81,5 +129,35 @@ public class ChainedBatchJobOrchestrator(ILogger<ChainedBatchJobOrchestrator> lo
 
             logger.LogInformation("{JobName}: finished queuing {Count} worker jobs", settings.JobName, fetchResult.Items.Count);
         }
+
+        if (fetchResult.HasMoreBatches)
+        {
+            await progressReporter.ReportAsync(
+                settings.JobName,
+                ChainedBatchJobPhase.Running,
+                processedState,
+                lastBatchItemCount: fetchResult.Items.Count,
+                hasMoreBatches: true,
+                workerQueueDepth: enqueuedJobs,
+                backpressureLimit: backpressureLimit,
+                batchEndCursor: batchEndCursor,
+                definition.BuildProgressMetrics,
+                cancellationToken);
+        }
+    }
+
+    private static bool IsFetchTimeout(Exception ex, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+
+        return ex switch
+        {
+            TimeoutException => true,
+            OperationCanceledException => true,
+            _ => ex.InnerException is not null && IsFetchTimeout(ex.InnerException, cancellationToken),
+        };
     }
 }
