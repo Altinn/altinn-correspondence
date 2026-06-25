@@ -7,9 +7,9 @@ import http from 'k6/http';
 import exec from 'k6/execution';
 import { 
     describe,
-    getPersonalToken,
     uuidv4,
-    expect
+    expect,
+    getEnterpriseToken
  } from "../common/testimports.js";
 import { baseUrlCorrespondence, buildOptions } from '../common/config.js';
 import { serviceOwners } from "../common/readTestdata.js";
@@ -37,14 +37,13 @@ export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
     const formData = getCorrespondenceForm(serviceOwner.resource, serviceOwner.orgno, endUser.ssn, boundary);
     const tokenOptions = {
         scopes: serviceOwner.scopes, 
-        pid: serviceOwner.ssn,
         orgno: serviceOwner.orgno,
         consumerOrgNo: serviceOwner.orgno,
         org: serviceOwner.org
     };
     var paramsWithToken = {
         headers: {
-            Authorization: "Bearer " + getPersonalToken(tokenOptions),
+            Authorization: "Bearer " + getEnterpriseToken(tokenOptions),
             traceparent: traceparent,
             'Content-Type': 'multipart/form-data; boundary=' + boundary,
             'Accept': '*/*, application/json',
@@ -59,8 +58,8 @@ export function uploadCorrespondence(serviceOwner, endUser, traceCalls) {
         paramsWithToken.tags.enduser = endUser.ssn;
     }
 
-    describe('upload correspondence', async () => {
-        let r = await http.asyncRequest('POST', baseUrlCorrespondence + 'upload', formData, paramsWithToken);
+    describe('upload correspondence', () => {
+        let r = http.post(baseUrlCorrespondence + 'upload', formData, paramsWithToken);
         expect(r.status, 'response status').to.be.oneOf([200, 422]);
     });
 }
