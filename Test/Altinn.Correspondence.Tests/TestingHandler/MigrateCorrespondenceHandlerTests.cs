@@ -103,6 +103,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var makeCorrespondenceAvailableBatchJob = new MakeCorrespondenceAvailableBatchJob(
                 _correspondenceRepositoryMock.Object,
                 _backgroundJobClientMock.Object);
+            var dbContext = TestDbContextFactory.Create();
             var chainedBatchJobOrchestrator = new ChainedBatchJobOrchestrator(new NullLogger<ChainedBatchJobOrchestrator>());
             _handler = new MigrateCorrespondenceHandler(
                 _correspondenceRepositoryMock.Object,
@@ -110,7 +111,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 hangfireScheduleHelper,
                 _backgroundJobClientMock.Object,
                 _hostEnvironmentMock.Object,
-                null!,
+                dbContext,
                 correspondenceEventHelper,
                 chainedBatchJobOrchestrator,
                 makeCorrespondenceAvailableBatchJob,
