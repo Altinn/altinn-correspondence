@@ -70,7 +70,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             attachmentEntity.DataLocationUrl = dataLocationUrl;
             attachmentEntity.StorageProvider = storageProviderEntity;
             var rowsUpdated = await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
-            return rowsUpdated == 1;
+            return _context.IsDeferredOrPersisted(rowsUpdated);
 
         }
 
@@ -78,13 +78,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             attachmentEntity.Checksum = checkSum;
             var rowsUpdated = await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
-            return rowsUpdated == 1;
+            return _context.IsDeferredOrPersisted(rowsUpdated);
         }
         public async Task<bool> SetAttachmentSize(AttachmentEntity attachmentEntity, long size, CancellationToken cancellationToken)
         {
             attachmentEntity.AttachmentSize = size;
             var rowsUpdated = await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
-            return rowsUpdated == 1;
+            return _context.IsDeferredOrPersisted(rowsUpdated);
         }
 
 

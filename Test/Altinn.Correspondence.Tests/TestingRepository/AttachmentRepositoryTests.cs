@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Factories;
@@ -154,6 +155,39 @@ public class AttachmentRepositoryTests
             .Where(a => a.ResourceId == uniqueResourceId)
             .CountAsync();
         Assert.Equal(0, remainingCount);
+    }
+
+    [Fact]
+    public async Task SetDataLocationUrl_WithDeferredSave_StagesUpdateAndReportsSuccess()
+    {
+        await using var context = TestDbContextFactory.Create();
+        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
+        var attachment = new AttachmentEntity
+        {
+            Id = Guid.NewGuid(),
+            ResourceId = "res-defer-upload",
+            SendersReference = "ref-defer",
+            Sender = "0192:910753614",
+            Created = DateTimeOffset.UtcNow,
+            AttachmentSize = 1
+        };
+        context.Attachments.Add(attachment);
+        await context.SaveChangesAsync();
+
+        context.DeferSaveChanges = true;
+        var staged = await repo.SetDataLocationUrl(
+            attachment,
+            AttachmentDataLocationType.AltinnCorrespondenceAttachment,
+            "https://storage.example/attachment",
+            null,
+            CancellationToken.None);
+
+        Assert.True(staged);
+        context.DeferSaveChanges = false;
+        await context.SaveChangesAsync();
+
+        await context.Entry(attachment).ReloadAsync();
+        Assert.Equal("https://storage.example/attachment", attachment.DataLocationUrl);
     }
 }
 

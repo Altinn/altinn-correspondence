@@ -27,6 +27,12 @@ public class ApplicationDbContext : DbContext
         return await SaveChangesAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Use after <see cref="SaveChangesUnlessDeferredAsync"/> when a repository method needs to know
+    /// whether a single-entity write succeeded or was staged for a later flush.
+    /// </summary>
+    public bool IsDeferredOrPersisted(int rowsAffected) => rowsAffected == 1 || DeferSaveChanges;
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.ConfigureWarnings(warnings =>
