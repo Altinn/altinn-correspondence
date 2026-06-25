@@ -295,7 +295,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
             
             if (cursorCreated.HasValue)
             {
-                query = query.Where(c => c.Created < cursorCreated.Value);
+                if (cursorId.HasValue)
+                {
+                    var cursorCreatedValue = cursorCreated.Value;
+                    var cursorIdValue = cursorId.Value;
+                    query = query.Where(c =>
+                        c.Created < cursorCreatedValue ||
+                        (c.Created == cursorCreatedValue && c.Id > cursorIdValue));
+                }
+                else
+                {
+                    query = query.Where(c => c.Created < cursorCreated.Value);
+                }
             }
             else if (createdTo.HasValue)
             {
@@ -790,6 +801,23 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .Include(c => c.Content)
                 .Include(c => c.Notifications)
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<bool> RemoveExternalReference(CorrespondenceEntity correspondence, ReferenceType referenceType, CancellationToken cancellationToken = default)
+        {
+            var referencesToRemove = correspondence.ExternalReferences
+                .Where(er => er.ReferenceType == referenceType)
+                .ToList();
+
+            if (referencesToRemove.Count == 0)
+            {
+                logger.LogWarning("No external references of type {ReferenceType} found for correspondence {CorrespondenceId}", referenceType, correspondence.Id);
+                return false;
+            }
+
+            _context.ExternalReferences.RemoveRange(referencesToRemove);
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
         }
     }
 }

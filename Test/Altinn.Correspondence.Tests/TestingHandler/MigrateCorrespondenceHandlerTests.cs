@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.BatchJobs;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
@@ -99,6 +100,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Returns(() => Guid.NewGuid().ToString());
 
             var hangfireScheduleHelper = new HangfireScheduleHelper(_backgroundJobClientMock.Object, mockCache.Object, _correspondenceRepositoryMock.Object, new NullLogger<HangfireScheduleHelper>());
+            var makeCorrespondenceAvailableBatchJob = new MakeCorrespondenceAvailableBatchJob(
+                _correspondenceRepositoryMock.Object,
+                _backgroundJobClientMock.Object);
+            var chainedBatchJobOrchestrator = new ChainedBatchJobOrchestrator(new NullLogger<ChainedBatchJobOrchestrator>());
             _handler = new MigrateCorrespondenceHandler(
                 _correspondenceRepositoryMock.Object,
                 _dialogportenServiceMock.Object,
@@ -106,8 +111,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _backgroundJobClientMock.Object,
                 _hostEnvironmentMock.Object,
                 correspondenceEventHelper,
-                _loggerMock.Object,
-                TestDbContextFactory.Create());
+
+                chainedBatchJobOrchestrator,
+                makeCorrespondenceAvailableBatchJob,
+                _loggerMock.Object);
         }
 
         [Fact]

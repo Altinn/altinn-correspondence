@@ -36,18 +36,13 @@ var at23RotationVault = {
   resourceGroupName: 'altinn-corr-at23-rg'
   keyVaultName: 'altinn-corr-at23-kv'
 }
-var at24RotationVault = {
-  environment: 'at24'
-  resourceGroupName: 'altinn-corr-at24-rg'
-  keyVaultName: 'altinn-corr-at24-kv'
-}
 var yt01RotationVault = {
   environment: 'yt01'
   resourceGroupName: 'altinn-corr-yt01-rg'
   keyVaultName: 'altinn-corr-yt01-kv'
 }
 var additionalRotationVaults = environment == 'test'
-  ? [at22RotationVault, at23RotationVault, at24RotationVault, yt01RotationVault]
+  ? [at22RotationVault, at23RotationVault, yt01RotationVault]
   : []
 
 var resourceGroupName = '${namePrefix}-rg'
