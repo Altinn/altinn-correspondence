@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Application.BatchJobs;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
@@ -23,6 +24,8 @@ HangfireScheduleHelper hangfireScheduleHelper,
 IBackgroundJobClient backgroundJobClient,
 IHostEnvironment hostEnvironment,
 CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
+ChainedBatchJobOrchestrator chainedBatchJobOrchestrator,
+MakeCorrespondenceAvailableBatchJob makeCorrespondenceAvailableBatchJob,
 ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>
 {
     public async Task<OneOf<MigrateCorrespondenceResponse, Error>> Process(MigrateCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -71,7 +74,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                 }
                 else
                 {
-                    var dialogJobId = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
+                    var dialogJobId = backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(ChainedBatchJobQueues.Worker, (handler) => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, null, true));
                     hangfireScheduleHelper.SchedulePublishAfterDialogCreated(correspondence.Id, dialogJobId, CancellationToken.None);
 
                     var altinn2PublishStatus = correspondence.Statuses.FirstOrDefault(statusEvent => statusEvent.Status == CorrespondenceStatus.Published && statusEvent.StatusText == "Correspondence Published in Altinn 2");
@@ -196,46 +199,10 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                 }
                 return response;
             }
-            var currentBatch = 999;
-            var migrationQueueLimit = currentBatch * 20;
-
-            var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
-            if (enqueuedJobs >= migrationQueueLimit)
-            {
-                logger.LogInformation(
-                    "Migration queue has {EnqueuedJobs} jobs (limit {Limit}), rescheduling in 1 minute",
-                    enqueuedJobs,
-                    migrationQueueLimit);
-
-                backgroundJobClient.Schedule<MigrateCorrespondenceHandler>(
-                    HangfireQueues.LiveMigration,
-                    handler => handler.MakeCorrespondenceAvailable(request, CancellationToken.None),
-                    TimeSpan.FromMinutes(1));
-
-                return response;
-            }
-
-            logger.LogInformation("Querying db");
-            var correspondences = await correspondenceRepository.GetCandidatesForMigrationToDialogporten(currentBatch, request.CursorCreated, request.CursorId, request.CreatedFrom, request.CreatedTo, cancellationToken);
-            logger.LogInformation("Found {count} correspondences", correspondences.Count);
-            var last = correspondences.Last();
-            var migrateRequest = new MakeCorrespondenceAvailableRequest()
-            {
-                AsyncProcessing = true,
-                BatchSize = request.BatchSize - correspondences.Count,
-                CreateEvents = request.CreateEvents,
-                CursorCreated = last.Created,
-                CursorId = last.Id,
-                CreatedFrom = request.CreatedFrom,
-                CreatedTo = request.CreatedTo
-            };
-            logger.LogInformation("Enqueuing next batch for {id}", last.Id);
-            backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.LiveMigration, (handler) => handler.MakeCorrespondenceAvailable(migrateRequest, CancellationToken.None));
-            foreach (var correspondence in correspondences)
-            {
-                backgroundJobClient.Enqueue<MigrateCorrespondenceHandler>(HangfireQueues.Migration, handler => handler.MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, CancellationToken.None, true, null, request.CreateEvents));
-            }
-            logger.LogInformation("Finished queuing {count} correspondences", correspondences.Count);
+            await chainedBatchJobOrchestrator.RunBatchAsync(
+                request,
+                makeCorrespondenceAvailableBatchJob.CreateDefinition(),
+                cancellationToken);
         }
 
         return response;
