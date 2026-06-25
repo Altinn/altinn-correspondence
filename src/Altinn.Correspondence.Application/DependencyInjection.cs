@@ -94,7 +94,6 @@ public static class DependencyInjection
         services.AddScoped<ManualRetryNotPublishedCorrespondencesHandler>();
         services.AddScoped<SmsNotificationLengthStatisticsHandler>();
         services.AddScoped<PurgeDialogAndDeleteReminderForReadCorrespondencesHandler>();
-        services.AddScoped<UpdateOldCorrespondencesWithDownloadAllBatchJob>();
         services.AddScoped<UpdateOldCorrespondencesWithDownloadAllHandler>();
 
         // Statistics & Reporting
