@@ -16,11 +16,13 @@ namespace Altinn.Correspondence.Application.CleanupMissingSyncedNotificationsBat
         /// </summary>
         public Task Process(int batchCount, DateTimeOffset lastProcessedTimestamp, Guid? lastProcessedId = null)
         {
+            var sanitizedLastProcessedId = SanitizeForLog(lastProcessedId?.ToString());
+
             logger.LogInformation(
                 "Starting notification event migration. Batch size: {BatchSize}, Starting cursor: {Timestamp} / {Id}",
                 batchCount,
                 lastProcessedTimestamp,
-                lastProcessedId);
+                sanitizedLastProcessedId);
 
             var request = new CleanupMissingSyncedNotificationsBatchRequest
             {
@@ -58,6 +60,13 @@ namespace Altinn.Correspondence.Application.CleanupMissingSyncedNotificationsBat
             // This method signature matches what's called in the batch job definition
             // The actual implementation is in DialogportenService.AddNotificationActivitiesWithDuplicateCheck
             throw new NotImplementedException("This is handled by IDialogportenService");
+        }
+
+        private static string SanitizeForLog(string? value)
+        {
+            return value?
+                .Replace("\r", string.Empty)
+                .Replace("\n", string.Empty) ?? string.Empty;
         }
     }
 }
