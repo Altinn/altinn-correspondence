@@ -50,9 +50,9 @@ public class CleanupMissingSyncedNotificationsBatchHandlerTests
         var id = Guid.NewGuid();
 
         _backgroundJobClientMock
-            .Setup(x => x.Enqueue(
-                It.IsAny<string>(),
-                It.IsAny<System.Linq.Expressions.Expression<System.Action<CleanupMissingSyncedNotificationsBatchHandler>>>()))
+            .Setup(x => x.Create(
+                It.IsAny<Hangfire.Common.Job>(),
+                It.IsAny<Hangfire.States.IState>()))
             .Returns("job-id");
 
         // Act
@@ -60,9 +60,12 @@ public class CleanupMissingSyncedNotificationsBatchHandlerTests
 
         // Assert - Should enqueue orchestrator job on live-migration queue
         _backgroundJobClientMock.Verify(
-            x => x.Enqueue(
-                HangfireQueues.LiveMigration,
-                It.IsAny<System.Linq.Expressions.Expression<System.Action<CleanupMissingSyncedNotificationsBatchHandler>>>()),
+            x => x.Create(
+                It.Is<Hangfire.Common.Job>(job => 
+                    job.Type == typeof(CleanupMissingSyncedNotificationsBatchHandler) &&
+                    job.Method.Name == nameof(CleanupMissingSyncedNotificationsBatchHandler.ExecuteBatch)),
+                It.Is<Hangfire.States.IState>(state => 
+                    state is Hangfire.States.EnqueuedState)),
             Times.Once);
     }
 
@@ -120,9 +123,9 @@ public class CleanupMissingSyncedNotificationsBatchHandlerTests
             .ReturnsAsync(batch);
 
         _backgroundJobClientMock
-            .Setup(x => x.Enqueue(
-                It.IsAny<string>(),
-                It.IsAny<System.Linq.Expressions.Expression<System.Action<IDialogportenService>>>()))
+            .Setup(x => x.Create(
+                It.IsAny<Hangfire.Common.Job>(),
+                It.IsAny<Hangfire.States.IState>()))
             .Returns("job-id");
 
         var definition = _batchJob.CreateDefinition();
@@ -132,9 +135,12 @@ public class CleanupMissingSyncedNotificationsBatchHandlerTests
 
         // Assert - Should enqueue one worker job per correspondence on migration queue
         _backgroundJobClientMock.Verify(
-            x => x.Enqueue(
-                HangfireQueues.Migration,
-                It.IsAny<System.Linq.Expressions.Expression<System.Action<IDialogportenService>>>()),
+            x => x.Create(
+                It.Is<Hangfire.Common.Job>(job => 
+                    job.Type == typeof(IDialogportenService) &&
+                    job.Method.Name == nameof(IDialogportenService.AddNotificationActivitiesWithDuplicateCheck)),
+                It.Is<Hangfire.States.IState>(state => 
+                    state is Hangfire.States.EnqueuedState)),
             Times.Exactly(3));
 
         // Verify state was updated with counters

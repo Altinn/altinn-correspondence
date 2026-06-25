@@ -183,6 +183,7 @@ public class DialogportenServiceTests
             httpClient,
             mockRepo.Object,
             Mock.Of<ICorrespondenceForwardingEventRepository>(),
+            Mock.Of<ICorrespondenceNotificationRepository>(),
             mockAltinnRegisterService.Object,
             options,
             Mock.Of<ILogger<DialogportenService>>(),
