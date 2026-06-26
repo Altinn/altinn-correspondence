@@ -24,7 +24,9 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
     public Task<OneOf<UpdateOldCorrespondencesWithDownloadAllResponse, Error>> Process(UpdateOldCorrespondencesWithDownloadAllRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting update of old correspondences with download all. Window size: {windowSize}", request.windowSize);
-        var jobId = _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(handler => handler.ExecutePatchingInBackground(request, CancellationToken.None));
+        var jobId = _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(
+            HangfireQueues.LiveMigration,
+            handler => handler.ExecutePatchingInBackground(request, CancellationToken.None));
 
         _logger.LogInformation("Orchestrator job {jobId} has been enqueued", jobId);
 
@@ -48,6 +50,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                 "Queue has {enqueuedJobs} jobs (limit {limit}), rescheduling in 1 minute",
                 enqueuedJobs, queueLimit);
             _backgroundJobClient.Schedule<UpdateOldCorrespondencesWithDownloadAllHandler>(
+                HangfireQueues.LiveMigration,
                 handler => handler.ExecutePatchingInBackground(request, CancellationToken.None),
                 TimeSpan.FromMinutes(1));
             return;
@@ -114,6 +117,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
                 TotalErrors = totalErrors
             };
             _backgroundJobClient.Enqueue<UpdateOldCorrespondencesWithDownloadAllHandler>(
+                HangfireQueues.LiveMigration,
                 handler => handler.ExecutePatchingInBackground(nextRequest, CancellationToken.None));
             _logger.LogInformation(
                 "Batch complete. Processed: {processed}, Patched: {patched}, Not matching criteria: {notMatchingCriteria}, Errors: {errors}",
@@ -129,6 +133,8 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
 
     private void ProcessSingleCorrespondence(CorrespondenceEntity correspondence)
     {
-        _backgroundJobClient.Enqueue<IDialogportenService>(HangfireQueues.Migration, service => service.TryAddDownloadAllAttachmentsToDialog(correspondence.Id, CancellationToken.None));
+        _backgroundJobClient.Enqueue<IDialogportenService>(
+            HangfireQueues.Migration,
+            service => service.TryAddDownloadAllAttachmentsToDialog(correspondence.Id, CancellationToken.None));
     }
 }

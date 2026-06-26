@@ -103,6 +103,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddControllers(options =>
     {
         options.Conventions.Add(new ShowInternalApisInDevelopmentApplicationModelConvention(hostEnvironment));
+        options.Filters.Add<ClientErrorLoggingFilter>();
     }).AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());

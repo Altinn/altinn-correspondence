@@ -152,6 +152,50 @@ public class DialogportenServiceTests
         return (service, mockCorrespondenceForwardingEventRepository, mockAltinnRegisterService, () => capturedRequestBody);
     }
 
+    private static (DialogportenService service, Mock<ICorrespondenceRepository> repoMock) CreateServiceWithMockedDialogPurge(CorrespondenceEntity correspondence, string dialogId)
+    {
+        var mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        mockHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.Is<HttpRequestMessage>(m =>
+                    m.Method == HttpMethod.Post &&
+                    m.RequestUri != null &&
+                    m.RequestUri.AbsolutePath.EndsWith($"/dialogporten/api/v1/serviceowner/dialogs/{dialogId}/actions/purge")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+        var httpClient = new HttpClient(mockHandler.Object)
+        {
+            BaseAddress = new Uri("https://dialogporten.example/")
+        };
+
+        var mockRepo = new Mock<ICorrespondenceRepository>();
+        mockRepo
+            .Setup(r => r.GetCorrespondenceById(correspondence.Id, true, true, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(correspondence);
+        mockRepo
+            .Setup(r => r.RemoveExternalReference(correspondence, ReferenceType.DialogportenDialogId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
+        var mockPartyUrnHelper = new Mock<PartyUrnHelper>(mockAltinnRegisterService.Object, Mock.Of<ILogger<PartyUrnHelper>>());
+        var options = Options.Create(new GeneralSettings { CorrespondenceBaseUrl = "https://correspondence.example" });
+
+        var service = new DialogportenService(
+            httpClient,
+            mockRepo.Object,
+            Mock.Of<ICorrespondenceForwardingEventRepository>(),
+            mockAltinnRegisterService.Object,
+            options,
+            Mock.Of<ILogger<DialogportenService>>(),
+            Mock.Of<IIdempotencyKeyRepository>(),
+            Mock.Of<IResourceRegistryService>(),
+            mockPartyUrnHelper.Object);
+
+        return (service, mockRepo);
+    }
+
     [Fact]
     public async Task CreateCorrespondenceDialog_TruncatesSearchTags_ToMax63AndSucceeds()
     {
@@ -793,5 +837,28 @@ public class DialogportenServiceTests
 
         // Verify confirmed activity uses the person who confirmed
         Assert.Contains("urn:altinn:person:identifier-no:13076800124", confirmedActivity!.PerformedBy.ActorId);
+    }
+
+    [Fact]
+    public async Task PurgeCorrespondenceDialog_WhenCorrespondenceHasDialogReference_RemovesExternalReference()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        const string dialogId = "dialog-123";
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithDialogId(dialogId)
+            .Build();
+
+        var (service, mockRepo) = CreateServiceWithMockedDialogPurge(correspondence, dialogId);
+
+        // Act
+        await service.PurgeCorrespondenceDialog(correspondenceId);
+
+        // Assert
+        mockRepo.Verify(
+            r => r.RemoveExternalReference(correspondence, ReferenceType.DialogportenDialogId, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

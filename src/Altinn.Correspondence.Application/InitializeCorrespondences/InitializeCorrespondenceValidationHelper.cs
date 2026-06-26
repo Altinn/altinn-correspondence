@@ -99,18 +99,15 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 var confidentialLevel = await resourceRegistryService.GetConfidentialType(request.Correspondence.ResourceId, cancellationToken);
                 if (confidentialLevel == ConfidentialTypeEnum.Confidential && !request.Correspondence.IsConfidential)
                 {
-                    logger.LogWarning("Confidential correspondence cannot be initialized without setting the 'IsConfidential' flag to true");
                     return CorrespondenceErrors.CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag;
                 }
                 if (request.Correspondence.IsConfidential && confidentialLevel == ConfidentialTypeEnum.NotConfidential)
                 {
-                    logger.LogWarning("Correspondence cannot be initialized with 'IsConfidential' flag set to true because the resource is not confidential");
                     return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
                 }
             }
             if (request.Recipients.Count != request.Recipients.Distinct().Count())
             {
-                logger.LogWarning("Duplicate recipients found in request");
                 return CorrespondenceErrors.DuplicateRecipients;
             }
 
@@ -122,14 +119,12 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
 
             if (request.Correspondence.IsConfirmationNeeded && request.Correspondence.DueDateTime is null)
             {
-                logger.LogWarning("Due date is required for correspondence requiring confirmation");
                 return CorrespondenceErrors.DueDateRequired;
             }
 
             var contactReservation = await HandleContactReservation(request);
             if (contactReservation.TryPickT1(out var error, out var reservedRecipients))
             {
-                logger.LogWarning("Contact reservation failed: {Error}", error);
                 return error;
             }
             validatedData.ReservedRecipients = reservedRecipients;
@@ -138,7 +133,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             var dateError = initializeCorrespondenceHelper.ValidateDateConstraints(request.Correspondence);
             if (dateError != null)
             {
-                logger.LogWarning("Date validation failed: {Error}", dateError);
                 return dateError;
             }
 
@@ -146,7 +140,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             var contentError = initializeCorrespondenceHelper.ValidateCorrespondenceContent(request.Correspondence.Content);
             if (contentError != null)
             {
-                logger.LogWarning("Content validation failed: {Error}", contentError);
                 return contentError;
             }
 
@@ -154,7 +147,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             var senderError = initializeCorrespondenceHelper.ValidateCorrespondenceSender(request.Correspondence);
             if (senderError != null)
             {
-                logger.LogWarning("Sender validation failed: {Error}", senderError);
                 return senderError;
             }
 
@@ -163,7 +155,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             var externalReferencesError = initializeCorrespondenceHelper.ValidateExternalReferences(externalReferences);
             if (externalReferencesError != null)
             {
-                logger.LogWarning("External references validation failed: {Error}", externalReferencesError);
                 return externalReferencesError;
             }
 
@@ -172,7 +163,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             {
                 if (!Guid.TryParse(dialogId, out _))
                 {
-                    logger.LogWarning("Provided DialogId {DialogId} is not a valid GUID", dialogId);
                     return CorrespondenceErrors.InvalidCorrespondenceDialogId;
                 }
                 var validationResult = await ValidateTransmissionRequest(request.Correspondence, request, cancellationToken);
@@ -192,7 +182,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             var existingAttachments = getExistingAttachments.AsT0;
             if (existingAttachments.Count != existingAttachmentIds.Count)
             {
-                logger.LogWarning("Not all existing attachments were found");
                 return CorrespondenceErrors.ExistingAttachmentNotFound;
             }
 

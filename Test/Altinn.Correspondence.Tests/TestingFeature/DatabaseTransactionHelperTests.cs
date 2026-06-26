@@ -105,7 +105,7 @@ public class DatabaseTransactionHelperTests
 
     [Fact]
     public async Task ExecuteAsync_BackgroundJobClientException_DoesNotRetry()
-    {
+    {  
         var attemptCount = 0;
         await using var dbContext = CreateDbContext();
         Task<Guid> Operation(CancellationToken ct)
@@ -119,10 +119,49 @@ public class DatabaseTransactionHelperTests
 
         Assert.Equal(1, attemptCount);
     }
+  
+    public async Task ExecuteAsync_BackgroundJobClientException_RetriesAndSucceeds()
+    {
+        var expectedResult = Guid.NewGuid();
+        var attemptCount = 0;
+        await using var dbContext = CreateDbContext();
+        Task<Guid> Operation(CancellationToken ct)
+        {
+            attemptCount++;
+          
+            if (attemptCount == 1)
+            {
+                throw new BackgroundJobClientException("Hangfire job creation failed", new Exception("Inner exception"));
+            }
+            return Task.FromResult(expectedResult);
+        }
+
+        var result = await DatabaseTransactionHelper.ExecuteAsync(dbContext, Operation);
+
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(2, attemptCount);
+    }
 
     [Fact]
     public async Task ExecuteAsync_PostgreSqlDistributedLockException_DoesNotRetry()
     {
+            if (attemptCount == 1)
+            {
+                throw new BackgroundJobClientException("Hangfire job creation failed", new Exception("Inner exception"));
+            }
+            return Task.FromResult(expectedResult);
+        }
+
+        var result = await DatabaseTransactionHelper.ExecuteAsync(dbContext, Operation);
+
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(2, attemptCount);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PostgreSqlDistributedLockException_RetriesAndSucceeds()
+    {
+        var expectedResult = DateTime.UtcNow;
         var attemptCount = 0;
         await using var dbContext = CreateDbContext();
         Task<DateTime> Operation(CancellationToken ct)

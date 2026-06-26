@@ -17,7 +17,6 @@ on:
           - yt01
           - at22
           - at23
-          - at24
 
 run-name: Deploy to ${{ inputs.environment }}
 

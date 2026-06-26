@@ -150,6 +150,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.IsAny<IState>()),
                 Times.AtLeastOnce);
 
+            _backgroundJobClientMock.Verify(
+                x => x.Create(
+                    It.Is<Job>(job =>
+                        job.Type == typeof(IDialogportenService) &&
+                        job.Method.Name == nameof(IDialogportenService.PurgeCorrespondenceDialog)),
+                    It.IsAny<IState>()),
+                Times.Once);
+
             _idempotencyKeyRepositoryMock.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 

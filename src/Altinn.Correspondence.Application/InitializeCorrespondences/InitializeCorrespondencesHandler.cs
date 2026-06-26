@@ -13,6 +13,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Altinn.Correspondence.Persistence;
+using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Hosting;
