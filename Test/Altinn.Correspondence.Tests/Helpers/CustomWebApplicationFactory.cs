@@ -65,7 +65,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                     new PostgreSqlStorageOptions
                     {
                         PrepareSchemaIfNecessary = true,
-                        QueuePollInterval = TimeSpan.Zero,
+                        QueuePollInterval = TimeSpan.FromMilliseconds(50),
                         SchemaName = _hangfireSchemaName,
                         InvisibilityTimeout = TimeSpan.FromMinutes(1),
                         DistributedLockTimeout = TimeSpan.FromSeconds(10)
