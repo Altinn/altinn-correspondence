@@ -46,7 +46,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             .AddJsonFile("appsettings.Development.json")
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["GeneralSettings:MalwareScanBypassWhiteList"] = TestConstants.ResourceWhitelistedForMalwareScanBypass
+                ["GeneralSettings:MalwareScanBypassWhiteList"] = TestConstants.ResourceWhitelistedForMalwareScanBypass,
+                ["DatabaseOptions:ConnectionString"] = "Host=localhost:5432;Username=postgres;Password=postgres;Database=correspondence;Maximum Pool Size=50;Timeout=30"
             })
             .Build());
 
@@ -64,7 +65,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                     new PostgreSqlStorageOptions
                     {
                         PrepareSchemaIfNecessary = true,
-                        QueuePollInterval = TimeSpan.FromSeconds(1),
+                        QueuePollInterval = TimeSpan.Zero,
                         SchemaName = _hangfireSchemaName,
                         InvisibilityTimeout = TimeSpan.FromMinutes(1),
                         DistributedLockTimeout = TimeSpan.FromSeconds(10)
@@ -77,8 +78,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             
             services.AddHangfireServer(options => 
             {
-                options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
-                options.WorkerCount = 5;
+                options.SchedulePollingInterval = TimeSpan.FromMilliseconds(50);
+                options.WorkerCount = 30;
                 options.Queues = new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration };
                 options.ServerTimeout = TimeSpan.FromSeconds(30);
                 options.ShutdownTimeout = TimeSpan.FromSeconds(5);
