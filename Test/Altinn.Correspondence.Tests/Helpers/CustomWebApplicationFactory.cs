@@ -65,7 +65,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
                     new PostgreSqlStorageOptions
                     {
                         PrepareSchemaIfNecessary = true,
-                        QueuePollInterval = TimeSpan.FromMilliseconds(50),
+                        QueuePollInterval = TimeSpan.FromSeconds(1),
                         SchemaName = _hangfireSchemaName,
                         InvisibilityTimeout = TimeSpan.FromMinutes(1),
                         DistributedLockTimeout = TimeSpan.FromSeconds(10)
@@ -78,8 +78,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             
             services.AddHangfireServer(options => 
             {
-                options.SchedulePollingInterval = TimeSpan.FromMilliseconds(50);
-                options.WorkerCount = 30;
+                options.SchedulePollingInterval = TimeSpan.FromSeconds(1);
                 options.Queues = new[] { HangfireQueues.Default, HangfireQueues.LiveMigration, HangfireQueues.Migration };
                 options.ServerTimeout = TimeSpan.FromSeconds(30);
                 options.ShutdownTimeout = TimeSpan.FromSeconds(5);
