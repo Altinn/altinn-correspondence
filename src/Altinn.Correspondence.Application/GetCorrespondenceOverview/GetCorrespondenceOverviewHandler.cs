@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
@@ -26,7 +27,8 @@ public class GetCorrespondenceOverviewHandler(
     IDialogportenService dialogportenService,
     IHybridCacheWrapper cache,
     PublishCorrespondenceHandler publishCorrespondenceHandler,
-    ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
+    ILogger<GetCorrespondenceOverviewHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -81,7 +83,7 @@ public class GetCorrespondenceOverviewHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceOverviewResponse, Error>>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync<OneOf<GetCorrespondenceOverviewResponse, Error>>(dbContext, async (cancellationToken) =>
         {
             DateTimeOffset? readTimestamp = null;
             if (hasAccessAsRecipient && !user.CallingAsSender())
@@ -231,7 +233,7 @@ public class GetCorrespondenceOverviewHandler(
                 logger.LogError(e, "Failed to clean up confidential reminder for correspondence {CorrespondenceId}", correspondence.Id);
             }
             return response;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 
     private async Task<bool> AttemptImmediatePublishIfDelayed(

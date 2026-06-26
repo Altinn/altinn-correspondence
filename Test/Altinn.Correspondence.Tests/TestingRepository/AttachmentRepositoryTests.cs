@@ -2,26 +2,19 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Factories;
-using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Altinn.Correspondence.Tests.TestingRepository;
 
-public class AttachmentRepositoryTests : IClassFixture<PostgresTestcontainerFixture>
+public class AttachmentRepositoryTests
 {
-    private readonly PostgresTestcontainerFixture _fixture;
-
-    public AttachmentRepositoryTests(PostgresTestcontainerFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
     [Fact]
     public async Task HardDeleteOrphanedAttachments_DeletesOnlyOrphansWithinProvidedList()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
 
         var orphanA = new AttachmentEntity
@@ -91,7 +84,7 @@ public class AttachmentRepositoryTests : IClassFixture<PostgresTestcontainerFixt
     public async Task HardDeleteOrphanedAttachments_ExceedsSafetyMargin_ThrowsArgumentException()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
         var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
 
@@ -130,7 +123,7 @@ public class AttachmentRepositoryTests : IClassFixture<PostgresTestcontainerFixt
     public async Task HardDeleteOrphanedAttachments_ExactlyAtSafetyMargin_DeletesSuccessfully()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
         var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
 

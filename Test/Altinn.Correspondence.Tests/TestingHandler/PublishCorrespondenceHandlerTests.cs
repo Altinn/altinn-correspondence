@@ -12,6 +12,7 @@ using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
@@ -53,7 +54,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceStatusRepositoryMock.Object,
                 _contactReservationRegistryServiceMock.Object,
                 _backgroundJobClientMock.Object,
-                _idempotencyKeyRepositoryMock.Object);
+                _idempotencyKeyRepositoryMock.Object,
+                TestDbContextFactory.Create());
         }
 
         private void SetupCommonMocks(Guid correspondenceId, Guid partyUuid, CorrespondenceEntity correspondence)

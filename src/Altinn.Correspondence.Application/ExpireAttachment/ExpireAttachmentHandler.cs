@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,8 @@ public class ExpireAttachmentHandler(
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IStorageRepository storageRepository,
     IAltinnRegisterService altinnRegisterService,
-    IBackgroundJobClient backgroundJobClient) : IHandler<Guid, Task>
+    IBackgroundJobClient backgroundJobClient,
+    ApplicationDbContext dbContext) : IHandler<Guid, Task>
 {
     public async Task<OneOf<Task, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -61,7 +63,7 @@ public class ExpireAttachmentHandler(
             throw new InvalidOperationException($"Could not find party UUID for sender {attachment.Sender}");
         }
 
-        return await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             var expireIdempotencyId = attachmentId.CreateVersion5("ExpireAttachment");
             try
@@ -103,6 +105,6 @@ public class ExpireAttachmentHandler(
 
             logger.LogInformation("Successfully expired attachment {AttachmentId} with filename {FileName}", attachmentId, attachment.FileName);
             return Task.CompletedTask;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 }

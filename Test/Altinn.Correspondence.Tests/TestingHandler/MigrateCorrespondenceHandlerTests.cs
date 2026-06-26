@@ -10,6 +10,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Register.Contracts;
 using Hangfire;
@@ -90,6 +91,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _idempotencyKeyRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 mockPartyUrnHelper.Object,
+                TestDbContextFactory.Create(),
                 _eventHelperLoggerMock.Object);
 
             // Ensure Create returns a non-null job id by default (needed for continuations)
@@ -101,6 +103,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var makeCorrespondenceAvailableBatchJob = new MakeCorrespondenceAvailableBatchJob(
                 _correspondenceRepositoryMock.Object,
                 _backgroundJobClientMock.Object);
+            var dbContext = TestDbContextFactory.Create();
             var chainedBatchJobOrchestrator = new ChainedBatchJobOrchestrator(new NullLogger<ChainedBatchJobOrchestrator>());
             _handler = new MigrateCorrespondenceHandler(
                 _correspondenceRepositoryMock.Object,
@@ -108,6 +111,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 hangfireScheduleHelper,
                 _backgroundJobClientMock.Object,
                 _hostEnvironmentMock.Object,
+                dbContext,
                 correspondenceEventHelper,
                 chainedBatchJobOrchestrator,
                 makeCorrespondenceAvailableBatchJob,

@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -15,7 +16,8 @@ public class LegacyPurgeCorrespondenceHandler(
     IAltinnRegisterService altinnRegisterService,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     UserClaimsHelper userClaimsHelper,
-    ILogger<LegacyPurgeCorrespondenceHandler> logger) : IHandler<Guid, Guid>
+    ILogger<LegacyPurgeCorrespondenceHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<Guid, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -54,10 +56,10 @@ public class LegacyPurgeCorrespondenceHandler(
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             var partyUrn = user?.GetCallerPartyUrn();
             return await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, false, partyUuid, partyId, operationTimestamp, cancellationToken, partyUrn);
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 }

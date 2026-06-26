@@ -38,7 +38,7 @@ ILogger<SyncCorrespondenceForwardingEventHandler> logger) : IHandler<SyncCorresp
         }
 
         // Process, save, and enqueue background jobs for forwarding events
-        // Note: We don't use TransactionWithRetriesPolicy here because AddRangeAsync + SaveChangesAsync 
+        // Note: We don't wrap this in DatabaseTransactionHelper here because AddRangeAsync + SaveChangesAsync
         // within a TransactionScope causes "operation in progress" errors with PostgreSQL.
         // EF Core's SaveChangesAsync() already provides transactional guarantees.
         await correspondenceMigrationEventHelper.ProcessForwardingEvents(

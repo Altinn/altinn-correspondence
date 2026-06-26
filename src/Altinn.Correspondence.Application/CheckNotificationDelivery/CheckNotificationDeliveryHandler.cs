@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -17,7 +18,8 @@ public class CheckNotificationDeliveryHandler(
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IAltinnNotificationService altinnNotificationService,
     IBackgroundJobClient backgroundJobClient,
-    ILogger<CheckNotificationDeliveryHandler> logger)
+    ILogger<CheckNotificationDeliveryHandler> logger,
+    ApplicationDbContext dbContext)
 {
     [AutomaticRetry(
         Attempts = 10,
@@ -101,7 +103,7 @@ public class CheckNotificationDeliveryHandler(
                 var allFailed = failedRecipients.Any() && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
                 var isMainOrder = IsMainOrder(notification, correspondence.Recipient);
 
-                await TransactionWithRetriesPolicy.Execute(async (transactionToken) =>
+                await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (transactionToken) =>
                 {
                     await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, transactionToken);
 
@@ -163,7 +165,7 @@ public class CheckNotificationDeliveryHandler(
                     }
 
                     return true;
-                }, logger, cancellationToken);
+                }, cancellationToken);
 
                 return true;
             }

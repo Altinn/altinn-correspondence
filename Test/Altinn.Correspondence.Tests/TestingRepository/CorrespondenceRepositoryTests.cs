@@ -2,28 +2,21 @@
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Repositories;
-using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Tests.TestingRepository
 {
-    public class CorrespondenceRepositoryTests : IClassFixture<PostgresTestcontainerFixture>
+    public class CorrespondenceRepositoryTests
     {
-        private readonly PostgresTestcontainerFixture _fixture;
-
-        public CorrespondenceRepositoryTests(PostgresTestcontainerFixture fixture)
-        {
-            _fixture = fixture;
-        }
-
         [Fact]
         public async Task CanAddAndRetrieveCorrespondence()
         {
             // Arrange
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var correspondence = new CorrespondenceEntityBuilder()
                 .Build();
 
@@ -43,7 +36,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         public async Task LegacyCorrespondenceSearch_CorrespondenceAddedForParty_GetCorrespondencesForPartyReturnsIt()
         {
             // Arrange
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var correspondenceRepository = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
             var baseTime = new DateTimeOffset(new DateTime(2001, 1, 1, 0, 0, 0), TimeSpan.Zero);
             var from = baseTime.AddDays(-1);
@@ -74,7 +67,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         public async Task GetCorrespondences_AsSender_ReturnsArchivedCorrespondence()
         {
             // Arrange
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var correspondenceRepository = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
             var baseTime = new DateTimeOffset(new DateTime(2002, 1, 1, 0, 0, 0), TimeSpan.Zero);
             var from = baseTime.AddDays(-1);
@@ -104,7 +97,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         [InlineData("senderOrgNumber")]
         public async Task GetDailySummaryData_PropertyListContainsSenderOrgNumber_PopulatesSenderOrgNumber(string senderOrgNumberKey)
         {
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
             var serviceOwnerId = $"so-{Guid.NewGuid():N}";
@@ -151,7 +144,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         [Fact]
         public async Task GetCorrespondencesWindowAfter_TieBreakerOnEqualCreated_UsesIdAscending()
         {
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
             var baseTime = new DateTime(2000, 1, 1, 0, 0, 0);
 
@@ -189,7 +182,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         [Fact]
         public async Task GetCorrespondencesWindowAfter_ReturnsInOrderAndPages()
         {
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
             var baseTime = new DateTime(2000, 1, 2, 0, 0, 0);
 
@@ -230,7 +223,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         [Fact]
         public async Task GetCorrespondencesByIdsWithReferenceAndCurrentStatus_FiltersByLatestPurgedAndReference()
         {
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
             var baseTime = new DateTime(2002, 1, 1, 0, 0, 0);
@@ -271,7 +264,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         [Fact]
         public async Task GetCorrespondencesByIdsWithReferenceAndCurrentStatus_UsesLatestByStatusChangedThenStatusId()
         {
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
             var idA = new Guid("00000000-0000-0000-0000-000000000001");
             var idB = new Guid("00000000-0000-0000-0000-000000000002");
@@ -299,7 +292,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         [Fact]
         public async Task GetCorrespondencesForParties_ReturnsWhenLatestIsAttachmentsDownloaded()
         {
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
             var recipient = "0192:111111111";
@@ -335,7 +328,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         [Fact]
         public async Task GetCorrespondencesForParties_AttachmentsDownloadedExistsButSincePurged_ReturnsNothingOnIncludeOnlyActive()
         {
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
             var recipient = "0192:222222222";
@@ -371,7 +364,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         public async Task HardDeleteCorrespondencesByIds_DeletesOnlySpecifiedIds()
         {
             // Arrange
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
             var correspondenceA = new CorrespondenceEntityBuilder().Build();
@@ -394,7 +387,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         public async Task HardDeleteCorrespondencesByIds_ExceedsSafetyMargin_ThrowsArgumentException()
         {
             // Arrange
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
             var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
 
@@ -427,7 +420,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         public async Task HardDeleteCorrespondencesByIds_ExactlyAtSafetyMargin_DeletesSuccessfully()
         {
             // Arrange
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
             var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
 
@@ -457,7 +450,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         [Fact]
         public async Task GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus_FiltersOutInvalidCandidates()
         {
-            await using var context = _fixture.CreateDbContext();
+            await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
             var baseTime = new DateTime(2010, 1, 1, 0, 0, 0);

@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -22,7 +23,8 @@ public class LegacyGetCorrespondenceOverviewHandler(
     IDialogportenService dialogportenService,
     UserClaimsHelper userClaimsHelper,
     IBackgroundJobClient backgroundJobClient,
-    ILogger<LegacyGetCorrespondenceOverviewHandler> logger) : IHandler<Guid, LegacyGetCorrespondenceOverviewResponse>
+    ILogger<LegacyGetCorrespondenceOverviewHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<Guid, LegacyGetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<LegacyGetCorrespondenceOverviewResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -87,7 +89,7 @@ public class LegacyGetCorrespondenceOverviewHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        return await TransactionWithRetriesPolicy.Execute<LegacyGetCorrespondenceOverviewResponse>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             try
             {
@@ -185,6 +187,6 @@ public class LegacyGetCorrespondenceOverviewHandler(
                 logger.LogError(e, "Failed to clean up confidential reminder for correspondence {CorrespondenceId}", correspondence.Id);
             }
             return response;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 }

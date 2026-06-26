@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -18,7 +19,8 @@ public class LegacyUpdateCorrespondenceStatusHandler(
     IAltinnRegisterService altinnRegisterService,
     UserClaimsHelper userClaimsHelper,
     IBackgroundJobClient backgroundJobClient,
-    ILogger<LegacyUpdateCorrespondenceStatusHandler> logger) : IHandler<LegacyUpdateCorrespondenceStatusRequest, Guid>
+    ILogger<LegacyUpdateCorrespondenceStatusHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<LegacyUpdateCorrespondenceStatusRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(LegacyUpdateCorrespondenceStatusRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -62,7 +64,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
-        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
@@ -84,7 +86,7 @@ public class LegacyUpdateCorrespondenceStatusHandler(
                 backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp));
             }
             return request.CorrespondenceId;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 
     private Error? ValidateUpdateRequest(LegacyUpdateCorrespondenceStatusRequest request, CorrespondenceEntity correspondence)

@@ -10,6 +10,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,8 @@ public class PublishCorrespondenceHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IContactReservationRegistryService contactReservationRegistryService,
     IBackgroundJobClient backgroundJobClient,
-    IIdempotencyKeyRepository idempotencyKeyRepository) : IHandler<Guid, Task>
+    IIdempotencyKeyRepository idempotencyKeyRepository,
+    ApplicationDbContext dbContext) : IHandler<Guid, Task>
 {
     public async Task<OneOf<Task, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -83,11 +85,10 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
         }
-        CorrespondenceStatusEntity status;
-        AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
-
-        return await TransactionWithRetriesPolicy.Execute<Task>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
+            CorrespondenceStatusEntity status;
+            AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
             var publishIdempotencyId = correspondenceId.CreateVersion5("PublishCorrespondence");
             try
             {
@@ -162,7 +163,7 @@ public class PublishCorrespondenceHandler(
             }
             logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
             return Task.CompletedTask;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 
     private async Task<bool> HasRecipientBeenSetToReservedInKRR(CorrespondenceEntity correspondence, CancellationToken cancellationToken)

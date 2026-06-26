@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -73,6 +74,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _idempotencyKeyRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
                 mockPartyUrnHelper.Object,
+                TestDbContextFactory.Create(),
                 _eventHelperLoggerMock.Object);
 
             _handler = new SyncCorrespondenceForwardingEventHandler(
