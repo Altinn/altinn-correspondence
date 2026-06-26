@@ -55,6 +55,15 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
         }
 
+        public async Task<List<CorrespondenceNotificationEntity>> GetNotificationsByIds(List<Guid> notificationIds, CancellationToken cancellationToken)
+        {
+            return await _context.CorrespondenceNotifications
+                .Include(n => n.Correspondence)
+                    .ThenInclude(c => c.ExternalReferences)
+                .Where(n => notificationIds.Contains(n.Id))
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task UpdateNotificationSent(Guid notificationId, DateTimeOffset sentTime, string destination, CancellationToken cancellationToken)
         {
             var rows = await _context.CorrespondenceNotifications
@@ -146,43 +155,17 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<CorrespondenceNotificationEntity>> GetSyncedNotificationsWithoutDialogActivityBatch(
-            int count, 
-            DateTimeOffset lastProcessedTimestamp,
-            Guid? lastProcessedId,
-            CancellationToken cancellationToken)
-        {
-            var query = _context.CorrespondenceNotifications
-                .Where(n => n.Altinn2NotificationId != null 
-                         && n.SyncedFromAltinn2 != null);
-
-            // Composite cursor: use both timestamp and Id to prevent skipping at batch boundaries
-            if (lastProcessedId.HasValue)
-            {
-                // Standard case: filter by timestamp OR (same timestamp AND id)
-                query = query.Where(n => 
-                    n.NotificationSent < lastProcessedTimestamp
-                    || (n.NotificationSent == lastProcessedTimestamp && n.Id < lastProcessedId.Value));
-            }
-            else
-            {
-                // Initial call: only timestamp filter
-                query = query.Where(n => n.NotificationSent < lastProcessedTimestamp);
-            }
-
-            return await query
-                .OrderByDescending(n => n.NotificationSent)
-                .ThenByDescending(n => n.Id)  // Secondary sort for deterministic ordering
-                .Take(count)
-                .ToListAsync(cancellationToken);
-        }
-
         public async Task<CorrespondencesWithNotificationsBatch> GetCorrespondencesWithSyncedNotifications(
             int count,
             DateTimeOffset lastProcessedTimestamp,
             Guid? lastProcessedId,
             CancellationToken cancellationToken)
         {
+            if (count <= 0)
+            {
+                return new CorrespondencesWithNotificationsBatch();
+            }
+
             var query = _context.CorrespondenceNotifications
                 .Where(n => n.Altinn2NotificationId != null 
                          && n.SyncedFromAltinn2 != null);

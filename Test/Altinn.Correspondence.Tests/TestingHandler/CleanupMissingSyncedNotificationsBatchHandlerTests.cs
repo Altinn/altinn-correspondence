@@ -241,10 +241,13 @@ public class CleanupMissingSyncedNotificationsBatchHandlerTests
     {
         var correspondences = new List<CorrespondenceWithNotifications>();
         var notificationsPerCorrespondence = totalNotifications / correspondenceCount;
+        var remainder = totalNotifications % correspondenceCount;
 
         for (int i = 0; i < correspondenceCount; i++)
         {
-            var notificationIds = Enumerable.Range(0, notificationsPerCorrespondence)
+            // Distribute remainder across first N correspondences
+            var notificationCount = notificationsPerCorrespondence + (i < remainder ? 1 : 0);
+            var notificationIds = Enumerable.Range(0, notificationCount)
                 .Select(_ => Guid.NewGuid())
                 .ToList();
 

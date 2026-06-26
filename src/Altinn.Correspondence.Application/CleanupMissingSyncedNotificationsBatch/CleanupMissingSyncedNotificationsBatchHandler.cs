@@ -49,19 +49,6 @@ namespace Altinn.Correspondence.Application.CleanupMissingSyncedNotificationsBat
             await orchestrator.RunBatchAsync(request, batchJob.CreateDefinition(), cancellationToken);
         }
 
-        /// <summary>
-        /// Worker method - processes one correspondence group with duplicate checking
-        /// This is called by IDialogportenService.AddNotificationActivitiesWithDuplicateCheck
-        /// but included here for reference as it's enqueued by the batch job
-        /// </summary>
-        [AutomaticRetry(Attempts = 0)]
-        public async Task ProcessCorrespondenceNotifications(Guid correspondenceId, List<Guid> notificationIds, CancellationToken cancellationToken)
-        {
-            // This method signature matches what's called in the batch job definition
-            // The actual implementation is in DialogportenService.AddNotificationActivitiesWithDuplicateCheck
-            throw new NotImplementedException("This is handled by IDialogportenService");
-        }
-
         private static string SanitizeForLog(string? value)
         {
             return value?

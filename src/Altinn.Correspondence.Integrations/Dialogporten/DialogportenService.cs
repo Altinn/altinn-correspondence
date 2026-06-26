@@ -1257,9 +1257,10 @@ public class DialogportenService(HttpClient _httpClient,
 
         if (!response.IsSuccessStatusCode)
         {
+            var errorContent = await response.Content.ReadAsStringAsync();
+
             if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
                 if (errorContent.Contains("already exists"))
                 {
                     logger.LogWarning(
@@ -1275,7 +1276,10 @@ public class DialogportenService(HttpClient _httpClient,
                 "Failed to add activity for notification {NotificationId}. Response: {StatusCode}: {Content}", 
                 notificationId,
                 response.StatusCode, 
-                await response.Content.ReadAsStringAsync());
+                errorContent);
+
+            throw new HttpRequestException(
+                $"Failed to add activity for notification {notificationId}. Status: {response.StatusCode}, Content: {errorContent}");
         }
         else
         {
@@ -1300,18 +1304,17 @@ public class DialogportenService(HttpClient _httpClient,
             return;
         }
 
-        // Get all notifications
-        var notifications = new List<CorrespondenceNotificationEntity>();
-        foreach (var notificationId in notificationIds)
+        // Get all notifications in a single batch query
+        var notifications = await correspondenceNotificationRepository.GetNotificationsByIds(notificationIds, cancellationToken);
+
+        // Log warnings for any missing notifications
+        if (notifications.Count < notificationIds.Count)
         {
-            var notification = await correspondenceNotificationRepository.GetNotificationById(notificationId, cancellationToken);
-            if (notification != null)
+            var foundIds = notifications.Select(n => n.Id).ToHashSet();
+            var missingIds = notificationIds.Where(id => !foundIds.Contains(id));
+            foreach (var missingId in missingIds)
             {
-                notifications.Add(notification);
-            }
-            else
-            {
-                logger.LogWarning("Notification with id {NotificationId} not found. Skipping.", notificationId);
+                logger.LogWarning("Notification with id {NotificationId} not found. Skipping.", missingId);
             }
         }
 

@@ -449,12 +449,17 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
     [ProducesResponseType(StatusCodes.Status200OK)]
     [Route("cleanup-missing-synced-notification-events")]
     [Authorize(Policy = AuthorizationConstants.Maintenance)]
-    public ActionResult CleanupMissingSyncedNotificationEvents(
+    public async Task<ActionResult> CleanupMissingSyncedNotificationEvents(
         [FromServices] CleanupMissingSyncedNotificationsBatchHandler handler,
         [FromQuery] int batchCount = 100,
         [FromQuery] DateTimeOffset? startDate = null,
         [FromQuery] Guid? startId = null)
     {
+        if (batchCount <= 0)
+        {
+            return BadRequest(new { Message = "batchCount must be greater than zero", ProvidedValue = batchCount });
+        }
+
         var processFromDate = startDate ?? DateTimeOffset.MaxValue;
         var sanitizedStartIdForLog = startId?.ToString().Replace("\r", string.Empty).Replace("\n", string.Empty);
 
@@ -464,7 +469,7 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             processFromDate,
             sanitizedStartIdForLog);
 
-        handler.Process(batchCount, processFromDate, startId);
+        await handler.Process(batchCount, processFromDate, startId);
 
         return Ok(new 
         { 

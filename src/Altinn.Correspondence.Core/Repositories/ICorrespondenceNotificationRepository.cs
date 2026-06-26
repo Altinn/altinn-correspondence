@@ -9,6 +9,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<Guid> AddNotificationForSync(CorrespondenceNotificationEntity notification, CancellationToken cancellationToken);
         Task<CorrespondenceNotificationEntity?> GetPrimaryNotification(Guid correspondenceId, CancellationToken cancellationToken);
         Task<CorrespondenceNotificationEntity?> GetNotificationById(Guid notificationId, CancellationToken cancellationToken);
+        Task<List<CorrespondenceNotificationEntity>> GetNotificationsByIds(List<Guid> notificationIds, CancellationToken cancellationToken);
         Task UpdateNotificationSent(Guid notificationId, DateTimeOffset sentTime, string destination, CancellationToken cancellationToken);
         Task UpdateNotificationStatus(Guid notificationId, string failedStatus, CancellationToken cancellationToken);
         Task UpdateOrderResponseData(Guid notificationId, Guid notificationOrderId, Guid shipmentId, CancellationToken cancellationToken);
@@ -18,11 +19,6 @@ namespace Altinn.Correspondence.Core.Repositories
             DateTimeOffset requestedSendTimeOlderThan,
             Guid? afterNotificationId,
             int limit,
-            CancellationToken cancellationToken);
-        Task<List<CorrespondenceNotificationEntity>> GetSyncedNotificationsWithoutDialogActivityBatch(
-            int count, 
-            DateTimeOffset lastProcessedTimestamp,
-            Guid? lastProcessedId,
             CancellationToken cancellationToken);
         Task<CorrespondencesWithNotificationsBatch> GetCorrespondencesWithSyncedNotifications(
             int count,
