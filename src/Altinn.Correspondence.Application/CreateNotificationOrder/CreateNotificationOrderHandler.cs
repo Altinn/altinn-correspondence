@@ -365,40 +365,42 @@ public class CreateNotificationOrderHandler(
         logger.LogInformation("Persisting {Count} notification order requests for {NotificationId}", notificationOrderRequests.Count, context.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
         {
-            await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (ct) =>
-            {
-                try
+            await DatabaseTransactionHelper.ExecuteAsync(
+                dbContext,
+                async ct =>
                 {
-                    await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                    if (await DatabaseTransactionHelper.Idempotency.ExistsAsync(idempotencyKeyRepository, notificationOrderRequest.IdempotencyId, ct))
+                    {
+                        logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on {NotificationId}. Skipping.", notificationOrderRequest.IdempotencyId, context.Id);
+                        return Task.CompletedTask;
+                    }
+
+                    await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
                     {
                         Id = notificationOrderRequest.IdempotencyId,
                         CorrespondenceId = context.CorrespondenceId,
                         IdempotencyType = IdempotencyType.NotificationOrder
                     }, ct);
-                }
-                catch (DbUpdateException e)
-                {
-                    if (e.IsPostgresUniqueViolation())
-                    {
-                        logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on {NotificationId}. Skipping.", notificationOrderRequest.IdempotencyId, context.Id);
-                        return Task.CompletedTask;
-                    }
-                    throw;
-                }
 
-                var notification = new CorrespondenceNotificationEntity()
+                    var notification = new CorrespondenceNotificationEntity()
+                    {
+                        Created = DateTimeOffset.UtcNow,
+                        NotificationTemplate = notificationRequest.NotificationTemplate,
+                        NotificationChannel = notificationRequest.NotificationChannel,
+                        CorrespondenceId = context.CorrespondenceId,
+                        RequestedSendTime = notificationOrderRequest.RequestedSendTime,
+                        IsReminder = false,
+                        OrderRequest = JsonSerializer.Serialize(notificationOrderRequest)
+                    };
+                    await correspondenceNotificationRepository.AddNotification(notification, ct);
+                    return Task.CompletedTask;
+                },
+                cancellationToken,
+                DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
                 {
-                    Created = DateTimeOffset.UtcNow,
-                    NotificationTemplate = notificationRequest.NotificationTemplate,
-                    NotificationChannel = notificationRequest.NotificationChannel,
-                    CorrespondenceId = context.CorrespondenceId,
-                    RequestedSendTime = notificationOrderRequest.RequestedSendTime,
-                    IsReminder = false,
-                    OrderRequest = JsonSerializer.Serialize(notificationOrderRequest)
-                };
-                await correspondenceNotificationRepository.AddNotification(notification, ct);
-                return Task.CompletedTask;
-            }, cancellationToken);
+                    logger.LogWarning("Primary notification already persisted for idempotency key {IdempotencyId} on {NotificationId}. Skipping.", notificationOrderRequest.IdempotencyId, context.Id);
+                    return Task.CompletedTask;
+                }));
         }
     }
 

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -10,6 +11,7 @@ namespace Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
 public class CleanupBulkFetchStatusesHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
+    ApplicationDbContext dbContext,
     ILogger<CleanupBulkFetchStatusesHandler> logger) : IHandler<CleanupBulkFetchStatusesRequest, CleanupBulkFetchStatusesResponse>
 {
     private static readonly TimeSpan DebounceWindow = TimeSpan.FromSeconds(15);
@@ -84,6 +86,11 @@ public class CleanupBulkFetchStatusesHandler(
                         totalErrors++;
                         logger.LogError(ex, "Failed to delete bulk fetch status {StatusId} for CorrespondenceId {CorrespondenceId} and PartyUuid {PartyUuid} with StatusChanged {StatusChanged}", duplicate.Id, duplicate.CorrespondenceId, duplicate.PartyUuid, duplicate.StatusChanged);
                     }
+                }
+
+                if (duplicates.Count > 0)
+                {
+                    await dbContext.SaveChangesAsync(cancellationToken);
                 }
 
                 if (batch.Count == 0)

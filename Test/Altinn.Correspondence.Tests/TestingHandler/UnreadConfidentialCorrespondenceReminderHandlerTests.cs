@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
+using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -40,7 +41,8 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
             _correspondenceRepositoryMock.Object,
             _confidentialReminderRepositoryMock.Object,
             _dialogportenServiceMock.Object,
-            _backgroundJobClientMock.Object);
+            _backgroundJobClientMock.Object,
+            TestDbContextFactory.Create());
     }
 
     private CorrespondenceEntity CreateUnreadCorrespondence(Guid correspondenceId)

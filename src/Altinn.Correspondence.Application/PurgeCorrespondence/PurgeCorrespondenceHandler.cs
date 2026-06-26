@@ -75,13 +75,21 @@ public class PurgeCorrespondenceHandler(
             correspondenceId,
             isSender ? "sender" : "recipient");
 
-        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
-        {
-            var partyUrn = user?.GetCallerPartyUrn();
-            var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.GetPartyId(), operationTimestamp, cancellationToken, partyUrn);
-            logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", result);
-            return result;
-        }, cancellationToken);
+        return await DatabaseTransactionHelper.ExecuteAsync(
+            dbContext,
+            async cancellationToken =>
+            {
+                var partyUrn = user?.GetCallerPartyUrn();
+                var result = await purgeCorrespondenceHelper.PurgeCorrespondence(correspondence, isSender, partyUuid, party.GetPartyId(), operationTimestamp, cancellationToken, partyUrn);
+                logger.LogInformation("Successfully purged correspondence {CorrespondenceId}", result);
+                return result;
+            },
+            cancellationToken,
+            DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
+            {
+                logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondenceId);
+                return correspondenceId;
+            }));
     }
 
     private Error? CheckUserPermissions(ClaimsPrincipal user, CorrespondenceEntity correspondence, bool hasAccessAsSender, bool hasAccessAsRecipient, out bool isSender)

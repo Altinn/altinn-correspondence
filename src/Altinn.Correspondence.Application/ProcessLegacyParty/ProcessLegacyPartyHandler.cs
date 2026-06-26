@@ -1,6 +1,7 @@
 using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
@@ -10,7 +11,8 @@ public class ProcessLegacyPartyHandler(
     ILogger<ProcessLegacyPartyHandler> logger,
     IAltinnRegisterService altinnRegisterService,
     IAltinnStorageService altinnStorageService,
-    ILegacyPartyRepository legacyPartyRepository)
+    ILegacyPartyRepository legacyPartyRepository,
+    ApplicationDbContext dbContext)
 {
     public async Task Process(string recipient, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -31,6 +33,7 @@ public class ProcessLegacyPartyHandler(
             }
             logger.Log(LogLevel.Information, "Party {partyId} added to SBL", partyId);
             await legacyPartyRepository.AddLegacyPartyId(partyId.Value, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 }

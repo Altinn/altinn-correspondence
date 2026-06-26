@@ -23,27 +23,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
             await _context.Attachments.AddAsync(attachment, cancellationToken);
-
-            try
-            {
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex,
-                    "Error saving attachment {AttachmentId} (ResourceId: {ResourceId}, StorageProviderId: {StorageProviderId})",
-                    attachment?.Id, attachment?.ResourceId, attachment?.StorageProvider?.Id);
-
-                throw;
-            }
-
             return attachment;
         }
 
         public async Task<List<Guid>> InitializeMultipleAttachments(List<AttachmentEntity> attachments, CancellationToken cancellationToken)
         {
             await _context.Attachments.AddRangeAsync(attachments, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
             return attachments.Select(a => a.Id).ToList();
         }
 
@@ -64,27 +49,24 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await attachments.SingleOrDefaultAsync(a => a.Id == guid, cancellationToken);
         }
 
-        public async Task<bool> SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
+        public Task SetDataLocationUrl(AttachmentEntity attachmentEntity, AttachmentDataLocationType attachmentDataLocationType, string dataLocationUrl, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken)
         {
             attachmentEntity.DataLocationType = attachmentDataLocationType;
             attachmentEntity.DataLocationUrl = dataLocationUrl;
             attachmentEntity.StorageProvider = storageProviderEntity;
-            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated == 1;
-
+            return Task.CompletedTask;
         }
 
-        public async Task<bool> SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
+        public Task SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
         {
             attachmentEntity.Checksum = checkSum;
-            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated == 1;
+            return Task.CompletedTask;
         }
-        public async Task<bool> SetAttachmentSize(AttachmentEntity attachmentEntity, long size, CancellationToken cancellationToken)
+
+        public Task SetAttachmentSize(AttachmentEntity attachmentEntity, long size, CancellationToken cancellationToken)
         {
             attachmentEntity.AttachmentSize = size;
-            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated == 1;
+            return Task.CompletedTask;
         }
 
 
@@ -170,7 +152,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
 			}
 			attachment.StorageProvider = storageProvider;
 			attachment.DataLocationUrl = dataLocationUrl;
-			await _context.SaveChangesAsync(cancellationToken);
 		}
 
 		public async Task<int> HardDeleteOrphanedAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken)
@@ -190,7 +171,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
 			_context.Attachments.RemoveRange(orphanAttachments);
-			return await _context.SaveChangesAsync(cancellationToken);
+			return orphanAttachments.Count;
 		}
 
         public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken)

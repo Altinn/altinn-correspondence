@@ -89,16 +89,6 @@ public class DownloadCorrespondenceAttachmentHandler(
         else
         {
             activityId = Guid.NewGuid().ToString();
-            _logger.LogInformation("Creating new idempotency key {KeyId} for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
-                activityId, request.CorrespondenceId, request.AttachmentId);
-            var idempotencyKey = new IdempotencyKeyEntity
-            {
-                Id = Guid.Parse(activityId),
-                CorrespondenceId = request.CorrespondenceId,
-                AttachmentId = request.AttachmentId,
-                StatusAction = StatusAction.AttachmentDownloaded
-            };
-            await _idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
         }
 
         var caller = user.GetCallerPartyUrn();
@@ -113,6 +103,20 @@ public class DownloadCorrespondenceAttachmentHandler(
         
         return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
+            if (existingKey == null)
+            {
+                _logger.LogInformation("Creating new idempotency key {KeyId} for correspondence {CorrespondenceId} and attachment {AttachmentId}", 
+                    activityId, request.CorrespondenceId, request.AttachmentId);
+                await _idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                {
+                    Id = Guid.Parse(activityId),
+                    CorrespondenceId = request.CorrespondenceId,
+                    AttachmentId = request.AttachmentId,
+                    StatusAction = StatusAction.AttachmentDownloaded,
+                    IdempotencyType = IdempotencyType.DialogportenActivity
+                }, cancellationToken);
+            }
+
             try
             {
                 await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity

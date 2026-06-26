@@ -35,4 +35,9 @@ public enum IdempotencyType
     /// Indicates that this is an idempotency key for purging a correspondence
     /// </summary>
     PurgeCorrespondence = 5,
+
+    /// <summary>
+    /// Indicates that a Hangfire publish job has been scheduled for a correspondence
+    /// </summary>
+    SchedulePublishCorrespondence = 6,
 } 

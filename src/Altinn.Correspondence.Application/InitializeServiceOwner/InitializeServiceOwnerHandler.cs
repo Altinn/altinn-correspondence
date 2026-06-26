@@ -1,11 +1,12 @@
 ﻿using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using OneOf;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.InitializeServiceOwner;
 
-public class InitializeServiceOwnerHandler(IServiceOwnerRepository serviceOwnerRepository, IResourceManager resourceManager) : IHandler<InitializeServiceOwnerRequest, bool>
+public class InitializeServiceOwnerHandler(IServiceOwnerRepository serviceOwnerRepository, IResourceManager resourceManager, ApplicationDbContext dbContext) : IHandler<InitializeServiceOwnerRequest, bool>
 {
     public async Task<OneOf<bool, Error>> Process(InitializeServiceOwnerRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -18,6 +19,7 @@ public class InitializeServiceOwnerHandler(IServiceOwnerRepository serviceOwnerR
         {
             return new Error(1, "Service owner already exists", System.Net.HttpStatusCode.Conflict);
         }
+        await dbContext.SaveChangesAsync(cancellationToken);
         var serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgNo(request.ServiceOwnerId, cancellationToken);
         resourceManager.DeployStorageAccountsForServiceOwner(serviceOwner, cancellationToken);
         return true;

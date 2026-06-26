@@ -1327,6 +1327,32 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondence_WithDuplicateIdempotentKey_SkipsValidation()
+        {
+            var idempotentKey = Guid.NewGuid();
+            var validCorrespondence = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(idempotentKey)
+                .Build();
+
+            var firstResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", validCorrespondence);
+            Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+            var invalidIfValidated = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithIdempotentKey(idempotentKey)
+                .WithExternalReferencesDialogId("not-a-guid")
+                .Build();
+
+            var duplicateResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", invalidIfValidated);
+
+            Assert.Equal(HttpStatusCode.Conflict, duplicateResponse.StatusCode);
+            var errorContent = await duplicateResponse.Content.ReadAsStringAsync();
+            Assert.Contains(CorrespondenceErrors.DuplicateInitCorrespondenceRequest.Message, errorContent);
+            Assert.DoesNotContain(CorrespondenceErrors.InvalidCorrespondenceDialogId.Message, errorContent);
+        }
+
+        [Fact]
         public async Task InitializeCorrespondence_WithDifferentContentAndSameIdempotentKey_ShouldReturnConflict()
         {
             // Arrange
@@ -2555,10 +2581,20 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     Statuses = new List<CorrespondenceStatusEntity>()
                 });
 
+            var idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
+            idempotencyKeyRepositoryMock
+                .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity?)null);
+            idempotencyKeyRepositoryMock
+                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity entity, CancellationToken _) => entity);
+
             var helper = new HangfireScheduleHelper(
                 scheduleClientMock.Object,
                 hybridCacheWrapperMock.Object,
                 scheduleRepositoryMock.Object,
+                idempotencyKeyRepositoryMock.Object,
+                TestDbContextFactory.Create(),
                 new Mock<ILogger<HangfireScheduleHelper>>().Object);
 
             await helper.SchedulePublishAfterDialogCreated(correspondenceId, CancellationToken.None);
@@ -2586,12 +2622,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
             var correspondenceStatusRepositoryMock = new Mock<ICorrespondenceStatusRepository>();
             var altinnRegisterServiceMock = new Mock<IAltinnRegisterService>();
-            var idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
+            var publishIdempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
 
             publishClientMock
                 .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
                 .Returns(() => Guid.NewGuid().ToString());
-            idempotencyKeyRepositoryMock
+            publishIdempotencyKeyRepositoryMock
+                .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity?)null);
+            publishIdempotencyKeyRepositoryMock
                 .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((IdempotencyKeyEntity key, CancellationToken _) => key);
 
@@ -2636,7 +2675,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 correspondenceStatusRepositoryMock.Object,
                 new Mock<IContactReservationRegistryService>().Object,
                 publishClientMock.Object,
-                idempotencyKeyRepositoryMock.Object,
+                publishIdempotencyKeyRepositoryMock.Object,
                 TestDbContextFactory.Create());
 
             await publishHandler.Process(correspondenceId, null, CancellationToken.None);

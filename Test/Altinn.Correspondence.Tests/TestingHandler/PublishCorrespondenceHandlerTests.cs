@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -40,6 +41,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _backgroundJobClientMock
                 .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
                 .Returns(() => Guid.NewGuid().ToString());
+            _idempotencyKeyRepositoryMock
+                .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IdempotencyKeyEntity?)null);
             _idempotencyKeyRepositoryMock
                 .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((IdempotencyKeyEntity key, CancellationToken _) => key);
@@ -258,5 +262,65 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.UpdatePublished(correspondenceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
+
+        [Fact]
+        public async Task Process_ShouldSkip_WhenPublishIdempotencyKeyExists()
+        {
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+            var publishIdempotencyId = correspondenceId.CreateVersion5("PublishCorrespondence");
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+            _altinnRegisterServiceMock.SetupPartyRoleLookup(partyUuid.ToString(), "daglig-leder");
+
+            _idempotencyKeyRepositoryMock
+                .Setup(x => x.GetByIdAsync(publishIdempotencyId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new IdempotencyKeyEntity { Id = publishIdempotencyId });
+
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
+
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _backgroundJobClientMock.Verify(
+                x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_ShouldSkip_WhenUniqueViolationOnFlush()
+        {
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn);
+            SetupCommonMocks(correspondenceId, partyUuid, correspondence);
+            _altinnRegisterServiceMock.SetupPartyRoleLookup(partyUuid.ToString(), "daglig-leder");
+
+            var handler = new PublishCorrespondenceHandler(
+                _altinnRegisterServiceMock.Object,
+                _loggerMock.Object,
+                _correspondenceRepositoryMock.Object,
+                _correspondenceStatusRepositoryMock.Object,
+                _contactReservationRegistryServiceMock.Object,
+                _backgroundJobClientMock.Object,
+                _idempotencyKeyRepositoryMock.Object,
+                TestDbContextFactory.CreateUniqueViolationOnDeferredSave());
+
+            var result = await handler.Process(correspondenceId, null, CancellationToken.None);
+
+            Assert.True(result.IsT0);
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.AtLeastOnce);
+        }
     }
-} 
+}

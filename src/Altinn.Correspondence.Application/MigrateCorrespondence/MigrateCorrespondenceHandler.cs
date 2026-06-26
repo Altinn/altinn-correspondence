@@ -53,6 +53,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
         try
         {
             var correspondence = await correspondenceRepository.CreateCorrespondence(request.CorrespondenceEntity, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
             
             if (request.DeleteEventEntities != null && request.DeleteEventEntities.Any()) // Handled separately
             {
@@ -60,6 +61,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                 {
                     await correspondenceMigrationEventHelper.StoreDeleteEventForCorrespondence(correspondence, deleteEvent, DateTimeOffset.UtcNow, cancellationToken);
                 }
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
 
             string dialogId = "";
@@ -84,6 +86,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                     {
                         logger.LogInformation("Correspondence {CorrespondenceId} was previously published in Altinn 2 at {PublishedAt}", correspondence.Id, altinn2PublishStatus.StatusChanged);
                         await correspondenceRepository.UpdatePublished(correspondence.Id, altinn2PublishStatus.StatusChanged, cancellationToken);
+                        await dbContext.SaveChangesAsync(cancellationToken);
                         backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, CancellationToken.None));
                     }
                 }

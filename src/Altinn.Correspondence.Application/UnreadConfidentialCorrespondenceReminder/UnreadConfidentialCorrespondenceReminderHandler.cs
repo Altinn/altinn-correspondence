@@ -4,6 +4,7 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 
@@ -19,7 +20,8 @@ public class UnreadConfidentialCorrespondenceHandler(
     ICorrespondenceRepository correspondenceRepository,
     IConfidentialReminderRepository confidentialReminderRepository,
     IDialogportenService dialogportenService,
-    IBackgroundJobClient backgroundJobClient)
+    IBackgroundJobClient backgroundJobClient,
+    ApplicationDbContext dbContext)
 {
     [AutomaticRetry(Attempts = 0)]
     public async Task Process(Guid correspondenceId, CancellationToken cancellationToken = default)
@@ -82,6 +84,7 @@ public class UnreadConfidentialCorrespondenceHandler(
             Recipient = reminder.Recipient.WithUrnPrefix(),
             DialogId = dialogId,
         }, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Confidential reminder {ReminderId} persisted for correspondence {correspondenceId} with dialog {DialogId}", reminder.Id, correspondenceId, dialogId?.ToString() ?? "none");
 
         var notificationRequest = new NotificationRequest

@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Altinn.Register.Contracts;
 using Hangfire;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
     IContactReservationRegistryService contactReservationRegistryService,
+    ApplicationDbContext dbContext,
     ILogger<InitializeCorrespondenceValidationHelper> logger)
     {
         internal class ValidatedData
@@ -285,6 +287,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                         validatedData.UploadTargetAttachments.Add(processedAttachment);
                     }
                 }
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
             if (existingAttachmentIds.Count > 0)
             {

@@ -18,7 +18,6 @@ public class ConfidentialReminderRepository(ApplicationDbContext context) : ICon
             return existing.Id;
         }
         await _context.ConfidentialReminders.AddAsync(reminder, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
         return reminder.Id;
     }
 
@@ -30,7 +29,6 @@ public class ConfidentialReminderRepository(ApplicationDbContext context) : ICon
             return;
         }
         _context.ConfidentialReminders.Remove(reminder);
-        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<int> NumberOfRemindersForRecipient(string recipient, CancellationToken cancellationToken)

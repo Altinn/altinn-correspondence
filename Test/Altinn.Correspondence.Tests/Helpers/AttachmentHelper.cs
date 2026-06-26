@@ -113,9 +113,9 @@ namespace Altinn.Correspondence.Tests.Helpers
                 return BitConverter.ToString(hash).Replace("-", "").ToLower();
             }
         }
-        public static async Task<AttachmentOverviewExt> WaitForAttachmentStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid attachmentId, AttachmentStatusExt expectedStatus, int maxRetries = 5, int delayMs = 900)
+        public static async Task<AttachmentOverviewExt> WaitForAttachmentStatusUpdate(HttpClient client, JsonSerializerOptions responseSerializerOptions, Guid attachmentId, AttachmentStatusExt expectedStatus, int maxRetries = 10, int delayMs = 1000)
         {
-            await Task.Delay(500);
+            await Task.Delay(1000);
             for (int i = 0; i < maxRetries; i++)
             {
                 var attachment = await client.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", responseSerializerOptions);

@@ -10,7 +10,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<Guid> AddAttachmentStatus(AttachmentStatusEntity status, CancellationToken cancellationToken)
         {
             await _context.AttachmentStatuses.AddAsync(status, cancellationToken);
-            await _context.SaveChangesAsync();
             return status.Id;
         }
     }

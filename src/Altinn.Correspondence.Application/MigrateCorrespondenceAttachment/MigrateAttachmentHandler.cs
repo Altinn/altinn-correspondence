@@ -61,7 +61,16 @@ public class MigrateAttachmentHandler(
                 };
 
                 await attachmentStatusRepository.AddAttachmentStatus(attachmentStatus, ct);
-                transaction.Complete();
+                try
+                {
+                    await dbContext.SaveChangesAsync(ct);
+                    transaction.Complete();
+                }
+                catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
+                {
+                    dbContext.ChangeTracker.Clear();
+                    return MigrateAttachmentAttempt.Duplicate();
+                }
 
                 return MigrateAttachmentAttempt.Created(new MigrateAttachmentResponse
                 {
@@ -79,14 +88,9 @@ public class MigrateAttachmentHandler(
                     Sender = attachment.Sender,
                 });
             }
-            catch (DbUpdateException e)
+            catch (Exception)
             {
-                if (!e.IsPostgresUniqueViolation())
-                {
-                    throw;
-                }
-
-                return MigrateAttachmentAttempt.Duplicate();
+                throw;
             }
         }, cancellationToken);
 

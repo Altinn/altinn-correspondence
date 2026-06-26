@@ -56,6 +56,7 @@ namespace Altinn.Correspondence.Application.Helpers
             logger.LogInformation("Retrieved attachment {attachmentId} from db", attachmentId);
 
             var currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.UploadProcessing, partyUuid, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
             logger.LogInformation("Set attachment status of {attachmentId} to UploadProcessing", attachmentId);
             var bypassMalwareScan = ShouldBypassMalwareScan(attachment);
             var storageProvider = await GetStorageProvider(attachment, bypassMalwareScan, cancellationToken);
@@ -67,16 +68,16 @@ namespace Altinn.Correspondence.Application.Helpers
             var (dataLocationUrl, checksum, size) = successResult;
             return await DatabaseTransactionHelper.ExecuteAsync<OneOf<UploadAttachmentResponse, Error>>(dbContext, async (cancellationToken) =>
             {
-                var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
+                await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
                 logger.LogInformation("Set dataLocationUrl of {attachmentId}", attachmentId);
 
                 if (string.IsNullOrWhiteSpace(attachment.Checksum))
                 {
-                    isValidUpdate |= await attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
+                    await attachmentRepository.SetChecksum(attachment, checksum, cancellationToken);
                 }
-                isValidUpdate |= await attachmentRepository.SetAttachmentSize(attachment, size, cancellationToken);
+                await attachmentRepository.SetAttachmentSize(attachment, size, cancellationToken);
 
-                if (!isValidUpdate)
+                if (string.IsNullOrWhiteSpace(dataLocationUrl))
                 {
                     currentStatus = await SetAttachmentStatus(attachmentId, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
                     await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
@@ -144,21 +145,25 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogWarning(ex, "Upload to storage cancelled for attachment {AttachmentId}. Marking as failed.", attachment.Id);
                 using var cleanupCts = new CancellationTokenSource(UploadCanceledCleanupTimeout);
                 await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cleanupCts.Token, AttachmentStatusText.UploadInterrupted);
+                await dbContext.SaveChangesAsync(cleanupCts.Token);
                 return AttachmentErrors.UploadFailed;
             }
             catch (DataLocationUrlException)
             {
                 await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.InvalidLocationUrl);
+                await dbContext.SaveChangesAsync(cancellationToken);
                 return AttachmentErrors.DataLocationNotFound;
             }
             catch (HashMismatchException)
             {
                 await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.ChecksumMismatch);
+                await dbContext.SaveChangesAsync(cancellationToken);
                 return AttachmentErrors.HashMismatch;
             }
             catch (RequestFailedException)
             {
                 await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cancellationToken, AttachmentStatusText.UploadFailed);
+                await dbContext.SaveChangesAsync(cancellationToken);
                 return AttachmentErrors.UploadFailed;
             }
             catch (BadHttpRequestException ex) when (ex.Message.Contains("Reading the request body timed out due to data arriving too slowly", StringComparison.OrdinalIgnoreCase))
@@ -166,6 +171,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogWarning(ex, "Upload request failed for attachment {AttachmentId} due to data arriving too slowly. Marking as failed.", attachment.Id);
                 using var cleanupCts = new CancellationTokenSource(UploadCanceledCleanupTimeout);
                 await SetAttachmentStatus(attachment.Id, AttachmentStatus.Failed, partyUuid, cleanupCts.Token, AttachmentStatusText.UploadTimedOut);
+                await dbContext.SaveChangesAsync(cleanupCts.Token);
                 return AttachmentErrors.UploadTimedOut;
             }
         }

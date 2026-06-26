@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Factories;
@@ -71,6 +72,7 @@ public class AttachmentRepositoryTests
 
         // Act
         var deleted = await repo.HardDeleteOrphanedAttachments([orphanA.Id, linkedB.Id, orphanC.Id], CancellationToken.None);
+        await context.SaveChangesAsync();
 
         // Assert
         Assert.Equal(2, deleted); // orphanA and orphanC
@@ -146,6 +148,7 @@ public class AttachmentRepositoryTests
 
         // Act
         var deleted = await repo.HardDeleteOrphanedAttachments(idsToDelete, CancellationToken.None);
+        await context.SaveChangesAsync();
 
         // Assert
         Assert.Equal(1000, deleted);
@@ -154,6 +157,38 @@ public class AttachmentRepositoryTests
             .Where(a => a.ResourceId == uniqueResourceId)
             .CountAsync();
         Assert.Equal(0, remainingCount);
+    }
+
+    [Fact]
+    public async Task SetDataLocationUrl_StagesUpdateUntilExplicitSave()
+    {
+        await using var context = TestDbContextFactory.Create();
+        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
+        var attachment = new AttachmentEntity
+        {
+            Id = Guid.NewGuid(),
+            ResourceId = "res-defer-upload",
+            SendersReference = "ref-defer",
+            Sender = "0192:910753614",
+            Created = DateTimeOffset.UtcNow,
+            AttachmentSize = 1
+        };
+        context.Attachments.Add(attachment);
+        await context.SaveChangesAsync();
+
+        await repo.SetDataLocationUrl(
+            attachment,
+            AttachmentDataLocationType.AltinnCorrespondenceAttachment,
+            "https://storage.example/attachment",
+            null,
+            CancellationToken.None);
+
+        Assert.Equal("https://storage.example/attachment", attachment.DataLocationUrl);
+        Assert.Equal(EntityState.Modified, context.Entry(attachment).State);
+        await context.SaveChangesAsync();
+
+        await context.Entry(attachment).ReloadAsync();
+        Assert.Equal("https://storage.example/attachment", attachment.DataLocationUrl);
     }
 }
 
