@@ -74,7 +74,7 @@ public class ExpireAttachmentHandler(
             return duplicateCheck.DuplicateResult!;
         }
 
-        return await DatabaseTransactionHelper.ExecuteAsync(
+        var committed = await DatabaseTransactionHelper.ExecuteAsync(
             dbContext,
             async cancellationToken =>
             {
@@ -97,24 +97,31 @@ public class ExpireAttachmentHandler(
                     PartyUuid = partyUuid
                 }, cancellationToken);
 
-                await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-
-                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
-                    AltinnEventType.AttachmentExpired,
-                    attachment.ResourceId,
-                    attachment.Id.ToString(),
-                    "attachment",
-                    attachment.Sender,
-                    CancellationToken.None));
-
                 logger.LogInformation("Successfully expired attachment {AttachmentId} with filename {FileName}", attachmentId, attachment.FileName);
-                return Task.CompletedTask;
+                return true;
             },
             cancellationToken,
             DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
             {
                 logger.LogInformation("Expire already processed for attachment {AttachmentId}; skipping", attachmentId);
-                return Task.CompletedTask;
+                return false;
             }));
+
+        if (!committed)
+        {
+            return Task.CompletedTask;
+        }
+
+        await storageRepository.PurgeAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
+
+        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
+            AltinnEventType.AttachmentExpired,
+            attachment.ResourceId,
+            attachment.Id.ToString(),
+            "attachment",
+            attachment.Sender,
+            CancellationToken.None));
+
+        return Task.CompletedTask;
     }
 }

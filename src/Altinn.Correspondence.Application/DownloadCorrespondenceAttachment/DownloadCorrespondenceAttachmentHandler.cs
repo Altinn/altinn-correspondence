@@ -112,7 +112,8 @@ public class DownloadCorrespondenceAttachmentHandler(
                     Id = Guid.Parse(activityId),
                     CorrespondenceId = request.CorrespondenceId,
                     AttachmentId = request.AttachmentId,
-                    StatusAction = StatusAction.AttachmentDownloaded
+                    StatusAction = StatusAction.AttachmentDownloaded,
+                    IdempotencyType = IdempotencyType.DialogportenActivity
                 }, cancellationToken);
             }
 

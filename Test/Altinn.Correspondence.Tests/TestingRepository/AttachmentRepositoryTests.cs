@@ -184,6 +184,7 @@ public class AttachmentRepositoryTests
             CancellationToken.None);
 
         Assert.Equal("https://storage.example/attachment", attachment.DataLocationUrl);
+        Assert.Equal(EntityState.Modified, context.Entry(attachment).State);
         await context.SaveChangesAsync();
 
         await context.Entry(attachment).ReloadAsync();

@@ -115,6 +115,7 @@ public static class DatabaseTransactionHelper
             }
             catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
             {
+                dbContext.ChangeTracker.Clear();
                 if (options.OnUniqueViolation is { } onUniqueViolation)
                 {
                     return onUniqueViolation(ex);

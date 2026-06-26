@@ -69,20 +69,36 @@ public class InitializeCorrespondencesHandler(
 
         var validatedData = validationResult.AsT0;
         logger.LogInformation("Initializing correspondences with validated data");
-        return await DatabaseTransactionHelper.ExecuteAsync(
+        var commitResult = await DatabaseTransactionHelper.ExecuteAsync(
             dbContext,
             async cancellationToken => await InitializeCorrespondences(request, validatedData, cancellationToken),
             cancellationToken,
             request.IdempotentKey.HasValue
-                ? DatabaseTransactionHelper.Idempotency.OnDuplicate<OneOf<InitializeCorrespondencesResponse, Error>>(() =>
+                ? DatabaseTransactionHelper.Idempotency.OnDuplicate<OneOf<InitializeCorrespondencesCommitResult, Error>>(() =>
                 {
                     logger.LogWarning("Idempotency key {Key} already exists in database", request.IdempotentKey!.Value);
                     return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
                 })
                 : default);
+
+        if (commitResult.IsT1)
+        {
+            return commitResult.AsT1;
+        }
+
+        foreach (var scheduleJobs in commitResult.AsT0.PostCommitActions)
+        {
+            await scheduleJobs();
+        }
+
+        return commitResult.AsT0.Response;
     }
 
-    private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(
+    private sealed record InitializeCorrespondencesCommitResult(
+        InitializeCorrespondencesResponse Response,
+        List<Func<Task>> PostCommitActions);
+
+    private async Task<OneOf<InitializeCorrespondencesCommitResult, Error>> InitializeCorrespondences(
         InitializeCorrespondencesRequest request,
         InitializeCorrespondenceValidationHelper.ValidatedData validatedData,
         CancellationToken cancellationToken)
@@ -92,6 +108,7 @@ public class InitializeCorrespondencesHandler(
             request.Correspondence.ResourceId.SanitizeForLogging());
 
         var correspondences = new List<CorrespondenceEntity>();
+        var postCommitActions = new List<Func<Task>>();
         var serviceOwnerOrgNumber = validatedData.ServiceOwnerOrgNumber;
         foreach (var recipient in request.Recipients)
         {
@@ -119,58 +136,17 @@ public class InitializeCorrespondencesHandler(
                 };
                 await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, idempotencyKey, cancellationToken);
             }
-            
-            string? notificationJobId = null;
+
+            var validationResult = await ValidateDialogOrTransmissionJob(correspondence, request, cancellationToken);
+            if (validationResult.IsT1)
+            {
+                return validationResult.AsT1;
+            }
+
             var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
             {
-                if (correspondence.DueDateTime is not null)
-                {
-                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
-                }
-                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-            
-                if (request.Notification != null)
-                {
-                    notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
-                    {
-                        CorrespondenceId = correspondence.Id,
-                        NotificationRequest = request.Notification,
-                        Language = correspondence.Content != null ? correspondence.Content.Language : null,
-                    }, cancellationToken));
-                }
-            }
-
-            foreach (var correspondenceAttachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
-            {
-                if (correspondenceAttachment.ExpirationTime is not DateTimeOffset scheduleAt)
-                {
-                    continue;
-                }
-
-                if (scheduleAt < DateTimeOffset.UtcNow)
-                {
-                    scheduleAt = DateTimeOffset.UtcNow;
-                }
-
-                backgroundJobClient.Schedule<ExpireAttachmentHandler>(
-                    HangfireQueues.Default, (handler) => handler.Process(correspondenceAttachment.AttachmentId, null, CancellationToken.None),
-                    scheduleAt);
-            }
-
-            var createJobResult = await CreateDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
-            if (createJobResult.IsT1)
-            {
-                return createJobResult.AsT1;
-            }
-
-            if (correspondence.IsConfidential)
-            {
-                logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
-                var unreadCheckDelay = hostEnvironment.IsProduction()
-                    ? correspondence.RequestedPublishTime.AddDays(7)
-                    : correspondence.RequestedPublishTime.AddMinutes(1);
-                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
+                postCommitActions.Add(() => ScheduleCorrespondenceJobs(correspondence, request, cancellationToken));
             }
 
             initializedCorrespondences.Add(new InitializedCorrespondences()
@@ -181,11 +157,64 @@ public class InitializeCorrespondencesHandler(
             });
         }
 
-        return new InitializeCorrespondencesResponse()
+        return new InitializeCorrespondencesCommitResult(
+            new InitializeCorrespondencesResponse()
+            {
+                Correspondences = initializedCorrespondences,
+                AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
+            },
+            postCommitActions);
+    }
+
+    private async Task ScheduleCorrespondenceJobs(
+        CorrespondenceEntity correspondence,
+        InitializeCorrespondencesRequest request,
+        CancellationToken cancellationToken)
+    {
+        string? notificationJobId = null;
+        if (correspondence.DueDateTime is not null)
         {
-            Correspondences = initializedCorrespondences,
-            AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
-        };
+            backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+        }
+        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+
+        if (request.Notification != null)
+        {
+            notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
+            {
+                CorrespondenceId = correspondence.Id,
+                NotificationRequest = request.Notification,
+                Language = correspondence.Content != null ? correspondence.Content.Language : null,
+            }, cancellationToken));
+        }
+
+        foreach (var correspondenceAttachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
+        {
+            if (correspondenceAttachment.ExpirationTime is not DateTimeOffset scheduleAt)
+            {
+                continue;
+            }
+
+            if (scheduleAt < DateTimeOffset.UtcNow)
+            {
+                scheduleAt = DateTimeOffset.UtcNow;
+            }
+
+            backgroundJobClient.Schedule<ExpireAttachmentHandler>(
+                HangfireQueues.Default, (handler) => handler.Process(correspondenceAttachment.AttachmentId, null, CancellationToken.None),
+                scheduleAt);
+        }
+
+        await ScheduleDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
+
+        if (correspondence.IsConfidential)
+        {
+            logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
+            var unreadCheckDelay = hostEnvironment.IsProduction()
+                ? correspondence.RequestedPublishTime.AddDays(7)
+                : correspondence.RequestedPublishTime.AddMinutes(1);
+            backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
+        }
     }
 
     public async Task CreateDialogportenDialog(Guid correspondenceId)
@@ -206,18 +235,28 @@ public class InitializeCorrespondencesHandler(
         logger.LogInformation("Successfully created Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
     }
 
-    private async Task<OneOf<Task, Error>> CreateDialogOrTransmissionJob(CorrespondenceEntity correspondence, InitializeCorrespondencesRequest request, string? notificationJobId, CancellationToken cancellationToken)
+    private async Task<OneOf<Task, Error>> ValidateDialogOrTransmissionJob(
+        CorrespondenceEntity correspondence,
+        InitializeCorrespondencesRequest request,
+        CancellationToken cancellationToken)
     {
-        
+        if (!correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId))
+        {
+            return Task.CompletedTask;
+        }
+
+        return await initializeCorrespondenceValidationHelper.ValidateTransmissionRequest(correspondence, request, cancellationToken);
+    }
+
+    private async Task ScheduleDialogOrTransmissionJob(
+        CorrespondenceEntity correspondence,
+        InitializeCorrespondencesRequest request,
+        string? notificationJobId,
+        CancellationToken cancellationToken)
+    {
         bool hasDialogId = correspondence.ExternalReferences.Any(er => er.ReferenceType == ReferenceType.DialogportenDialogId);
         if (hasDialogId)
         {
-            var validationResult = await initializeCorrespondenceValidationHelper.ValidateTransmissionRequest(correspondence, request, cancellationToken);
-            if (validationResult.IsT1)
-            {
-                return validationResult.AsT1;
-            }
-
             logger.LogInformation("Correspondence {correspondenceId} already has a Dialogporten dialog, creating a transmission", correspondence.Id);
 
             if (!string.IsNullOrEmpty(notificationJobId))
@@ -245,8 +284,6 @@ public class InitializeCorrespondencesHandler(
             });
             backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
         }
-
-        return Task.CompletedTask;
     }
 
     public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)

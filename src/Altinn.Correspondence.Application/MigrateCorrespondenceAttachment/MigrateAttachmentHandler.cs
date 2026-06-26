@@ -68,6 +68,7 @@ public class MigrateAttachmentHandler(
                 }
                 catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
                 {
+                    dbContext.ChangeTracker.Clear();
                     return MigrateAttachmentAttempt.Duplicate();
                 }
 

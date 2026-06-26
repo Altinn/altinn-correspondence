@@ -96,8 +96,16 @@ public class AzureResourceManagerService : IResourceManager
         }
         _logger.LogInformation($"Starting deployment for {serviceOwnerEntity.Name}");
         var resourceGroupName = GetResourceGroupName(serviceOwnerEntity);
+        var storageType = virusScan ? StorageProviderType.Altinn3Azure : StorageProviderType.Altinn3AzureWithoutVirusScan;
 
-        var storageAccountName = GenerateStorageAccountName();
+        var serviceOwner = await _serviceOwnerRepository.GetServiceOwnerByOrgNo(serviceOwnerEntity.Id, cancellationToken);
+        var existingProvider = serviceOwner?.StorageProviders.FirstOrDefault(sp => sp.Type == storageType);
+        var storageAccountName = existingProvider?.StorageResourceName
+            ?? GetDeterministicStorageAccountName(serviceOwnerEntity.Id, virusScan);
+
+        await _serviceOwnerRepository.InitializeStorageProvider(serviceOwnerEntity.Id, storageAccountName, storageType);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
         _logger.LogInformation($"Resource group: {resourceGroupName}");
         _logger.LogInformation($"Storage account: {storageAccountName}");
 
@@ -134,8 +142,6 @@ public class AzureResourceManagerService : IResourceManager
 
         await ConfigureBlobDiagnosticSettings(blobService, cancellationToken);
 
-        await _serviceOwnerRepository.InitializeStorageProvider(serviceOwnerEntity.Id, storageAccountName, virusScan ? StorageProviderType.Altinn3Azure : StorageProviderType.Altinn3AzureWithoutVirusScan);
-        await _dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation($"Storage account {storageAccountName} created");
     }
 
@@ -392,6 +398,14 @@ public class AzureResourceManagerService : IResourceManager
             blobService.Id,
             error);
         throw new RequestFailedException(response.GetRawResponse());
+    }
+
+    private static string GetDeterministicStorageAccountName(string serviceOwnerId, bool virusScan)
+    {
+        var hashInput = $"{serviceOwnerId}:{virusScan}";
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(hashInput));
+        var suffix = Convert.ToHexString(hash)[..8].ToLowerInvariant();
+        return "aicorr" + suffix + "sa";
     }
 
     private string GenerateStorageAccountName()

@@ -301,17 +301,17 @@ public class CorrespondenceMigrationEventHelper(
                     IdempotencyType = IdempotencyType.PurgeCorrespondence
                 }, ct);
 
+                if (!await TrySaveChangesAsync(ct, $"Purge events were duplicates for correspondence {correspondence.Id}, skipping background job processing"))
+                {
+                    return false;
+                }
+
                 DateTimeOffset syncedTimestamp = DateTimeOffset.UtcNow;
 
                 await StoreDeleteEventAsCorrespondenceStatus(correspondence, corrStatus, deleteEventToSync, syncedTimestamp, operationName, ct);
                 await StoreDeleteEventForCorrespondence(correspondence, deleteEventToSync, syncedTimestamp, ct);
 
                 await purgeCorrespondenceHelper.CheckAndPurgeAttachments(correspondence.Id, deleteEventToSync.PartyUuid, ct);
-
-                if (!await TrySaveChangesAsync(ct, $"Purge events were duplicates for correspondence {correspondence.Id}, skipping background job processing"))
-                {
-                    return false;
-                }
 
                 correspondence.Statuses.Add(new CorrespondenceStatusEntity
                 {
@@ -350,6 +350,7 @@ public class CorrespondenceMigrationEventHelper(
 #pragma warning restore CS4014
                 }
 
+                await dbContext.SaveChangesAsync(ct);
                 transaction.Complete();
                 return true;
             }
@@ -863,6 +864,7 @@ public class CorrespondenceMigrationEventHelper(
         catch (DbUpdateException ex) when (ex.IsPostgresUniqueViolation())
         {
             logger.LogDebug(ex, duplicateLogMessage);
+            dbContext.ChangeTracker.Clear();
             return false;
         }
     }
