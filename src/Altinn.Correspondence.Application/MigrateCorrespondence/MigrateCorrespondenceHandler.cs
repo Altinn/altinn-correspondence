@@ -26,7 +26,6 @@ IBackgroundJobClient backgroundJobClient,
 IHostEnvironment hostEnvironment,
 ApplicationDbContext dbContext,
 CorrespondenceMigrationEventHelper correspondenceMigrationEventHelper,
-ApplicationDbContext dbContext,
 ChainedBatchJobOrchestrator chainedBatchJobOrchestrator,
 MakeCorrespondenceAvailableBatchJob makeCorrespondenceAvailableBatchJob,
 ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRequest, MigrateCorrespondenceResponse>

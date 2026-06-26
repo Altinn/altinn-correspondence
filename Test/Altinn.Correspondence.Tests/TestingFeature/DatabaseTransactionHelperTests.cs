@@ -145,17 +145,18 @@ public class DatabaseTransactionHelperTests
     [Fact]
     public async Task ExecuteAsync_PostgreSqlDistributedLockException_DoesNotRetry()
     {
-            if (attemptCount == 1)
-            {
-                throw new BackgroundJobClientException("Hangfire job creation failed", new Exception("Inner exception"));
-            }
-            return Task.FromResult(expectedResult);
+        var attemptCount = 0;
+        await using var dbContext = CreateDbContext();
+        Task<DateTime> Operation(CancellationToken ct)
+        {
+            attemptCount++;
+            throw new PostgreSqlDistributedLockException("Could not acquire lock");
         }
 
-        var result = await DatabaseTransactionHelper.ExecuteAsync(dbContext, Operation);
+        await Assert.ThrowsAnyAsync<PostgreSqlDistributedLockException>(
+            () => DatabaseTransactionHelper.ExecuteAsync(dbContext, Operation));
 
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(2, attemptCount);
+        Assert.Equal(1, attemptCount);
     }
 
     [Fact]

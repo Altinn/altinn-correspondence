@@ -181,6 +181,7 @@ public class DialogportenServiceTests
         var mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
         var mockPartyUrnHelper = new Mock<PartyUrnHelper>(mockAltinnRegisterService.Object, Mock.Of<ILogger<PartyUrnHelper>>());
         var options = Options.Create(new GeneralSettings { CorrespondenceBaseUrl = "https://correspondence.example" });
+        var dbContext = TestDbContextFactory.Create();
 
         var service = new DialogportenService(
             httpClient,
@@ -191,6 +192,7 @@ public class DialogportenServiceTests
             Mock.Of<ILogger<DialogportenService>>(),
             Mock.Of<IIdempotencyKeyRepository>(),
             Mock.Of<IResourceRegistryService>(),
+            dbContext,
             mockPartyUrnHelper.Object);
 
         return (service, mockRepo);

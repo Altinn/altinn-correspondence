@@ -113,10 +113,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _hostEnvironmentMock.Object,
                 dbContext,
                 correspondenceEventHelper,
-                _loggerMock.Object,
                 chainedBatchJobOrchestrator,
                 makeCorrespondenceAvailableBatchJob,
-                TestDbContextFactory.Create(),
                 _loggerMock.Object);
         }
 
