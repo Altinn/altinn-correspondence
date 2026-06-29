@@ -1323,6 +1323,31 @@ public class DialogportenService(HttpClient _httpClient,
             return;
         }
 
+        // Validate that all notifications belong to the same correspondence
+        var distinctCorrespondenceIds = notifications
+            .Select(n => n.CorrespondenceId)
+            .Distinct()
+            .ToList();
+
+        if (distinctCorrespondenceIds.Count > 1)
+        {
+            logger.LogError(
+                "Notifications with mixed CorrespondenceIds detected. Expected all notifications to belong to correspondence {CorrespondenceId}, but found {Count} different correspondences. Notification IDs: {NotificationIds}",
+                correspondenceId,
+                distinctCorrespondenceIds.Count,
+                string.Join(", ", notificationIds));
+            throw new ArgumentException($"All notifications must belong to the same correspondence. Found {distinctCorrespondenceIds.Count} different correspondences.");
+        }
+
+        if (distinctCorrespondenceIds[0] != correspondenceId)
+        {
+            logger.LogError(
+                "Notifications belong to correspondence {ActualCorrespondenceId} but expected correspondence {ExpectedCorrespondenceId}",
+                distinctCorrespondenceIds[0],
+                correspondenceId);
+            throw new ArgumentException($"Notifications belong to correspondence {distinctCorrespondenceIds[0]} but expected {correspondenceId}");
+        }
+
         var correspondence = notifications.First().Correspondence!;
 
         var dialogId = correspondence.ExternalReferences

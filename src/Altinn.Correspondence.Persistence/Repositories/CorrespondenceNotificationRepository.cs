@@ -52,6 +52,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             return await _context.CorrespondenceNotifications
                 .Include(n => n.Correspondence)
+                .ThenInclude(c => c.ExternalReferences)
                 .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
         }
 
