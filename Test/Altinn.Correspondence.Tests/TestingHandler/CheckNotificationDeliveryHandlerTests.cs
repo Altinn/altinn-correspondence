@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.CheckNotificationDelivery;
+using Altinn.Correspondence.Application.SendSlackNotification;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -9,6 +10,7 @@ using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text.Json;
@@ -19,6 +21,7 @@ public class CheckNotificationDeliveryHandlerTests
 {
     private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock;
     private readonly Mock<ICorrespondenceNotificationRepository> _notificationRepositoryMock;
+    private readonly Mock<IIdempotencyKeyRepository> _idempotencyKeyRepositoryMock;
     private readonly Mock<IAltinnNotificationService> _notificationServiceMock;
     private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
     private readonly Mock<ILogger<CheckNotificationDeliveryHandler>> _loggerMock;
@@ -28,6 +31,7 @@ public class CheckNotificationDeliveryHandlerTests
     {
         _correspondenceRepositoryMock = new Mock<ICorrespondenceRepository>();
         _notificationRepositoryMock = new Mock<ICorrespondenceNotificationRepository>();
+        _idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
         _notificationServiceMock = new Mock<IAltinnNotificationService>();
         _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
         _loggerMock = new Mock<ILogger<CheckNotificationDeliveryHandler>>();
@@ -35,6 +39,7 @@ public class CheckNotificationDeliveryHandlerTests
         _handler = new CheckNotificationDeliveryHandler(
             _correspondenceRepositoryMock.Object,
             _notificationRepositoryMock.Object,
+            _idempotencyKeyRepositoryMock.Object,
             _notificationServiceMock.Object,
             _backgroundJobClientMock.Object,
             _loggerMock.Object,
@@ -96,18 +101,67 @@ public class CheckNotificationDeliveryHandlerTests
     }
 
     [Fact]
-    public async Task Process_WhenNotificationNotDelivered_ThrowsException()
+    public async Task Process_WhenResolvedConcurrently_SkipsDuplicateSideEffects()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario();
+        SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId));
+        _idempotencyKeyRepositoryMock
+            .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(BuildUniqueViolation());
+
+        var result = await _handler.Process(notification.Id, CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.True(result.AsT0);
+        _notificationRepositoryMock.Verify(x => x.UpdateNotificationSent(
+            It.IsAny<Guid>(), It.IsAny<DateTimeOffset>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationDelivered, Times.Never());
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job => job.Type == typeof(IDialogportenService) && job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
+            It.IsAny<IState>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Process_WhenNotificationNotDelivered_SchedulesNextCheckWithoutSideEffects()
     {
         var (notification, correspondence, shipmentId) = BuildScenario();
         SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId, NotificationStatusV2.Email_New, orderStatus: "Order_Processing"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.Process(notification.Id, CancellationToken.None));
+        var result = await _handler.Process(notification.Id, CancellationToken.None);
 
+        Assert.True(result.IsT0);
         _notificationRepositoryMock.Verify(x => x.UpdateNotificationSent(
             It.IsAny<Guid>(), It.IsAny<DateTimeOffset>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         _backgroundJobClientMock.Verify(x => x.Create(
             It.Is<Job>(job => job.Type == typeof(IDialogportenService) && job.Method.Name == nameof(IDialogportenService.CreateInformationActivity)),
             It.IsAny<IState>()), Times.Never);
+        VerifyDeliveryCheckRescheduled(Times.Once());
+    }
+
+    [Fact]
+    public async Task Process_WhenNotDeliveredOnFinalAttempt_GivesUpAndAlertsSlack()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario();
+        SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId, NotificationStatusV2.Email_New, orderStatus: "Order_Processing"));
+
+        var result = await _handler.Process(notification.Id, CancellationToken.None, publishFailedEvent: true, attempt: CheckNotificationDeliveryHandler.MaxAttempts);
+
+        Assert.True(result.IsT0);
+        VerifyDeliveryCheckRescheduled(Times.Never());
+        VerifySlackNotificationEnqueued(Times.Once());
+    }
+
+    [Fact]
+    public async Task Process_WhenNotDeliveredOnAttemptBeforeFinal_ReschedulesWithoutAlertingSlack()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario();
+        SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId, NotificationStatusV2.Email_New, orderStatus: "Order_Processing"));
+
+        var result = await _handler.Process(notification.Id, CancellationToken.None, publishFailedEvent: true, attempt: CheckNotificationDeliveryHandler.MaxAttempts - 1);
+
+        Assert.True(result.IsT0);
+        VerifyDeliveryCheckRescheduled(Times.Once());
+        VerifySlackNotificationEnqueued(Times.Never());
     }
 
     [Theory]
@@ -444,6 +498,31 @@ public class CheckNotificationDeliveryHandlerTests
                 job.Args.Count > 2 &&
                 job.Args[2] is DialogportenTextType &&
                 (DialogportenTextType)job.Args[2] == textType),
+            It.Is<IState>(state => state is EnqueuedState)), times);
+    }
+
+    private void VerifyDeliveryCheckRescheduled(Times times)
+    {
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(CheckNotificationDeliveryHandler) &&
+                job.Method.Name == nameof(CheckNotificationDeliveryHandler.Process)),
+            It.Is<IState>(state => state is ScheduledState)), times);
+    }
+
+    private static DbUpdateException BuildUniqueViolation()
+    {
+        var inner = new Exception("duplicate key value violates unique constraint");
+        inner.Data["SqlState"] = "23505";
+        return new DbUpdateException("unique violation", inner);
+    }
+
+    private void VerifySlackNotificationEnqueued(Times times)
+    {
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(SendSlackNotificationHandler) &&
+                job.Method.Name == nameof(SendSlackNotificationHandler.Process)),
             It.Is<IState>(state => state is EnqueuedState)), times);
     }
 
