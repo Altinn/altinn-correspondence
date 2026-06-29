@@ -34,7 +34,7 @@ Replace `TIMESTAMP_FROM_LOG` with the "Next batch will process..." date from you
 -- Verify index is created and check size
 SELECT 
 	indexname,
-	pg_size_pretty(pg_relation_size('correspondence.IX_CorrespondenceNotifications_Cleanup')) as size
+	pg_size_pretty(pg_relation_size('"correspondence"."IX_CorrespondenceNotifications_Cleanup"'::regclass)) as size
 FROM pg_indexes
 WHERE tablename = 'CorrespondenceNotifications'
 	AND indexname = 'IX_CorrespondenceNotifications_Cleanup';
