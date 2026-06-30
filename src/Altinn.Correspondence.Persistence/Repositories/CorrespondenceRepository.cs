@@ -462,7 +462,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 return 0;
             }
-            if (entities.Count > 1000) // Safety margin
+            if (entities.Count > 10000) // Safety margin
             {
                 throw new ArgumentException($"Too many correspondences to delete. Total correspondences in requested hard delete operation: {entities.Count}");
             }
