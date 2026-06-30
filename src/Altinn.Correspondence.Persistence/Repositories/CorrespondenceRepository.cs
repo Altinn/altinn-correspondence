@@ -10,8 +10,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger) : ICorrespondenceRepository
+    public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger, int maxHardDeleteBatchSize = CorrespondenceRepository.DefaultMaxHardDeleteBatchSize) : ICorrespondenceRepository
     {
+        private const int DefaultMaxHardDeleteBatchSize = 10000;
+
         private readonly ApplicationDbContext _context = context;
 
         private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithStatuses =
@@ -462,7 +464,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 return 0;
             }
-            if (entities.Count > 1000) // Safety margin
+            if (entities.Count > maxHardDeleteBatchSize)
             {
                 throw new ArgumentException($"Too many correspondences to delete. Total correspondences in requested hard delete operation: {entities.Count}");
             }

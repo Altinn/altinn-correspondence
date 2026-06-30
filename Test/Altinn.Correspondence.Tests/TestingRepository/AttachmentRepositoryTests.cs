@@ -81,15 +81,15 @@ public class AttachmentRepositoryTests
     }
 
     [Fact]
-    public async Task HardDeleteOrphanedAttachments_ExceedsSafetyMargin_ThrowsArgumentException()
+    public async Task HardDeleteOrphanedAttachments_ExceedsSafetyMargin_ThrowsAndDeletesNothing()
     {
         // Arrange
         await using var context = TestDbContextFactory.Create();
-        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
+        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>(), maxHardDeleteBatchSize: 2);
         var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
 
-        // Create 1001 orphaned attachments (one over the safety margin of 1000)
-        var attachments = Enumerable.Range(0, 1001)
+        // Three orphaned attachments, one over the configured safety margin of two
+        var attachments = Enumerable.Range(0, 3)
             .Select(i => new AttachmentEntity
             {
                 Id = Guid.NewGuid(),
@@ -108,27 +108,25 @@ public class AttachmentRepositoryTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => repo.HardDeleteOrphanedAttachments(idsToDelete, CancellationToken.None));
-        
-        Assert.Contains("1001", exception.Message);
+        Assert.Contains("3", exception.Message);
         Assert.Contains("Too many orphaned attachments to delete", exception.Message);
-        
-        // Verify no attachments were deleted by counting only our test data
+
         var remainingCount = await context.Attachments
             .Where(a => a.ResourceId == uniqueResourceId)
             .CountAsync();
-        Assert.Equal(1001, remainingCount);
+        Assert.Equal(3, remainingCount);
     }
 
     [Fact]
-    public async Task HardDeleteOrphanedAttachments_ExactlyAtSafetyMargin_DeletesSuccessfully()
+    public async Task HardDeleteOrphanedAttachments_AtSafetyMargin_DeletesSuccessfully()
     {
         // Arrange
         await using var context = TestDbContextFactory.Create();
-        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
+        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>(), maxHardDeleteBatchSize: 2);
         var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
 
-        // Create exactly 1000 orphaned attachments (at the safety margin limit)
-        var attachments = Enumerable.Range(0, 1000)
+        // Two orphaned attachments, exactly at the configured safety margin
+        var attachments = Enumerable.Range(0, 2)
             .Select(i => new AttachmentEntity
             {
                 Id = Guid.NewGuid(),
@@ -148,8 +146,7 @@ public class AttachmentRepositoryTests
         var deleted = await repo.HardDeleteOrphanedAttachments(idsToDelete, CancellationToken.None);
 
         // Assert
-        Assert.Equal(1000, deleted);
-        // Verify all our test attachments were deleted
+        Assert.Equal(2, deleted);
         var remainingCount = await context.Attachments
             .Where(a => a.ResourceId == uniqueResourceId)
             .CountAsync();
