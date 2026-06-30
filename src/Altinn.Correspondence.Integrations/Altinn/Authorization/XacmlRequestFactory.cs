@@ -18,17 +18,17 @@ public static class XacmlRequestFactory
         XacmlJsonCategory resourceCategory = new() { Attribute = new List<XacmlJsonAttribute>() };
         resourceCategory.Attribute.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.ResourceId, resourceId, DefaultType, issuer));
         var partyWithoutPrefix = party.WithoutPrefix();
-        if (partyWithoutPrefix.IsOrganizationNumber())
+        if (party.StartsWith(AltinnXacmlUrns.OrganizationNumber) || partyWithoutPrefix.IsOrganizationNumber())
         {
             resourceCategory.Attribute.Add(
                 DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.OrganizationNumberAttribute, partyWithoutPrefix, DefaultType, issuer));
         }
-        else if (partyWithoutPrefix.IsSocialSecurityNumber())
+        else if (party.StartsWith(AltinnXacmlUrns.PersonId) || partyWithoutPrefix.IsSocialSecurityNumber())
         {
             resourceCategory.Attribute.Add(
                 DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, partyWithoutPrefix, DefaultType, issuer));
         }
-        else if (partyWithoutPrefix.IsPartyId())
+        else if (party.StartsWith(AltinnXacmlUrns.PartyId) || partyWithoutPrefix.IsPartyId())
         {
             resourceCategory.Attribute.Add(
                 DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.Party, partyWithoutPrefix, DefaultType, issuer));
