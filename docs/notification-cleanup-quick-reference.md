@@ -61,14 +61,20 @@ Look for: `Index Scan using IX_CorrespondenceNotifications_Cleanup`
 ## Trigger Cleanup Job Manually
 
 ```bash
+# startDate is REQUIRED - specify the cutoff date for cleanup
+# Only processes notifications sent before this date
+# Example: Use the date before the codefix was deployed
+
 # Start with default batch (100 notifications)
-POST /correspondence/api/v1/maintenance/cleanup-missing-synced-notification-events
+POST /correspondence/api/v1/maintenance/cleanup-missing-synced-notification-events?startDate=2025-06-01T00:00:00Z
 
 # Or specify batch size (e.g., 1000)
-POST /correspondence/api/v1/maintenance/cleanup-missing-synced-notification-events?batchCount=1000
+POST /correspondence/api/v1/maintenance/cleanup-missing-synced-notification-events?batchCount=1000&startDate=2025-06-01T00:00:00Z
 
 # Requires MaintenanceScope authorization
 ```
+
+**Important**: The `startDate` parameter is required to prevent accidentally reprocessing notifications created after the codefix was deployed.
 
 ## Watch for Queue Throttling
 

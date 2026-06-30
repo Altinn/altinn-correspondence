@@ -3,7 +3,6 @@ using Altinn.Correspondence.Application.CleanupMissingSyncedNotificationsBatch;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -236,6 +235,140 @@ public class CleanupMissingSyncedNotificationsBatchHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task BatchJob_ProcessBatchAsync_HandlesCorrespondenceWithMixedNotificationCounts()
+    {
+        // Arrange
+        var request = new CleanupMissingSyncedNotificationsBatchRequest
+        {
+            BatchSize = 100,
+            TotalCorrespondencesProcessed = 0,
+            TotalNotificationsProcessed = 0
+        };
+
+        // Create a realistic batch with varying notification counts per correspondence
+        // This simulates what happens when some correspondences have many notifications
+        // and the batch job needs to handle them all
+        var batch = CreateTestBatch(5, 50); // 5 correspondences with 50 total notifications
+
+        // Override to create a more realistic distribution
+        batch.Correspondences = new List<CorrespondenceWithNotifications>
+        {
+            new() { CorrespondenceId = Guid.NewGuid(), NotificationIds = Enumerable.Range(0, 20).Select(_ => Guid.NewGuid()).ToList() },
+            new() { CorrespondenceId = Guid.NewGuid(), NotificationIds = Enumerable.Range(0, 15).Select(_ => Guid.NewGuid()).ToList() },
+            new() { CorrespondenceId = Guid.NewGuid(), NotificationIds = Enumerable.Range(0, 10).Select(_ => Guid.NewGuid()).ToList() },
+            new() { CorrespondenceId = Guid.NewGuid(), NotificationIds = Enumerable.Range(0, 3).Select(_ => Guid.NewGuid()).ToList() },
+            new() { CorrespondenceId = Guid.NewGuid(), NotificationIds = Enumerable.Range(0, 2).Select(_ => Guid.NewGuid()).ToList() }
+        };
+        batch.TotalNotificationCount = 50;
+        var items = batch.Correspondences;
+
+        _notificationRepositoryMock
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(batch);
+
+        _backgroundJobClientMock
+            .Setup(x => x.Create(
+                It.IsAny<Hangfire.Common.Job>(),
+                It.IsAny<Hangfire.States.IState>()))
+            .Returns("job-id");
+
+        var definition = _batchJob.CreateDefinition();
+
+        // Act
+        var updatedState = await definition.ProcessBatchAsync!(request, items, CancellationToken.None);
+
+        // Assert - Should enqueue one worker job per correspondence regardless of notification count
+        _backgroundJobClientMock.Verify(
+            x => x.Create(
+                It.Is<Hangfire.Common.Job>(job => 
+                    job.Type == typeof(IDialogportenService) &&
+                    job.Method.Name == nameof(IDialogportenService.AddNotificationActivitiesWithDuplicateCheck)),
+                It.Is<Hangfire.States.IState>(state => 
+                    state is Hangfire.States.EnqueuedState)),
+            Times.Exactly(5));
+
+        // Verify each correspondence gets its correct notification IDs passed
+        foreach (var correspondence in batch.Correspondences)
+        {
+            _backgroundJobClientMock.Verify(
+                x => x.Create(
+                    It.Is<Hangfire.Common.Job>(job => 
+                        job.Type == typeof(IDialogportenService) &&
+                        job.Method.Name == nameof(IDialogportenService.AddNotificationActivitiesWithDuplicateCheck) &&
+                        job.Args[0].Equals(correspondence.CorrespondenceId) &&
+                        ((List<Guid>)job.Args[1]).Count == correspondence.NotificationIds.Count),
+                    It.IsAny<Hangfire.States.IState>()),
+                Times.Once,
+                $"Expected job with {correspondence.NotificationIds.Count} notifications for correspondence {correspondence.CorrespondenceId}");
+        }
+
+        // Verify state counters
+        Assert.Equal(5, updatedState.TotalCorrespondencesProcessed);
+        Assert.Equal(50, updatedState.TotalNotificationsProcessed);
+    }
+
+    [Fact]
+    public async Task BatchJob_ProcessBatchAsync_HandlesEmptyNotificationList()
+    {
+        // Arrange - Edge case: correspondence exists but has zero synced notifications
+        var request = new CleanupMissingSyncedNotificationsBatchRequest
+        {
+            BatchSize = 100,
+            TotalCorrespondencesProcessed = 0,
+            TotalNotificationsProcessed = 0
+        };
+
+        var batch = new CorrespondencesWithNotificationsBatch
+        {
+            Correspondences = new List<CorrespondenceWithNotifications>
+            {
+                new() { CorrespondenceId = Guid.NewGuid(), NotificationIds = new List<Guid>() }
+            },
+            OldestNotificationTimestamp = DateTimeOffset.UtcNow.AddDays(-1),
+            OldestNotificationId = Guid.NewGuid(),
+            TotalNotificationCount = 0
+        };
+        var items = batch.Correspondences;
+
+        _notificationRepositoryMock
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(batch);
+
+        _backgroundJobClientMock
+            .Setup(x => x.Create(
+                It.IsAny<Hangfire.Common.Job>(),
+                It.IsAny<Hangfire.States.IState>()))
+            .Returns("job-id");
+
+        var definition = _batchJob.CreateDefinition();
+
+        // Act
+        var updatedState = await definition.ProcessBatchAsync!(request, items, CancellationToken.None);
+
+        // Assert - Should still enqueue job even with empty notification list
+        // The AddNotificationActivitiesWithDuplicateCheck method handles empty lists gracefully
+        _backgroundJobClientMock.Verify(
+            x => x.Create(
+                It.Is<Hangfire.Common.Job>(job => 
+                    job.Type == typeof(IDialogportenService) &&
+                    job.Method.Name == nameof(IDialogportenService.AddNotificationActivitiesWithDuplicateCheck)),
+                It.IsAny<Hangfire.States.IState>()),
+            Times.Once);
+
+        // Verify state was updated
+        Assert.Equal(1, updatedState.TotalCorrespondencesProcessed);
+        Assert.Equal(0, updatedState.TotalNotificationsProcessed);
+    }
+
     // Helper method to create test batch data
     private CorrespondencesWithNotificationsBatch CreateTestBatch(int correspondenceCount, int totalNotifications)
     {
@@ -265,5 +398,78 @@ public class CleanupMissingSyncedNotificationsBatchHandlerTests
             OldestNotificationId = Guid.NewGuid(),
             TotalNotificationCount = totalNotifications
         };
+    }
+
+    [Fact]
+    public async Task ExecuteBatch_EnqueuesDialogportenJobsForEachCorrespondence()
+    {
+        // Arrange - Create test batch with multiple correspondences
+        var correspondence1Id = Guid.NewGuid();
+        var correspondence2Id = Guid.NewGuid();
+        var notification1 = Guid.NewGuid();
+        var notification2 = Guid.NewGuid();
+        var notification3 = Guid.NewGuid();
+
+        var batch = new CorrespondencesWithNotificationsBatch
+        {
+            Correspondences = new List<CorrespondenceWithNotifications>
+            {
+                new() { CorrespondenceId = correspondence1Id, NotificationIds = new List<Guid> { notification1, notification2 } },
+                new() { CorrespondenceId = correspondence2Id, NotificationIds = new List<Guid> { notification3 } }
+            },
+            OldestNotificationTimestamp = DateTimeOffset.UtcNow.AddDays(-1),
+            OldestNotificationId = notification3,
+            TotalNotificationCount = 3
+        };
+
+        _notificationRepositoryMock
+            .Setup(x => x.GetCorrespondencesWithSyncedNotifications(
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(batch);
+
+        var enqueuedJobs = new List<(Type serviceType, string methodName, Guid correspondenceId, List<Guid> notificationIds)>();
+
+        _backgroundJobClientMock
+            .Setup(x => x.Create(It.IsAny<Hangfire.Common.Job>(), It.IsAny<Hangfire.States.IState>()))
+            .Returns<Hangfire.Common.Job, Hangfire.States.IState>((job, state) =>
+            {
+                if (job.Type == typeof(IDialogportenService) && 
+                    job.Method.Name == nameof(IDialogportenService.AddNotificationActivitiesWithDuplicateCheck))
+                {
+                    var correspondenceId = (Guid)job.Args[0];
+                    var notificationIds = (List<Guid>)job.Args[1];
+                    enqueuedJobs.Add((job.Type, job.Method.Name, correspondenceId, notificationIds));
+                }
+                return Guid.NewGuid().ToString();
+            });
+
+        var request = new CleanupMissingSyncedNotificationsBatchRequest
+        {
+            BatchSize = 50,
+            CursorNotificationSent = DateTimeOffset.MaxValue,
+            CursorId = null
+        };
+
+        var definition = _batchJob.CreateDefinition();
+
+        // Act - Process the batch
+        await definition.ProcessBatchAsync!(request, batch.Correspondences, CancellationToken.None);
+
+        // Assert - Verify jobs were enqueued for each correspondence with correct notification IDs
+        Assert.Equal(2, enqueuedJobs.Count);
+
+        var job1 = enqueuedJobs.FirstOrDefault(j => j.correspondenceId == correspondence1Id);
+        Assert.NotEqual(default, job1);
+        Assert.Equal(2, job1.notificationIds.Count);
+        Assert.Contains(notification1, job1.notificationIds);
+        Assert.Contains(notification2, job1.notificationIds);
+
+        var job2 = enqueuedJobs.FirstOrDefault(j => j.correspondenceId == correspondence2Id);
+        Assert.NotEqual(default, job2);
+        Assert.Single(job2.notificationIds);
+        Assert.Contains(notification3, job2.notificationIds);
     }
 }

@@ -1,21 +1,23 @@
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using Altinn.Correspondence.Common.Constants;
-using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten;
+using Altinn.Correspondence.Integrations.Dialogporten.Enums;
+using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
+using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Factories;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
-using Altinn.Correspondence.Tests.Extensions;
-using Altinn.Correspondence.Tests.Factories;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.Dialogporten;
 
@@ -859,4 +861,504 @@ public class DialogportenServiceTests
             r => r.RemoveExternalReference(correspondence, ReferenceType.DialogportenDialogId, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    #region AddNotificationActivitiesWithDuplicateCheck Tests
+
+    [Fact]
+    public async Task AddNotificationActivitiesWithDuplicateCheck_AddsAllActivities_WhenNoneExist()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var notificationId1 = Guid.NewGuid();
+        var notificationId2 = Guid.NewGuid();
+        var notificationId3 = Guid.NewGuid();
+        var notificationIds = new List<Guid> { notificationId1, notificationId2, notificationId3 };
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithDialogId("dialog-123")
+            .Build();
+
+        var sentTime1 = DateTimeOffset.UtcNow.AddHours(-3);
+        var sentTime2 = DateTimeOffset.UtcNow.AddHours(-2);
+        var sentTime3 = DateTimeOffset.UtcNow.AddHours(-1);
+
+        var notifications = new List<CorrespondenceNotificationEntity>
+        {
+            CreateNotificationEntity(notificationId1, correspondenceId, correspondence, isReminder: false, channel: NotificationChannel.Email, address: "test1@example.com", sentTime: sentTime1),
+            CreateNotificationEntity(notificationId2, correspondenceId, correspondence, isReminder: false, channel: NotificationChannel.Sms, address: "+4712345678", sentTime: sentTime2),
+            CreateNotificationEntity(notificationId3, correspondenceId, correspondence, isReminder: true, channel: NotificationChannel.Email, address: "test2@example.com", sentTime: sentTime3)
+        };
+
+        var existingDialog = new CreateDialogRequest
+        {
+            ServiceResource = "test-resource",
+            Party = "urn:altinn:organization:identifier-no:123456789",
+            Activities = new List<Activity>() // Empty - no existing activities
+        };
+
+        var (service, notificationRepoMock, activityPostCount, getPostedActivities) = CreateServiceForNotificationDuplicateTest(
+            correspondence,
+            notifications,
+            existingDialog);
+
+        // Act
+        await service.AddNotificationActivitiesWithDuplicateCheck(correspondenceId, notificationIds, CancellationToken.None);
+
+        // Assert - All 3 activities should be added
+        Assert.Equal(3, activityPostCount());
+
+        var postedActivities = getPostedActivities();
+        Assert.Equal(3, postedActivities.Count);
+
+        // Verify each activity has correct properties
+        var activity1 = postedActivities.FirstOrDefault(a => Math.Abs((a.CreatedAt - sentTime1).TotalSeconds) < 2);
+        Assert.NotNull(activity1);
+        Assert.Equal("Information", activity1.Type);
+        Assert.Equal("ServiceOwner", activity1.PerformedBy?.ActorType);
+        Assert.Contains(activity1.Description ?? new List<Description>(), d => d.Value.Contains("test1@example.com"));
+
+        var activity2 = postedActivities.FirstOrDefault(a => Math.Abs((a.CreatedAt - sentTime2).TotalSeconds) < 2);
+        Assert.NotNull(activity2);
+        Assert.Equal("Information", activity2.Type);
+        Assert.Contains(activity2.Description ?? new List<Description>(), d => d.Value.Contains("+4712345678"));
+
+        var activity3 = postedActivities.FirstOrDefault(a => Math.Abs((a.CreatedAt - sentTime3).TotalSeconds) < 2);
+        Assert.NotNull(activity3);
+        Assert.Equal("Information", activity3.Type);
+        Assert.Contains(activity3.Description ?? new List<Description>(), d => d.Value.Contains("test2@example.com"));
+        // Verify it's a reminder (should contain "påminnelse" or "reminder" in description)
+        Assert.Contains(activity3.Description ?? new List<Description>(), d => 
+            d.Value.ToLower().Contains("påminnelse") || d.Value.ToLower().Contains("reminder"));
+
+        notificationRepoMock.Verify(
+            r => r.GetNotificationsByIds(notificationIds, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task AddNotificationActivitiesWithDuplicateCheck_SkipsDuplicates_WhenSomeActivitiesExist()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var notificationId1 = Guid.NewGuid();
+        var notificationId2 = Guid.NewGuid();
+        var notificationId3 = Guid.NewGuid();
+        var notificationIds = new List<Guid> { notificationId1, notificationId2, notificationId3 };
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithDialogId("dialog-123")
+            .Build();
+
+        var sentTime = DateTimeOffset.UtcNow.AddHours(-2);
+        var sentTime2 = DateTimeOffset.UtcNow.AddHours(-1).AddMinutes(-30);
+        var sentTime3 = DateTimeOffset.UtcNow.AddHours(-1);
+
+        var notifications = new List<CorrespondenceNotificationEntity>
+        {
+            CreateNotificationEntity(notificationId1, correspondenceId, correspondence, isReminder: false, channel: NotificationChannel.Email, address: "test1@example.com", sentTime: sentTime),
+            CreateNotificationEntity(notificationId2, correspondenceId, correspondence, isReminder: false, channel: NotificationChannel.Sms, address: "+4712345678", sentTime: sentTime2),
+            CreateNotificationEntity(notificationId3, correspondenceId, correspondence, isReminder: true, channel: NotificationChannel.Email, address: "test2@example.com", sentTime: sentTime3)
+        };
+
+        // Create existing dialog with one matching activity (notification 1)
+        var existingActivity = new Activity
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = "Information",
+            CreatedAt = sentTime, // Same timestamp as notification1
+            PerformedBy = new PerformedBy { ActorType = "ServiceOwner" },
+            Description = new List<Description>
+            {
+                new() { LanguageCode = "nb", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.NB, ["test1@example.com", "Email"]) },
+                new() { LanguageCode = "nn", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.NN, ["test1@example.com", "Email"]) },
+                new() { LanguageCode = "en", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.EN, ["test1@example.com", "Email"]) }
+            }
+        };
+
+        var existingDialog = new CreateDialogRequest
+        {
+            ServiceResource = "test-resource",
+            Party = "urn:altinn:organization:identifier-no:123456789",
+            Activities = new List<Activity> { existingActivity }
+        };
+
+        var (service, notificationRepoMock, activityPostCount, getPostedActivities) = CreateServiceForNotificationDuplicateTest(
+            correspondence,
+            notifications,
+            existingDialog);
+
+        // Act
+        await service.AddNotificationActivitiesWithDuplicateCheck(correspondenceId, notificationIds, CancellationToken.None);
+
+        // Assert - Only 2 new activities should be added (notification 2 and 3), notification 1 is a duplicate
+        Assert.Equal(2, activityPostCount());
+
+        var postedActivities = getPostedActivities();
+        Assert.Equal(2, postedActivities.Count);
+
+        // Verify notification 1 (email to test1@example.com) was NOT added (it's a duplicate)
+        Assert.DoesNotContain(postedActivities, a => 
+            a.Description != null && a.Description.Any(d => d.Value.Contains("test1@example.com")));
+
+        // Verify notification 2 (SMS to +4712345678) WAS added
+        var activity2 = postedActivities.FirstOrDefault(a => Math.Abs((a.CreatedAt - sentTime2).TotalSeconds) < 2);
+        Assert.NotNull(activity2);
+        Assert.Equal("Information", activity2.Type);
+        Assert.Equal("ServiceOwner", activity2.PerformedBy?.ActorType);
+        Assert.Contains(activity2.Description ?? new List<Description>(), d => d.Value.Contains("+4712345678"));
+        Assert.Contains(activity2.Description ?? new List<Description>(), d => d.Value.Contains("SMS"));
+
+        // Verify notification 3 (reminder email to test2@example.com) WAS added
+        var activity3 = postedActivities.FirstOrDefault(a => Math.Abs((a.CreatedAt - sentTime3).TotalSeconds) < 2);
+        Assert.NotNull(activity3);
+        Assert.Equal("Information", activity3.Type);
+        Assert.Contains(activity3.Description ?? new List<Description>(), d => d.Value.Contains("test2@example.com"));
+        Assert.Contains(activity3.Description ?? new List<Description>(), d => 
+            d.Value.ToLower().Contains("påminnelse") || d.Value.ToLower().Contains("reminder"));
+    }
+
+    [Fact]
+    public async Task AddNotificationActivitiesWithDuplicateCheck_SkipsAllActivities_WhenAllAreDuplicates()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var notificationId1 = Guid.NewGuid();
+        var notificationId2 = Guid.NewGuid();
+        var notificationIds = new List<Guid> { notificationId1, notificationId2 };
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithDialogId("dialog-123")
+            .Build();
+
+        var sentTime1 = DateTimeOffset.UtcNow.AddHours(-2);
+        var sentTime2 = DateTimeOffset.UtcNow.AddHours(-1);
+        var notifications = new List<CorrespondenceNotificationEntity>
+        {
+            CreateNotificationEntity(notificationId1, correspondenceId, correspondence, isReminder: false, channel: NotificationChannel.Email, address: "test1@example.com", sentTime: sentTime1),
+            CreateNotificationEntity(notificationId2, correspondenceId, correspondence, isReminder: false, channel: NotificationChannel.Sms, address: "+4712345678", sentTime: sentTime2)
+        };
+
+        // Create existing dialog with both matching activities
+        var existingActivity1 = new Activity
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = "Information",
+            CreatedAt = sentTime1,
+            PerformedBy = new PerformedBy { ActorType = "ServiceOwner" },
+            Description = new List<Description>
+            {
+                new() { LanguageCode = "nb", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.NB, ["test1@example.com", "Email"]) },
+                new() { LanguageCode = "nn", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.NN, ["test1@example.com", "Email"]) },
+                new() { LanguageCode = "en", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.EN, ["test1@example.com", "Email"]) }
+            }
+        };
+
+        var existingActivity2 = new Activity
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = "Information",
+            CreatedAt = sentTime2,
+            PerformedBy = new PerformedBy { ActorType = "ServiceOwner" },
+            Description = new List<Description>
+            {
+                new() { LanguageCode = "nb", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.NB, ["+4712345678", "SMS"]) },
+                new() { LanguageCode = "nn", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.NN, ["+4712345678", "SMS"]) },
+                new() { LanguageCode = "en", Value = DialogportenText.GetDialogportenText(DialogportenTextType.NotificationSent, DialogportenLanguageCode.EN, ["+4712345678", "SMS"]) }
+            }
+        };
+
+        var existingDialog = new CreateDialogRequest
+        {
+            ServiceResource = "test-resource",
+            Party = "urn:altinn:organization:identifier-no:123456789",
+            Activities = new List<Activity> { existingActivity1, existingActivity2 }
+        };
+
+        var (service, notificationRepoMock, activityPostCount, getPostedActivities) = CreateServiceForNotificationDuplicateTest(
+            correspondence,
+            notifications,
+            existingDialog);
+
+        // Act
+        await service.AddNotificationActivitiesWithDuplicateCheck(correspondenceId, notificationIds, CancellationToken.None);
+
+        // Assert - No activities should be added (all are duplicates)
+        Assert.Equal(0, activityPostCount());
+
+        var postedActivities = getPostedActivities();
+        Assert.Empty(postedActivities);
+    }
+
+    [Fact]
+    public async Task AddNotificationActivitiesWithDuplicateCheck_HandlesEmptyNotificationList()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var notificationIds = new List<Guid>();
+
+        var (service, _, activityPostCount, getPostedActivities) = CreateServiceForNotificationDuplicateTest(
+            new CorrespondenceEntityBuilder().WithId(correspondenceId).Build(),
+            new List<CorrespondenceNotificationEntity>(),
+            new CreateDialogRequest());
+
+        // Act
+        await service.AddNotificationActivitiesWithDuplicateCheck(correspondenceId, notificationIds, CancellationToken.None);
+
+        // Assert - No activities should be added, method returns early
+        Assert.Equal(0, activityPostCount());
+        Assert.Empty(getPostedActivities());
+    }
+
+    [Fact]
+    public async Task AddNotificationActivitiesWithDuplicateCheck_SkipsMissingNotifications()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var notificationId1 = Guid.NewGuid();
+        var notificationId2 = Guid.NewGuid();
+        var notificationId3 = Guid.NewGuid();
+        var notificationIds = new List<Guid> { notificationId1, notificationId2, notificationId3 };
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithDialogId("dialog-123")
+            .Build();
+
+        // Only return 2 notifications (notification2 is missing)
+        var notifications = new List<CorrespondenceNotificationEntity>
+        {
+            CreateNotificationEntity(notificationId1, correspondenceId, correspondence, isReminder: false, channel: NotificationChannel.Email, address: "test1@example.com"),
+            CreateNotificationEntity(notificationId3, correspondenceId, correspondence, isReminder: true, channel: NotificationChannel.Email, address: "test2@example.com")
+        };
+
+        var existingDialog = new CreateDialogRequest
+        {
+            ServiceResource = "test-resource",
+            Party = "urn:altinn:organization:identifier-no:123456789",
+            Activities = new List<Activity>()
+        };
+
+        var (service, notificationRepoMock, activityPostCount, getPostedActivities) = CreateServiceForNotificationDuplicateTest(
+            correspondence,
+            notifications,
+            existingDialog);
+
+        // Act
+        await service.AddNotificationActivitiesWithDuplicateCheck(correspondenceId, notificationIds, CancellationToken.None);
+
+        // Assert - Only 2 activities should be added (for notifications 1 and 3)
+        Assert.Equal(2, activityPostCount());
+
+        var postedActivities = getPostedActivities();
+        Assert.Equal(2, postedActivities.Count);
+
+        // Verify activities for notification 1 and 3 were added
+        Assert.Contains(postedActivities, a => a.Description != null && a.Description.Any(d => d.Value.Contains("test1@example.com")));
+        Assert.Contains(postedActivities, a => a.Description != null && a.Description.Any(d => d.Value.Contains("test2@example.com")));
+    }
+
+    [Fact]
+    public async Task AddNotificationActivitiesWithDuplicateCheck_ThrowsException_WhenNotificationsBelongToDifferentCorrespondences()
+    {
+        // Arrange
+        var correspondenceId1 = Guid.NewGuid();
+        var correspondenceId2 = Guid.NewGuid();
+        var notificationId1 = Guid.NewGuid();
+        var notificationId2 = Guid.NewGuid();
+        var notificationIds = new List<Guid> { notificationId1, notificationId2 };
+
+        var correspondence1 = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId1)
+            .WithDialogId("dialog-123")
+            .Build();
+
+        var correspondence2 = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId2)
+            .WithDialogId("dialog-456")
+            .Build();
+
+        var notifications = new List<CorrespondenceNotificationEntity>
+        {
+            CreateNotificationEntity(notificationId1, correspondenceId1, correspondence1, isReminder: false, channel: NotificationChannel.Email, address: "test1@example.com"),
+            CreateNotificationEntity(notificationId2, correspondenceId2, correspondence2, isReminder: false, channel: NotificationChannel.Sms, address: "+4712345678")
+        };
+
+        var (service, _, _, _) = CreateServiceForNotificationDuplicateTest(
+            correspondence1,
+            notifications,
+            new CreateDialogRequest());
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await service.AddNotificationActivitiesWithDuplicateCheck(correspondenceId1, notificationIds, CancellationToken.None));
+
+        Assert.Contains("All notifications must belong to the same correspondence", exception.Message);
+    }
+
+    [Fact]
+    public async Task AddNotificationActivitiesWithDuplicateCheck_SkipsAltinn2CorrespondenceWithoutDialog()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var notificationId = Guid.NewGuid();
+        var notificationIds = new List<Guid> { notificationId };
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithIsMigrating(true)
+            .Build(); // No dialog ID
+
+        var notifications = new List<CorrespondenceNotificationEntity>
+        {
+            CreateNotificationEntity(notificationId, correspondenceId, correspondence, isReminder: false, channel: NotificationChannel.Email, address: "test@example.com")
+        };
+
+        var (service, notificationRepoMock, activityPostCount, getPostedActivities) = CreateServiceForNotificationDuplicateTest(
+            correspondence,
+            notifications,
+            null); // No dialog will be fetched
+
+        // Act
+        await service.AddNotificationActivitiesWithDuplicateCheck(correspondenceId, notificationIds, CancellationToken.None);
+
+        // Assert - Should return early without attempting to add activities
+        Assert.Equal(0, activityPostCount());
+        Assert.Empty(getPostedActivities());
+    }
+
+    // Helper method to create a DialogportenService configured for notification duplicate testing
+    private static (DialogportenService service, Mock<ICorrespondenceNotificationRepository> notificationRepoMock, Func<int> activityPostCount, Func<List<Activity>> getPostedActivities) 
+        CreateServiceForNotificationDuplicateTest(
+            CorrespondenceEntity correspondence,
+            List<CorrespondenceNotificationEntity> notifications,
+            CreateDialogRequest? existingDialog)
+    {
+        var activityPostCounter = 0;
+        var postedActivities = new List<Activity>();
+        var dialogId = correspondence.ExternalReferences
+            .FirstOrDefault(r => r.ReferenceType == ReferenceType.DialogportenDialogId)
+            ?.ReferenceValue ?? "dialog-123";
+
+        var mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+        // Mock GET request to fetch existing dialog
+        if (existingDialog != null)
+        {
+            mockHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(m =>
+                        m.Method == HttpMethod.Get &&
+                        m.RequestUri != null &&
+                        m.RequestUri.AbsolutePath.Contains($"/dialogporten/api/v1/serviceowner/dialogs/{dialogId}")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(existingDialog), Encoding.UTF8, "application/json")
+                });
+        }
+        else
+        {
+            // Return 404 if no dialog should exist
+            mockHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(m =>
+                        m.Method == HttpMethod.Get &&
+                        m.RequestUri != null &&
+                        m.RequestUri.AbsolutePath.Contains("/dialogporten/api/v1/serviceowner/dialogs/")),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
+
+        // Mock POST requests to add activities (capture them for detailed assertions)
+        mockHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.Is<HttpRequestMessage>(m =>
+                    m.Method == HttpMethod.Post &&
+                    m.RequestUri != null &&
+                    m.RequestUri.AbsolutePath.Contains("/activities")),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                activityPostCounter++;
+                var content = await req.Content!.ReadAsStringAsync();
+                var activity = JsonSerializer.Deserialize<Activity>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (activity != null)
+                {
+                    postedActivities.Add(activity);
+                }
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Created));
+
+        var httpClient = new HttpClient(mockHandler.Object)
+        {
+            BaseAddress = new Uri("https://dialogporten.example/")
+        };
+
+        var mockRepo = new Mock<ICorrespondenceRepository>();
+        mockRepo
+            .Setup(r => r.GetCorrespondenceById(correspondence.Id, true, true, false, It.IsAny<CancellationToken>(), false))
+            .ReturnsAsync(correspondence);
+
+        var mockNotificationRepo = new Mock<ICorrespondenceNotificationRepository>();
+        mockNotificationRepo
+            .Setup(r => r.GetNotificationsByIds(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notifications);
+
+        var mockIdem = new Mock<IIdempotencyKeyRepository>();
+        mockIdem
+            .Setup(i => i.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IdempotencyKeyEntity e, CancellationToken _) => e);
+
+        var mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
+        var mockPartyUrnHelper = new Mock<PartyUrnHelper>(mockAltinnRegisterService.Object, Mock.Of<ILogger<PartyUrnHelper>>());
+        var options = Options.Create(new GeneralSettings { CorrespondenceBaseUrl = "https://correspondence.example" });
+
+        var service = new DialogportenService(
+            httpClient,
+            mockRepo.Object,
+            Mock.Of<ICorrespondenceForwardingEventRepository>(),
+            mockNotificationRepo.Object,
+            mockAltinnRegisterService.Object,
+            options,
+            Mock.Of<ILogger<DialogportenService>>(),
+            mockIdem.Object,
+            Mock.Of<IResourceRegistryService>(),
+            mockPartyUrnHelper.Object);
+
+        return (service, mockNotificationRepo, () => activityPostCounter, () => postedActivities);
+    }
+
+    // Helper method to create notification entities for testing
+    private static CorrespondenceNotificationEntity CreateNotificationEntity(
+        Guid notificationId,
+        Guid correspondenceId,
+        CorrespondenceEntity correspondence,
+        bool isReminder,
+        NotificationChannel channel,
+        string address,
+        DateTimeOffset? sentTime = null)
+    {
+        return new CorrespondenceNotificationEntity
+        {
+            Id = notificationId,
+            CorrespondenceId = correspondenceId,
+            Correspondence = correspondence,
+            IsReminder = isReminder,
+            NotificationChannel = channel,
+            NotificationAddress = address,
+            NotificationSent = sentTime ?? DateTimeOffset.UtcNow.AddHours(-1),
+            RequestedSendTime = sentTime ?? DateTimeOffset.UtcNow.AddHours(-1),
+            Created = DateTimeOffset.UtcNow.AddDays(-1),
+            NotificationTemplate = NotificationTemplate.GenericAltinnMessage
+        };
+    }
+
+    #endregion
 }
+
