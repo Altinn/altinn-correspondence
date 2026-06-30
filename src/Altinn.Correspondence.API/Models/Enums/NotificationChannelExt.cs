@@ -1,8 +1,11 @@
-﻿namespace Altinn.Correspondence.API.Models.Enums
+﻿using Altinn.Authorization.ModelUtils;
+
+namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
     /// Enum describing available notification channels.
     /// </summary>
+    [StringEnumConverter]
     public enum NotificationChannelExt
     {
         /// <summary>
