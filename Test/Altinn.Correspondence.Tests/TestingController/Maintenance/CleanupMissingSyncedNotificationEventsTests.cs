@@ -198,6 +198,26 @@ public class CleanupMissingSyncedNotificationEventsTests
         Assert.Contains("startDate is required", message.GetString());
     }
 
+    [Fact]
+    public async Task CleanupMissingSyncedNotificationEvents_WithInvalidBatchCount_ReturnsBadRequest()
+    {
+        // Arrange - Call endpoint with invalid batchCount (zero or negative)
+        var startDate = new DateTimeOffset(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var url = $"{MaintenanceControllerBaseUrl}/cleanup-missing-synced-notification-events?batchCount=0&startDate={Uri.EscapeDataString(startDate.ToString("o"))}";
+
+        // Act
+        var response = await _maintenanceClient.PostAsync(url, null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var content = await response.Content.ReadAsStringAsync();
+        var result = JsonSerializer.Deserialize<JsonElement>(content, _responseSerializerOptions);
+
+        Assert.True(result.TryGetProperty("message", out var message));
+        Assert.Contains("batchCount must be greater than zero", message.GetString());
+    }
+
     private async Task<Guid> CreateCorrespondenceWithSyncedNotifications(int notificationCount, DateTime notificationSentDate)
     {
         // Create a migrated correspondence with 1 initial notification from Altinn2

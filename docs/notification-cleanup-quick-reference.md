@@ -63,7 +63,7 @@ Look for: `Index Scan using IX_CorrespondenceNotifications_Cleanup`
 ```bash
 # startDate is REQUIRED - specify the cutoff date for cleanup
 # Only processes notifications sent before this date
-# Example: Use the date before the codefix was deployed
+# Example: Use the date before the code fix was deployed
 
 # Start with default batch (100 notifications)
 POST /correspondence/api/v1/maintenance/cleanup-missing-synced-notification-events?startDate=2025-06-01T00:00:00Z
@@ -74,7 +74,7 @@ POST /correspondence/api/v1/maintenance/cleanup-missing-synced-notification-even
 # Requires MaintenanceScope authorization
 ```
 
-**Important**: The `startDate` parameter is required to prevent accidentally reprocessing notifications created after the codefix was deployed.
+**Important**: The `startDate` parameter is required to prevent accidentally reprocessing notifications created after the code fix was deployed.
 
 ## Watch for Queue Throttling
 
@@ -112,4 +112,3 @@ This is normal - the job automatically throttles to prevent overwhelming downstr
 
 - **Full Guide**: `docs/notification-cleanup-migration-guide.md`
 - **Monitoring Queries**: `docs/notification-cleanup-monitoring.sql`
-- **Changes Summary**: `docs/notification-cleanup-changes-summary.md`

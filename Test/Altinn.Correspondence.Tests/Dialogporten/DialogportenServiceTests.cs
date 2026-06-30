@@ -1283,10 +1283,10 @@ public class DialogportenServiceTests
                     m.RequestUri != null &&
                     m.RequestUri.AbsolutePath.Contains("/activities")),
                 ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) =>
             {
                 activityPostCounter++;
-                var content = await req.Content!.ReadAsStringAsync();
+                var content = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
                 var activity = JsonSerializer.Deserialize<Activity>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (activity != null)
                 {
