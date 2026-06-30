@@ -26,6 +26,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten;
 public class DialogportenService(HttpClient _httpClient,
                                  ICorrespondenceRepository _correspondenceRepository,
                                  ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
+                                 ICorrespondenceNotificationRepository correspondenceNotificationRepository,
                                  IAltinnRegisterService altinnRegisterService,
                                  IOptions<GeneralSettings> generalSettings,
                                  ILogger<DialogportenService> logger,
@@ -1192,6 +1193,241 @@ public class DialogportenService(HttpClient _httpClient,
         }
     }
 
+    public async Task AddNotificationActivity(Guid notificationId, CancellationToken cancellationToken)
+    {
+        var notification = await correspondenceNotificationRepository.GetNotificationById(notificationId, cancellationToken);
+        if (notification == null)
+        {
+            logger.LogWarning("Notification with id {NotificationId} not found. Skipping.", notificationId);
+            return;
+        }
+
+        var correspondence = notification.Correspondence!;
+
+        var dialogId = correspondence.ExternalReferences
+            .FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)
+            ?.ReferenceValue;
+
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                logger.LogWarning(
+                    "Skipping adding notification activity for correspondence {CorrespondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", 
+                    correspondence.Id);
+                return;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
+        }
+
+        // Build the activity using the existing mapper method
+        var activity = CreateDialogRequestMapper.GetActivityFromAltinn2Notification(correspondence, notification);
+
+        // Post activity directly without duplicate check (normal operation)
+        await PostActivityToDialog(dialogId, notificationId, correspondence.Id, activity, cancellationToken);
+    }
+
+    /// <summary>
+    /// Posts an activity to a Dialogporten dialog.
+    /// </summary>
+    private async Task PostActivityToDialog(string dialogId, Guid notificationId, Guid correspondenceId, Activity activity, CancellationToken cancellationToken)
+    {
+        var createDialogActivityRequest = new CreateDialogActivityRequest
+        {
+            Id = activity.Id,
+            CreatedAt = activity.CreatedAt,
+            Type = Enum.Parse<ActivityType>(activity.Type),
+            PerformedBy = new ActivityPerformedBy
+            {
+                ActorType = activity.PerformedBy.ActorType,
+                ActorName = activity.PerformedBy.ActorName,
+                ActorId = activity.PerformedBy.ActorId
+            },
+            Description = activity.Description.Select(d => new ActivityDescription
+            {
+                Value = d.Value,
+                LanguageCode = d.LanguageCode
+            }).ToList()
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(
+            $"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", 
+            createDialogActivityRequest, 
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+            {
+                if (errorContent.Contains("already exists"))
+                {
+                    logger.LogWarning(
+                        "Activity already exists for notification {NotificationId} on correspondence {CorrespondenceId} and dialog {DialogId}", 
+                        notificationId, 
+                        correspondenceId, 
+                        dialogId);
+                    return;
+                }
+            }
+
+            logger.LogError(
+                "Failed to add activity for notification {NotificationId}. Response: {StatusCode}: {Content}", 
+                notificationId,
+                response.StatusCode, 
+                errorContent);
+
+            throw new HttpRequestException(
+                $"Failed to add activity for notification {notificationId}. Status: {response.StatusCode}, Content: {errorContent}");
+        }
+        else
+        {
+            logger.LogInformation(
+                "Successfully added notification activity for notification {NotificationId} on correspondence {CorrespondenceId}", 
+                notificationId, 
+                correspondenceId);
+        }
+    }
+
+    /// <summary>
+    /// Adds notification activities for a correspondence, checking for duplicates to prevent re-adding existing activities.
+    /// Groups notifications by correspondence and only adds activities that don't already exist in the dialog.
+    /// </summary>
+    /// <param name="correspondenceId">The correspondence ID</param>
+    /// <param name="notificationIds">List of notification IDs belonging to this correspondence</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    public async Task AddNotificationActivitiesWithDuplicateCheck(Guid correspondenceId, List<Guid> notificationIds, CancellationToken cancellationToken)
+    {
+        if (notificationIds == null || notificationIds.Count == 0)
+        {
+            return;
+        }
+
+        // Get all notifications in a single batch query
+        var notifications = await correspondenceNotificationRepository.GetNotificationsByIds(notificationIds, cancellationToken);
+
+        // Log warnings for any missing notifications
+        if (notifications.Count < notificationIds.Count)
+        {
+            var foundIds = notifications.Select(n => n.Id).ToHashSet();
+            var missingIds = notificationIds.Where(id => !foundIds.Contains(id));
+            foreach (var missingId in missingIds)
+            {
+                logger.LogWarning("Notification with id {NotificationId} not found. Skipping.", missingId);
+            }
+        }
+
+        if (notifications.Count == 0)
+        {
+            return;
+        }
+
+        // Validate that all notifications belong to the same correspondence
+        var distinctCorrespondenceIds = notifications
+            .Select(n => n.CorrespondenceId)
+            .Distinct()
+            .ToList();
+
+        if (distinctCorrespondenceIds.Count > 1)
+        {
+            logger.LogError(
+                "Notifications with mixed CorrespondenceIds detected. Expected all notifications to belong to correspondence {CorrespondenceId}, but found {Count} different correspondences. Notification IDs: {NotificationIds}",
+                correspondenceId,
+                distinctCorrespondenceIds.Count,
+                string.Join(", ", notificationIds));
+            throw new ArgumentException($"All notifications must belong to the same correspondence. Found {distinctCorrespondenceIds.Count} different correspondences.");
+        }
+
+        if (distinctCorrespondenceIds[0] != correspondenceId)
+        {
+            logger.LogError(
+                "Notifications belong to correspondence {ActualCorrespondenceId} but expected correspondence {ExpectedCorrespondenceId}",
+                distinctCorrespondenceIds[0],
+                correspondenceId);
+            throw new ArgumentException($"Notifications belong to correspondence {distinctCorrespondenceIds[0]} but expected {correspondenceId}");
+        }
+
+        var correspondence = notifications.First().Correspondence!;
+
+        var dialogId = correspondence.ExternalReferences
+            .FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)
+            ?.ReferenceValue;
+
+        if (dialogId is null)
+        {
+            if (correspondence.IsMigrating)
+            {
+                logger.LogWarning(
+                    "Skipping adding notification activities for correspondence {CorrespondenceId} as it is an Altinn2 correspondence without Dialogporten dialog", 
+                    correspondence.Id);
+                return;
+            }
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondence.Id}");
+        }
+
+        // Fetch existing dialog with all activities
+        CreateDialogRequest dialog;
+        try
+        {
+            dialog = await GetDialog(dialogId);
+        }
+        catch (DialogNotFoundException)
+        {
+            logger.LogWarning(
+                "Dialog {DialogId} not found for correspondence {CorrespondenceId}. Cannot add notification activities.",
+                dialogId,
+                correspondenceId);
+            return;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex,
+                "Failed to fetch dialog {DialogId} for correspondence {CorrespondenceId}. Cannot check for duplicate activities.",
+                dialogId,
+                correspondenceId);
+            throw;
+        }
+
+        var existingActivities = dialog.Activities ?? new List<Activity>();
+        var activitiesToAdd = new List<(Guid NotificationId, Activity Activity)>();
+
+        // Build activities from notifications and check for duplicates
+        foreach (var notification in notifications)
+        {
+            var activity = CreateDialogRequestMapper.GetActivityFromAltinn2Notification(correspondence, notification);
+
+            // Check if this activity already exists
+            bool isDuplicate = existingActivities.Any(existingActivity => 
+                AreActivitiesEquivalent(existingActivity, activity));
+
+            if (isDuplicate)
+            {
+                logger.LogInformation(
+                    "Activity for notification {NotificationId} already exists in dialog {DialogId}. Skipping.",
+                    notification.Id,
+                    dialogId);
+            }
+            else
+            {
+                activitiesToAdd.Add((notification.Id, activity));
+            }
+        }
+
+        // Add only new activities using the shared helper
+        foreach (var (notificationId, activity) in activitiesToAdd)
+        {
+            await PostActivityToDialog(dialogId, notificationId, correspondenceId, activity, cancellationToken);
+        }
+
+        logger.LogInformation(
+            "Processed {TotalCount} notifications for correspondence {CorrespondenceId}. Added {AddedCount} new activities, skipped {SkippedCount} duplicates.",
+            notifications.Count,
+            correspondenceId,
+            activitiesToAdd.Count,
+            notifications.Count - activitiesToAdd.Count);
+    }
+
     /// <summary>
     /// Builds forwarding activities for migrated correspondence.
     /// Handles party lookups, DialogActivityId management, and mailbox supplier resolution.
@@ -1200,7 +1436,7 @@ public class DialogportenService(HttpClient _httpClient,
     private async Task<List<Activity>> BuildForwardingActivities(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
     {
         var forwardingActivities = new List<Activity>();
-        
+
         if (correspondence.ForwardingEvents == null || !correspondence.ForwardingEvents.Any())
         {
             return forwardingActivities;
@@ -1419,5 +1655,69 @@ public class DialogportenService(HttpClient _httpClient,
             throw new Exception($"Could not find recipient party in Altinn Register for self-identified correspondence with recipient urn {dialogParty}");
         }
         return dialogParty;
+    }
+
+    /// <summary>
+    /// Compares two activities to determine if they are semantically equivalent.
+    /// Ignores the Id field since it's not idempotent for migrated activities.
+    /// </summary>
+    /// <param name="activity1">First activity to compare (from dialog)</param>
+    /// <param name="activity2">Second activity to compare (from notification)</param>
+    /// <returns>True if activities are equivalent, false otherwise</returns>
+    private bool AreActivitiesEquivalent(Activity activity1, Activity activity2)
+    {
+        // Compare CreatedAt (within 1 second tolerance for timestamp precision)
+        if (Math.Abs((activity1.CreatedAt - activity2.CreatedAt).TotalSeconds) > 1)
+        {
+            return false;
+        }
+
+        // Compare Type
+        if (activity1.Type != activity2.Type)
+        {
+            return false;
+        }
+
+        // Compare PerformedBy
+        if (!ArePerformedByEquivalent(activity1.PerformedBy, activity2.PerformedBy))
+        {
+            return false;
+        }
+
+        // Compare Description
+        if (!AreDescriptionsEquivalent(activity1.Description, activity2.Description))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ArePerformedByEquivalent(PerformedBy? pb1, PerformedBy? pb2)
+    {
+        if (pb1 == null && pb2 == null) return true;
+        if (pb1 == null || pb2 == null) return false;
+
+        return pb1.ActorType == pb2.ActorType &&
+               pb1.ActorName == pb2.ActorName &&
+               pb1.ActorId == pb2.ActorId;
+    }
+
+    private bool AreDescriptionsEquivalent(List<Description>? desc1, List<Description>? desc2)
+    {
+        if (desc1 == null && desc2 == null) return true;
+        if (desc1 == null || desc2 == null) return false;
+        if (desc1.Count != desc2.Count) return false;
+
+        // Compare descriptions as sets (order doesn't matter)
+        foreach (var d1 in desc1)
+        {
+            if (!desc2.Any(d2 => d2.Value == d1.Value && d2.LanguageCode == d1.LanguageCode))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

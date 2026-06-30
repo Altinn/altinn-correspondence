@@ -21,6 +21,7 @@ using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.API.Swagger;
 using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
+using Altinn.Correspondence.Application.CleanupMissingSyncedNotificationsBatch;
 
 namespace Altinn.Correspondence.API.Controllers;
 
@@ -435,6 +436,54 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
             Ok,
             Problem
         );
+    }
+
+    /// <summary>
+    /// Starts batch cleanup of missing synced notification events to Dialogporten for migrated correspondences
+    /// </summary>
+    /// <param name="handler">The handler for processing notification events batch</param>
+    /// <param name="batchCount">Number of notifications to process per batch</param>
+    /// <param name="startDate">Required: Start processing from this date (process notifications sent before this date)</param>
+    /// <returns></returns>
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Route("cleanup-missing-synced-notification-events")]
+    [Authorize(Policy = AuthorizationConstants.Maintenance)]
+    public async Task<ActionResult> CleanupMissingSyncedNotificationEvents(
+        [FromServices] CleanupMissingSyncedNotificationsBatchHandler handler,
+        [FromQuery] int batchCount = 100,
+        [FromQuery] DateTimeOffset startDate = default,
+        [FromQuery] Guid? startId = null)
+    {
+        if (batchCount <= 0)
+        {
+            return BadRequest(new { Message = "batchCount must be greater than zero", ProvidedValue = batchCount });
+        }
+
+        if (startDate == default)
+        {
+            return BadRequest(new { Message = "startDate is required. Specify the cutoff date for cleanup (e.g., the date before the codefix was deployed)" });
+        }
+
+        var processFromDate = startDate;
+        var sanitizedStartIdForLog = startId?.ToString().Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+        _logger.LogInformation(
+            "Starting notification events cleanup batch processing. Batch size: {BatchCount}, Starting from: {StartDate}, Start Id: {StartId}", 
+            batchCount, 
+            processFromDate,
+            sanitizedStartIdForLog);
+
+        await handler.Process(batchCount, processFromDate, startId);
+
+        return Ok(new 
+        { 
+            Message = "Notification events cleanup started", 
+            BatchCount = batchCount, 
+            StartingFrom = processFromDate,
+            StartingId = startId
+        });
     }
 
     private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);

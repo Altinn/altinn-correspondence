@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(@"
-                CREATE INDEX CONCURRENTLY IX_Correspondences_Recipient_RequestedPublishTime_A3Only 
+                CREATE INDEX CONCURRENTLY IF NOT EXISTS IX_Correspondences_Recipient_RequestedPublishTime_A3Only 
                 ON correspondence.""Correspondences"" (""Recipient"", ""RequestedPublishTime"" DESC, ""Id"")
                 WHERE ""Altinn2CorrespondenceId"" IS NULL;
             ", suppressTransaction: true);

@@ -397,7 +397,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return notificationActivities;
         }
 
-        private static Activity GetActivityFromAltinn2Notification(CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification)
+        internal static Activity GetActivityFromAltinn2Notification(CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification)
         {
             Activity activity = new Activity();
             activity.Id = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString();
