@@ -35,4 +35,9 @@ public enum IdempotencyType
     /// Indicates that this is an idempotency key for purging a correspondence
     /// </summary>
     PurgeCorrespondence = 5,
-} 
+
+    /// <summary>
+    /// Indicates that this is an idempotency key for resolving a notification's final delivery status
+    /// </summary>
+    NotificationDeliveryResolution = 6,
+}
