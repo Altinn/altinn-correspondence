@@ -1,3 +1,4 @@
+using Altinn.Authorization.ModelUtils;
 using Altinn.Correspondence.API.Models.Enums;
 using System.Text.Json.Serialization;
 
@@ -36,7 +37,7 @@ namespace Altinn.Correspondence.API.Models
         /// The current status for the Correspondence
         /// </summary>
         [JsonPropertyName("status")]
-        public CorrespondenceStatusExt Status { get; set; }
+        public NonExhaustiveEnum<CorrespondenceStatusExt> Status { get; set; }
 
         /// <summary>
         /// The current status text for the Correspondence
