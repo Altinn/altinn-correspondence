@@ -60,7 +60,7 @@ jobs:
     
     steps:
       - name: Checkout new commit to save test files
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.determine-commits.outputs.new_commit }}
           path: new-commit
@@ -72,7 +72,7 @@ jobs:
           cp new-commit/Test/Altinn.Correspondence.UseCaseTests/helpers/correspondencePayloadBuilder.js /tmp/test-scripts/helpers/ || true
 
       - name: Checkout repository at old commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.determine-commits.outputs.old_commit }}
           path: old-commit
@@ -183,7 +183,7 @@ jobs:
           sleep 2
 
       - name: Checkout repository at new commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.determine-commits.outputs.new_commit }}
           path: new-commit-for-migrations
@@ -208,7 +208,7 @@ jobs:
       # STEP 4: Test old code with new database
       # ============================================
       - name: Checkout repository at old commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.determine-commits.outputs.old_commit }}
           path: old-commit-second

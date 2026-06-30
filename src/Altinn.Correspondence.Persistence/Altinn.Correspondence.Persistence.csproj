@@ -21,7 +21,7 @@
     <PackageReference Include="Hangfire.Core" Version="1.8.22" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.12" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-    <PackageReference Include="ReverseMarkdown" Version="4.7.1" />
+    <PackageReference Include="ReverseMarkdown" Version="5.4.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
   </ItemGroup>
     <ItemGroup>
