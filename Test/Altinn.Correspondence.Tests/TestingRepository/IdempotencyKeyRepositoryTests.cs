@@ -4,7 +4,6 @@ using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
-using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Tests.TestingRepository;
 
@@ -40,93 +39,6 @@ public class IdempotencyKeyRepositoryTests
         Assert.NotNull(await context.IdempotencyKeys.FindAsync(idempotencyKeyD.Id));
     }
 
-    [Fact]
-    public async Task DeleteByCorrespondenceIds_ExceedsSafetyMargin_ThrowsArgumentException()
-    {
-        // Arrange
-        await using var context = TestDbContextFactory.Create();
-        var repo = new IdempotencyKeyRepository(context, maxHardDeleteBatchSize: 2);
-        var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
-
-        // Three correspondences with idempotency keys, one over the configured safety margin of two
-        var correspondences = Enumerable.Range(0, 3)
-            .Select(_ => new CorrespondenceEntityBuilder()
-                .WithResourceId(uniqueResourceId)
-                .Build())
-            .ToList();
-        context.Correspondences.AddRange(correspondences);
-        await context.SaveChangesAsync();
-
-        var idempotencyKeys = correspondences
-            .Select(c => new IdempotencyKeyEntity
-            {
-                Id = Guid.NewGuid(),
-                CorrespondenceId = c.Id,
-                IdempotencyType = IdempotencyType.Correspondence
-            })
-            .ToList();
-        context.IdempotencyKeys.AddRange(idempotencyKeys);
-        await context.SaveChangesAsync();
-
-        var correspondenceIdsToDelete = correspondences.Select(c => c.Id).ToList();
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<ArgumentException>(
-            () => repo.DeleteByCorrespondenceIds(correspondenceIdsToDelete, CancellationToken.None));
-
-        Assert.Contains("3", exception.Message);
-        Assert.Contains("Too many idempotency keys to delete", exception.Message);
-
-        // Verify no idempotency keys were deleted by counting only our test data
-        var remainingCount = await context.IdempotencyKeys
-            .Where(k => k.CorrespondenceId != null &&
-                        correspondences.Select(c => c.Id).Contains(k.CorrespondenceId.Value))
-            .CountAsync();
-        Assert.Equal(3, remainingCount);
-    }
-
-    [Fact]
-    public async Task DeleteByCorrespondenceIds_ExactlyAtSafetyMargin_DeletesSuccessfully()
-    {
-        // Arrange
-        await using var context = TestDbContextFactory.Create();
-        var repo = new IdempotencyKeyRepository(context, maxHardDeleteBatchSize: 2);
-        var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
-
-        // Two correspondences with idempotency keys, exactly at the configured safety margin
-        var correspondences = Enumerable.Range(0, 2)
-            .Select(_ => new CorrespondenceEntityBuilder()
-                .WithResourceId(uniqueResourceId)
-                .Build())
-            .ToList();
-        context.Correspondences.AddRange(correspondences);
-        await context.SaveChangesAsync();
-
-        var idempotencyKeys = correspondences
-            .Select(c => new IdempotencyKeyEntity
-            {
-                Id = Guid.NewGuid(),
-                CorrespondenceId = c.Id,
-                IdempotencyType = IdempotencyType.Correspondence
-            })
-            .ToList();
-        context.IdempotencyKeys.AddRange(idempotencyKeys);
-        await context.SaveChangesAsync();
-
-        var correspondenceIdsToDelete = correspondences.Select(c => c.Id).ToList();
-
-        // Act
-        var deleted = await repo.DeleteByCorrespondenceIds(correspondenceIdsToDelete, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(2, deleted);
-        // Verify all our test idempotency keys were deleted
-        var remainingCount = await context.IdempotencyKeys
-            .Where(k => k.CorrespondenceId != null && 
-                        correspondences.Select(c => c.Id).Contains(k.CorrespondenceId.Value))
-            .CountAsync();
-        Assert.Equal(0, remainingCount);
-    }
 }
 
 

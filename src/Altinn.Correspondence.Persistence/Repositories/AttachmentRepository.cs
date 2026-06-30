@@ -6,9 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class AttachmentRepository(ApplicationDbContext context, ILogger<IAttachmentRepository> logger, int maxHardDeleteBatchSize = AttachmentRepository.DefaultMaxHardDeleteBatchSize) : IAttachmentRepository
+    public class AttachmentRepository(ApplicationDbContext context, ILogger<IAttachmentRepository> logger) : IAttachmentRepository
     {
-        private const int DefaultMaxHardDeleteBatchSize = 10000;
+        private const int MaxHardDeleteBatchSize = 10000;
 
         private readonly ApplicationDbContext _context = context;
 
@@ -186,7 +186,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 			{
 				return 0;
 			}
-            if (orphanAttachments.Count > maxHardDeleteBatchSize)
+            if (orphanAttachments.Count > MaxHardDeleteBatchSize)
             {
                 throw new ArgumentException($"Too many orphaned attachments to delete. Total attachments in requested hard delete operation: {orphanAttachments.Count}");
             }
