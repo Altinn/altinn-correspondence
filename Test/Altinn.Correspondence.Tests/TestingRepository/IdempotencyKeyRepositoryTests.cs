@@ -45,11 +45,11 @@ public class IdempotencyKeyRepositoryTests
     {
         // Arrange
         await using var context = TestDbContextFactory.Create();
-        var repo = new IdempotencyKeyRepository(context);
+        var repo = new IdempotencyKeyRepository(context, maxHardDeleteBatchSize: 2);
         var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
 
-        // Create 1001 correspondences with idempotency keys (one over the safety margin of 1000)
-        var correspondences = Enumerable.Range(0, 1001)
+        // Three correspondences with idempotency keys, one over the configured safety margin of two
+        var correspondences = Enumerable.Range(0, 3)
             .Select(_ => new CorrespondenceEntityBuilder()
                 .WithResourceId(uniqueResourceId)
                 .Build())
@@ -73,16 +73,16 @@ public class IdempotencyKeyRepositoryTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => repo.DeleteByCorrespondenceIds(correspondenceIdsToDelete, CancellationToken.None));
-        
-        Assert.Contains("1001", exception.Message);
+
+        Assert.Contains("3", exception.Message);
         Assert.Contains("Too many idempotency keys to delete", exception.Message);
-        
+
         // Verify no idempotency keys were deleted by counting only our test data
         var remainingCount = await context.IdempotencyKeys
-            .Where(k => k.CorrespondenceId != null && 
+            .Where(k => k.CorrespondenceId != null &&
                         correspondences.Select(c => c.Id).Contains(k.CorrespondenceId.Value))
             .CountAsync();
-        Assert.Equal(1001, remainingCount);
+        Assert.Equal(3, remainingCount);
     }
 
     [Fact]
@@ -90,11 +90,11 @@ public class IdempotencyKeyRepositoryTests
     {
         // Arrange
         await using var context = TestDbContextFactory.Create();
-        var repo = new IdempotencyKeyRepository(context);
+        var repo = new IdempotencyKeyRepository(context, maxHardDeleteBatchSize: 2);
         var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
 
-        // Create exactly 1000 correspondences with idempotency keys (at the safety margin limit)
-        var correspondences = Enumerable.Range(0, 1000)
+        // Two correspondences with idempotency keys, exactly at the configured safety margin
+        var correspondences = Enumerable.Range(0, 2)
             .Select(_ => new CorrespondenceEntityBuilder()
                 .WithResourceId(uniqueResourceId)
                 .Build())
@@ -119,7 +119,7 @@ public class IdempotencyKeyRepositoryTests
         var deleted = await repo.DeleteByCorrespondenceIds(correspondenceIdsToDelete, CancellationToken.None);
 
         // Assert
-        Assert.Equal(1000, deleted);
+        Assert.Equal(2, deleted);
         // Verify all our test idempotency keys were deleted
         var remainingCount = await context.IdempotencyKeys
             .Where(k => k.CorrespondenceId != null && 

@@ -7,11 +7,15 @@ namespace Altinn.Correspondence.Persistence.Repositories;
 
 public class IdempotencyKeyRepository : IIdempotencyKeyRepository
 {
-    private readonly ApplicationDbContext _dbContext;
+    private const int DefaultMaxHardDeleteBatchSize = 10000;
 
-    public IdempotencyKeyRepository(ApplicationDbContext dbContext)
+    private readonly ApplicationDbContext _dbContext;
+    private readonly int _maxHardDeleteBatchSize;
+
+    public IdempotencyKeyRepository(ApplicationDbContext dbContext, int maxHardDeleteBatchSize = DefaultMaxHardDeleteBatchSize)
     {
         _dbContext = dbContext;
+        _maxHardDeleteBatchSize = maxHardDeleteBatchSize;
     }
 
 
@@ -76,7 +80,7 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
         {
             return 0;
         }
-        if (keys.Count > 1000) // Safety margin
+        if (keys.Count > _maxHardDeleteBatchSize)
         {
             throw new ArgumentException($"Too many idempotency keys to delete. Total idempotency keys in requested hard delete operation: {keys.Count}");
         }

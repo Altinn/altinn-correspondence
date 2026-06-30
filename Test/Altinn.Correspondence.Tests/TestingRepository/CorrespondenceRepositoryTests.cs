@@ -384,18 +384,16 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         }
 
         [Fact]
-        public async Task HardDeleteCorrespondencesByIds_ExceedsSafetyMargin_ThrowsArgumentException()
+        public async Task HardDeleteCorrespondencesByIds_ExceedsSafetyMargin_ThrowsAndDeletesNothing()
         {
             // Arrange
             await using var context = TestDbContextFactory.Create();
-            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>(), maxHardDeleteBatchSize: 2);
             var uniqueResourceId = $"safety-margin-test-exceed-{Guid.NewGuid()}";
 
-            // Create 1001 correspondences (one over the safety margin of 1000)
-            var correspondences = Enumerable.Range(0, 1001)
-                .Select(_ => new CorrespondenceEntityBuilder()
-                    .WithResourceId(uniqueResourceId)
-                    .Build())
+            // Three correspondences, one over the configured safety margin of two
+            var correspondences = Enumerable.Range(0, 3)
+                .Select(_ => new CorrespondenceEntityBuilder().WithResourceId(uniqueResourceId).Build())
                 .ToList();
             context.Correspondences.AddRange(correspondences);
             await context.SaveChangesAsync();
@@ -405,15 +403,13 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             // Act & Assert
             var exception = await Assert.ThrowsAsync<ArgumentException>(
                 () => repo.HardDeleteCorrespondencesByIds(idsToDelete, CancellationToken.None));
-            
-            Assert.Contains("1001", exception.Message);
+            Assert.Contains("3", exception.Message);
             Assert.Contains("Too many correspondences to delete", exception.Message);
-            
-            // Verify no correspondences were deleted by counting only our test data
+
             var remainingCount = await context.Correspondences
                 .Where(c => c.ResourceId == uniqueResourceId)
                 .CountAsync();
-            Assert.Equal(1001, remainingCount);
+            Assert.Equal(3, remainingCount);
         }
 
         [Fact]
@@ -421,14 +417,12 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         {
             // Arrange
             await using var context = TestDbContextFactory.Create();
-            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>(), maxHardDeleteBatchSize: 2);
             var uniqueResourceId = $"safety-margin-test-exact-{Guid.NewGuid()}";
 
-            // Create 1000 correspondences (at the safety margin limit)
-            var correspondences = Enumerable.Range(0, 1000)
-                .Select(_ => new CorrespondenceEntityBuilder()
-                    .WithResourceId(uniqueResourceId)
-                    .Build())
+            // Two correspondences, exactly at the configured safety margin
+            var correspondences = Enumerable.Range(0, 2)
+                .Select(_ => new CorrespondenceEntityBuilder().WithResourceId(uniqueResourceId).Build())
                 .ToList();
             context.Correspondences.AddRange(correspondences);
             await context.SaveChangesAsync();
@@ -439,8 +433,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             var deleted = await repo.HardDeleteCorrespondencesByIds(idsToDelete, CancellationToken.None);
 
             // Assert
-            Assert.Equal(1000, deleted);
-            // Verify all our test correspondences were deleted
+            Assert.Equal(2, deleted);
             var remainingCount = await context.Correspondences
                 .Where(c => c.ResourceId == uniqueResourceId)
                 .CountAsync();
