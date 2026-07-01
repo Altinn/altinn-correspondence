@@ -13,6 +13,7 @@ using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
@@ -54,7 +55,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceStatusRepositoryMock.Object,
                 _contactReservationRegistryServiceMock.Object,
                 _backgroundJobClientMock.Object,
-                _idempotencyKeyRepositoryMock.Object);
+                _idempotencyKeyRepositoryMock.Object,
+                TestDbContextFactory.Create());
         }
 
         private void SetupCommonMocks(Guid correspondenceId, Guid partyUuid, CorrespondenceEntity correspondence)
@@ -147,6 +149,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             VerifyEventPublished(AltinnEventType.CorrespondencePublishFailed, senderUrn, Times.Once());
             VerifyEventPublished(AltinnEventType.CorrespondencePublishFailed, recipientUrn, Times.Never());
+
+            _backgroundJobClientMock.Verify(
+                x => x.Create(
+                    It.Is<Job>(job =>
+                        job.Type == typeof(IDialogportenService) &&
+                        job.Method.Name == nameof(IDialogportenService.PurgeCorrespondenceDialog)),
+                    It.IsAny<IState>()),
+                Times.Once);
 
             _idempotencyKeyRepositoryMock.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         }

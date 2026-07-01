@@ -47,6 +47,22 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(sp => sp.ServiceOwnerId)
             .HasPrincipalKey(so => so.Id);
 
+        modelBuilder.Entity<CorrespondenceEntity>()
+            .HasIndex(c => new { c.Recipient, c.ResourceId, c.RequestedPublishTime, c.Id })
+            .IsDescending(false, false, true, false)
+            .HasDatabaseName("IX_Correspondences_Recipient_ResourceId_RequestedPublishTime");
+
+        modelBuilder.Entity<CorrespondenceEntity>()
+            .HasIndex(c => new { c.Sender, c.ResourceId, c.RequestedPublishTime, c.Id })
+            .IsDescending(false, false, true, false)
+            .HasDatabaseName("IX_Correspondences_Sender_ResourceId_RequestedPublishTime");
+
+        // Partial index for the unopened-confidential-correspondence reminder query.
+        modelBuilder.Entity<CorrespondenceEntity>()
+            .HasIndex(c => new { c.Recipient, c.RequestedPublishTime })
+            .HasFilter("\"IsConfidential\" = true")
+            .HasDatabaseName("IX_Correspondences_Confidential_Recipient_PublishTime");
+
         // Ensure simple FK indexes exist for query performance (these are separate from the unique expression indexes)
         modelBuilder.Entity<CorrespondenceDeleteEventEntity>()
             .HasIndex(e => e.CorrespondenceId);

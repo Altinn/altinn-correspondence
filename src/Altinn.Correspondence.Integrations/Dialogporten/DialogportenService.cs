@@ -19,6 +19,7 @@ using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
 using UUIDNext;
+using Hangfire;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten;
 
@@ -611,9 +612,19 @@ public class DialogportenService(HttpClient _httpClient,
         }
 
         var response = await _httpClient.PostAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/actions/purge", null, cancellationToken);
+        var statusCode = response.StatusCode;
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Response from Dialogporten was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            if (statusCode != HttpStatusCode.NotFound)
+            {
+                throw new Exception($"Response from Dialogporten was not successful: {statusCode}: {await response.Content.ReadAsStringAsync()}");
+            }
+            logger.LogWarning("Dialog {dialogId} was already purged in Dialogporten; proceeding with local reference removal for correspondence {correspondenceId}", dialogId, correspondenceId);
+        }
+        var externalReferencesRemoved = await _correspondenceRepository.RemoveExternalReference(correspondence, ReferenceType.DialogportenDialogId, cancellationToken);
+        if (!externalReferencesRemoved)
+        {
+            logger.LogWarning("Failed to remove Dialogporten dialog reference for correspondence {correspondenceId} after purging dialog {dialogId}", correspondenceId, dialogId);
         }
     }
 
@@ -892,30 +903,65 @@ public class DialogportenService(HttpClient _httpClient,
         return dialogResponse;
     }
 
-    public async Task<bool> HasDownloadAllAttachments(string dialogId, CancellationToken cancellationToken = default)
+    [AutomaticRetry(Attempts = 10)]
+    public async Task TryAddDownloadAllAttachmentsToDialog(Guid correspondenceId, CancellationToken cancellationToken = default)
     {
-        var dialog = await GetDialog(dialogId);
-        return dialog.Attachments?.Any(a => a.Urls != null && a.Urls.Any(u => u.Url.Contains("downloadall"))) ?? false; 
-    }
-
-    public async Task<bool> TryAddDownloadAllAttachmentsToDialog(string dialogId, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default)
-    {
+        var correspondence = await _correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogError("Correspondence with id {correspondenceId} not found", correspondenceId);
+            throw new ArgumentException($"Correspondence with id {correspondenceId} not found", nameof(correspondenceId));
+        }
+        if (correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByAltinn) || correspondence.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient))
+        {
+            logger.LogError("Correspondence with id {correspondenceId} has been purged", correspondenceId);
+            return;
+        }
+        var dialogId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+        if (dialogId is null)
+        {
+            logger.LogError("No dialog found on correspondence with id {correspondenceId} when attempting to add download all attachments", correspondenceId);
+            throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId} when attempting to add download all attachments");
+        }
         var dialog = await GetDialog(dialogId);
         if (dialog is null)
         {
             throw new Exception($"Dialog {dialogId} not found when attempting to add download all attachments");
         }
 
+        if (dialog.Attachments?.Any(a => a.Urls != null && a.Urls.Any(u => u.Url.Contains("downloadall"))) == true)
+        {
+            logger.LogInformation("Dialog {dialogId} already has download all attachments, skipping adding it again", dialogId);
+            return;
+        }
+
+
+        List<Attachment> attachments = dialog.Attachments ?? new List<Attachment>();
+        bool hasAttachments = attachments.Count > 0;
+        if (!hasAttachments){
+            attachments = CreateDialogRequestMapper.GetAttachmentsForDialogPatchRequest(correspondence, generalSettings.Value.CorrespondenceBaseUrl);
+        } else{
+            logger.LogInformation("Trying to remove attachments from correspondence: {correspondenceId}", correspondence.Id);
+            var patchRequestBuilderRemoveAttachments = new DialogPatchRequestBuilder()
+                .WithRemoveAttachmentsOperation();
+            var patchRequestRemoveAttachments = patchRequestBuilderRemoveAttachments.Build();
+            var responseRemoveAttachments = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}?isSilentUpdate=true", patchRequestRemoveAttachments, cancellationToken);
+            if (!responseRemoveAttachments.IsSuccessStatusCode){
+                logger.LogError($"Response from Dialogporten when removing attachments for {dialogId} was not successful: {responseRemoveAttachments.StatusCode}: {await responseRemoveAttachments.Content.ReadAsStringAsync()}");
+                throw new Exception($"Response from Dialogporten when removing attachments was not successful: {responseRemoveAttachments.StatusCode}: {await responseRemoveAttachments.Content.ReadAsStringAsync()}");
+            }
+        }
+
+        logger.LogInformation("Trying to add download all attachments to correspondence: {correspondenceId}", correspondence.Id);
         var patchRequestBuilder = new DialogPatchRequestBuilder()
-            .WithAddDownloadAllAttachmentsOperation(baseUrl: generalSettings.Value.CorrespondenceBaseUrl, correspondence: correspondence);
+            .WithAddDownloadAllAttachmentsOperation(baseUrl: generalSettings.Value.CorrespondenceBaseUrl, correspondence: correspondence, attachments: attachments);
         var patchRequest = patchRequestBuilder.Build();
-        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}", patchRequest, cancellationToken);
+        var response = await _httpClient.PatchAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}?isSilentUpdate=true", patchRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            logger.LogError(($"Response from Dialogporten when adding download all attachments for {dialogId} was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}"));
-            return false;
+            logger.LogError($"Response from Dialogporten when adding download all attachments for {dialogId} was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            throw new Exception($"Response from Dialogporten when adding download all attachments was not successful: {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         }
-        return true;
     }
 
     #region MigrationRelated

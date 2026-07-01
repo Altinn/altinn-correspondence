@@ -101,7 +101,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>3024: Email body, subject and SMS body must be provided when sending email and SMS notifications</li>
         /// <li>3025: Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
-        /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
+        /// <li>4009: Resource type is not supported. Resource must be of type CorrespondenceService</li>
         /// </ul></response>
         /// <response code="401"><ul>
         /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
@@ -216,7 +216,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// <li>3024: Email body, subject and SMS body must be provided when sending email and SMS notifications</li>
         /// <li>3025: Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications</li>
         /// <li>4002: Could not retrieve party uuid from lookup in Altinn Register</li>
-        /// <li>4009: Resource type is not supported. Resource must be of type GenericAccessResource or CorrespondenceService</li>
+        /// <li>4009: Resource type is not supported. Resource must be of type CorrespondenceService</li>
         /// </ul></response>
         /// <response code="401"><ul>
         /// <li>4001: You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization</li>
@@ -642,11 +642,8 @@ namespace Altinn.Correspondence.API.Controllers
                 CorrespondenceId = correspondenceId
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
-                result =>
-                {                 
-                    var zipFileName = result.zipFileName;
-                    return File(result.Stream, "application/zip", zipFileName);
-                },
+                result => new FileCallbackResult("application/zip", result.ZipFileName, result.ContentLength,
+                    (stream, ct) => handler.WriteZip(result.Entries, stream, ct)),
                 Problem
             );
         }

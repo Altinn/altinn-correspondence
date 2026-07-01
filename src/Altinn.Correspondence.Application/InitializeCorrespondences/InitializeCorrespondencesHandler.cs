@@ -12,6 +12,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +34,8 @@ public class InitializeCorrespondencesHandler(
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IHostEnvironment hostEnvironment,
     InitializeCorrespondenceValidationHelper initializeCorrespondenceValidationHelper,
-    ILogger<InitializeCorrespondencesHandler> logger) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
+    ILogger<InitializeCorrespondencesHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<InitializeCorrespondencesRequest, InitializeCorrespondencesResponse>
 {
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
@@ -48,7 +50,7 @@ public class InitializeCorrespondencesHandler(
                 return CorrespondenceErrors.IdempotencyKeyNotAllowedWithMultipleRecipients;
             }
             logger.LogInformation("Checking idempotency key {Key}", request.IdempotentKey.Value);
-            var result = await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
+            var result = await DatabaseTransactionHelper.ExecuteAsync<OneOf<InitializeCorrespondencesResponse, Error>>(dbContext, async (cancellationToken) =>
             {
                 var existingKey = await idempotencyKeyRepository.GetByIdAsync(request.IdempotentKey.Value, cancellationToken);
                 if (existingKey != null)
@@ -57,7 +59,7 @@ public class InitializeCorrespondencesHandler(
                     return CorrespondenceErrors.DuplicateInitCorrespondenceRequest;
                 }
                 return new OneOf<InitializeCorrespondencesResponse, Error>();
-            }, logger, cancellationToken);
+            }, cancellationToken);
 
             if (result.IsT1)
             {
@@ -73,13 +75,13 @@ public class InitializeCorrespondencesHandler(
 
         var validatedData = validationResult.AsT0;
         logger.LogInformation("Initializing correspondences with validated data");
-        return await TransactionWithRetriesPolicy.Execute<OneOf<InitializeCorrespondencesResponse, Error>>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync<OneOf<InitializeCorrespondencesResponse, Error>>(dbContext, async (cancellationToken) =>
         {
             return await InitializeCorrespondences(
                 request,
                 validatedData,
                 cancellationToken);
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 
     private async Task<OneOf<InitializeCorrespondencesResponse, Error>> InitializeCorrespondences(

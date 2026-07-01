@@ -10,8 +10,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Persistence.Repositories
 {
-    public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger) : ICorrespondenceRepository
+    public class CorrespondenceRepository(ApplicationDbContext context, ILogger<ICorrespondenceRepository> logger, int maxHardDeleteBatchSize = CorrespondenceRepository.DefaultMaxHardDeleteBatchSize) : ICorrespondenceRepository
     {
+        private const int DefaultMaxHardDeleteBatchSize = 10000;
+
         private readonly ApplicationDbContext _context = context;
 
         private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithStatuses =
@@ -295,7 +297,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
             
             if (cursorCreated.HasValue)
             {
-                query = query.Where(c => c.Created < cursorCreated.Value);
+                if (cursorId.HasValue)
+                {
+                    var cursorCreatedValue = cursorCreated.Value;
+                    var cursorIdValue = cursorId.Value;
+                    query = query.Where(c =>
+                        c.Created < cursorCreatedValue ||
+                        (c.Created == cursorCreatedValue && c.Id > cursorIdValue));
+                }
+                else
+                {
+                    query = query.Where(c => c.Created < cursorCreated.Value);
+                }
             }
             else if (createdTo.HasValue)
             {
@@ -321,10 +334,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool filterMigrated,
             CancellationToken cancellationToken)
         {
+            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
             var query = _context.Correspondences
                 .AsNoTracking()
-                .Include(c => c.ExternalReferences)
                 .FilterMigrated(filterMigrated)
+                .Where(c => c.IsMigrating == false)
                 .AsQueryable();
 
             if (lastCreated.HasValue)
@@ -450,7 +464,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 return 0;
             }
-            if (entities.Count > 1000) // Safety margin
+            if (entities.Count > maxHardDeleteBatchSize)
             {
                 throw new ArgumentException($"Too many correspondences to delete. Total correspondences in requested hard delete operation: {entities.Count}");
             }
@@ -787,7 +801,25 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ThenBy(c => c.Id)
                 .Take(batchSize)
                 .Include(c => c.Content)
+                .Include(c => c.Notifications)
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<bool> RemoveExternalReference(CorrespondenceEntity correspondence, ReferenceType referenceType, CancellationToken cancellationToken = default)
+        {
+            var referencesToRemove = correspondence.ExternalReferences
+                .Where(er => er.ReferenceType == referenceType)
+                .ToList();
+
+            if (referencesToRemove.Count == 0)
+            {
+                logger.LogWarning("No external references of type {ReferenceType} found for correspondence {CorrespondenceId}", referenceType, correspondence.Id);
+                return false;
+            }
+
+            _context.ExternalReferences.RemoveRange(referencesToRemove);
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
         }
     }
 }

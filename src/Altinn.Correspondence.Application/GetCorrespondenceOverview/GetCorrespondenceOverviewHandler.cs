@@ -8,6 +8,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
@@ -26,7 +27,8 @@ public class GetCorrespondenceOverviewHandler(
     IDialogportenService dialogportenService,
     IHybridCacheWrapper cache,
     PublishCorrespondenceHandler publishCorrespondenceHandler,
-    ILogger<GetCorrespondenceOverviewHandler> logger) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
+    ILogger<GetCorrespondenceOverviewHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<GetCorrespondenceOverviewRequest, GetCorrespondenceOverviewResponse>
 {
     public async Task<OneOf<GetCorrespondenceOverviewResponse, Error>> Process(GetCorrespondenceOverviewRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -81,8 +83,9 @@ public class GetCorrespondenceOverviewHandler(
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
 
-        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceOverviewResponse, Error>>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync<OneOf<GetCorrespondenceOverviewResponse, Error>>(dbContext, async (cancellationToken) =>
         {
+            DateTimeOffset? readTimestamp = null;
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
                 if (!latestStatus.Status.IsAvailableForRecipient())
@@ -110,7 +113,7 @@ public class GetCorrespondenceOverviewHandler(
                     cancellationToken);
                 if (request.OnlyGettingContent)
                 {
-                    if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read)) { 
+                    if (!correspondence.StatusHasBeen(CorrespondenceStatus.Read)) {
                         await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                         {
                             CorrespondenceId = correspondence.Id,
@@ -119,6 +122,7 @@ public class GetCorrespondenceOverviewHandler(
                             StatusChanged = operationTimestamp,
                             PartyUuid = partyUuid
                         }, cancellationToken);
+                        readTimestamp = operationTimestamp;
                         backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
                             AltinnEventType.CorrespondenceReceiverRead,
                             correspondence.ResourceId,
@@ -194,6 +198,7 @@ public class GetCorrespondenceOverviewHandler(
                 RequestedPublishTime = correspondence.RequestedPublishTime,
                 IgnoreReservation = correspondence.IgnoreReservation ?? false,
                 Published = correspondence.Published,
+                Read = readTimestamp ?? correspondence.GetReadTimestamp(),
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 IsConfidential = correspondence.IsConfidential,
                 Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId
@@ -228,7 +233,7 @@ public class GetCorrespondenceOverviewHandler(
                 logger.LogError(e, "Failed to clean up confidential reminder for correspondence {CorrespondenceId}", correspondence.Id);
             }
             return response;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 
     private async Task<bool> AttemptImmediatePublishIfDelayed(

@@ -456,6 +456,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 new ApiAction()
                 {
                     Action = "read",
+                    Name = "getCorrespondence",
                     Endpoints = new List<Endpoint>()
                     {
                         new Endpoint()
@@ -469,6 +470,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 new ApiAction()
                 {
                     Action = "write",
+                    Name = "purgeCorrespondence",
                     Endpoints = new List<Endpoint>()
                     {
                         new Endpoint()
@@ -482,6 +484,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             if (correspondence.IsConfirmationNeeded) apiActions.Add(new ApiAction()
             {
                 Action = "write",
+                Name = "confirmCorrespondence",
                 Endpoints = new List<Endpoint>()
                     {
                         new Endpoint()
@@ -497,6 +500,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 apiActions.Add(new ApiAction()
                 {
                     Action = "read",
+                    Name = "downloadCorrespondenceAttachment",
                     Endpoints = new List<Endpoint>()
                     {
                         new Endpoint()
@@ -691,6 +695,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     new ServiceOwnerLabel { Value = corrUrn }
                 }
             };
+        }
+
+        internal static List<Attachment> GetAttachmentsForDialogPatchRequest(CorrespondenceEntity correspondence, string baseUrl)
+        {
+            var attachments = GetAttachmentsForCorrespondence(baseUrl, correspondence);
+            return attachments;
         }
     }
 }

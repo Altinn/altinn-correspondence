@@ -3,6 +3,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Altinn.Correspondence.Core.Services.Enums;
@@ -17,7 +18,8 @@ public class VerifyCorrespondenceConfirmationHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
     IDialogportenService dialogportenService,
-    ILogger<VerifyCorrespondenceConfirmationHandler> logger)
+    ILogger<VerifyCorrespondenceConfirmationHandler> logger,
+    ApplicationDbContext dbContext)
 {
     public async Task VerifyPatchAndCommitConfirmation(
         Guid correspondenceId,
@@ -48,7 +50,7 @@ public class VerifyCorrespondenceConfirmationHandler(
             throw new Exception($"Dialog not patched to confirmed for correspondence {correspondenceId}.");
         }
 
-        await TransactionWithRetriesPolicy.Execute(async (cancellationToken) =>
+        await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
@@ -82,7 +84,7 @@ public class VerifyCorrespondenceConfirmationHandler(
                 dialogportenService.CreateConfirmedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, callerPartyUrn));
 
             return Task.CompletedTask;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 }
 

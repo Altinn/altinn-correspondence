@@ -66,7 +66,7 @@ ILogger<SyncCorrespondenceStatusEventHandler> logger) : IHandler<SyncCorresponde
         }
 
         // Process all events using the shared helper method
-        // Note: We don't use TransactionWithRetriesPolicy here because:
+        // Note: We don't wrap this in DatabaseTransactionHelper here because:
         // 1. Each event save is already atomic via EF Core's implicit transaction
         // 2. TransactionScope causes "operation in progress" errors with PostgreSQL
         // 3. Partial success is acceptable for sync operations (events processed independently)

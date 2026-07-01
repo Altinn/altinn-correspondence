@@ -53,4 +53,50 @@ public class DialogportenTextTests
 
         Assert.Equal("Startet nedlastning av vedlegg document-22.04.2026.pdf", nbText);
     }
+
+    [Theory]
+    [InlineData(DialogportenLanguageCode.NB, "Kunne ikke bekrefte at varsel om mottatt melding ble levert til 12345678 på SMS.")]
+    [InlineData(DialogportenLanguageCode.EN, "Could not confirm that the notification about the received message was delivered to 12345678 on SMS.")]
+    public void GetDialogportenText_NotificationDeliveryUnconfirmed_FormatsWithDestinationAndChannel(DialogportenLanguageCode languageCode, string expected)
+    {
+        var text = DialogportenText.GetDialogportenText(
+            DialogportenTextType.NotificationDeliveryUnconfirmed,
+            languageCode,
+            "12345678",
+            "Sms");
+
+        Assert.Equal(expected, text);
+    }
+
+    [Fact]
+    public void GetDialogportenText_NotificationFailed_NormalizesEmailChannel()
+    {
+        var nbText = DialogportenText.GetDialogportenText(
+            DialogportenTextType.NotificationFailed,
+            DialogportenLanguageCode.NB,
+            "test@example.com",
+            "Email");
+
+        Assert.Equal("Varsel om mottatt melding kunne ikke leveres til test@example.com på e-post.", nbText);
+    }
+
+    [Theory]
+    [InlineData(DialogportenTextType.NotificationFailed)]
+    [InlineData(DialogportenTextType.NotificationDeliveryUnconfirmed)]
+    public void IsTemplate_MatchesRenderedFailureText(DialogportenTextType textType)
+    {
+        var rendered = DialogportenText.GetDialogportenText(textType, DialogportenLanguageCode.NB, "test@example.com", "Email");
+
+        Assert.True(DialogportenText.IsTemplate(textType, DialogportenLanguageCode.NB, rendered));
+        Assert.False(DialogportenText.IsTemplate(DialogportenTextType.NotificationSent, DialogportenLanguageCode.NB, rendered));
+    }
+
+    [Theory]
+    [InlineData(DialogportenTextType.NotificationFailed)]
+    [InlineData(DialogportenTextType.NotificationDeliveryUnconfirmed)]
+    public void GetDialogportenText_FailureTextWithoutTokens_Throws(DialogportenTextType textType)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            DialogportenText.GetDialogportenText(textType, DialogportenLanguageCode.NB));
+    }
 }

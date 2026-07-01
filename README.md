@@ -32,6 +32,9 @@ Use your Azure user - or the name of the Azure AD group that gives you access - 
 ### Formatting
 Formatting of the code base is handled by Dotnet format. [See how to configure it to format-on-save in Visual Studio here.](https://learn.microsoft.com/en-us/community/content/how-to-enforce-dotnet-format-using-editorconfig-github-actions#3---formatting-your-code-locally)
 
+### Batch jobs (mass backfills)
+For iterating over large datasets and fanning out Dialogporten updates via Hangfire, see the [Chained Batch Jobs framework](./src/Altinn.Correspondence.Application/BatchJobs/README.md).
+
 ## Deploy
 The build and push workflow produces a docker image that is pushed to Github packages. This image is then used by the release action. Read more here: [Readme-infrastructure](/README-infrastructure.md)
 

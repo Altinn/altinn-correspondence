@@ -103,6 +103,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddControllers(options =>
     {
         options.Conventions.Add(new ShowInternalApisInDevelopmentApplicationModelConvention(hostEnvironment));
+        options.Filters.Add<ClientErrorLoggingFilter>();
     }).AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -163,6 +164,8 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.Configure<KestrelServerOptions>(options =>
     {
         options.Limits.MaxRequestBodySize = null;
+        options.Limits.MinRequestBodyDataRate = null;
+        options.Limits.MinResponseDataRate = null;
     });
     services.Configure<FormOptions>(options =>
     {

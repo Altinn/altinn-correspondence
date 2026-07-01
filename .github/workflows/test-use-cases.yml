@@ -12,12 +12,22 @@ on:
         - use-case-test
         - use-case-staging
         - use-case-production
+      force_opsgenie_alert:
+        description: 'Send Opsgenie alert even if tests pass (for testing the integration)'
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       environment:
         description: 'Environment to run against'
         required: true
         type: string
+      force_opsgenie_alert:
+        description: 'Send Opsgenie alert even if tests pass (for testing the integration)'
+        required: false
+        default: false
+        type: boolean
 
 run-name: Test use cases for environment ${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}
 
@@ -78,57 +88,74 @@ jobs:
           }
 
     - name: Report failure to Opsgenie
-      if: failure() && steps.check-enable.outputs.enabled == 'true' && steps.usecase-test.outcome == 'failure' && env.OPSGENIE_API_KEY != ''
+      if: always() && ((env.OPSGENIE_API_KEY != '' && steps.check-enable.outputs.enabled == 'true' && steps.usecase-test.outcome != 'skipped' && steps.usecase-test.outcome == 'failure') || inputs.force_opsgenie_alert == true || github.event.inputs.force_opsgenie_alert == 'true')
       env:
         OPSGENIE_API_URL: https://api.eu.opsgenie.com
       run: |
         ENV="${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}"
-        NOW="$(date -u +%Y-%m-%dT%H:%M:%S.%6N)Z"
+        NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
         ALERT_ID="$(cat /proc/sys/kernel/random/uuid)"
+        RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        FORCE_ALERT="${{ inputs.force_opsgenie_alert == true || github.event.inputs.force_opsgenie_alert == 'true' }}"
+        FORCE_ALERT_JSON=false
+        DESCRIPTION="Correspondence use case test failed (${ENV}) - ${RUN_URL}"
+        if [ "${FORCE_ALERT}" = "true" ]; then
+          FORCE_ALERT_JSON=true
+          DESCRIPTION="Correspondence use case test Opsgenie alert test (${ENV}) - ${RUN_URL}"
+        fi
 
-        payload=$(cat <<EOF
-        {
-          "schemaId": "azureMonitorCommonAlertSchema",
-          "data": {
-            "essentials": {
-              "alertId": "${ALERT_ID}",
-              "alertRule": "Correspondence Use Case Test",
-              "severity": "Sev1",
-              "signalType": "Metric",
-              "monitorCondition": "Fired",
-              "monitoringService": "Platform",
-              "alertTargetIDs": ["/correspondence/${ENV}"],
-              "firedDateTime": "${NOW}",
-              "description": "Correspondence use case test failed (${ENV}) - ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "essentialsVersion": "1.0",
-              "alertContextVersion": "1.0"
-            },
-            "alertContext": {
-              "properties": {
-                "repository": "${{ github.repository }}",
-                "workflow": "${{ github.workflow }}",
-                "run_id": "${{ github.run_id }}",
-                "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-                "environment": "${ENV}"
+        payload=$(jq -n \
+          --arg alert_id "${ALERT_ID}" \
+          --arg env "${ENV}" \
+          --arg fired_date_time "${NOW}" \
+          --arg description "${DESCRIPTION}" \
+          --arg repository "${{ github.repository }}" \
+          --arg workflow "${{ github.workflow }}" \
+          --arg run_id "${{ github.run_id }}" \
+          --arg run_url "${RUN_URL}" \
+          --argjson force_alert "${FORCE_ALERT_JSON}" \
+          '{
+            schemaId: "azureMonitorCommonAlertSchema",
+            data: {
+              essentials: {
+                alertId: $alert_id,
+                alertRule: "Correspondence Use Case Test",
+                severity: "Sev1",
+                signalType: "Metric",
+                monitorCondition: "Fired",
+                monitoringService: "Platform",
+                alertTargetIDs: ["/correspondence/\($env)"],
+                firedDateTime: $fired_date_time,
+                description: $description,
+                essentialsVersion: "1.0",
+                alertContextVersion: "1.0"
               },
-              "conditionType": "SingleResourceMultipleMetricCriteria",
-              "condition": {
-                "windowSize": "PT5M",
-                "allOf": [
-                  {
-                    "metricName": "UseCaseTestFailure",
-                    "operator": "GreaterThan",
-                    "threshold": "0",
-                    "timeAggregation": "Count",
-                    "metricValue": 1
-                  }
-                ]
+              alertContext: {
+                properties: null,
+                conditionType: "SingleResourceMultipleMetricCriteria",
+                condition: {
+                  windowSize: "PT5M",
+                  allOf: [
+                    {
+                      metricName: "UseCaseTestFailure",
+                      operator: "GreaterThan",
+                      threshold: "0",
+                      timeAggregation: "Count",
+                      metricValue: 1
+                    }
+                  ]
+                }
+              },
+              customProperties: {
+                repository: $repository,
+                workflow: $workflow,
+                run_id: $run_id,
+                run_url: $run_url,
+                environment: $env,
+                test_alert: $force_alert
               }
             }
-          }
-        }
-        EOF
-        )
+          }')
 
         curl --fail-with-body -v --show-error --silent \
           --request POST \

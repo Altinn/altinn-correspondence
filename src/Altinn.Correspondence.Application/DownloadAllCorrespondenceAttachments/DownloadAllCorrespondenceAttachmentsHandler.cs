@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -24,7 +25,8 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     AttachmentHelper attachmentHelper,
-    ILogger<DownloadAllCorrespondenceAttachmentsHandler> logger) : IHandler<DownloadAllCorrespondenceAttachmentsRequest, DownloadAllCorrespondenceAttachmentsResponse>
+    ILogger<DownloadAllCorrespondenceAttachmentsHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<DownloadAllCorrespondenceAttachmentsRequest, DownloadAllCorrespondenceAttachmentsResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
@@ -99,43 +101,37 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
             _logger.LogError("Total size of attachments for correspondence {CorrespondenceId} exceeds the maximum allowed for zip download: {TotalSize} bytes", request.CorrespondenceId, totalSize);
             return AttachmentErrors.TotalAttachmentSizeExceedsLimit;
         }
-        var zipStream = new MemoryStream();
-        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            var usedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var attachment in attachments)
-            {
-                var originalFileName = attachment.FileName ?? attachment.Id.ToString();
-                var zipEntryName = originalFileName;
-                var fileNameBytes = Encoding.UTF8.GetByteCount(originalFileName);
-                if (fileNameBytes > 255)
-                {
-                    _logger.LogInformation("Attachment {AttachmentId} in correspondence {CorrespondenceId} has a filename that exceeds the maximum length for zip entries. It will be truncated to fit within the limit.", attachment.Id, request.CorrespondenceId);
-                    var ext = Path.GetExtension(originalFileName);
-                    var nameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
-                    zipEntryName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext)) + ext;
-                }
-                var baseName = zipEntryName;
-                var uniqueName = baseName;
-                var counter = 1;
-                while (!usedEntryNames.Add(uniqueName))
-                {
-                    var ext = Path.GetExtension(baseName);
-                    var nameWithoutExt = Path.GetFileNameWithoutExtension(baseName);
-                    var suffix = $"({counter})";
-                    var truncatedName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext) - Encoding.UTF8.GetByteCount(suffix));
-                    uniqueName = $"{truncatedName}{suffix}{ext}";
-                    counter++;
-                }
-                var entry = archive.CreateEntry(uniqueName);
-                using var entryStream = entry.Open();
-                using var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
-                await attachmentStream.CopyToAsync(entryStream, cancellationToken);
-            }
-        }
-        zipStream.Position = 0;
 
-        await TransactionWithRetriesPolicy.Execute<bool>(async (cancellationToken) =>
+        var entries = new List<ZipAttachmentEntry>(attachments.Count);
+        var usedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var attachment in attachments)
+        {
+            var originalFileName = attachment.FileName ?? attachment.Id.ToString();
+            var zipEntryName = originalFileName;
+            var fileNameBytes = Encoding.UTF8.GetByteCount(originalFileName);
+            if (fileNameBytes > 255)
+            {
+                _logger.LogInformation("Attachment {AttachmentId} in correspondence {CorrespondenceId} has a filename that exceeds the maximum length for zip entries. It will be truncated to fit within the limit.", attachment.Id, request.CorrespondenceId);
+                var ext = Path.GetExtension(originalFileName);
+                var nameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
+                zipEntryName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext)) + ext;
+            }
+            var baseName = zipEntryName;
+            var uniqueName = baseName;
+            var counter = 1;
+            while (!usedEntryNames.Add(uniqueName))
+            {
+                var ext = Path.GetExtension(baseName);
+                var nameWithoutExt = Path.GetFileNameWithoutExtension(baseName);
+                var suffix = $"({counter})";
+                var truncatedName = TruncateToUtf8Bytes(nameWithoutExt, 255 - Encoding.UTF8.GetByteCount(ext) - Encoding.UTF8.GetByteCount(suffix));
+                uniqueName = $"{truncatedName}{suffix}{ext}";
+                counter++;
+            }
+            entries.Add(new ZipAttachmentEntry(attachment, uniqueName));
+        }
+
+        await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             try
             {
@@ -153,7 +149,7 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
                 _logger.LogError(e, "Error when adding status to correspondence {CorrespondenceId}", request.CorrespondenceId);
             }
             return true;
-        }, logger, cancellationToken);
+        }, cancellationToken);
 
         foreach (var attachment in attachments)
         {
@@ -167,7 +163,24 @@ public class DownloadAllCorrespondenceAttachmentsHandler(
         }
 
         _logger.LogInformation("Successfully processed download of all attachments for correspondence {CorrespondenceId}", request.CorrespondenceId);
-        return new DownloadAllCorrespondenceAttachmentsResponse { Stream = zipStream, zipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence) };
+        return new DownloadAllCorrespondenceAttachmentsResponse
+        {
+            Entries = entries,
+            ZipFileName = attachmentHelper.GetZipFileNameForCorrespondence(correspondence),
+            ContentLength = ZipContentLengthCalculator.TryCalculate(entries)
+        };
+    }
+
+    public async Task WriteZip(IReadOnlyList<ZipAttachmentEntry> entries, Stream output, CancellationToken cancellationToken)
+    {
+        await using var archive = await ZipArchive.CreateAsync(output, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: null, cancellationToken);
+        foreach (var (attachment, entryName) in entries)
+        {
+            var entry = archive.CreateEntry(entryName, CompressionLevel.NoCompression);
+            await using var entryStream = await entry.OpenAsync(cancellationToken);
+            await using var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
+            await attachmentStream.CopyToAsync(entryStream, cancellationToken);
+        }
     }
 
     private static string TruncateToUtf8Bytes(string text, int maxBytes)

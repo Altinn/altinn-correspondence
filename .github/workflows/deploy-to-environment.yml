@@ -17,7 +17,6 @@ on:
           - yt01
           - at22
           - at23
-          - at24
 
 run-name: Deploy to ${{ inputs.environment }}
 
@@ -78,3 +77,4 @@ jobs:
         MAINTENANCE_AD_GROUP_ID: ${{ secrets.MAINTENANCE_AD_GROUP_ID }}
         MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
+        CORRESPONDENCE_BLOB_GROUP_ID: ${{ secrets.CORRESPONDENCE_BLOB_GROUP_ID }}

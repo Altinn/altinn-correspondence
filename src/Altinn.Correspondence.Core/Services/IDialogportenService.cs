@@ -34,6 +34,5 @@ public interface IDialogportenService
     Task<DialogPortenSystemLabel> GetDialogportenSystemLabel(List<ExternalReferenceEntity> externalReferences);
     Task AddForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken);
     Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder);
-    Task<bool> HasDownloadAllAttachments(string dialogId, CancellationToken cancellationToken = default);
-    Task<bool> TryAddDownloadAllAttachmentsToDialog(string dialogId, CorrespondenceEntity correspondence, CancellationToken cancellationToken = default);
+    Task TryAddDownloadAllAttachmentsToDialog(Guid correspondenceId, CancellationToken cancellationToken = default);
 }

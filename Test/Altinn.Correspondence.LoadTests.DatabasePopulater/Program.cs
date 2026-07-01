@@ -27,14 +27,7 @@ public class Program
                     var postgresSettings = serviceProvider.GetRequiredService<IOptions<PostgresSettings>>().Value;
                     var connectionString = new NpgsqlConnectionStringBuilder(postgresSettings.PostgresConnectionString);
                     connectionString.CommandTimeout = 3600;
-                    options.UseNpgsql(connectionString.ConnectionString, npgsqlOptions =>
-                    {
-                        npgsqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: 3,
-                            maxRetryDelay: TimeSpan.FromSeconds(30),
-                            errorCodesToAdd: null
-                        );
-                    });
+                    options.UseNpgsql(connectionString.ConnectionString);
                 });
             }).Build();
 

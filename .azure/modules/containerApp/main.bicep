@@ -80,12 +80,9 @@ var testRotationTargetEnvVars = rotationEnabled && environment == 'test' ? [
   { name: 'MaskinportenJwkRotationSettings__Targets__1__Name', value: 'at23' }
   { name: 'MaskinportenJwkRotationSettings__Targets__1__KeyVaultUrl', value: 'https://altinn-corr-at23-kv${az.environment().suffixes.keyvaultDns}/' }
   { name: 'MaskinportenJwkRotationSettings__Targets__1__ContainerAppResourceId', value: resourceId('altinn-corr-at23-rg', 'Microsoft.App/containerApps', 'altinn-corr-at23-app') }
-  { name: 'MaskinportenJwkRotationSettings__Targets__2__Name', value: 'at24' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__2__KeyVaultUrl', value: 'https://altinn-corr-at24-kv${az.environment().suffixes.keyvaultDns}/' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__2__ContainerAppResourceId', value: resourceId('altinn-corr-at24-rg', 'Microsoft.App/containerApps', 'altinn-corr-at24-app') }
-  { name: 'MaskinportenJwkRotationSettings__Targets__3__Name', value: 'yt01' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__3__KeyVaultUrl', value: 'https://altinn-corr-yt01-kv${az.environment().suffixes.keyvaultDns}/' }
-  { name: 'MaskinportenJwkRotationSettings__Targets__3__ContainerAppResourceId', value: resourceId('altinn-corr-yt01-rg', 'Microsoft.App/containerApps', 'altinn-corr-yt01-app') }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__Name', value: 'yt01' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__KeyVaultUrl', value: 'https://altinn-corr-yt01-kv${az.environment().suffixes.keyvaultDns}/' }
+  { name: 'MaskinportenJwkRotationSettings__Targets__2__ContainerAppResourceId', value: resourceId('altinn-corr-yt01-rg', 'Microsoft.App/containerApps', 'altinn-corr-yt01-app') }
 ] : []
 
 var containerAppEnvVarsComputed = [
@@ -94,6 +91,7 @@ var containerAppEnvVarsComputed = [
   { name: 'AZURE_CLIENT_ID', value: userIdentityClientId }
   { name: 'AzureResourceManagerOptions__SubscriptionId', value: subscription().subscriptionId }
   { name: 'AzureResourceManagerOptions__ApimIP', value: apimIp }
+  { name: 'AzureResourceManagerOptions__LogAnalyticsWorkspaceId', value: resourceId('Microsoft.OperationalInsights/workspaces', '${namePrefix}-audit-logs') }
   { name: 'MaskinportenJwkRotationSettings__Enabled', value: string(rotationEnabled) }
   { name: 'MaskinportenJwkRotationSettings__KeyVaultUrl', value: keyVaultUrl }
   { name: 'MaskinportenJwkRotationSettings__ContainerAppResourceId', value: containerAppResourceId }

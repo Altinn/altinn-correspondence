@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
@@ -31,7 +32,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _idempotencyKeyRepositoryMock.Object,
                 _storageRepositoryMock.Object,
                 _altinnRegisterServiceMock.Object,
-                _backgroundJobClientMock.Object);
+                _backgroundJobClientMock.Object,
+                TestDbContextFactory.Create());
         }
 
         [Fact]

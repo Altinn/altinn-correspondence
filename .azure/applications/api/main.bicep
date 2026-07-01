@@ -36,18 +36,13 @@ var at23RotationVault = {
   resourceGroupName: 'altinn-corr-at23-rg'
   keyVaultName: 'altinn-corr-at23-kv'
 }
-var at24RotationVault = {
-  environment: 'at24'
-  resourceGroupName: 'altinn-corr-at24-rg'
-  keyVaultName: 'altinn-corr-at24-kv'
-}
 var yt01RotationVault = {
   environment: 'yt01'
   resourceGroupName: 'altinn-corr-yt01-rg'
   keyVaultName: 'altinn-corr-yt01-kv'
 }
 var additionalRotationVaults = environment == 'test'
-  ? [at22RotationVault, at23RotationVault, at24RotationVault, yt01RotationVault]
+  ? [at22RotationVault, at23RotationVault, yt01RotationVault]
   : []
 
 var resourceGroupName = '${namePrefix}-rg'
@@ -64,6 +59,15 @@ module appIdentity '../../modules/identity/create.bicep' = {
   }
 }
 
+module auditStorageBlobLogsTransform '../../modules/logAnalytics/workspaceStorageBlobLogsTransform.bicep' = {
+  name: 'auditStorageBlobLogsTransform'
+  scope: resourceGroup
+  params: {
+    location: location
+    namePrefix: namePrefix
+  }
+}
+
 module addContributorAccess '../../modules/identity/addContributorAccess.bicep' = {
   name: 'appDeployToAzureAccess'
   params: {
@@ -73,6 +77,13 @@ module addContributorAccess '../../modules/identity/addContributorAccess.bicep' 
 
 module addStorageBlobDataContributor '../../modules/identity/addStorageBlobDataContributorRole.bicep' = {
   name: 'storageBlobDataContributorAccess'
+  params: {
+    userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
+  }
+}
+
+module addDefenderForStorageScannerOperator '../../modules/identity/addDefenderForStorageScannerOperatorRole.bicep' = {
+  name: 'defenderForStorageScannerOperatorAccess'
   params: {
     userAssignedIdentityPrincipalId: appIdentity.outputs.principalId
   }
@@ -144,7 +155,7 @@ resource keyvault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 module fetchEventGridIpsScript '../../modules/containerApp/fetchEventGridIps.bicep' = {
   name: 'fetchAzureEventGridIpsScript'
   scope: resourceGroup
-  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess, addContributorAccess]
+  dependsOn: [keyvaultAddReaderRolesAppIdentity, databaseAccess, addContributorAccess, addDefenderForStorageScannerOperator]
   params: {
     location: location
     principal_id: appIdentity.outputs.id
