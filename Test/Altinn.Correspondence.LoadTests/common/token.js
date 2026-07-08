@@ -7,6 +7,7 @@ const tokenPassword = __ENV.TOKEN_GENERATOR_PASSWORD;
 
 const tokenTtl = parseInt(__ENV.TTL) || 3600;
 const tokenMargin = 10;
+const defaultTokenEnv = __ENV.API_ENVIRONMENT == "yt01" ? "yt01" : "tt02";
 
 const credentials = `${tokenUsername}:${tokenPassword}`;
 const encodedCredentials = encoding.b64encode(credentials);
@@ -102,9 +103,11 @@ function addEnvAndTtlToTokenOptions(tokenOptions, env) {
  * @param {string} [env='yt01'] - The environment for which the token is being generated.
  * @returns {Promise} - A promise that resolves to the fetched token.
  */
-export function getEnterpriseToken(tokenOptions, iteration=0, env='yt01') {  
+export function getEnterpriseToken(tokenOptions, iteration=0, env=defaultTokenEnv) {  
     const url = new URL(`https://altinn-testtools-token-generator.azurewebsites.net/api/GetEnterpriseToken`);
-    let extendedOptions = addEnvAndTtlToTokenOptions(tokenOptions, env);
+    let extendedOptions = addEnvAndTtlToTokenOptions(tokenOptions);
+    extendedOptions.env = env;
+    extendedOptions.scopes = extendedOptions.scopes + ' altinn:serviceowner';
     for (const key in extendedOptions) {
         if (extendedOptions.hasOwnProperty(key)) {
             url.searchParams.append(key, extendedOptions[key]);
@@ -113,9 +116,9 @@ export function getEnterpriseToken(tokenOptions, iteration=0, env='yt01') {
     return fetchToken(url.toString(), extendedOptions, `enterprise iteration:${iteration})`);
 }
 
-export function getPersonalToken(tokenOptions, env='yt01') {
+export function getPersonalToken(tokenOptions, env=defaultTokenEnv) {
     const url = new URL(`https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken`);
-    let extendedOptions = addEnvAndTtlToTokenOptions(tokenOptions, env);
+    let extendedOptions = addEnvAndTtlToTokenOptions(tokenOptions);
     for (const key in extendedOptions) {
         if (extendedOptions.hasOwnProperty(key)) {
             url.searchParams.append(key, extendedOptions[key]);
