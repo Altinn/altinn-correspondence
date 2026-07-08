@@ -32,13 +32,13 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.NotNull(correspondenceResponse);
 
             // Act (Call recipient first to ensure that the correspondence is not purged)
-            var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
-            var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
+            var recipientResponse = await _recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.First().CorrespondenceId}/purge");
+            var senderResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.First().CorrespondenceId}/purge");
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, recipientResponse.StatusCode);
             Assert.Equal(HttpStatusCode.OK, senderResponse.StatusCode);
-            var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.FirstOrDefault().CorrespondenceId}");
+            var overviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceResponse.Correspondences.First().CorrespondenceId}");
             Assert.Equal(HttpStatusCode.NotFound, overviewResponse.StatusCode);
         }
 
@@ -147,10 +147,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse1 = await CreateCorrespondenceWithAttachment(attachmentId, DateTimeOffset.UtcNow.AddDays(1));
             var initializeCorrespondenceResponse2 = await CreateCorrespondenceWithAttachment(attachmentId, DateTimeOffset.UtcNow.AddDays(1));
 
-            var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{initializeCorrespondenceResponse1.Correspondences.FirstOrDefault().CorrespondenceId}/purge");
+            var deleteResponse = await _senderClient.DeleteAsync($"correspondence/api/v1/correspondence/{initializeCorrespondenceResponse1.Correspondences.First().CorrespondenceId}/purge");
             Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
 
-            var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{initializeCorrespondenceResponse2.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
+            var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{initializeCorrespondenceResponse2.AttachmentIds.First()}", _responseSerializerOptions);
             Assert.NotEqual(attachmentOverview?.Status, AttachmentStatusExt.Purged);
         }
 
@@ -187,6 +187,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 cancellationToken: CancellationToken.None);
 
             var externalReference = correspondence?.ExternalReferences;
+            Assert.NotNull(externalReference);
             var dialogId = externalReference.First().ReferenceValue;
             Assert.NotNull(dialogId);
 
@@ -222,7 +223,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 _responseSerializerOptions);
             response.EnsureSuccessStatusCode();
 
-            return await response.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            var initializeCorrespondencesResponse = await response.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(initializeCorrespondencesResponse);
+            return initializeCorrespondencesResponse;
         }
     }
 }

@@ -442,7 +442,8 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
         var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
         var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
-        Assert.DoesNotContain(correspondenceListResponse?.Items, c => c.CorrespondenceId == correspondenceId);
+        Assert.NotNull(correspondenceListResponse);
+        Assert.DoesNotContain(correspondenceListResponse.Items, c => c.CorrespondenceId == correspondenceId);
     }
 
     [Fact]
@@ -569,7 +570,9 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         };
         var makeAvailableResponse = await _migrationClient.PostAsJsonAsync(makeAvailableUrl, makeAvailableRequest);
         Assert.True(makeAvailableResponse.IsSuccessStatusCode);
-        MakeCorrespondenceAvailableResponseExt respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
+        var respExt = await makeAvailableResponse.Content.ReadFromJsonAsync<MakeCorrespondenceAvailableResponseExt>();
+        Assert.NotNull(respExt);
+        Assert.NotNull(respExt.Statuses);
         Assert.NotNull(respExt.Statuses[0].Error);
     }
 
@@ -738,7 +741,9 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
     {
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.True(getCorrespondenceDetailsResponse.IsSuccessStatusCode);
-        return await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+        var detailsExt = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+        Assert.NotNull(detailsExt);
+        return detailsExt;
     }
 
     private void AssertStatusEventSet(MigrateCorrespondenceStatusEventExt expected, CorrespondenceDetailsExt detailsExt)

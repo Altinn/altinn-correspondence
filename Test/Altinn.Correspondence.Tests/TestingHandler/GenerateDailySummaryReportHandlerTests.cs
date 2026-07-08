@@ -146,6 +146,14 @@ public class GenerateDailySummaryReportHandlerTests
                 ResourceId = "test-resource-id",
                 Recipient = "12345678901",
                 Sender = "0192:123456789",
+                Content = new CorrespondenceContentEntity
+                {
+                    Language = "en",
+                    MessageTitle = "Test title",
+                    MessageSummary = "Test summary",
+                    MessageBody = "Test body",
+                    Attachments = new List<CorrespondenceAttachmentEntity>()
+                },
                 SendersReference = "Test Reference",
                 RequestedPublishTime = DateTimeOffset.UtcNow,
                 Statuses = new List<CorrespondenceStatusEntity>(),
@@ -160,6 +168,14 @@ public class GenerateDailySummaryReportHandlerTests
                 ResourceId = "test-resource-id-2",
                 Recipient = "98765432109",
                 Sender = "0192:987654321",
+                Content = new CorrespondenceContentEntity
+                {
+                    Language = "no",
+                    MessageTitle = "Test title 2",
+                    MessageSummary = "Test summary 2",
+                    MessageBody = "Test body 2",
+                    Attachments = new List<CorrespondenceAttachmentEntity>()
+                },
                 SendersReference = "Test Reference 2",
                 RequestedPublishTime = DateTimeOffset.UtcNow.AddDays(-1),
                 Statuses = new List<CorrespondenceStatusEntity>(),

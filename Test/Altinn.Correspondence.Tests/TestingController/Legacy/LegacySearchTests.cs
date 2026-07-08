@@ -34,8 +34,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", GetBasicLegacyGetCorrespondenceRequestExt());
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
 
-            Assert.True(response?.Items.Count > 0);
-            Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+            Assert.NotNull(response);
+            Assert.Contains(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
         }
 
         [Fact]
@@ -166,8 +166,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.True(response?.Items.Count > 0);
-            Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+            Assert.NotNull(response);
+            Assert.Contains(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
 
             await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/overview"); // Fetch in order to be able to Confirm
             await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/confirm", null); // Update to Confirmed in order to be able to Archive
@@ -182,16 +182,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             listPayload.Status = CorrespondenceStatusExt.Confirmed;
             correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.True(response?.Items.Count > 0);
-            Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+            Assert.NotNull(response);
+            Assert.Contains(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
             await _legacyClient.PostAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/archive", null);
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _serializerOptions, correspondence.CorrespondenceId, CorrespondenceStatusExt.Archived);
 
             listPayload.Status = CorrespondenceStatusExt.Archived;
             correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.True(response?.Items.Count > 0);
-            Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+            Assert.NotNull(response);
+            Assert.Contains(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
         }
 
         [Fact]
@@ -219,7 +219,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
             Assert.True(response?.Items.Count > 0);
-            Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+            Assert.Contains(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
 
         }
 
@@ -245,14 +245,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
 
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.Contains(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should be in list before purge
+            Assert.NotNull(response);
+            Assert.Contains(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should be in list before purge
 
             var purgeResponse = await _legacyClient.DeleteAsync($"correspondence/api/v1/legacy/correspondence/{correspondence.CorrespondenceId}/purge");
             Assert.Equal(HttpStatusCode.OK, purgeResponse.StatusCode);
 
             var correspondenceList2 = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response2 = await correspondenceList2.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.DoesNotContain(response2?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should not longer be in archive list after purge
+            Assert.NotNull(response2);
+            Assert.DoesNotContain(response2.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should not longer be in archive list after purge
 
             var listPayload3 = GetBasicLegacyGetCorrespondenceRequestExt();
             listPayload3.IncludeActive = false;
@@ -260,7 +262,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             listPayload3.IncludeDeleted = true;
             var correspondenceList3 = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload3);
             var response3 = await correspondenceList3.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.DoesNotContain(response3?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should NOT be in deleted list after purge
+            Assert.NotNull(response3);
+            Assert.DoesNotContain(response3.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should NOT be in deleted list after purge
         }
 
         [Fact]
@@ -282,7 +285,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             listPayload.IncludeDeleted = true;
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.DoesNotContain(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should NOT be in deleted list after purge as only soft deletes should be there
+            Assert.NotNull(response);
+            Assert.DoesNotContain(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId); // Should NOT be in deleted list after purge as only soft deletes should be there
         }
 
         [Fact]
@@ -304,7 +308,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             listPayload.IncludeDeleted = false;
             var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.DoesNotContain(response?.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
+            Assert.NotNull(response);
+            Assert.DoesNotContain(response.Items, c => c.CorrespondenceId == correspondence.CorrespondenceId);
         }
 
         [Fact]
@@ -460,7 +465,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var correspondenceList = await client.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
             Assert.Equal(HttpStatusCode.OK, correspondenceList.StatusCode);
             var response = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_serializerOptions);
-            Assert.Empty(response?.Items);
+            Assert.NotNull(response);
+            Assert.Empty(response.Items);
         }
         [Fact]
         public async Task LegacyGetCorrespondences_ForSubUnitAndAccessToOnlySubunit_Succeeds()

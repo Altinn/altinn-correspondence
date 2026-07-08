@@ -447,23 +447,24 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
 
             var baseTime = new DateTime(2010, 1, 1, 0, 0, 0);
+            var altinn2IdBase = Random.Shared.Next(1_000_000, int.MaxValue - 10);
 
             var valid = new CorrespondenceEntityBuilder()
                 .WithRequestedPublishTime(baseTime)
-                .WithAltinn2CorrespondenceId(5001)
+                .WithAltinn2CorrespondenceId(altinn2IdBase + 1)
                 .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(1))
                 .Build();
 
             var migrating = new CorrespondenceEntityBuilder()
                 .WithRequestedPublishTime(baseTime.AddMinutes(1))
-                .WithAltinn2CorrespondenceId(5002)
+                .WithAltinn2CorrespondenceId(altinn2IdBase + 2)
                 .WithIsMigrating(true)
                 .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(2))
                 .Build();
 
             var notConfirmed = new CorrespondenceEntityBuilder()
                 .WithRequestedPublishTime(baseTime.AddMinutes(2))
-                .WithAltinn2CorrespondenceId(5003)
+                .WithAltinn2CorrespondenceId(altinn2IdBase + 3)
                 .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(2))
                 .Build();
 

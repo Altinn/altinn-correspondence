@@ -157,6 +157,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             // Arrange
             var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
             var prevOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+            Assert.NotNull(prevOverview);
+            Assert.NotNull(prevOverview.Checksum);
             Assert.Empty(prevOverview.Checksum);
 
             var data = "This is the contents of the uploaded file";
@@ -170,6 +172,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
 
             // Assert
+            Assert.NotNull(attachmentOverview);
+            Assert.NotNull(attachmentOverview.Checksum);
             Assert.NotEmpty(attachmentOverview.Checksum);
             Assert.Equal(checksum, attachmentOverview.Checksum);
         }
@@ -192,6 +196,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             initializeResponse.EnsureSuccessStatusCode();
             var attachmentId = await initializeResponse.Content.ReadFromJsonAsync<Guid>();
             var prevOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+            Assert.NotNull(prevOverview);
+            Assert.NotNull(prevOverview.Checksum);
             Assert.NotEmpty(prevOverview.Checksum);
 
             var uploadResponse = await AttachmentHelper.UploadAttachment(attachmentId, _senderClient, content);
@@ -199,6 +205,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, uploadResponse.StatusCode);
+            Assert.NotNull(attachmentOverview);
+            Assert.NotNull(attachmentOverview.Checksum);
             Assert.NotEmpty(attachmentOverview.Checksum);
             Assert.Equal(prevOverview.Checksum, attachmentOverview.Checksum);
         }

@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         public void ShouldNotFailOutsideOfHttpContext()
         {
             // Arrange
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, null);
+            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, null!); //TODO: RETT?
 
             var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
             activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
@@ -46,7 +46,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             catch (Exception e)
             {
                 // Assert
-                Assert.False(true, $"Exception thrown: {e.Message}");
+                Assert.Fail($"Exception thrown: {e.Message}");
             }
 
             // Assert

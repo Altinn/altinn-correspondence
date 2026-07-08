@@ -327,7 +327,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithCustomNotificationRecipient(customRecipient)
                 .Build();
 
-            payload.Correspondence.Notification.SmsBody = number != null ? "Test $correspondenceRecipientName$" : null;
+            payload.Correspondence.Notification!.SmsBody = number != null ? "Test $correspondenceRecipientName$" : null;
             payload.Correspondence.Notification.EmailBody = email != null ? "Test $correspondenceRecipientName$" : null;
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -353,7 +353,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithCustomNotificationRecipient(customRecipient)
                 .Build();
 
-            payload.Correspondence.Notification.SmsBody = number != null ? "Test $recipientName$" : null;
+            payload.Correspondence.Notification!.SmsBody = number != null ? "Test $recipientName$" : null;
             payload.Correspondence.Notification.EmailBody = email != null ? "Test $recipientName$" : null;
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
@@ -383,7 +383,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithCustomNotificationRecipient(customRecipient)
                 .Build();
 
-            payload.Correspondence.Notification.EmailBody = "Test message";
+            payload.Correspondence.Notification!.EmailBody = "Test message";
 
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var problemDetails = await initResponse.Content.ReadFromJsonAsync<ProblemDetails>(_responseSerializerOptions);
@@ -1186,7 +1186,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-            Assert.Contains(NotificationErrors.InvalidNotificationTemplate.Message, initializeCorrespondenceResponse.Content.ReadAsStringAsync().Result);
+            Assert.Contains(NotificationErrors.InvalidNotificationTemplate.Message, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
         }
     }
 }  

@@ -72,7 +72,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
         {  
             // Upload correspondence (attachments included in same request)
             using var stream = System.IO.File.OpenRead("./Data/Markdown.txt");
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var file = new FormFile(stream, 0, stream.Length, string.Empty, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
 
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
@@ -88,7 +88,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             var uploadCorrespondenceResponse = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, "Failed to upload Correspondence");
             var uploadCorrespondenceResponseObj = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_serializerOptions);
-            Assert.Equal(1, uploadCorrespondenceResponseObj.Correspondences.Count);
+            Assert.NotNull(uploadCorrespondenceResponseObj);
+            Assert.Single(uploadCorrespondenceResponseObj.Correspondences);
             var correspondence = uploadCorrespondenceResponseObj.Correspondences.First();
 
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(
@@ -127,6 +128,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
             Assert.NotNull(historyResponse);
             var historyResponseContent = await historyResponse.Content.ReadFromJsonAsync<List<LegacyGetCorrespondenceHistoryResponse>>(_serializerOptions);            
+            Assert.NotNull(historyResponseContent);
             Assert.DoesNotContain(
                 historyResponseContent,
                 item => item.Status == CorrespondenceStatusExt.AttachmentsDownloaded.ToString()); // This status is hidden from Legacy recipients, so should not appear in history
@@ -367,7 +369,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             });
             responseSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
             CorrespondenceMigrationStatusExt? migrateResult = await migrateCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(responseSerializerOptions);
-            string correspondenceId = migrateResult?.CorrespondenceId.ToString();
+            Assert.NotNull(migrateResult?.CorrespondenceId.ToString());
+            string correspondenceId = migrateResult.CorrespondenceId.ToString();
 
             // Act
             var response = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{correspondenceId}/history");
@@ -381,15 +384,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Legacy
             Assert.Contains(content, status => status.Status.Contains(CorrespondenceStatus.Archived.ToString()));
 
             // Assert Forwarding Events appear in correct form
-            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
-                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent!.ForwardedByUserId.Equals(123)
+                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name!.Equals(_delegatedUserName)
                 && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardedToEmail) && forwarding.ForwardingEvent.ForwardedToEmail.Equals("user1@awesometestusers.com")
                 && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardingText) && forwarding.ForwardingEvent.ForwardingText.Equals("Keep this as a backup in my email."));
-            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
-                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent!.ForwardedByUserId.Equals(123)
+                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name!.Equals(_delegatedUserName)
                 && !String.IsNullOrEmpty(forwarding.ForwardingEvent.MailboxSupplier) && forwarding.ForwardingEvent.MailboxSupplier.Equals("123456789"));
-            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent.ForwardedByUserId.Equals(123)
-                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name.Equals(_delegatedUserName)
+            Assert.Contains(content, forwarding => forwarding.Status.Contains("ElementForwarded") && forwarding.ForwardingEvent!.ForwardedByUserId.Equals(123)
+                && forwarding.User != null && forwarding.User.PartyId == _delegatedUserPartyid && forwarding.User.Name!.Equals(_delegatedUserName)
                 && forwarding.ForwardingEvent.ForwardedToUserId == 456
                 && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardedToEmail) && forwarding.ForwardingEvent.ForwardedToEmail.Equals("user2@awesometestusers.com")
                 && !String.IsNullOrEmpty(forwarding.ForwardingEvent.ForwardingText) && forwarding.ForwardingEvent.ForwardingText.Equals("User2, - look into this for me please. - User1."));

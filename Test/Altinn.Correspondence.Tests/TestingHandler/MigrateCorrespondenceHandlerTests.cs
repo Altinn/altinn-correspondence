@@ -163,7 +163,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
             Assert.True(result.IsT0);
             var response = result.AsT0;
             Assert.NotNull(response.Statuses);
@@ -208,7 +207,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
             Assert.True(result.IsT0);
             var response = result.AsT0;
             Assert.NotNull(response.Statuses);
@@ -243,7 +241,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
             Assert.True(result.IsT0);
             var response = result.AsT0;
             Assert.NotNull(response.Statuses);
@@ -282,7 +279,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
             Assert.True(result.IsT0);
             var response = result.AsT0;
             Assert.NotNull(response.Statuses);
@@ -326,11 +322,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
             Assert.True(result.IsT0);
             var response = result.AsT0;
             Assert.NotNull(response.Statuses);
-            Assert.Equal(1, response.Statuses.Count);
+            Assert.Single(response.Statuses);
 
             foreach (var status in response.Statuses)
             {
@@ -379,11 +374,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
             Assert.True(result.IsT0);
             var response = result.AsT0;
             Assert.NotNull(response.Statuses);
-            Assert.Equal(1, response.Statuses.Count);
+            Assert.Single(response.Statuses);
 
             foreach (var status in response.Statuses)
             {
@@ -439,11 +433,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
             Assert.True(result.IsT0);
             var response = result.AsT0;
             Assert.NotNull(response.Statuses);
-            Assert.Equal(1, response.Statuses.Count);
+            Assert.Single(response.Statuses);
 
             foreach (var status in response.Statuses)
             {
@@ -474,7 +467,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var result = await _handler.MakeCorrespondenceAvailable(request, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
             Assert.True(result.IsT0);
             var response = result.AsT0;
             Assert.NotNull(response.Statuses);
@@ -507,6 +499,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Recipient = correspondenceRequestObject.Recipient,
                 Sender = correspondenceRequestObject.Sender,
                 SendersReference = correspondenceRequestObject.SendersReference,
+                Content = correspondenceRequestObject.Content,
                 RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
                 Statuses = correspondenceRequestObject.Statuses,
                 ExternalReferences = correspondenceRequestObject.ExternalReferences,
@@ -575,6 +568,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Recipient = correspondenceRequestObject.Recipient,
                 Sender = correspondenceRequestObject.Sender,
                 SendersReference = correspondenceRequestObject.SendersReference,
+                Content = correspondenceRequestObject.Content,
                 RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
                 Statuses = correspondenceRequestObject.Statuses,
                 ExternalReferences = correspondenceRequestObject.ExternalReferences,
@@ -668,6 +662,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Recipient = correspondenceRequestObject.Recipient,
                 Sender = correspondenceRequestObject.Sender,
                 SendersReference = correspondenceRequestObject.SendersReference,
+                Content = correspondenceRequestObject.Content,
                 RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
                 Statuses = correspondenceRequestObject.Statuses,
                 ExternalReferences = correspondenceRequestObject.ExternalReferences,
@@ -830,6 +825,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Recipient = correspondenceRequestObject.Recipient,
                 Sender = correspondenceRequestObject.Sender,
                 SendersReference = correspondenceRequestObject.SendersReference,
+                Content = correspondenceRequestObject.Content,
                 RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
                 Statuses = correspondenceRequestObject.Statuses,
                 ExternalReferences = correspondenceRequestObject.ExternalReferences,
@@ -944,6 +940,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     Recipient = correspondenceExistingObject.Recipient,
                     Sender = correspondenceExistingObject.Sender,
                     SendersReference = correspondenceExistingObject.SendersReference,
+                    Content = correspondenceExistingObject.Content,
                     RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
                     Statuses = correspondenceExistingObject.Statuses,
                     ExternalReferences = correspondenceExistingObject.ExternalReferences,
@@ -1010,6 +1007,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     Recipient = correspondenceRequestObject.Recipient,
                     Sender = correspondenceRequestObject.Sender,
                     SendersReference = correspondenceRequestObject.SendersReference,
+                    Content = correspondenceRequestObject.Content,
                     RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
                     Statuses = new List<CorrespondenceStatusEntity>(),
                     ExternalReferences = correspondenceRequestObject.ExternalReferences,
@@ -1103,6 +1101,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     Recipient = correspondenceRequestObject.Recipient,
                     Sender = correspondenceRequestObject.Sender,
                     SendersReference = correspondenceRequestObject.SendersReference,
+                    Content = correspondenceRequestObject.Content,
                     RequestedPublishTime = correspondenceRequestObject.RequestedPublishTime,
                     Statuses = correspondenceRequestObject.Statuses,
                     ExternalReferences = correspondenceRequestObject.ExternalReferences,
@@ -1180,6 +1179,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     Recipient = correspondenceExistingObject.Recipient,
                     Sender = correspondenceExistingObject.Sender,
                     SendersReference = correspondenceExistingObject.SendersReference,
+                    Content = correspondenceExistingObject.Content,
                     RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
                     Statuses = correspondenceExistingObject.Statuses,
                     ExternalReferences = correspondenceExistingObject.ExternalReferences,
@@ -1293,6 +1293,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     Recipient = correspondenceExistingObject.Recipient,
                     Sender = correspondenceExistingObject.Sender,
                     SendersReference = correspondenceExistingObject.SendersReference,
+                    Content = correspondenceExistingObject.Content,
                     RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
                     Statuses = correspondenceExistingObject.Statuses,
                     ExternalReferences = correspondenceExistingObject.ExternalReferences,
@@ -1447,6 +1448,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     Recipient = correspondenceExistingObject.Recipient,
                     Sender = correspondenceExistingObject.Sender,
                     SendersReference = correspondenceExistingObject.SendersReference,
+                    Content = correspondenceExistingObject.Content,
                     RequestedPublishTime = correspondenceExistingObject.RequestedPublishTime,
                     Statuses = correspondenceExistingObject.Statuses,
                     ExternalReferences = correspondenceExistingObject.ExternalReferences,
@@ -1779,7 +1781,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.Log(
                     It.Is<LogLevel>(l => l == LogLevel.Warning),
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("has already been purged")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("has already been purged")),
                     It.IsAny<Exception>(),
                     It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
                 Times.Once,
@@ -1802,6 +1804,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Recipient = "test-recipient",
                 Sender = "0192:123456789",
                 SendersReference = "test-reference",
+                Content = new CorrespondenceContentEntity
+                {
+                    Language = "en",
+                    MessageTitle = "Test title",
+                    MessageSummary = "Test summary",
+                    MessageBody = "Test body",
+                    Attachments = new List<CorrespondenceAttachmentEntity>()
+                },
                 RequestedPublishTime = DateTimeOffset.UtcNow.AddDays(1),
                 Statuses = new List<CorrespondenceStatusEntity>(),
                 ExternalReferences = new List<ExternalReferenceEntity>(),

@@ -464,6 +464,10 @@ public class SyncEventDeduplicationTests : MigrationTestBase
         var details2 = await getDetailsResponse2.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
 
         // Assert - All counts should remain the same (no duplicates created)
+        Assert.NotNull(details1);
+        Assert.NotNull(details2);
+        Assert.NotNull(details1.Notifications);
+        Assert.NotNull(details2.Notifications);
         Assert.Equal(
             details1.StatusHistory.Where(s => s.Status != CorrespondenceStatusExt.Fetched).Count(),
             details2.StatusHistory.Where(s => s.Status != CorrespondenceStatusExt.Fetched).Count());

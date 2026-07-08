@@ -15,9 +15,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Migration;
 [Collection(nameof(CustomWebApplicationTestsCollection))]
 public class MigrationAccessTests : MigrationTestBase
 {
-    private readonly HttpClient _recipientClient, _legacyClient;
-    private readonly string _partyIdClaim = "urn:altinn:partyid";
-    private readonly int _digdirPartyId = 50952483;
+    private new readonly HttpClient _recipientClient, _legacyClient;
+    private new readonly string _partyIdClaim = "urn:altinn:partyid";
+    private new readonly int _digdirPartyId = 50952483;
 
     public MigrationAccessTests(CustomWebApplicationFactory factory) : base(factory)
     {
@@ -45,6 +45,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         var request = GetBasicLegacyGetCorrespondenceRequestExt();
@@ -89,6 +90,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         var correspondenceListRequest = GetBasicLegacyGetCorrespondenceRequestExt();
@@ -133,6 +135,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         var request = GetBasicLegacyGetCorrespondenceRequestExt();
@@ -177,6 +180,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         var request = GetBasicLegacyGetCorrespondenceRequestExt();
@@ -221,13 +225,15 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         string resourceId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId.ToString();
         string status = CorrespondenceStatusExt.Published.ToString();
 
         var correspondenceList = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={status}&role={"recipient"}");
-        Assert.True(correspondenceList.Ids.Any(x => x == createdCorrespondenceId));
+        Assert.NotNull(correspondenceList);
+        Assert.Contains(createdCorrespondenceId, correspondenceList.Ids);
     }
 
     [Fact]
@@ -243,13 +249,15 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         string resourceId = migrateCorrespondenceExt.CorrespondenceData.Correspondence.ResourceId.ToString();
         string status = CorrespondenceStatusExt.Published.ToString();
 
         var correspondenceList = await _recipientClient.GetFromJsonAsync<GetCorrespondencesResponse>($"correspondence/api/v1/correspondence?resourceId={resourceId}&status={status}&role={"recipient"}");
-        Assert.False(correspondenceList.Ids.Any(x => x == createdCorrespondenceId));
+        Assert.NotNull(correspondenceList);
+        Assert.DoesNotContain(createdCorrespondenceId, correspondenceList.Ids);
     }
 
     [Fact]
@@ -264,6 +272,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         // Act
@@ -286,6 +295,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         // Act
@@ -295,7 +305,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.Equal(HttpStatusCode.OK, getCorrespondenceOverviewResponse.StatusCode);
 
         var retrievedCorrespondence = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceOverviewExt>(_responseSerializerOptions);
-
+        Assert.NotNull(retrievedCorrespondence);
         Assert.Equal(createdCorrespondenceId, retrievedCorrespondence.CorrespondenceId);
     }
 
@@ -311,6 +321,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         // Act
@@ -333,6 +344,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         // Act
@@ -342,7 +354,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.Equal(HttpStatusCode.OK, getCorrespondenceOverviewResponse.StatusCode);
 
         var retrievedCorrespondence = await getCorrespondenceOverviewResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
-
+        Assert.NotNull(retrievedCorrespondence);
         Assert.Equal(createdCorrespondenceId, retrievedCorrespondence.CorrespondenceId);
     }
 
@@ -361,7 +373,9 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
+        Assert.NotNull(result.AttachmentStatuses);
         var createdAttachmentId = result.AttachmentStatuses.FirstOrDefault(x => x.AttachmentId == attachmentId)?.AttachmentId;
 
         // Act
@@ -398,6 +412,7 @@ public class MigrationAccessTests : MigrationTestBase
         Assert.True(initializeCorrespondenceResponse.IsSuccessStatusCode, await initializeCorrespondenceResponse.Content.ReadAsStringAsync());
 
         CorrespondenceMigrationStatusExt? result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+        Assert.NotNull(result);
         var createdCorrespondenceId = result.CorrespondenceId;
 
         // Act

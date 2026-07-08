@@ -87,6 +87,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
 
         // Get updated details of the migrated correspondence and check that forwarding events are saved
         List<LegacyCorrespondenceHistoryExt>? legacyHistoryResponseContent = await GetLegacyHistory(correspondenceId, response);
+        Assert.NotNull(legacyHistoryResponseContent);
         var forwardingEvents = legacyHistoryResponseContent.Where(h => h.ForwardingEvent != null).ToList();
         Assert.Equal(3, forwardingEvents.Count);
     }
@@ -162,10 +163,12 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
 
         // Get updated details of the migrated correspondence and check that the first forwarding events is saved, but not the second due to transaction rollback from the exception
-        List<LegacyCorrespondenceHistoryExt>? legacyHistoryResponseContent = await GetLegacyHistory(correspondenceId, response);        
+        List<LegacyCorrespondenceHistoryExt>? legacyHistoryResponseContent = await GetLegacyHistory(correspondenceId, response);
+        Assert.NotNull(legacyHistoryResponseContent);     
         var historyWithforwardingEvent = legacyHistoryResponseContent.Where(h => h.ForwardingEvent != null).ToList();
-        Assert.Equal(1, historyWithforwardingEvent.Count);
-        Assert.Equal("user1@awesometestusers.com", historyWithforwardingEvent[0].ForwardingEvent.ForwardedToEmail);
+        Assert.Single(historyWithforwardingEvent);
+        Assert.NotNull(historyWithforwardingEvent[0].ForwardingEvent);
+        Assert.Equal("user1@awesometestusers.com", historyWithforwardingEvent[0].ForwardingEvent!.ForwardedToEmail);
     }
 
     [Fact]
@@ -265,6 +268,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
 
         // Get updated details of the migrated correspondence and check that forwarding events are saved
         List<LegacyCorrespondenceHistoryExt>? legacyHistoryResponseContent = await GetLegacyHistory(correspondenceId, response);
+        Assert.NotNull(legacyHistoryResponseContent);
         var forwardingEvents = legacyHistoryResponseContent.Where(h => h.ForwardingEvent != null).ToList();
         Assert.Equal(3, forwardingEvents.Count);
     }
@@ -345,6 +349,7 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
 
         // Get updated details of the migrated correspondence and check that forwarding events are saved
         List<LegacyCorrespondenceHistoryExt>? legacyHistoryResponseContent = await GetLegacyHistory(correspondenceId, response);
+        Assert.NotNull(legacyHistoryResponseContent);
         var forwardingEvents = legacyHistoryResponseContent.Where(h => h.ForwardingEvent != null).ToList();
         Assert.Equal(3, forwardingEvents.Count);
     }
@@ -381,7 +386,8 @@ public class SyncCorrespondenceForwardingEventTests : MigrationTestBase
     {
         var migrateResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
         Assert.True(migrateResponse.IsSuccessStatusCode);
-        var resultObj = await migrateResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();        
+        var resultObj = await migrateResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();
+        Assert.NotNull(resultObj);
         return resultObj.CorrespondenceId;
     }
 

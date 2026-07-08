@@ -7,6 +7,7 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
+using ReverseMarkdown.Converters;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -431,6 +432,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initResponse.IsSuccessStatusCode, await initResponse.Content.ReadAsStringAsync());
             var initResult = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(initResult);
             var expectedCorrespondenceId = initResult.Correspondences.First().CorrespondenceId;
             
             // Act
@@ -439,6 +441,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, searchResponse.StatusCode);
             var result = await searchResponse.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.NotNull(result);
             Assert.Single(result.Ids);
             Assert.Equal(expectedCorrespondenceId, result.Ids.First());
         }
@@ -467,33 +470,39 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initResponse1 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload1);
             Assert.True(initResponse1.IsSuccessStatusCode, await initResponse1.Content.ReadAsStringAsync());
             var initResult1 = await initResponse1.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(initResult1);
             var expectedCorrespondenceId1 = initResult1.Correspondences.First().CorrespondenceId;
             
             var initResponse2 = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload2);
             Assert.True(initResponse2.IsSuccessStatusCode, await initResponse2.Content.ReadAsStringAsync());
             var initResult2 = await initResponse2.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(initResult2);
             var expectedCorrespondenceId2 = initResult2.Correspondences.First().CorrespondenceId;
             
             // Act & Assert for ref1
             var search1 = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&sendersReference={ref1}&role={"recipientandsender"}");
             var result1 = await search1.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.NotNull(result1);
             Assert.Single(result1.Ids);
             Assert.Equal(expectedCorrespondenceId1, result1.Ids.First());
             
             // Act & Assert for ref2
             var search2 = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&sendersReference={ref2}&role={"recipientandsender"}");
             var result2 = await search2.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.NotNull(result2);
             Assert.Single(result2.Ids);
             Assert.Equal(expectedCorrespondenceId2, result2.Ids.First());
             
             // Act & Assert for non-existent reference
             var search3 = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&sendersReference=non-existent&role={"recipientandsender"}");
             var result3 = await search3.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.NotNull(result3);
             Assert.Empty(result3.Ids);
             
             // Act & Assert for all correspondences (without sendersReference)
             var search4 = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&role={"recipientandsender"}");
             var result4 = await search4.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.NotNull(result4);
             Assert.Equal(2, result4.Ids.Count);
             Assert.Contains(expectedCorrespondenceId1, result4.Ids);
             Assert.Contains(expectedCorrespondenceId2, result4.Ids);
@@ -514,6 +523,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.True(initResponse.IsSuccessStatusCode, await initResponse.Content.ReadAsStringAsync());
             var initResult = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(initResult);
             var expectedCorrespondenceId = initResult.Correspondences.First().CorrespondenceId;
 
             // Act
@@ -521,6 +531,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
             
             // Assert
+            Assert.NotNull(result);
             Assert.Single(result.Ids);
             Assert.Equal(expectedCorrespondenceId, result.Ids.First());
         }
@@ -559,6 +570,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
 
             // Assert
+            Assert.NotNull(result);
             Assert.Empty(result.Ids);
         }
 
@@ -588,6 +600,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
             var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.NotNull(result);
+            Assert.NotNull(migrateResult);
             Assert.Single(result.Ids);
             Assert.Equal(migrateResult.CorrespondenceId, result.Ids.First());
         }
@@ -618,6 +632,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
             var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.NotNull(result);
             Assert.Empty(result.Ids);
         }
 
@@ -646,6 +661,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
             var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
+            Assert.NotNull(result);
             Assert.Empty(result.Ids);
         }
     }

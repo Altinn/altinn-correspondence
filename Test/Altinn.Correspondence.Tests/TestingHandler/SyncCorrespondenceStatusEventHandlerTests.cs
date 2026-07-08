@@ -1404,10 +1404,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     {
                         Id = Guid.NewGuid(),
                         ResourceId = correspondence.ResourceId,
-                        FileName  = correspondence.Content.Attachments.First().Attachment.FileName,
-                        SendersReference = correspondence.Content.Attachments.First().Attachment.SendersReference,
+                        FileName  = correspondence.Content.Attachments.First().Attachment!.FileName,
+                        SendersReference = correspondence.Content.Attachments.First().Attachment!.SendersReference,
                         Sender = sender,
-                        Created =  correspondence.Content.Attachments.First().Attachment.Created
+                        Created =  correspondence.Content.Attachments.First().Attachment!.Created
                     }
                 });
             

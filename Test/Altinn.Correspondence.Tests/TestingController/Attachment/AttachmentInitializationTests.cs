@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
         public async Task InitializeAttachment()
         {
             var attachmentId = await AttachmentHelper.GetInitializedAttachment(_senderClient, _responseSerializerOptions);
-            Assert.NotNull(attachmentId);
+            Assert.NotEqual(Guid.Empty, attachmentId);
         }
         [Theory]
         [InlineData("rsietris//rsitersn")]

@@ -69,6 +69,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);      
         
+        Assert.NotNull(getCorrespondenceDetails.Notifications);
         Assert.Equal(3, getCorrespondenceDetails.Notifications.Count);
         Assert.Contains(getCorrespondenceDetails.Notifications, n => n.IsReminder);
     }
@@ -115,7 +116,8 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
 
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
-        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
+        Assert.NotNull(getCorrespondenceDetails.Notifications);
+        Assert.Single(getCorrespondenceDetails.Notifications);
 
     }
 
@@ -169,6 +171,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
 
         // Get updated details of the migrated correspondence
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
+        Assert.NotNull(getCorrespondenceDetails.Notifications);
         Assert.Equal(2, getCorrespondenceDetails.Notifications.Count);
     }
 
@@ -212,7 +215,8 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         // Assert
         Assert.True(response.IsSuccessStatusCode);
         var getCorrespondenceDetails = await GetCorrespondenceDetailsAsync(correspondenceId);
-        Assert.Equal(1, getCorrespondenceDetails.Notifications.Count);
+        Assert.NotNull(getCorrespondenceDetails.Notifications);
+        Assert.Single(getCorrespondenceDetails.Notifications);
     }
 
 
@@ -253,6 +257,7 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
         var migrateResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
         Assert.True(migrateResponse.IsSuccessStatusCode);
         var resultObj = await migrateResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>();        
+        Assert.NotNull(resultObj);
         return resultObj.CorrespondenceId;
     }
 
@@ -260,6 +265,9 @@ public class SyncCorrespondenceNotificationEventTests : MigrationTestBase
     {
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.True(getCorrespondenceDetailsResponse.IsSuccessStatusCode, "Response was not successful with code (" + getCorrespondenceDetailsResponse.StatusCode + "): " + await getCorrespondenceDetailsResponse.Content.ReadAsStringAsync());
-        return await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+        
+        var resultObj = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+        Assert.NotNull(resultObj);
+        return resultObj;
     }
 }

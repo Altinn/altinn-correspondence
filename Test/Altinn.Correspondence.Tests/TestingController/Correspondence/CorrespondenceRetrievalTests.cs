@@ -25,9 +25,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondence);
+            
 
             // Act
-            var getCorrespondenceOverviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.Correspondences.FirstOrDefault().CorrespondenceId}");
+            var getCorrespondenceOverviewResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.Correspondences.First().CorrespondenceId}");
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, getCorrespondenceOverviewResponse.StatusCode);
@@ -45,9 +47,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 ("notSender", "true"),
                 ("notRecipient", "true"),
                 ("scope", AuthorizationConstants.SenderScope));
+            Assert.NotNull(correspondence);
 
             // Act
-            var invalidSenderResponse = await invalidClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}");
+            var invalidSenderResponse = await invalidClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.Correspondences.First().CorrespondenceId}");
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, invalidSenderResponse.StatusCode);
@@ -64,9 +67,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondence);
 
             // Act
-            var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}");
+            var getCorrespondenceOverviewResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.Correspondences.First().CorrespondenceId}");
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceOverviewResponse.StatusCode);
@@ -124,9 +128,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondence);
 
             // Act
-            var getCorrespondenceDetailsResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details");
+            var getCorrespondenceDetailsResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.Correspondences.First().CorrespondenceId}/details");
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
@@ -140,13 +145,14 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             initializeCorrespondenceResponse.EnsureSuccessStatusCode();
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondence);
             var invalidClient = _factory.CreateClientWithAddedClaims(
                 ("notSender", "true"),
                 ("notRecipient", "true"),
                 ("scope", AuthorizationConstants.SenderScope));
 
             // Act
-            var invalidResponse = await invalidClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details");
+            var invalidResponse = await invalidClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.Correspondences.First().CorrespondenceId}/details");
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, invalidResponse.StatusCode);
@@ -162,9 +168,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondence);
 
             // Act
-            var getCorrespondenceDetailsResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence?.Correspondences.FirstOrDefault().CorrespondenceId}/details");
+            var getCorrespondenceDetailsResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondence.Correspondences.First().CorrespondenceId}/details");
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
@@ -243,7 +250,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
             var initializedCorrespondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var correspondenceId = initializedCorrespondence?.Correspondences.FirstOrDefault().CorrespondenceId;
+            Assert.NotNull(initializedCorrespondence);
+            var correspondenceId = initializedCorrespondence.Correspondences.First().CorrespondenceId;
 
             var wrongRecipientClient = _factory.CreateClientWithAddedClaims(
                 ("pid", "wrong-personal-id"),
@@ -298,15 +306,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.NotNull(correspondenceDetailsResponse);
+            Assert.NotNull(correspondenceDetailsResponse.Content);
             Assert.NotNull(correspondenceOverviewResponse);
+            Assert.NotNull(correspondenceOverviewResponse.Content);
             Assert.Equal(CorrespondenceStatusExt.Published, correspondenceDetailsResponse.Status);
             Assert.Equal(CorrespondenceStatusExt.Published, correspondenceOverviewResponse.Status);
-            Assert.Empty(correspondenceDetailsResponse.Content!.MessageSummary);
-            Assert.Empty(correspondenceDetailsResponse.Content.MessageBody);
-            Assert.Empty(correspondenceDetailsResponse.Content.MessageTitle);
-            Assert.Empty(correspondenceOverviewResponse.Content!.MessageSummary);
-            Assert.Empty(correspondenceOverviewResponse.Content.MessageBody);
-            Assert.Empty(correspondenceOverviewResponse.Content.MessageTitle);
+            Assert.True(string.IsNullOrEmpty(correspondenceDetailsResponse.Content.MessageSummary));
+            Assert.True(string.IsNullOrEmpty(correspondenceDetailsResponse.Content.MessageBody));
+            Assert.True(string.IsNullOrEmpty(correspondenceDetailsResponse.Content.MessageTitle));
+            Assert.True(string.IsNullOrEmpty(correspondenceOverviewResponse.Content.MessageSummary));
+            Assert.True(string.IsNullOrEmpty(correspondenceOverviewResponse.Content.MessageBody));
+            Assert.True(string.IsNullOrEmpty(correspondenceOverviewResponse.Content.MessageTitle));
 
         }
 
@@ -320,7 +330,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             var correspondence = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var initializedCorrespondence = correspondence!.Correspondences.First();
+            Assert.NotNull(correspondence);
+            var initializedCorrespondence = correspondence.Correspondences.First();
             var correspondenceId = initializedCorrespondence.CorrespondenceId;
 
             // Act
@@ -333,15 +344,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.NotNull(correspondenceDetailsResponse);
+            Assert.NotNull(correspondenceDetailsResponse.Content);
             Assert.NotNull(correspondenceOverviewResponse);
+            Assert.NotNull(correspondenceOverviewResponse.Content);
             Assert.NotEqual(CorrespondenceStatusExt.Published, correspondenceDetailsResponse.Status);
             Assert.NotEqual(CorrespondenceStatusExt.Published, correspondenceOverviewResponse.Status);
-            Assert.NotEmpty(correspondenceDetailsResponse.Content!.MessageSummary);
-            Assert.NotEmpty(correspondenceDetailsResponse.Content.MessageBody);
-            Assert.NotEmpty(correspondenceDetailsResponse.Content.MessageTitle);
-            Assert.NotEmpty(correspondenceOverviewResponse.Content!.MessageSummary);
-            Assert.NotEmpty(correspondenceOverviewResponse.Content.MessageBody);
-            Assert.NotEmpty(correspondenceOverviewResponse.Content.MessageTitle);
+            Assert.False(string.IsNullOrEmpty(correspondenceDetailsResponse.Content.MessageSummary));
+            Assert.False(string.IsNullOrEmpty(correspondenceDetailsResponse.Content.MessageBody));
+            Assert.False(string.IsNullOrEmpty(correspondenceDetailsResponse.Content.MessageTitle));
+            Assert.False(string.IsNullOrEmpty(correspondenceOverviewResponse.Content.MessageSummary));
+            Assert.False(string.IsNullOrEmpty(correspondenceOverviewResponse.Content.MessageBody));
+            Assert.False(string.IsNullOrEmpty(correspondenceOverviewResponse.Content.MessageTitle));
         }
 
         [Fact]

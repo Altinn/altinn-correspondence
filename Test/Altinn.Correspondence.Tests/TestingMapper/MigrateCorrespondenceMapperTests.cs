@@ -131,9 +131,9 @@ public class MigrateCorrespondenceMapperTests
 
         // Assert
         Assert.Equal(3, result.Count);
-        Assert.Single(result.Where(e => e.Status == CorrespondenceStatus.Read));
-        Assert.Single(result.Where(e => e.Status == CorrespondenceStatus.Confirmed));
-        Assert.Single(result.Where(e => e.Status == CorrespondenceStatus.Archived));
+        Assert.Single(result, e => e.Status == CorrespondenceStatus.Read);
+        Assert.Single(result, e => e.Status == CorrespondenceStatus.Confirmed);
+        Assert.Single(result, e => e.Status == CorrespondenceStatus.Archived);
     }
 
     [Fact]
@@ -175,8 +175,8 @@ public class MigrateCorrespondenceMapperTests
 
         // Assert
         Assert.Equal(3, result.Count);
-        Assert.Equal(2, result.Count(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.SoftDeletedByRecipient));
-        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.RestoredByRecipient));
+        Assert.Equal(2, result.Count(e => e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient));
+        Assert.Single(result, e => e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient);
     }
 
     [Fact]
@@ -269,9 +269,9 @@ public class MigrateCorrespondenceMapperTests
 
         // Assert
         Assert.Equal(3, result.Count);
-        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.SoftDeletedByRecipient));
-        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.RestoredByRecipient));
-        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.HardDeletedByRecipient));
+        Assert.Single(result, e => e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient);
+        Assert.Single(result, e => e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient);
+        Assert.Single(result, e => e.EventType == CorrespondenceDeleteEventType.HardDeletedByRecipient);
     }
 
     [Fact]
@@ -291,8 +291,9 @@ public class MigrateCorrespondenceMapperTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.SoftDeletedByRecipient));
-        Assert.Single(result.Where(e => e.EventType == Core.Models.Enums.CorrespondenceDeleteEventType.RestoredByRecipient));
+        Assert.Single(result, e => e.EventType == CorrespondenceDeleteEventType.SoftDeletedByRecipient);
+        Assert.Single(result, e => e.EventType == CorrespondenceDeleteEventType.RestoredByRecipient);
+
     }
 
     #endregion
@@ -474,8 +475,9 @@ public class MigrateCorrespondenceMapperTests
         // Assert
         Assert.NotNull(result.SyncedEvents);
         Assert.Equal(2, result.SyncedEvents.Count);
-        Assert.Single(result.SyncedEvents.Where(e => e.Status == CorrespondenceStatus.Read));
-        Assert.Single(result.SyncedEvents.Where(e => e.Status == CorrespondenceStatus.Confirmed));
+        Assert.Single(result.SyncedEvents, e => e.Status == CorrespondenceStatus.Read);
+        Assert.Single(result.SyncedEvents, e => e.Status == CorrespondenceStatus.Confirmed);
+
     }
 
     [Fact]
@@ -586,7 +588,7 @@ public class MigrateCorrespondenceMapperTests
         var request = new SyncCorrespondenceForwardingEventRequestExt
         {
             CorrespondenceId = _defaultCorrespondenceId,
-            SyncedEvents = null // Unlikely scenario but should be handled gracefully
+            SyncedEvents = null! // Unlikely scenario but should be handled gracefully
         };
 
         // Act
@@ -626,7 +628,7 @@ public class MigrateCorrespondenceMapperTests
         var request = new SyncCorrespondenceNotificationEventRequestExt
         {
             CorrespondenceId = _defaultCorrespondenceId,
-            SyncedEvents = null // Unlikely scenario but should be handled gracefully
+            SyncedEvents = null! // Unlikely scenario but should be handled gracefully
         };
 
         // Act

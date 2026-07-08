@@ -33,7 +33,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Arrange
             using var stream = File.OpenRead("./Data/Markdown.txt");
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var file = new FormFile(stream, 0, stream.Length, string.Empty, Path.GetFileName(stream.Name));
             var attachmentData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
@@ -51,20 +51,22 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Arrange
             var response = await uploadCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var attachmentId = response?.AttachmentIds.FirstOrDefault();
+            var attachmentId = response?.AttachmentIds.FirstOrDefault();    
             var attachmentOverview = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{attachmentId}", _responseSerializerOptions);
+            Assert.NotNull(attachmentOverview);
             var newAttachmentData = AttachmentHelper.GetAttachmentMetaData("Logical file name", attachmentOverview);
             var payload2 = new CorrespondenceBuilder()
                 .CreateCorrespondence()
                 .WithAttachments([attachmentData, newAttachmentData])
                 .Build();
             formData = CorrespondenceHelper.CorrespondenceToFormData(payload2.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
             formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
 
             // Act
             var uploadCorrespondenceResponse2 = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
             // Assert
-            Assert.True(uploadCorrespondenceResponse.IsSuccessStatusCode, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
+            Assert.True(uploadCorrespondenceResponse2.IsSuccessStatusCode, await uploadCorrespondenceResponse2.Content.ReadAsStringAsync());
         }
 
         [Theory]
@@ -177,10 +179,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task UploadCorrespondence_WithMultipleFiles_GivesOk()
         {
             using var stream = System.IO.File.OpenRead("./Data/Markdown.txt");
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var file = new FormFile(stream, 0, stream.Length, string.Empty, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
             using var stream2 = System.IO.File.OpenRead("./Data/test.txt");
-            var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
+            var file2 = new FormFile(stream2, 0, stream2.Length, string.Empty, Path.GetFileName(stream2.Name));
             using var fileStream2 = file2.OpenReadStream();
 
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
@@ -282,7 +284,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task UploadCorrespondence_WithAttachmentExpirationTimeBeforeMinimum_GivesBadRequest()
         {
             using var stream = File.OpenRead("./Data/Markdown.txt");
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var file = new FormFile(stream, 0, stream.Length, string.Empty, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
 
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
@@ -305,7 +307,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task UploadCorrespondence_WithAttachmentExpirationTimeAfterMinimum_GivesOk()
         {
             using var stream = File.OpenRead("./Data/Markdown.txt");
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var file = new FormFile(stream, 0, stream.Length, string.Empty, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
 
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
@@ -340,12 +342,12 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         public async Task UploadCorrespondences_WithMultipleFiles_GivesOk()
         {
             using var stream = File.OpenRead("./Data/Markdown.txt");
-            var file = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            var file = new FormFile(stream, 0, stream.Length, string.Empty, Path.GetFileName(stream.Name));
             using var fileStream = file.OpenReadStream();
             var attachmentMetaData = AttachmentHelper.GetAttachmentMetaData(file.FileName);
 
             using var stream2 = File.OpenRead("./Data/test.txt");
-            var file2 = new FormFile(stream2, 0, stream2.Length, null, Path.GetFileName(stream2.Name));
+            var file2 = new FormFile(stream2, 0, stream2.Length, string.Empty, Path.GetFileName(stream2.Name));
             using var fileStream2 = file2.OpenReadStream();
             var attachmentMetaData2 = AttachmentHelper.GetAttachmentMetaData(file2.FileName);
 
@@ -451,7 +453,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.FirstOrDefault().CorrespondenceId}/attachment/{attachmentId}/download");
+            Assert.NotNull(response);
+            var downloadResponse = await _senderClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.First().CorrespondenceId}/attachment/{attachmentId}/download");
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, downloadResponse.StatusCode);
@@ -472,7 +475,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.FirstOrDefault().CorrespondenceId}/attachment/{attachmentId}/download");
+            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.First().CorrespondenceId}/attachment/{attachmentId}/download");
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
@@ -488,7 +491,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Act
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload, _responseSerializerOptions);
             var response = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
-            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.FirstOrDefault().CorrespondenceId}/attachment/{attachmentId}/download");
+            var downloadResponse = await _recipientClient.GetAsync($"correspondence/api/v1/correspondence/{response?.Correspondences.First().CorrespondenceId}/attachment/{attachmentId}/download");
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, downloadResponse.StatusCode);
