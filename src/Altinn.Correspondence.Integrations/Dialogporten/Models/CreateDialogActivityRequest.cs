@@ -5,22 +5,22 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Models;
 public class ActivityDescription
 {
     [JsonPropertyName("value")]
-    public string Value { get; set; }
+    public required string Value { get; set; }
 
     [JsonPropertyName("languageCode")]
-    public string LanguageCode { get; set; }
+    public required string LanguageCode { get; set; }
 }
 
 public class ActivityPerformedBy
 {
     [JsonPropertyName("actorType")]
-    public string ActorType { get; set; }
+    public required string ActorType { get; set; }
 
     [JsonPropertyName("actorName")]
-    public string ActorName { get; set; }
+    public string? ActorName { get; set; }
 
     [JsonPropertyName("actorId")]
-    public string ActorId { get; set; }
+    public string? ActorId { get; set; }
 }
 
 public enum ActivityType
@@ -39,27 +39,27 @@ public enum ActivityType
 public class CreateDialogActivityRequest
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public required string Id { get; set; }
 
     [JsonPropertyName("createdAt")]
     public DateTimeOffset CreatedAt { get; set; }
 
     [JsonPropertyName("extendedType")]
-    public string ExtendedType { get; set; }
+    public string? ExtendedType { get; set; }
 
     [JsonPropertyName("type")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public ActivityType Type { get; set; }
 
     [JsonPropertyName("relatedActivityId")]
-    public string RelatedActivityId { get; set; }
+    public string? RelatedActivityId { get; set; }
 
     [JsonPropertyName("transmissionId")]
-    public string TransmissionId { get; set; }
+    public string? TransmissionId { get; set; }
 
     [JsonPropertyName("performedBy")]
-    public ActivityPerformedBy PerformedBy { get; set; }
+    public required ActivityPerformedBy PerformedBy { get; set; }
 
     [JsonPropertyName("description")]
-    public List<ActivityDescription> Description { get; set; }
+    public List<ActivityDescription>? Description { get; set; }
 }

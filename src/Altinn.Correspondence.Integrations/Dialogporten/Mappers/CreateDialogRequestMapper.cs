@@ -362,8 +362,6 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             bool isConfirmation = status.Status == CorrespondenceStatus.Confirmed;
 
-            Activity activity = new Activity();
-            activity.Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId;
 
             // Look up the correct actor URN for the party who performed this action
             if (!partyUrnsByPartyUuid.TryGetValue(status.PartyUuid, out var actorId))
@@ -374,14 +372,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     "This indicates a data inconsistency - the party should have been looked up before creating the dialog.");
             }
 
-            activity.PerformedBy = new PerformedBy()
+            Activity activity = new Activity
             {
-                ActorId = actorId,
-                ActorType = "PartyRepresentative"
+                Id = string.IsNullOrWhiteSpace(activityId) ? Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString() : activityId,
+                PerformedBy = new PerformedBy()
+                {
+                    ActorId = actorId,
+                    ActorType = "PartyRepresentative",
+                },
+                Description = []
             };
             activity.CreatedAt = status.StatusChanged;
             activity.Type = isConfirmation ? "CorrespondenceConfirmed" : "CorrespondenceOpened";
-            activity.Description = [];
 
             return activity;
         }
@@ -399,26 +401,23 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
 
         private static Activity GetActivityFromAltinn2Notification(CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification)
         {
-            Activity activity = new Activity();
-            activity.Id = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString();
-            activity.PerformedBy = new PerformedBy()
-            {
-                ActorType = "ServiceOwner"
-            };
-            activity.CreatedAt = notification.NotificationSent ?? notification.RequestedSendTime;
-            activity.Type = "Information";
-
-            // Choose the appropriate text type based on whether this is a reminder notification
-            var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
-
-
             string[] tokens = [];
             if (notification.NotificationAddress != null)
             {
                 tokens = [notification.NotificationAddress, notification.NotificationChannel == NotificationChannel.Email ? "Email" : "SMS"];
             }
 
-            activity.Description =
+            // Choose the appropriate text type based on whether this is a reminder notification
+            var textType = notification.IsReminder ? DialogportenTextType.NotificationReminderSent : DialogportenTextType.NotificationSent;
+
+
+            Activity activity = new Activity(){
+                Id = Uuid.NewDatabaseFriendly(Database.PostgreSql).ToString(),
+                PerformedBy = new PerformedBy()
+                {
+                    ActorType = "ServiceOwner"
+                },
+                Description =
             [
                 new ()
                 {
@@ -435,7 +434,10 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     LanguageCode = "en",
                     Value = DialogportenText.GetDialogportenText(textType, Enums.DialogportenLanguageCode.EN, tokens)
                 },
-            ];
+            ]
+            };
+            activity.CreatedAt = notification.NotificationSent ?? notification.RequestedSendTime;
+            activity.Type = "Information";
 
             return activity;
         }
@@ -495,7 +497,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     }
             });
 
-            foreach (var attachment in correspondence.Content?.Attachments)
+            foreach (var attachment in correspondence.Content.Attachments)
             {
                 apiActions.Add(new ApiAction()
                 {
@@ -622,9 +624,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static List<Attachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence, bool enableDownloadAll = false)
         {
             var baseTimestamp = DateTimeOffset.UtcNow;
-            var attachments = correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
+            var attachments = correspondence.Content.Attachments.Select((correspondenceAttachment, index) =>
             {
-                var attachmentFileName = correspondenceAttachment?.Attachment?.FileName;
+                var attachmentFileName = correspondenceAttachment.Attachment?.FileName;
                 var mediaType = DialogportenAttachmentMediaTypeMapper.GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
 
                 var attachment = new Attachment
@@ -635,7 +637,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         new DisplayName
                         {
                             LanguageCode = correspondence.Content.Language,
-                            Value = correspondenceAttachment!.Attachment!.DisplayName ?? correspondenceAttachment!.Attachment!.FileName!
+                            Value = correspondenceAttachment!.Attachment?.DisplayName ?? correspondenceAttachment!.Attachment!.FileName!
                         }
                     },
                     Urls = new List<DialogUrl>
@@ -655,11 +657,11 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 }
 
                 return attachment;
-            }).ToList() ?? new List<Attachment>();
+            }).ToList();
 
             if (enableDownloadAll
-                && correspondence.Content?.Attachments?.Count >= 2
-                && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize ?? 0) < 2_000_000_000)
+                && correspondence.Content.Attachments.Count >= 2
+                && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize) < 2_000_000_000)
             {
                 attachments.Insert(0, new Attachment
                 {

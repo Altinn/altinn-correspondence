@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Integrations.OpenTelemetry;
 public class RequestFilterProcessor : BaseProcessor<Activity>
 {
     private const string RequestKind = "Microsoft.AspNetCore.Hosting.HttpRequestIn";
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private static readonly FrozenDictionary<string, Action<Claim, Activity>> _claimActions = InitClaimActions();
     private GeneralSettings _generalSettings;
 
@@ -48,9 +48,9 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
                     "authorization_details",
                     static (claim, activity) =>
                     {
-                        SystemUserClaim claimValue = JsonSerializer.Deserialize<SystemUserClaim>(claim.Value);
-                        activity.SetTag("user.system.id", claimValue?.Systemuser_id[0] ?? null);
-                        activity.SetTag("user.system.owner.number", claimValue?.Systemuser_org.ID ?? null);
+                        SystemUserClaim? claimValue = JsonSerializer.Deserialize<SystemUserClaim>(claim.Value);
+                        activity.SetTag("user.system.id", claimValue?.Systemuser_id?[0]);
+                        activity.SetTag("user.system.owner.number", claimValue?.Systemuser_org?.ID);
                     }
                 },
             };
@@ -61,7 +61,7 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestFilterProcessor"/> class.
     /// </summary>
-    public RequestFilterProcessor(GeneralSettings generalSettings, IHttpContextAccessor httpContextAccessor = null) : base()
+    public RequestFilterProcessor(GeneralSettings generalSettings, IHttpContextAccessor? httpContextAccessor = default) : base()
     {
         _generalSettings = generalSettings;
         _httpContextAccessor = httpContextAccessor;

@@ -62,7 +62,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 {
                     new TransmissionValue
                     {
-                        Value = correspondence.Content!.MessageTitle ?? "", // A required field, DP will throw validation error if empty, but should not be possible to reach this point with empty title
+                        Value = correspondence.Content.MessageTitle, // A required field, DP will throw validation error if empty, but should not be possible to reach this point with empty title
                         LanguageCode = correspondence.Content.Language,
                     }
                 }
@@ -73,7 +73,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 Value = new List<TransmissionValue>{
                     new TransmissionValue
                     {
-                        Value = TextValidation.StripSummaryForHtmlAndMarkdown(correspondence.Content.MessageSummary ?? ""),
+                        Value = TextValidation.StripSummaryForHtmlAndMarkdown(correspondence.Content.MessageSummary),
                         LanguageCode = correspondence.Content.Language
                     }
                 }
@@ -95,9 +95,9 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static List<TransmissionAttachment> GetAttachmentsForCorrespondence(string baseUrl, CorrespondenceEntity correspondence)
         {
             var baseTimestamp = DateTimeOffset.UtcNow;
-            return correspondence.Content?.Attachments.Select((correspondenceAttachment, index) =>
+            return correspondence.Content.Attachments.Select((correspondenceAttachment, index) =>
             {
-                var attachmentFileName = correspondenceAttachment?.Attachment?.FileName;
+                var attachmentFileName = correspondenceAttachment.Attachment?.FileName;
                 var mediaType = DialogportenAttachmentMediaTypeMapper.GetDialogportenAttachmentMediaTypeForFileName(attachmentFileName);
 
                 var transmissionAttachment = new TransmissionAttachment
@@ -108,7 +108,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                         new TransmissionDisplayName
                         {
                             LanguageCode = correspondence.Content.Language,
-                            Value = correspondenceAttachment!.Attachment!.DisplayName ?? correspondenceAttachment!.Attachment!.FileName!
+                            Value = correspondenceAttachment.Attachment?.DisplayName ?? correspondenceAttachment.Attachment?.FileName ?? string.Empty
                         }
                     },
                     Urls = new List<TransmissionUrl>
@@ -128,7 +128,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 }
 
                 return transmissionAttachment;
-            }).ToList() ?? new List<TransmissionAttachment>();
+            }).ToList();
         }
         private static string GetDownloadAttachmentEndpoint(string baseUrl, Guid correspondenceId, Guid attachmentId)
         {
