@@ -5,7 +5,7 @@ namespace Altinn.Correspondence.Tests.Factories
 {
     public class MigrateCorrespondenceBuilder
     {
-        private MigrateCorrespondenceExt _migratedCorrespondence;
+        private MigrateCorrespondenceExt _migratedCorrespondence = null!;
         private Guid _defaultUserPartyUuid = new Guid("358C48B4-74A7-461F-A86F-48801DEEC920");
         private Guid _defaultUserUuid = new Guid("2607D808-29EC-4BD8-B89F-B9D14BDE634C");
         
@@ -166,7 +166,7 @@ namespace Altinn.Correspondence.Tests.Factories
                     Altinn2NotificationId = 1,
                     NotificationAddress = "testemail@altinn.no",
                     NotificationChannel = NotificationChannelExt.Email,
-                    NotificationSent = published.Value.AddHours(1),
+                    NotificationSent = published!.Value.AddHours(1),
                     IsReminder = false
                 },
                 new MigrateCorrespondenceNotificationExt()

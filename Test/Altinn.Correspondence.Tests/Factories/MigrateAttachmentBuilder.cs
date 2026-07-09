@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Tests.Factories
 {
     public class MigrateAttachmentBuilder
     {
-        public MigrateInitializeAttachmentExt _attachment;
+        public MigrateInitializeAttachmentExt _attachment = null!;
         public MigrateInitializeAttachmentExt Build()
         {
             return _attachment;

@@ -24,7 +24,11 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
 		if (!string.IsNullOrEmpty(claimsJson))
 		{
 			var claimsData = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(claimsJson);
-			_claims = claimsData.Select(c => new Claim(c["Type"], c["Value"])).ToList();
+			_claims = claimsData!.Select(c => new Claim(c["Type"], c["Value"])).ToList();
+		}
+		else
+		{
+			_claims = new List<Claim>();
 		}
 	}
 
