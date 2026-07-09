@@ -26,24 +26,32 @@ namespace Altinn.Correspondence.API.Auth
             return key;
         }
 
-        public string Protect(AuthenticationProperties data, string purpose)
+        public string Protect(AuthenticationProperties data, string? purpose)
         {
             return Protect(data);
         }
 
-        public AuthenticationProperties Unprotect(string protectedText)
+        public AuthenticationProperties? Unprotect(string? protectedText)
         {
+            if (string.IsNullOrEmpty(protectedText))
+            {
+                return null;
+            }
             var json = _cache.GetAsync<string>(protectedText).GetAwaiter().GetResult();
             if (string.IsNullOrEmpty(json))
             {
                 return null;
             }
 
-            var items = JsonSerializer.Deserialize<IDictionary<string, string>>(json);
+            var items = JsonSerializer.Deserialize<IDictionary<string, string?>>(json);
+            if (items == null || items.Count == 0)
+            {
+                return null;
+            }
             return new AuthenticationProperties(items);
         }
 
-        public AuthenticationProperties Unprotect(string protectedText, string purpose)
+        public AuthenticationProperties? Unprotect(string? protectedText, string? purpose)
         {
             return Unprotect(protectedText);
         }

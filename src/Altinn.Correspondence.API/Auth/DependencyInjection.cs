@@ -145,7 +145,7 @@ namespace Altinn.Correspondence.API.Auth
                         }
 
                         // Avoid infinite loops: only attempt one restart
-                        const string retryKey = "oidcRetry";
+                        // const string retryKey = "oidcRetry";
                         const string retryMarker = "oidcRetry=1";
 
                         static bool HasRetryMarker(string? value)
@@ -179,7 +179,7 @@ namespace Altinn.Correspondence.API.Auth
 
                         foreach (var cookieName in context.Request.Cookies.Keys)
                         {
-                            if (cookieName.StartsWith(correlationPrefix, StringComparison.OrdinalIgnoreCase) ||
+                            if (cookieName.StartsWith(correlationPrefix ?? string.Empty, StringComparison.OrdinalIgnoreCase) ||
                                 cookieName.StartsWith(noncePrefix, StringComparison.OrdinalIgnoreCase))
                             {
                                 ExpireCookie(context.Response, cookieName, "/");

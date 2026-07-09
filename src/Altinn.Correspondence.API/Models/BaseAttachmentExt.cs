@@ -10,7 +10,7 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("fileName")]
         [StringLength(255, MinimumLength = 0)]
-        public string? FileName { get; set; }
+        public required string FileName { get; set; }
 
         /// <summary>
         /// A logical name for the file, which will be shown in Altinn Inbox.

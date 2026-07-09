@@ -42,7 +42,7 @@ internal static class InitializeCorrespondencesMapper
                 Attachments = request.Correspondence.Content.Attachments.Select(
                     attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, request.Correspondence.ResourceId, request.Correspondence.Sender)
                 ).ToList()
-            } : null,
+            } : null!,
             IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             IsConfidential = request.Correspondence.IsConfidential,
             OriginalRequest = rawRequest
@@ -61,7 +61,7 @@ internal static class InitializeCorrespondencesMapper
         {
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),
-            ExistingAttachments = request.ExistingAttachments ?? new List<Guid>(),
+            ExistingAttachments = request.ExistingAttachments,
             Recipients = request.Recipients.Select(NormalizeRecipientToUrn).ToList(),
             Notification = correspondenceNotification,
             IdempotentKey = request.IdempotentKey
