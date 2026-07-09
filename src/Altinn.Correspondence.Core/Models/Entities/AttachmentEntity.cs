@@ -18,7 +18,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public required string ResourceId { get; set; }
 
         [MaxLength(255)]
-        public string? FileName { get; set; }
+        public required string FileName { get; set; }
 
         [MaxLength(255)]
         public string? DisplayName { get; set; }

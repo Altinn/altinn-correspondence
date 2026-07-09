@@ -42,7 +42,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [StringLength(256, MinimumLength = 0)]
         public string? MessageSender { get; set; }
 
-        public CorrespondenceContentEntity? Content { get; set; }
+        public required CorrespondenceContentEntity Content { get; set; }
 
         public required DateTimeOffset RequestedPublishTime { get; set; }
 
@@ -64,7 +64,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public List<CorrespondenceStatusFetchedEntity> StatusFetched { get; set; } = new();
 
-        public List<CorrespondenceForwardingEventEntity>? ForwardingEvents { get; set; }
+        public List<CorrespondenceForwardingEventEntity> ForwardingEvents { get; set; } = [];
 
         public List<IdempotencyKeyEntity> IdempotencyKeys { get; set; } = [];
 
