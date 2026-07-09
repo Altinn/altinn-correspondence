@@ -69,7 +69,7 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                 {
                     try { 
                         dialogId = await MakeCorrespondenceAvailableInDialogportenAndApi(correspondence.Id, cancellationToken, correspondence, true);
-                    } catch (Exception ex)
+                    } catch (Exception)
                     {
                         // Used for tests
                     }

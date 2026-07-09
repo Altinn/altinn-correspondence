@@ -1,4 +1,5 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -32,7 +33,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
                 if (serviceOwnerOrgCode is null)
                 {
                     logger.LogError("Could not find service owner for resource {resourceId}", resourceId);
-                    return null;
+                    return new Error(1, $"Could not find service owner for resource {resourceId.SanitizeForLogging()}", System.Net.HttpStatusCode.NotFound);
                 }
                 serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgCode(serviceOwnerOrgCode, cancellationToken);
             }
@@ -45,7 +46,7 @@ namespace Altinn.Correspondence.Application.MigrateToStorageProvider
             for(var i = 0; i < attachmentsWithoutStorageProvider.Count; i++)
             {
                 var attachment = attachmentsWithoutStorageProvider[i];
-                var storageProviderId = serviceOwner.StorageProviders.FirstOrDefault(sp => sp.Type == Core.Models.Enums.StorageProviderType.Altinn3Azure)?.ServiceOwnerId;
+                var storageProviderId = serviceOwner?.StorageProviders.FirstOrDefault(sp => sp.Type == Core.Models.Enums.StorageProviderType.Altinn3Azure)?.ServiceOwnerId;
                 if (storageProviderId is null)
                 {
                     return new Error(3, $"No storage provider found for attachment {attachment.Id} of resource {resourceId}", System.Net.HttpStatusCode.NotFound);

@@ -19,7 +19,6 @@ public class PurgeAttachmentHandler(
     IAttachmentStatusRepository attachmentStatusRepository,
     IStorageRepository storageRepository,
     ICorrespondenceRepository correspondenceRepository,
-    IBackgroundJobClient backgroundJobClient,
     ILogger<PurgeAttachmentHandler> logger,
     ApplicationDbContext dbContext) : IHandler<Guid, Guid>
 {

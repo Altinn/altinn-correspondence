@@ -20,7 +20,6 @@ public class MarkCorrespondenceAsReadHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
-    IEventBus eventBus,
     ILogger<MarkCorrespondenceAsReadHandler> logger,
     ApplicationDbContext dbContext) : IHandler<MarkCorrespondenceAsReadRequest, Guid>
 {
@@ -104,15 +103,11 @@ public class MarkCorrespondenceAsReadHandler(
     private Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
     {
         var currentStatus = correspondence.GetHighestStatus();
-        if (currentStatus is null)
-        {
-            return CorrespondenceErrors.CouldNotRetrieveStatus;
-        }
         if (!currentStatus.Status.IsAvailableForRecipient())
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        if (currentStatus!.Status.IsPurged())
+        if (currentStatus.Status.IsPurged())
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }

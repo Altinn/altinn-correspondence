@@ -3,12 +3,13 @@ using Altinn.Correspondence.Core.Models.Enums;
 namespace Altinn.Correspondence.Application.Helpers;
 public static class CorrespondenceStatusExtensions
 {
-    public static CorrespondenceStatusEntity? GetHighestStatus(this CorrespondenceEntity correspondence)
+    public static CorrespondenceStatusEntity GetHighestStatus(this CorrespondenceEntity correspondence)
     {
-        var statusEntity = correspondence.Statuses
+        return correspondence.Statuses
             .Where(s => s.Status != CorrespondenceStatus.Fetched)
-            .OrderByDescending(s => s.Status).FirstOrDefault();
-        return statusEntity;
+            .OrderByDescending(s => s.Status)
+            .FirstOrDefault()
+            ?? throw new InvalidOperationException($"Correspondence {correspondence.Id} has no status. Statuses may not have been loaded.");
     }
 
     public static CorrespondenceStatusEntity? GetHighestStatusForLegacyCorrespondence(this CorrespondenceEntity correspondence)

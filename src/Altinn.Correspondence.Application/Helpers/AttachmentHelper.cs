@@ -114,7 +114,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return whiteList.Any(whiteListedResource => attachment.ResourceId == whiteListedResource);
         }
 
-        public async Task<StorageProviderEntity> GetStorageProvider(AttachmentEntity attachment, bool bypassMalwareScan, CancellationToken cancellationToken)
+        public async Task<StorageProviderEntity?> GetStorageProvider(AttachmentEntity attachment, bool bypassMalwareScan, CancellationToken cancellationToken)
         {
             var serviceOwnerOrgCode = await resourceRegistryService.GetServiceOwnerOrgCode(attachment.ResourceId, cancellationToken);
             if (serviceOwnerOrgCode is null)
@@ -131,7 +131,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan: bypassMalwareScan);
         }
 
-        private async Task<OneOf<(string? locationUrl, string? hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)
+        private async Task<OneOf<(string locationUrl, string hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)
         {
             try
             {
@@ -170,7 +170,7 @@ namespace Altinn.Correspondence.Application.Helpers
             }
         }
 
-        public async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, Guid partyUuid, CancellationToken cancellationToken, string statusText = null)
+        public async Task<AttachmentStatusEntity> SetAttachmentStatus(Guid attachmentId, AttachmentStatus status, Guid partyUuid, CancellationToken cancellationToken, string? statusText = null)
         {
             logger.LogInformation("Setting attachment status for {attachmentId} to {status}. Performed by {partyUuid}", attachmentId, status, partyUuid);
             var currentStatus = new AttachmentStatusEntity
@@ -304,7 +304,7 @@ namespace Altinn.Correspondence.Application.Helpers
 
         public string GetZipFileNameForCorrespondence(CorrespondenceEntity correspondence)
         {
-            var title = correspondence.Content?.MessageTitle ?? "correspondence";
+            var title = correspondence.Content.MessageTitle;
             var sanitized = title
                 .Trim()
                 .ToLowerInvariant()

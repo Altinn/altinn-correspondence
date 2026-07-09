@@ -33,7 +33,7 @@ public class GetCorrespondenceOverviewResponse
 
     public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
 
-    public string ResourceId { get; set; }
+    public required string ResourceId { get; set; }
 
     public DateTimeOffset RequestedPublishTime { get; set; }
 

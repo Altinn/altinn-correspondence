@@ -16,7 +16,6 @@ public class LegacyPurgeCorrespondenceHandler(
     IAltinnRegisterService altinnRegisterService,
     PurgeCorrespondenceHelper purgeCorrespondenceHelper,
     UserClaimsHelper userClaimsHelper,
-    ILogger<LegacyPurgeCorrespondenceHandler> logger,
     ApplicationDbContext dbContext) : IHandler<Guid, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)

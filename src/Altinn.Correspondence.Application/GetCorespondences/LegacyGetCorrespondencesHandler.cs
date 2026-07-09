@@ -114,7 +114,7 @@ public class LegacyGetCorrespondencesHandler(
                 var resourceOwnerParty = await altinnRegisterService.LookUpPartyById(orgNr, cancellationToken);
                 Senders.Add(new PartyInfo(orgNr, resourceOwnerParty));
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Senders.Add(new PartyInfo(orgNr, null));
             }

@@ -50,11 +50,6 @@ public class GetCorrespondenceDetailsHandler(
             hasAccessAsRecipient ? "recipient" : "sender",
             request.CorrespondenceId);
         var latestStatus = correspondence.GetHighestStatus();
-        if (latestStatus == null)
-        {
-            logger.LogWarning("No status found for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            return CorrespondenceErrors.CorrespondenceNotFound;
-        }
         var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {
@@ -112,7 +107,7 @@ public class GetCorrespondenceDetailsHandler(
                     logger.LogInformation("Processing v1 notification {NotificationOrderId} for correspondence {CorrespondenceId}",
                         notification.NotificationOrderId,
                         request.CorrespondenceId);
-                    var notificationDetails = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.ToString(), cancellationToken);
+                    var notificationDetails = await altinnNotificationService.GetNotificationDetails(notification.NotificationOrderId.Value.ToString(), cancellationToken);
                     notificationDetails.IsReminder = notification.IsReminder;
                     notificationStatus.Add(notificationDetails);
                 }
@@ -127,7 +122,7 @@ public class GetCorrespondenceDetailsHandler(
                     logger.LogInformation("Processing v2 notification {ShipmentId} for correspondence {CorrespondenceId}",
                         notification.ShipmentId,
                         request.CorrespondenceId);
-                    var notificationDetails = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.ToString(), cancellationToken);
+                    var notificationDetails = await altinnNotificationService.GetNotificationDetailsV2(notification.ShipmentId.Value.ToString(), cancellationToken);
                     notificationStatus.Add(await notificationMapper.MapNotificationV2ToV1Async(notificationDetails, notification));
                 }
             }

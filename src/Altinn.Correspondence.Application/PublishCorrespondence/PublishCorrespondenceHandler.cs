@@ -130,7 +130,7 @@ public class PublishCorrespondenceHandler(
             }
             else
             {
-                if (correspondence!.GetHighestStatus()?.Status != CorrespondenceStatus.ReadyForPublish)
+                if (correspondence!.GetHighestStatus().Status != CorrespondenceStatus.ReadyForPublish)
                 {
                     await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
                     {
