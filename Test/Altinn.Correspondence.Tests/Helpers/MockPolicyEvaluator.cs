@@ -41,7 +41,10 @@ namespace Altinn.Correspondence.Tests.Helpers
         public virtual async Task<PolicyAuthorizationResult> AuthorizeAsync(AuthorizationPolicy policy, AuthenticateResult authenticationResult, HttpContext context, object? resource)
         {
             var user = authenticationResult.Principal;
-            
+            if (user == null)
+            {
+                return PolicyAuthorizationResult.Forbid();
+            }
             // Handle custom assertion requirements (e.g., the new Sender policy)
             foreach (var requirement in policy.Requirements.OfType<AssertionRequirement>())
             {

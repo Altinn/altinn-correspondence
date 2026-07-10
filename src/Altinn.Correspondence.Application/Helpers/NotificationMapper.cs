@@ -18,10 +18,14 @@ public class NotificationMapper
     {
         var correspondence = notification.Correspondence ?? throw new ArgumentException($"Correspondence with id {notification.CorrespondenceId} not found when mapping notification", nameof(notification));
         NotificationsStatusDetails nsd = new NotificationsStatusDetails();
+        if (notification.NotificationSent == null)
+        {
+            throw new ArgumentException($"Notification with id {notification.Id} has no notification sent time", nameof(notification));
+        }
         var sendStatus = new StatusExt()
         {
             Status = "Completed",
-            LastUpdate = notification.NotificationSent
+            LastUpdate = notification.NotificationSent.Value
         };
 
         if (notification.NotificationChannel == NotificationChannel.Sms)

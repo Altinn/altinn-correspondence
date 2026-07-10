@@ -64,11 +64,6 @@ public class GetCorrespondenceOverviewHandler(
         }
         
         var latestStatus = correspondence.GetHighestStatus();
-        if (latestStatus == null)
-        {
-            logger.LogWarning("Latest status not found for correspondence");
-            return CorrespondenceErrors.CorrespondenceNotFound;
-        }
 
         if (correspondence.GetPurgedStatus() != null)
         {
@@ -76,8 +71,7 @@ public class GetCorrespondenceOverviewHandler(
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
 
-        var caller = user?.GetCallerPartyUrn();
-        var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user?.GetCallerPartyUrn() ?? string.Empty, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {
             return AuthorizationErrors.CouldNotFindPartyUuid;
@@ -140,7 +134,8 @@ public class GetCorrespondenceOverviewHandler(
                                     SyncEventType.Read,
                                     CancellationToken.None));
                         }
-                        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller));
+                        var callerPartyUrn = user?.GetCallerPartyUrn() ?? string.Empty;
+                        backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, callerPartyUrn));
                     }
                 }
             }
@@ -168,7 +163,7 @@ public class GetCorrespondenceOverviewHandler(
                     };
                     content = new CorrespondenceContentEntity
                     {
-                        Language = content.Language,
+                        Language = content.Language ?? "nb",
                         MessageTitle = content.MessageTitle,
                         MessageSummary = content.MessageSummary,
                         MessageBody = content.MessageBody + "\n\n" + replyLabel + "\n" +
