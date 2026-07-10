@@ -47,7 +47,7 @@ public class ContactReservationRegistryService(HttpClient httpClient, ILogger<Co
             throw new HttpRequestException("Error while calling the KRR API: " + await response.Content.ReadAsStringAsync());
         }
         var result = await response.Content.ReadFromJsonAsync<ContactReservationPersonResponse>();
-        if (result is null)
+        if (result is null || result.Personer is null)
         {
             logger.LogError("Unexpected json response when looking up person in KRR");
             throw new HttpRequestException("Could not parse json response when looking up person in KRR");

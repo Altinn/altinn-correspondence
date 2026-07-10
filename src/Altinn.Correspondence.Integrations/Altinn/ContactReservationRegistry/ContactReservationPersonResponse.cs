@@ -5,7 +5,7 @@ namespace Altinn.Correspondence.Integrations.Altinn.ContactReservationRegistry;
 public class ContactReservationContactInformation
 {
     [JsonPropertyName("epostadresse")]
-    public string Epostadresse { get; set; }
+    public string Epostadresse { get; set; } = string.Empty;
 
     [JsonPropertyName("epostadresse_oppdatert")]
     public DateTime EpostadresseOppdatert { get; set; }
@@ -14,11 +14,10 @@ public class ContactReservationContactInformation
     public DateTime EpostadresseSistVerifisert { get; set; }
 
     [JsonPropertyName("epostadresse_duplisert")]
-    public string EpostadresseDuplisert { get; set; }
+    public string EpostadresseDuplisert { get; set; } = string.Empty;
 
     [JsonPropertyName("mobiltelefonnummer")]
-    public string Mobiltelefonnummer { get; set; }
-
+    public string Mobiltelefonnummer { get; set; } = string.Empty;
     [JsonPropertyName("mobiltelefonnummer_oppdatert")]
     public DateTime MobiltelefonnummerOppdatert { get; set; }
 
@@ -26,25 +25,25 @@ public class ContactReservationContactInformation
     public DateTime MobiltelefonnummerSistVerifisert { get; set; }
 
     [JsonPropertyName("mobiltelefonnummer_duplisert")]
-    public string MobiltelefonnummerDuplisert { get; set; }
+    public string MobiltelefonnummerDuplisert { get; set; } = string.Empty;
 }
 
 public class ContactReservationPerson
 {
     [JsonPropertyName("personidentifikator")]
-    public string Personidentifikator { get; set; }
+    public string Personidentifikator { get; set; } = string.Empty;
 
     [JsonPropertyName("reservasjon")]
-    public string Reservasjon { get; set; }
+    public string Reservasjon { get; set; } = string.Empty;
 
     [JsonPropertyName("status")]
-    public string Status { get; set; }
+    public string Status { get; set; } = string.Empty;
 
     [JsonPropertyName("varslingsstatus")]
-    public string Varslingsstatus { get; set; }
+    public string Varslingsstatus { get; set; } = string.Empty;
 
     [JsonPropertyName("kontaktinformasjon")]
-    public ContactReservationContactInformation Kontaktinformasjon { get; set; }
+    public ContactReservationContactInformation? Kontaktinformasjon { get; set; }
 
     [JsonPropertyName("oppdatert")]
     public DateTime Oppdatert { get; set; }
@@ -53,5 +52,5 @@ public class ContactReservationPerson
 public class ContactReservationPersonResponse
 {
     [JsonPropertyName("personer")]
-    public List<ContactReservationPerson> Personer { get; set; }
+    public List<ContactReservationPerson>? Personer { get; set; }
 }
