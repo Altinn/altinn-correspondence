@@ -61,7 +61,7 @@ namespace Altinn.Correspondence.API.Models
         /// The processing status of the notification order
         /// </summary>
         [JsonPropertyName("processingStatus")]
-        public NotificationProcessStatusExt ProcessingStatus { get; set; }
+        public NotificationProcessStatusExt? ProcessingStatus { get; set; }
 
         /// <summary>
         /// The summary of the notifications statuses

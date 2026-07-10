@@ -24,6 +24,11 @@ public class PurgeAttachmentHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(Guid attachmentId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        if (user == null)
+        {
+            logger.LogWarning("Unauthorized attempt to purge attachment {AttachmentId} - no user context provided", attachmentId);
+            return AuthorizationErrors.NoAccessToResource;
+        }
         logger.LogInformation("Processing purge request for attachment {AttachmentId}", attachmentId);
         var attachment = await attachmentRepository.GetAttachmentById(attachmentId, true, cancellationToken);
         if (attachment == null)
@@ -67,7 +72,8 @@ public class PurgeAttachmentHandler(
                 string.Join(", ", correspondences.Select(c => c.Id)));
             return AttachmentErrors.PurgeAttachmentWithExistingCorrespondence;
         }
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
+        
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn() ?? string.Empty, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());

@@ -25,6 +25,11 @@ public class MarkCorrespondenceAsReadHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(MarkCorrespondenceAsReadRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        if (user == null)
+        {
+            logger.LogWarning("Unauthorized attempt to mark correspondence {CorrespondenceId} as read - no user context provided", request.CorrespondenceId);
+            return AuthorizationErrors.NoAccessToResource;
+        }
         logger.LogInformation("Processing mark as read request for correspondence {CorrespondenceId}", 
             request.CorrespondenceId);
         
@@ -62,8 +67,7 @@ public class MarkCorrespondenceAsReadHandler(
                 updateError);
             return updateError;
         }
-        
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn() ?? string.Empty, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());

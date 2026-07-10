@@ -15,7 +15,6 @@ namespace Altinn.Correspondence.Application.InitializeAttachment;
 public class InitializeAttachmentHandler(
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
-    IAttachmentStatusRepository attachmentStatusRepository,
     IResourceRegistryService resourceRegistryService,
     IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<InitializeAttachmentHandler> logger,
@@ -26,7 +25,12 @@ public class InitializeAttachmentHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var sanitizedResourceId = request.Attachment.ResourceId.SanitizeForLogging().WithoutPrefix();
+        if (user is null)
+        {
+            logger.LogWarning("User is null in InitializeAttachmentHandler");
+            return AuthorizationErrors.NoAccessToResource;
+        }
+        var sanitizedResourceId = request.Attachment.ResourceId.SanitizeForLogging()?.WithoutPrefix();
         logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", sanitizedResourceId);
         
         var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Attachment.ResourceId, cancellationToken);
