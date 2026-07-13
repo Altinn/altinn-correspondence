@@ -87,78 +87,36 @@ jobs:
             "text": "${{ env.stepreport }}"
           }
 
+    - name: Checkout for Opsgenie reporting
+      if: always() && env.OPSGENIE_API_KEY != '' && ((steps.check-enable.outputs.enabled == 'true' && steps.usecase-test.outcome != 'skipped' && steps.usecase-test.outcome == 'failure') || inputs.force_opsgenie_alert == true || github.event.inputs.force_opsgenie_alert == 'true')
+      uses: actions/checkout@v4
+
     - name: Report failure to Opsgenie
-      if: always() && ((env.OPSGENIE_API_KEY != '' && steps.check-enable.outputs.enabled == 'true' && steps.usecase-test.outcome != 'skipped' && steps.usecase-test.outcome == 'failure') || inputs.force_opsgenie_alert == true || github.event.inputs.force_opsgenie_alert == 'true')
+      if: always() && env.OPSGENIE_API_KEY != '' && ((steps.check-enable.outputs.enabled == 'true' && steps.usecase-test.outcome != 'skipped' && steps.usecase-test.outcome == 'failure') || inputs.force_opsgenie_alert == true || github.event.inputs.force_opsgenie_alert == 'true')
       env:
         OPSGENIE_API_URL: https://api.eu.opsgenie.com
+        USE_CASE_ENV: ${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}
+        GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        FORCE_ALERT: ${{ inputs.force_opsgenie_alert == true || github.event.inputs.force_opsgenie_alert == 'true' }}
       run: |
-        ENV="${{ inputs.environment || github.event.inputs.environment || 'use-case-test' }}"
-        NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-        ALERT_ID="$(cat /proc/sys/kernel/random/uuid)"
-        RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        FORCE_ALERT="${{ inputs.force_opsgenie_alert == true || github.event.inputs.force_opsgenie_alert == 'true' }}"
-        FORCE_ALERT_JSON=false
-        DESCRIPTION="Correspondence use case test failed (${ENV}) - ${RUN_URL}"
-        if [ "${FORCE_ALERT}" = "true" ]; then
-          FORCE_ALERT_JSON=true
-          DESCRIPTION="Correspondence use case test Opsgenie alert test (${ENV}) - ${RUN_URL}"
+        set -euo pipefail
+
+        node .github/scripts/build-opsgenie-use-case-alert.js > payload.json
+        echo "Opsgenie payload size: $(wc -c < payload.json) bytes"
+
+        API_KEY="$(printf '%s' "${OPSGENIE_API_KEY}" | tr -d '[:space:]')"
+        if [ -z "${API_KEY}" ]; then
+          echo "OPSGENIE_API_KEY is empty after trimming whitespace"
+          exit 1
         fi
 
-        payload=$(jq -n \
-          --arg alert_id "${ALERT_ID}" \
-          --arg env "${ENV}" \
-          --arg fired_date_time "${NOW}" \
-          --arg description "${DESCRIPTION}" \
-          --arg repository "${{ github.repository }}" \
-          --arg workflow "${{ github.workflow }}" \
-          --arg run_id "${{ github.run_id }}" \
-          --arg run_url "${RUN_URL}" \
-          --argjson force_alert "${FORCE_ALERT_JSON}" \
-          '{
-            schemaId: "azureMonitorCommonAlertSchema",
-            data: {
-              essentials: {
-                alertId: $alert_id,
-                alertRule: "Correspondence Use Case Test",
-                severity: "Sev1",
-                signalType: "Metric",
-                monitorCondition: "Fired",
-                monitoringService: "Platform",
-                alertTargetIDs: ["/correspondence/\($env)"],
-                firedDateTime: $fired_date_time,
-                description: $description,
-                essentialsVersion: "1.0",
-                alertContextVersion: "1.0"
-              },
-              alertContext: {
-                properties: null,
-                conditionType: "SingleResourceMultipleMetricCriteria",
-                condition: {
-                  windowSize: "PT5M",
-                  allOf: [
-                    {
-                      metricName: "UseCaseTestFailure",
-                      operator: "GreaterThan",
-                      threshold: "0",
-                      timeAggregation: "Count",
-                      metricValue: 1
-                    }
-                  ]
-                }
-              },
-              customProperties: {
-                repository: $repository,
-                workflow: $workflow,
-                run_id: $run_id,
-                run_url: $run_url,
-                environment: $env,
-                test_alert: $force_alert
-              }
-            }
-          }')
+        REQUEST_URL="${OPSGENIE_API_URL}/v1/json/azure?apiKey=${API_KEY}"
 
         curl --fail-with-body -v --show-error --silent \
           --request POST \
-          --url "${OPSGENIE_API_URL}/v1/json/azure?apiKey=${OPSGENIE_API_KEY}" \
+          --url "${REQUEST_URL}" \
           --header "Content-Type: application/json" \
-          --data "${payload}"
+          --data-binary @payload.json
