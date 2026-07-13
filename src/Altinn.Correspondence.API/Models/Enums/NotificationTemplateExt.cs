@@ -1,8 +1,11 @@
+using Altinn.Authorization.ModelUtils;
+
 namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
     /// Enum describing available notification templates.
     /// </summary>
+    [StringEnumConverter]
     public enum NotificationTemplateExt
     {
         /// <summary>

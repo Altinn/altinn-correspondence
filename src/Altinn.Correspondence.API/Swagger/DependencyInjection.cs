@@ -1,5 +1,4 @@
 using Altinn.Correspondence.API.Filters;
-using Altinn.Correspondence.Core.Options;
 using Microsoft.OpenApi;
 using System.Reflection;
 
@@ -44,7 +43,7 @@ internal static class DependencyInjection
             options.DocumentFilter<CorrespondenceServerDocumentFilter>();
             options.DocumentFilter<CorrespondenceSwaggerUiDocumentFilter>();
         });
-
+        services.AddNonExhaustiveSupport();
         return services;
     }
 

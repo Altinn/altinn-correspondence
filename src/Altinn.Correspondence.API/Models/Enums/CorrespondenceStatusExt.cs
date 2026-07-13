@@ -1,8 +1,11 @@
+using Altinn.Authorization.ModelUtils;
+
 namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
     /// Represents the important statuses for an Correspondence
     /// </summary>
+    [StringEnumConverter]
     public enum CorrespondenceStatusExt : int
     {
         /// <summary>

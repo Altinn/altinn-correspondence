@@ -1,3 +1,4 @@
+using Altinn.Authorization.ModelUtils;
 using Altinn.Correspondence.API.Models.Enums;
 using System.Text.Json.Serialization;
 
@@ -24,7 +25,7 @@ namespace Altinn.Correspondence.API.Models
         /// Current attachment status
         /// </summary>
         [JsonPropertyName("status")]
-        public AttachmentStatusExt Status { get; set; }
+        public NonExhaustiveEnum<AttachmentStatusExt> Status { get; set; }
 
         /// <summary>
         /// Current attachment status text description
