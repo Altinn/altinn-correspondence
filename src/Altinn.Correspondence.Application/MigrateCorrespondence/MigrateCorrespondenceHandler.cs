@@ -1,6 +1,5 @@
 using Altinn.Correspondence.Application.BatchJobs;
 using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -84,7 +83,6 @@ ILogger<MigrateCorrespondenceHandler> logger) : IHandler<MigrateCorrespondenceRe
                     {
                         logger.LogInformation("Correspondence {CorrespondenceId} was previously published in Altinn 2 at {PublishedAt}", correspondence.Id, altinn2PublishStatus.StatusChanged);
                         await correspondenceRepository.UpdatePublished(correspondence.Id, altinn2PublishStatus.StatusChanged, cancellationToken);
-                        backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, CancellationToken.None));
                     }
                 }
             }
