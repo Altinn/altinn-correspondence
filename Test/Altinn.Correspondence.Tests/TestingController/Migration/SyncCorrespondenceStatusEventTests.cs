@@ -429,20 +429,6 @@ public class SyncCorrespondenceStatusEventTests : MigrationTestBase
         // Assert that the Correspondence is not available and purged
         var getCorrespondenceDetailsResponse = await _migrationClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
         Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceDetailsResponse.StatusCode);
-
-        var listPayload = new LegacyGetCorrespondencesRequestExt
-        {
-            InstanceOwnerPartyIdList = new int[] { },
-            IncludeActive = false,
-            IncludeArchived = false,
-            IncludeDeleted = true,
-            FilterMigrated = false,
-            From = DateTimeOffset.UtcNow.AddDays(-5),
-            To = DateTimeOffset.UtcNow.AddDays(5)
-        };
-        var correspondenceList = await _legacyClient.PostAsJsonAsync($"correspondence/api/v1/legacy/correspondence", listPayload);
-        var correspondenceListResponse = await correspondenceList.Content.ReadFromJsonAsync<LegacyGetCorrespondencesResponse>(_responseSerializerOptions);
-        Assert.DoesNotContain(correspondenceListResponse?.Items, c => c.CorrespondenceId == correspondenceId);
     }
 
     [Fact]

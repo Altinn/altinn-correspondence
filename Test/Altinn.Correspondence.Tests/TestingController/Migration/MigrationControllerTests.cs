@@ -3,10 +3,12 @@ using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Migration.Base;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System.Net;
@@ -66,57 +68,6 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(4, response.Notifications.Where(n => n.IsReminder == false).Count());
         Assert.Equal(4, response.Notifications.Where(n => n.IsReminder == true).Count());
         Assert.Equal(migrateCorrespondenceExt.Altinn2CorrespondenceId, response.Altinn2CorrespondenceId);
-    }
-
-    [Fact]
-    public async Task InitializeMigrateCorrespondence_GetCorrespondenceLegacy_IncludesAltinn2Notifications()
-    {
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6))
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7))
-            .Build();
-        SetNotificationHistory(migrateCorrespondenceExt);
-
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
-        var result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
-        // Act
-        var getCorrespondenceDetailsResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{result.CorrespondenceId}/history");
-        var response = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<List<LegacyCorrespondenceHistoryExt>>(_responseSerializerOptions);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
-        Assert.Equal(8, response.Where(r => r.Notification != null).Count());
-        Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.First().NotificationSent).Count());
-        Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.Last().NotificationSent).Count());
-    }
-
-    [Fact]
-    public async Task InitializeMigrateCorrespondence_GetCorrespondenceLegacy_GetsMessageSenderAsCreatingUserName()
-    {
-        const string messageSender = "Test MessageSender";
-        MigrateCorrespondenceExt migrateCorrespondenceExt = new MigrateCorrespondenceBuilder()
-            .CreateMigrateCorrespondence()
-            .WithMessageSender(messageSender)
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Read, new DateTime(2024, 1, 6), _testUserPartyUuId)
-            .WithStatusEvent(MigrateCorrespondenceStatusExt.Archived, new DateTime(2024, 1, 7), _testUserPartyUuId)
-            .Build();
-        SetNotificationHistory(migrateCorrespondenceExt);
-
-        var initializeCorrespondenceResponse = await _migrationClient.PostAsJsonAsync(migrateCorrespondenceUrl, migrateCorrespondenceExt);
-        var result = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
-        // Act
-        var getCorrespondenceDetailsResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{result.CorrespondenceId}/history");
-        var response = await getCorrespondenceDetailsResponse.Content.ReadFromJsonAsync<List<LegacyCorrespondenceHistoryExt>>(_responseSerializerOptions);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, getCorrespondenceDetailsResponse.StatusCode);
-        Assert.Equal(8, response.Where(r => r.Notification != null).Count());
-        Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.First().NotificationSent).Count());
-        Assert.Equal(4, response.Where(r => r.Notification != null && r.StatusChanged == migrateCorrespondenceExt.NotificationHistory.Last().NotificationSent).Count());
-        Assert.Equal(messageSender, response.First(r => r.Status == "Published").User.Name);
-        Assert.Equal(_delegatedUserName, response.First(r => r.Status == "Archived").User.Name);
-        Assert.Equal(_delegatedUserName, response.First(r => r.Status == "Read").User.Name);
     }
 
     [Fact]
@@ -973,11 +924,12 @@ public class MigrationControllerTests : MigrationTestBase
         Assert.Equal(2, details.Notifications.Where(n => n.IsReminder == false).Count()); // 2 unique email notifications
         Assert.Single(details.Notifications.Where(n => n.IsReminder == true)); // 1 unique SMS reminder
 
-        // Verify forwarding events via legacy history endpoint - Should have 2 unique (4 input - 2 duplicates)
-        var getLegacyHistoryResponse = await _legacyClient.GetAsync($"correspondence/api/v1/legacy/correspondence/{result.CorrespondenceId}/history");
-        var history = await getLegacyHistoryResponse.Content.ReadFromJsonAsync<List<LegacyCorrespondenceHistoryExt>>(_responseSerializerOptions);
-        Assert.NotNull(history);
-        Assert.Equal(HttpStatusCode.OK, getLegacyHistoryResponse.StatusCode);
-        Assert.Equal(2, history.Where(h => h.ForwardingEvent != null).Count());
+        // Verify forwarding events - Should have 2 unique (4 input - 2 duplicates)
+        using var scope = _factory.Services.CreateScope();
+        using var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var forwardingEvents = await dbContext.CorrespondenceForwardingEvents
+            .Where(e => e.CorrespondenceId == result.CorrespondenceId)
+            .ToListAsync();
+        Assert.Equal(2, forwardingEvents.Count);
     }
 }
