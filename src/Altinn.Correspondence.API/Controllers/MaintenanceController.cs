@@ -13,7 +13,6 @@ using Altinn.Correspondence.Application.CleanupConfirmedMigratedCorrespondences;
 using Altinn.Correspondence.Application.RepairNotificationDelivery;
 using Altinn.Correspondence.Core.Services;
 using Hangfire;
-using Altinn.Correspondence.Application.MigrateForwardingEventsBatch;
 using Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
 using Altinn.Correspondence.Application.ManualRetryNotPublishedCorrespondences;
 using Altinn.Correspondence.Application.MaskinportenJwkRotation;
@@ -268,30 +267,6 @@ public class MaintenanceController(ILogger<MaintenanceController> logger) : Cont
         await service.AddForwardingEvent(correspondenceForwardingId, cancellationToken);
         return Ok();
     }
-
-
-    /// <summary>
-    /// Sync all forwarding events that has no dialog activity id yet to Dialogporten
-    /// </summary>
-    /// <response code="200">Returns the enqueued job id</response>
-    /// <response code="401">Unauthorized</response>
-    /// <response code="403">Forbidden</response>
-    [HttpPost]
-    [Route("sync-forwarding-events-batch/{count}")]
-    [Authorize(Policy = AuthorizationConstants.Maintenance)]
-    [Produces("application/json")]
-    [ProducesResponseType(typeof(EnqueueMissingNotificationSentChecksResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult> SyncForwardingEvents(
-        [FromServices] IBackgroundJobClient backgroundJobClient,
-        [FromRoute] int count,
-        CancellationToken cancellationToken)
-    {
-        backgroundJobClient.Enqueue<MigrateForwardingEventsBatchHandler>(handler => handler.Process(count, DateTimeOffset.UtcNow));
-        return Ok();
-    }
-
 
     [HttpPost]
     [Route("cleanup-bulk-fetch-statuses")]
