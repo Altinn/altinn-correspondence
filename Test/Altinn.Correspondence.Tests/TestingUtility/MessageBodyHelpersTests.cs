@@ -5,20 +5,6 @@ namespace Altinn.Correspondence.Tests.TestingUtility;
 public class MessageBodyHelpersTests
 {
     [Fact]
-    public void ConvertMixedToMarkdown_ShouldMakeRelativeHrefAbsolute()
-    {
-        // Arrange
-        const string input =
-            "<p>Vedlagt er et brev fra tjeneste-eier. </p><p>Vårt <a style=\"display:inline;\" href=\"/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234\">svarskjema</a> kan brukes til å svare på brevet.</p><p>Klikk på lenken under for å lese brevet:</p>";
-
-        // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
-
-        // Assert
-        Assert.Contains("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234", result);
-    }
-
-    [Fact]
     public void ConvertMixedToMarkdown_ShouldNotChangeAbsoluteHref()
     {
         // Arrange
@@ -57,7 +43,8 @@ public class MessageBodyHelpersTests
         var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
 
         // Assert
-        Assert.Contains("https://altinn.no/path/to/form", result);
+        Assert.Contains("/path/to/form", result);
+        Assert.DoesNotContain("https://altinn.no/path/to/form", result);
     }
 
     [Fact]
@@ -74,7 +61,7 @@ public class MessageBodyHelpersTests
     }
 
     [Fact]
-    public void ConvertMixedToMarkdown_ShouldNotMakeRelativeHrefAbsolute_ForNonLegacy()
+    public void ConvertMixedToMarkdown_ShouldNotMakeRelativeHrefAbsolute()
     {
         // Arrange
         const string input =
