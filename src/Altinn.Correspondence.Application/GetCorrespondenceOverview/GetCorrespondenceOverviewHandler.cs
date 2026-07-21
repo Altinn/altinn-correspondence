@@ -130,16 +130,6 @@ public class GetCorrespondenceOverviewHandler(
                             "correspondence",
                             correspondence.Sender,
                             CancellationToken.None));
-                        if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
-                        {
-                            backgroundJobClient.Enqueue<IAltinnStorageService>(
-                                syncToAltinn2 => syncToAltinn2.SyncCorrespondenceEventToSblBridge(
-                                    correspondence.Altinn2CorrespondenceId.Value,
-                                    party.GetPartyId(),
-                                    operationTimestamp,
-                                    SyncEventType.Read,
-                                    CancellationToken.None));
-                        }
                         backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, caller));
                     }
                 }
