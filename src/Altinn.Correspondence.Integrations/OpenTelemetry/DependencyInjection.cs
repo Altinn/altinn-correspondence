@@ -48,14 +48,12 @@ public static class DependencyInjection
                             }
 
                             // Use shared filtering logic - return INVERSE (true = include, false = exclude)
-                            return !TelemetryFilterHelper.ShouldExcludeRequest(
-                                httpContext.Request.Path.Value,
-                                generalSettings);
+                            return !TelemetryFilterHelper.ShouldExcludeRequest(httpContext.Request.Path.Value);
                         };
                     })
                     .AddHttpClientInstrumentation(options =>
                         options.EnrichWithHttpResponseMessage = HttpClientActivityEnricher.EnrichHttpClientActivity)
-                    .AddProcessor(new RequestFilterProcessor(generalSettings, new HttpContextAccessor()));
+                    .AddProcessor(new RequestFilterProcessor(new HttpContextAccessor()));
             })
             .WithLogging();
 

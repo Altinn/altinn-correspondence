@@ -1,5 +1,4 @@
 ﻿using Altinn.AccessManagement.Core.Models;
-using Altinn.Correspondence.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using OpenTelemetry;
@@ -17,7 +16,6 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     private const string RequestKind = "Microsoft.AspNetCore.Hosting.HttpRequestIn";
     private readonly IHttpContextAccessor _httpContextAccessor;
     private static readonly FrozenDictionary<string, Action<Claim, Activity>> _claimActions = InitClaimActions();
-    private GeneralSettings _generalSettings;
 
     private static FrozenDictionary<string, Action<Claim, Activity>> InitClaimActions()
     {
@@ -61,9 +59,8 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestFilterProcessor"/> class.
     /// </summary>
-    public RequestFilterProcessor(GeneralSettings generalSettings, IHttpContextAccessor httpContextAccessor = null) : base()
+    public RequestFilterProcessor(IHttpContextAccessor httpContextAccessor = null) : base()
     {
-        _generalSettings = generalSettings;
         _httpContextAccessor = httpContextAccessor;
     }
 
@@ -113,6 +110,6 @@ public class RequestFilterProcessor : BaseProcessor<Activity>
     private bool ExcludeRequest(string? localpath)
     {
         // Use shared filtering logic
-        return TelemetryFilterHelper.ShouldExcludeRequest(localpath, _generalSettings);
+        return TelemetryFilterHelper.ShouldExcludeRequest(localpath);
     }
 }
