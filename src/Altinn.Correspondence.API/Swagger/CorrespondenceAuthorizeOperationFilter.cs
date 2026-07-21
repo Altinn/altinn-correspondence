@@ -59,11 +59,6 @@ internal sealed class CorrespondenceAuthorizeOperationFilter : IOperationFilter
                     break;
                 case AuthorizationConstants.DownloadAttachmentPolicy:
                     scopes.Add(AuthorizationConstants.RecipientScope);
-                    scopes.Add(AuthorizationConstants.LegacyScope);
-                    break;
-                case AuthorizationConstants.Migrate:
-                    scopes.Add(AuthorizationConstants.MigrateScope);
-                    scopes.Add(AuthorizationConstants.ServiceOwnerScope);
                     break;
                 case AuthorizationConstants.NotificationCheck:
                     scopes.Add(AuthorizationConstants.NotificationCheckScope);
@@ -71,9 +66,6 @@ internal sealed class CorrespondenceAuthorizeOperationFilter : IOperationFilter
                 case AuthorizationConstants.Maintenance:
                     scopes.Add(AuthorizationConstants.MaintenanceScope);
                     scopes.Add(AuthorizationConstants.ServiceOwnerScope);
-                    break;
-                case AuthorizationConstants.Legacy:
-                    scopes.Add(AuthorizationConstants.LegacyScope);
                     break;
             }
         }
