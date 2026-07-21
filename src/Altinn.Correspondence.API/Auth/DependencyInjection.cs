@@ -258,7 +258,6 @@ namespace Altinn.Correspondence.API.Auth
                 {
                     policy.AddAuthenticationSchemes(AuthorizationConstants.DialogportenScheme).RequireAuthenticatedUser();
                 });
-                options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
                     policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
@@ -280,11 +279,7 @@ namespace Altinn.Correspondence.API.Auth
                 var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
                 if (scopeClaim != null)
                 {
-                    var scopes = scopeClaim.Value.Split(' ');
-                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
-                    {
-                        return true;
-                    }
+                    var scopes = scopeClaim.Value.Split(' ');                    
                     return scopes.Contains(AuthorizationConstants.SenderScope);
                 }
             }
@@ -296,10 +291,6 @@ namespace Altinn.Correspondence.API.Auth
                 if (scopeClaim != null)
                 {
                     var scopes = scopeClaim.Value.Split(' ');
-                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
-                    {
-                        return true;
-                    }
                     return scopes.Contains(AuthorizationConstants.ServiceOwnerScope) &&
                            scopes.Contains(AuthorizationConstants.SenderScope);
                 }
@@ -331,10 +322,6 @@ namespace Altinn.Correspondence.API.Auth
                 if (scopeClaim != null)
                 {
                     var scopes = scopeClaim.Value.Split(' ');
-                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
-                    {
-                        return true;
-                    }
                     return scopes.Contains(AuthorizationConstants.RecipientScope);
                 }
             }
@@ -346,10 +333,6 @@ namespace Altinn.Correspondence.API.Auth
                 if (scopeClaim != null)
                 {
                     var scopes = scopeClaim.Value.Split(' ');
-                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
-                    {
-                        return true;
-                    }
                     return scopes.Contains(AuthorizationConstants.RecipientScope);
                 }
             }
