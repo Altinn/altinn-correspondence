@@ -12,7 +12,7 @@ public class MessageBodyHelpersTests
             "<p>Vedlagt er et brev fra tjeneste-eier. </p><p>Vårt <a style=\"display:inline;\" href=\"/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234\">svarskjema</a> kan brukes til å svare på brevet.</p><p>Klikk på lenken under for å lese brevet:</p>";
 
         // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
 
         // Assert
         Assert.Contains("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234", result);
@@ -26,7 +26,7 @@ public class MessageBodyHelpersTests
             "<p>Se mer informasjon på <a href=\"https://altinn.no/Pages/info\">Altinn</a>.</p>";
 
         // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
 
         // Assert
         Assert.Contains("https://altinn.no/Pages/info", result);
@@ -41,7 +41,7 @@ public class MessageBodyHelpersTests
             "<p>Kontakt oss på <a href=\"mailto:test@example.com\">epost</a>.</p>";
 
         // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
 
         // Assert
         Assert.Contains("mailto:test@example.com", result);
@@ -54,7 +54,7 @@ public class MessageBodyHelpersTests
         const string input = "Se vårt [svarskjema](/path/to/form).";
 
         // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
 
         // Assert
         Assert.Contains("https://altinn.no/path/to/form", result);
@@ -67,7 +67,7 @@ public class MessageBodyHelpersTests
         const string input = "";
 
         // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
 
         // Assert
         Assert.Equal(string.Empty, result);
@@ -81,7 +81,7 @@ public class MessageBodyHelpersTests
             "<p>Vedlagt er et brev fra tjeneste-eier. </p><p>Vårt <a style=\"display:inline;\" href=\"/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234\">svarskjema</a> kan brukes til å svare på brevet.</p><p>Klikk på lenken under for å lese brevet:</p>";
 
         // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, false);
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
 
         // Assert
         Assert.DoesNotContain("https://altinn.no/Pages/ServiceEngine/Start/StartService.aspx?ServiceEditionCode=123&ServiceCode=1234", result);
@@ -95,7 +95,7 @@ public class MessageBodyHelpersTests
             "<p>Tekst før.</p><link href=\"/styles/site.css\" rel=\"stylesheet\" /><p>Tekst etter.</p>";
 
         // Act
-        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input, true);
+        var result = MessageBodyHelpers.ConvertMixedToMarkdown(input);
 
         // Assert
         Assert.DoesNotContain("https://altinn.no/styles/site.css", result);
