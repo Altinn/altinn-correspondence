@@ -51,25 +51,6 @@ namespace Altinn.Correspondence.API.Auth
                         OnChallenge = AltinnTokenEventsHelper.OnChallenge
                     };
                 })
-                .AddJwtBearer(AuthorizationConstants.LegacyScheme, options =>
-                {
-                    options.SaveToken = true;
-                    options.MetadataAddress = altinnOptions.OpenIdWellKnown;
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        ValidateIssuer = false,
-                        ValidateAudience = false,
-                        RequireExpirationTime = true,
-                        ValidateLifetime = !hostEnvironment.IsDevelopment(), // Do not validate lifetime in tests
-                        ClockSkew = TimeSpan.Zero
-                    };
-                    options.Events = new JwtBearerEvents()
-                    {
-                        OnAuthenticationFailed = AltinnTokenEventsHelper.OnAuthenticationFailed,
-                        OnChallenge = AltinnTokenEventsHelper.OnChallenge
-                    };
-                })
                 .AddJwtBearer(AuthorizationConstants.MaskinportenScheme, options => // To support maskinporten tokens 
                 {
                     options.SaveToken = true;
@@ -280,9 +261,8 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope, AuthorizationConstants.LegacyScope)
+                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
-                options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
                 options.AddPolicy(AuthorizationConstants.Maintenance, policy =>
                     policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MaintenanceScope))
                           .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
