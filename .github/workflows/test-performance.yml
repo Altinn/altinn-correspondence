@@ -128,7 +128,12 @@ jobs:
       id: populate_kubeconfig_with_k6_context
       shell: bash
       run: |
-        if ! az aks install-cli; then
+        aksCliPath="$RUNNER_TEMP/aks-cli"
+        mkdir -p "$aksCliPath"
+        export PATH="$aksCliPath:$PATH"
+        echo "$aksCliPath" >> "$GITHUB_PATH"
+
+        if ! az aks install-cli --install-location "$aksCliPath/kubectl" --kubelogin-install-location "$aksCliPath/kubelogin"; then
           echo "Failed to install kubectl CLI"
           exit 1
         fi
