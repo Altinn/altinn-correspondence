@@ -59,6 +59,7 @@ internal sealed class CorrespondenceAuthorizeOperationFilter : IOperationFilter
                     break;
                 case AuthorizationConstants.DownloadAttachmentPolicy:
                     scopes.Add(AuthorizationConstants.RecipientScope);
+                    scopes.Add(AuthorizationConstants.PortalEndUserScope);
                     break;
                 case AuthorizationConstants.NotificationCheck:
                     scopes.Add(AuthorizationConstants.NotificationCheckScope);

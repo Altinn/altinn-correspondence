@@ -13,6 +13,7 @@ public static class AuthorizationConstants
     public const string SenderScope = "altinn:correspondence.write";
     public const string RecipientScope = "altinn:correspondence.read";
     public const string MaintenanceScope = "altinn:correspondence.maintenance";
+    public const string PortalEndUserScope = "altinn:portal/enduser";
     public const string NotificationCheckScope = "altinn:system/notifications.condition.check";
     public const string ServiceOwnerScope = "altinn:serviceowner";
     public const string MaskinportenScheme = "Maskinporten";

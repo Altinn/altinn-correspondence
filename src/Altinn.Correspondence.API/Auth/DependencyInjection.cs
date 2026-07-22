@@ -260,7 +260,7 @@ namespace Altinn.Correspondence.API.Auth
                 });
                 options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope)
+                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope, AuthorizationConstants.PortalEndUserScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
                 options.AddPolicy(AuthorizationConstants.Maintenance, policy =>
                     policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MaintenanceScope))
