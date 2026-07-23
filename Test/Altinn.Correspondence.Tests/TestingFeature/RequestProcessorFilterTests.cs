@@ -1,4 +1,3 @@
-﻿using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Integrations.OpenTelemetry;
 using Microsoft.AspNetCore.Http;
 using Moq;
@@ -8,15 +7,15 @@ namespace Altinn.Correspondence.Tests.TestingFeature
     public class RequestProcessorFilterTests
     {
         /// <summary>
-        /// Should trace all activities when disableTelemetryForMigration setting is false
+        /// Should trace non-HttpRequestIn activities regardless of settings
         /// </summary>
         [Fact]
-        public void ShouldMarkAsRecordedWhenNotDisableMigrationTelemetry()
+        public void ShouldMarkAsRecordedForNonHttpRequestActivity()
         {
             // Arrange
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration  = false });
+            var dependencyFilterProcessor = new RequestFilterProcessor();
 
-            var activity = new System.Diagnostics.Activity("POST Migration");
+            var activity = new System.Diagnostics.Activity("Postgres");
             activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
 
             // Act
@@ -33,7 +32,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         public void ShouldNotFailOutsideOfHttpContext()
         {
             // Arrange
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, null!); //TODO: RETT?
+            var dependencyFilterProcessor = new RequestFilterProcessor(null);
 
             var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
             activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
@@ -54,6 +53,30 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         }
 
         /// <summary>
+        /// Should trace regular request activities
+        /// </summary>
+        [Fact]
+        public void ShouldMarkAsRecordedForNormalRequest()
+        {
+            // Arrange
+            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Path = "/correspondence/api/v1/correspondence";
+            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
+
+            var dependencyFilterProcessor = new RequestFilterProcessor(httpContextAccessor.Object);
+
+            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
+            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
+
+            // Act
+            dependencyFilterProcessor.OnStart(activity);
+
+            // Assert
+            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
+        }
+
+        /// <summary>
         /// Should exclude activities even if url contains query parameters
         /// </summary>
         [Fact]
@@ -62,10 +85,10 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             // Arrange
             Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/attachment?resourceId=123";
+            httpContext.Request.Path = "/health?resourceId=123";
             httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
 
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, httpContextAccessor.Object);
+            var dependencyFilterProcessor = new RequestFilterProcessor(httpContextAccessor.Object);
 
             var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
             activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
@@ -89,7 +112,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             httpContext.Request.Path = "/health";
             httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
 
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, httpContextAccessor.Object);
+            var dependencyFilterProcessor = new RequestFilterProcessor(httpContextAccessor.Object);
 
             var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
             activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
@@ -113,7 +136,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             httpContext.Request.Path = "/healthz";
             httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
 
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, httpContextAccessor.Object);
+            var dependencyFilterProcessor = new RequestFilterProcessor(httpContextAccessor.Object);
 
             var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
             activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
@@ -123,237 +146,6 @@ namespace Altinn.Correspondence.Tests.TestingFeature
 
             // Assert
             Assert.Equal(System.Diagnostics.ActivityTraceFlags.None, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should disable tracing for migration activities when disableTelemetryForMigration setting is true
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsNoneForMigrationWhenDisableMigrationTelemetry()
-        {
-            // Arrange
-            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/correspondence";
-            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
-
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true }, httpContextAccessor.Object);
-
-            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.None, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should enable tracing for migration activities when disableTelemetryForMigration setting is false
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsRecordedForMigrationWhenEnableMigrationTelemetry()
-        {
-            // Arrange
-            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/correspondence";
-            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
-
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = false }, httpContextAccessor.Object);
-
-            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should enable tracing for migration MakeAvailable activities when disableTelemetryForMigration setting is false
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsRecordedForMakeAvailableWhenEnableMigrationTelemetry()
-        {
-            // Arrange
-            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/makemigratedcorrespondenceavailable";
-            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
-
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = false }, httpContextAccessor.Object);
-
-            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should enable tracing for migration Attachment activities when disableTelemetryForMigration setting is false
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsRecordedForMigrateAttachmentWhenEnableMigrationTelemetry()
-        {
-            // Arrange
-            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/attachment";
-            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
-
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = false }, httpContextAccessor.Object);
-
-            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should enable tracing for migration activities when disableTelemetryForMigration setting is false and disableTelemetryForSync setting is true
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsRecordedForMigrationWhenEnabledMigrationTelemetryAndDisabledSyncTelemetry()
-        {
-            // Arrange
-            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/correspondence";
-            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
-
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = false, DisableTelemetryForSync = true }, httpContextAccessor.Object);
-
-            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should disable tracing for sync activities when disableTelemetryForSync setting is true
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsNoneForSyncWhenDisableSyncTelemetry()
-        {
-            // Arrange
-            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/correspondence/syncStatusEvent";
-            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
-
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForSync = true }, httpContextAccessor.Object);
-
-            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.None, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should enable tracing for sync activities when disableTelemetryForSync setting is false
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsRecordedForSyncWhenEnableSyncTelemetry()
-        {
-            // Arrange
-            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/correspondence/syncForwardingEvent";
-            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
-
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForSync = false }, httpContextAccessor.Object);
-
-            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should enable tracing for sync activities when disableTelemetryForSync setting is false and disableTelemetryForMigration setting is true
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsRecordedForSyncWhenEnableSyncTelemetryAndDisabledMigrationTelemetry()
-        {
-            // Arrange
-            Mock<IHttpContextAccessor> httpContextAccessor = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Path = "/correspondence/api/v1/migration/correspondence/syncForwardingEvent";
-            httpContextAccessor.SetupGet(accessor => accessor.HttpContext).Returns(httpContext);
-
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForSync = false, DisableTelemetryForMigration = true }, httpContextAccessor.Object);
-
-            var activity = new System.Diagnostics.Activity("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should trace all activities when disableTelemetryForMigration setting is false
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsRecordedWhenOtherActivityAndNotDisableMigrationTelemetry()
-        {
-            // Arrange
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = false });
-
-            var activity = new System.Diagnostics.Activity("Postgres");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
-        }
-
-        /// <summary>
-        /// Should trace non-migration activities when disableTelemetryForMigration setting is false
-        /// </summary>
-        [Fact]
-        public void ShouldMarkAsRecordedWhenOtherActivityAndDisableMigrationTelemetry()
-        {
-            // Arrange
-            var dependencyFilterProcessor = new RequestFilterProcessor(new GeneralSettings { DisableTelemetryForMigration = true });
-
-            var activity = new System.Diagnostics.Activity("Postgres");
-            activity.ActivityTraceFlags = System.Diagnostics.ActivityTraceFlags.Recorded;
-
-            // Act
-            dependencyFilterProcessor.OnStart(activity);
-
-            // Assert
-            Assert.Equal(System.Diagnostics.ActivityTraceFlags.Recorded, activity.ActivityTraceFlags);
         }
     }
-
 }

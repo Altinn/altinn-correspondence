@@ -36,40 +36,9 @@ internal static class CorrespondenceAttachmentMapper
         };
         return content;
     }
-    internal static LegacyCorrespondenceAttachmentExt MapToExternalLegacy(CorrespondenceAttachmentEntity attachment)
-    {
-        if (attachment.Attachment is null)
-        {
-            throw new InvalidOperationException($"Attachment navigation property was not loaded for CorrespondenceAttachmentEntity with AttachmentId {attachment.AttachmentId}.");
-        }
-        var fileName = attachment.Attachment.FileName;
-        var contentType = FileConstants.GetMIMEType(fileName);
-
-        var content = new LegacyCorrespondenceAttachmentExt
-        {
-            DataType = contentType,
-            FileName = attachment.Attachment.FileName,
-            Name = attachment.Attachment.DisplayName ?? attachment.Attachment.FileName,
-            Id = attachment.AttachmentId,
-            IsEncrypted = attachment.Attachment.IsEncrypted,
-            SendersReference = attachment.Attachment.SendersReference,
-            Checksum = attachment.Attachment.Checksum,
-            DataLocationType = (AttachmentDataLocationTypeExt)attachment.Attachment.DataLocationType,
-            Status = (AttachmentStatusExt)attachment.Attachment.GetLatestStatus()!.Status,
-            StatusText = attachment.Attachment.GetLatestStatus().StatusText,
-            StatusChanged = attachment.Attachment.GetLatestStatus().StatusChanged,
-            Created = attachment.Created,
-            ExpirationTime = attachment.ExpirationTime
-        };
-        return content;
-    }
 
     internal static List<CorrespondenceAttachmentExt> MapListToExternal(List<CorrespondenceAttachmentEntity> attachments)
     {
         return attachments.Select(MapToExternal).ToList();
-    }
-    internal static List<LegacyCorrespondenceAttachmentExt> MapListToExternalLegacy(List<CorrespondenceAttachmentEntity> attachments)
-    {
-        return attachments.Select(MapToExternalLegacy).ToList();
     }
 }

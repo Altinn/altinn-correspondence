@@ -33,7 +33,6 @@ public static class DependencyInjection
         services.AddScoped<ICorrespondenceDeleteEventRepository, CorrespondenceDeleteEventRepository>();
         services.AddSingleton<IStorageRepository, StorageRepository>();
         services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
-        services.AddScoped<ILegacyPartyRepository, LegacyPartyRepository>();
         services.AddScoped<IIdempotencyKeyRepository, IdempotencyKeyRepository>();
         services.AddScoped<IServiceOwnerRepository, ServiceOwnerRepository>();
         services.AddScoped<IConfidentialReminderRepository, ConfidentialReminderRepository>();

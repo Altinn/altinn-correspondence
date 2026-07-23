@@ -3,11 +3,12 @@ using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
-using ReverseMarkdown.Converters;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -580,19 +581,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var resourceId = Guid.NewGuid().ToString();
             var altinn2CorrespondenceId = new Random().Next(100000, int.MaxValue);
-            var migrationClient = _factory.CreateClientWithAddedClaims(
-                ("scope", AuthorizationConstants.MigrateScope));
 
-            var migratePayload = new MigrateCorrespondenceBuilder()
-                .CreateMigrateCorrespondence()
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+            var correspondence = new CorrespondenceEntityBuilder()
                 .WithResourceId(resourceId)
                 .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
                 .WithIsMigrating(false)
                 .Build();
-
-            var migrateResponse = await migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migratePayload);
-            Assert.True(migrateResponse.IsSuccessStatusCode, await migrateResponse.Content.ReadAsStringAsync());
-            var migrateResult = await migrateResponse.Content.ReadFromJsonAsync<CorrespondenceMigrationStatusExt>(_responseSerializerOptions);
+            var createdCorrespondence = await correspondenceRepository.CreateCorrespondence(correspondence, CancellationToken.None);
 
             // Act
             var search = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&altinn2CorrespondenceId={altinn2CorrespondenceId}&role={"recipientandsender"}");
@@ -601,9 +598,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
             var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
             Assert.NotNull(result);
-            Assert.NotNull(migrateResult);
             Assert.Single(result.Ids);
-            Assert.Equal(migrateResult.CorrespondenceId, result.Ids.First());
+            Assert.Equal(createdCorrespondence.Id, result.Ids.First());
         }
 
         [Fact]
@@ -613,18 +609,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var resourceId = Guid.NewGuid().ToString();
             var altinn2CorrespondenceId = new Random().Next(100000, int.MaxValue);
             var nonExistentId = altinn2CorrespondenceId + 1;
-            var migrationClient = _factory.CreateClientWithAddedClaims(
-                ("scope", AuthorizationConstants.MigrateScope));
 
-            var migratePayload = new MigrateCorrespondenceBuilder()
-                .CreateMigrateCorrespondence()
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+            var correspondence = new CorrespondenceEntityBuilder()
                 .WithResourceId(resourceId)
                 .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
                 .WithIsMigrating(false)
                 .Build();
-
-            var migrateResponse = await migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migratePayload);
-            Assert.True(migrateResponse.IsSuccessStatusCode, await migrateResponse.Content.ReadAsStringAsync());
+            await correspondenceRepository.CreateCorrespondence(correspondence, CancellationToken.None);
 
             // Act
             var search = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&altinn2CorrespondenceId={nonExistentId}&role={"recipientandsender"}");
@@ -642,18 +635,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var resourceId = Guid.NewGuid().ToString();
             var altinn2CorrespondenceId = new Random().Next(100000, int.MaxValue);
-            var migrationClient = _factory.CreateClientWithAddedClaims(
-                ("scope", AuthorizationConstants.MigrateScope));
 
-            var migratePayload = new MigrateCorrespondenceBuilder()
-                .CreateMigrateCorrespondence()
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+            var correspondence = new CorrespondenceEntityBuilder()
                 .WithResourceId(resourceId)
                 .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
                 .WithIsMigrating(true)
                 .Build();
-
-            var migrateResponse = await migrationClient.PostAsJsonAsync("correspondence/api/v1/migration/correspondence", migratePayload);
-            Assert.True(migrateResponse.IsSuccessStatusCode, await migrateResponse.Content.ReadAsStringAsync());
+            await correspondenceRepository.CreateCorrespondence(correspondence, CancellationToken.None);
 
             // Act
             var search = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&altinn2CorrespondenceId={altinn2CorrespondenceId}&role={"recipientandsender"}");

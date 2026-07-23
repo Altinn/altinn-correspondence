@@ -104,6 +104,17 @@ namespace Altinn.Correspondence.Tests.TestingUtility
         }
 
         [Fact]
+        public void ValidatePlainText_ShouldReturnTrue_ForTextWithEscapedApostrophe()
+        {
+            // Arrange
+            string input = @"TEST\'S TESTVERKSTED AS";
+            // Act
+            bool result = TextValidation.ValidatePlainText(input);
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
         public void ValidatePlainText_ShouldReturnTrue_ForTextWithExtraWhitespace()
         {
             // Arrange

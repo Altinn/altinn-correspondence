@@ -1,16 +1,12 @@
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
-using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
-using Altinn.Correspondence.Common.Constants;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Authorization;
 
 public static class AltinnTokenXacmlMapper
 {
     private const string DefaultIssuer = "Altinn";
-    private const string DefaultType = "string";
 
     public static XacmlJsonRequestRoot CreateAltinnDecisionRequest(ClaimsPrincipal user, List<string> actionTypes, string resourceId, string party, string? instanceId)
     {
@@ -27,76 +23,9 @@ public static class AltinnTokenXacmlMapper
 
         return jsonRequest;
     }
-    public static XacmlJsonRequestRoot CreateAltinnDecisionRequestForLegacy(ClaimsPrincipal user, string subjectUserId, List<string> actionTypes, string resourceId, string onBehalfOfPartyId)
-    {
-        XacmlJsonRequest request = new XacmlJsonRequest();
-        request.AccessSubject = new List<XacmlJsonCategory>();
-        request.Action = new List<XacmlJsonCategory>();
-        request.Resource = new List<XacmlJsonCategory>();
-
-        request.AccessSubject.Add(CreateSubjectCategoryForLegacy(user, subjectUserId));
-        request.Action.AddRange(actionTypes.Select(action => DecisionHelper.CreateActionCategory(action)));
-        request.Resource.Add(XacmlRequestFactory.CreateResourceCategory(resourceId, onBehalfOfPartyId, null, DefaultIssuer));
-    
-        XacmlJsonRequestRoot jsonRequest = new() { Request = request };
-
-        return jsonRequest;
-    }
-
-    public static XacmlJsonRequestRoot CreateMultiDecisionRequestForLegacy(ClaimsPrincipal user, string subjectUserId, List<(string RecipientPartyId, string ResourceId)> recipientParties)
-    {
-        XacmlJsonRequest request = new XacmlJsonRequest();
-        request.AccessSubject = new List<XacmlJsonCategory>();
-        request.Action = new List<XacmlJsonCategory>();
-        request.Resource = new List<XacmlJsonCategory>();
-
-        var subjectCategory = CreateSubjectCategoryForLegacy(user, subjectUserId);
-        subjectCategory.Id = "s1";
-        request.AccessSubject.Add(subjectCategory);
-        var actionCategory = DecisionHelper.CreateActionCategory("read");
-        actionCategory.Id = "a1";
-        request.Action.Add(actionCategory);
-        request.MultiRequests = new XacmlJsonMultiRequests()
-        {
-            RequestReference = new List<XacmlJsonRequestReference>()
-        };
-        foreach (var recipientParty in recipientParties)
-        {
-            var resourceCategory = XacmlRequestFactory.CreateResourceCategory(recipientParty.ResourceId, recipientParty.RecipientPartyId, null, DefaultIssuer);
-            resourceCategory.Id = recipientParty.RecipientPartyId + "::" + recipientParty.ResourceId;
-            request.Resource.Add(resourceCategory);
-            request.MultiRequests.RequestReference.Add(new XacmlJsonRequestReference(){
-                ReferenceId = [subjectCategory.Id, actionCategory.Id, resourceCategory.Id]
-            });
-        }
-        XacmlJsonRequestRoot jsonRequest = new() { Request = request };
-
-        return jsonRequest;
-    }
-
-
     private static XacmlJsonCategory CreateSubjectCategory(ClaimsPrincipal user)
     {
         var subjectCategory = DecisionHelper.CreateSubjectCategory(user.Claims);
         return subjectCategory;
-    }
-
-    private static XacmlJsonCategory CreateSubjectCategoryForLegacy(ClaimsPrincipal user, string subjectUserId)
-    {
-        XacmlJsonCategory xacmlJsonCategory = new XacmlJsonCategory();
-        List<XacmlJsonAttribute> list = new List<XacmlJsonAttribute>();
-        var scopeClaim = user.Claims.FirstOrDefault(claim => IsScopeClaim(claim.Type));
-        if (scopeClaim is not null)
-        {
-            list.Add(DecisionHelper.CreateXacmlJsonAttribute(UrnConstants.UserId, subjectUserId, DefaultType, scopeClaim.Issuer));
-            list.Add(DecisionHelper.CreateXacmlJsonAttribute(AltinnXacmlUrns.Scope, scopeClaim.Value, DefaultType, scopeClaim.Issuer));
-        }
-        xacmlJsonCategory.Attribute = list;
-        return xacmlJsonCategory;
-    }
-
-    private static bool IsScopeClaim(string value)
-    {
-        return value.Equals("scope");
     }
 }

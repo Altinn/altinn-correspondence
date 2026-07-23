@@ -1,5 +1,4 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.SendNotificationOrder;
 using Altinn.Correspondence.Application.SendSlackNotification;
 using Altinn.Correspondence.Common.Helpers;
@@ -151,15 +150,17 @@ public class PublishCorrespondenceHandler(
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
                 
-                backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
                 backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
             }
 
             await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             if (status.Status == CorrespondenceStatus.Published)
             {
                 backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
+            }
+            else
+            {
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
             }
             logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
             return Task.CompletedTask;

@@ -5,17 +5,12 @@ using Altinn.Correspondence.Application.DownloadCorrespondenceAttachment;
 using Altinn.Correspondence.Application.GetAttachmentDetails;
 using Altinn.Correspondence.Application.GetAttachmentOverview;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
-using Altinn.Correspondence.Application.GetCorrespondenceHistory;
 using Altinn.Correspondence.Application.GetCorrespondenceOverview;
 using Altinn.Correspondence.Application.GetCorrespondences;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeAttachment;
-using Altinn.Correspondence.Application.MigrateCorrespondence;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.InitializeServiceOwner;
-using Altinn.Correspondence.Application.MigrateToStorageProvider;
-using Altinn.Correspondence.Application.MigrateCorrespondenceAttachment;
-using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Application.PurgeAttachment;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
@@ -25,8 +20,6 @@ using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Notifications.Core.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Altinn.Correspondence.Application.CleanupOrphanedDialogs;
-using Altinn.Correspondence.Application.SyncCorrespondenceEvent;
-using Altinn.Correspondence.Application.LegacyUpdateCorrespondenceStatus;
 using Altinn.Correspondence.Application.GenerateReport;
 using Altinn.Correspondence.Application.RestoreSoftDeletedDialogs;
 using Altinn.Correspondence.Application.ExpireAttachment;
@@ -78,7 +71,6 @@ public static class DependencyInjection
         // Integrations
         services.AddScoped<MalwareScanResultHandler>();
         services.AddScoped<CheckNotificationHandler>();
-        services.AddScoped<ProcessLegacyPartyHandler>();
         services.AddScoped<SendSlackNotificationHandler>();
 
         // Maintenance
@@ -108,30 +100,9 @@ public static class DependencyInjection
         services.AddScoped<MobileNumberHelper>();
         services.AddScoped<HangfireScheduleHelper>();
         services.AddScoped<NotificationMapper>();
-        services.AddScoped<CorrespondenceMigrationEventHelper>();
         services.AddScoped<InitializeCorrespondenceValidationHelper>();
         services.AddScoped<PartyUrnHelper>();
 
-        // Legacy
-        services.AddScoped<LegacyGetCorrespondencesHandler>();
-        services.AddScoped<LegacyGetCorrespondenceOverviewHandler>();
-        services.AddScoped<LegacyGetCorrespondenceHistoryHandler>();
-        services.AddScoped<LegacyDownloadCorrespondenceAttachmentHandler>();
-        services.AddScoped<LegacyUpdateCorrespondenceStatusHandler>();
-        services.AddScoped<LegacyPurgeCorrespondenceHandler>();
-
-        // Migration
-        services.AddScoped<MigrateAttachmentHelper>();
-        services.AddScoped<MigrateAttachmentHandler>();
-        services.AddScoped<ChainedBatchJobOrchestrator>();
-        services.AddScoped<MakeCorrespondenceAvailableBatchJob>();
-        services.AddScoped<MigrateCorrespondenceHandler>();
-        services.AddScoped<MigrateToStorageProviderHandler>();
-
-        // EventSync
-        services.AddScoped<SyncCorrespondenceStatusEventHandler>();
-        services.AddScoped<SyncCorrespondenceNotificationEventHandler>();
-        services.AddScoped<SyncCorrespondenceForwardingEventHandler>();
 
         services.AddScoped<UnreadConfidentialCorrespondenceHandler>();
         services.AddScoped<GetUnreadConfidentialCorrespondencesHandler>();

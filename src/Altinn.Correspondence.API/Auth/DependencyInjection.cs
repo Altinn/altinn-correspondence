@@ -51,25 +51,6 @@ namespace Altinn.Correspondence.API.Auth
                         OnChallenge = AltinnTokenEventsHelper.OnChallenge
                     };
                 })
-                .AddJwtBearer(AuthorizationConstants.LegacyScheme, options =>
-                {
-                    options.SaveToken = true;
-                    options.MetadataAddress = altinnOptions.OpenIdWellKnown;
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        ValidateIssuer = false,
-                        ValidateAudience = false,
-                        RequireExpirationTime = true,
-                        ValidateLifetime = !hostEnvironment.IsDevelopment(), // Do not validate lifetime in tests
-                        ClockSkew = TimeSpan.Zero
-                    };
-                    options.Events = new JwtBearerEvents()
-                    {
-                        OnAuthenticationFailed = AltinnTokenEventsHelper.OnAuthenticationFailed,
-                        OnChallenge = AltinnTokenEventsHelper.OnChallenge
-                    };
-                })
                 .AddJwtBearer(AuthorizationConstants.MaskinportenScheme, options => // To support maskinporten tokens 
                 {
                     options.SaveToken = true;
@@ -277,12 +258,10 @@ namespace Altinn.Correspondence.API.Auth
                 {
                     policy.AddAuthenticationSchemes(AuthorizationConstants.DialogportenScheme).RequireAuthenticatedUser();
                 });
-                options.AddPolicy(AuthorizationConstants.Migrate, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MigrateScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.NotificationCheck, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.NotificationCheckScope)).AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.DownloadAttachmentPolicy, policy =>
-                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope, AuthorizationConstants.LegacyScope)
+                    policy.RequireScopeIfAltinn(config, AuthorizationConstants.RecipientScope, AuthorizationConstants.PortalEndUserScope)
                           .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
-                options.AddPolicy(AuthorizationConstants.Legacy, policy => policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.LegacyScope)).AddAuthenticationSchemes(AuthorizationConstants.LegacyScheme));
                 options.AddPolicy(AuthorizationConstants.Maintenance, policy =>
                     policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MaintenanceScope))
                           .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
@@ -300,11 +279,7 @@ namespace Altinn.Correspondence.API.Auth
                 var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
                 if (scopeClaim != null)
                 {
-                    var scopes = scopeClaim.Value.Split(' ');
-                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
-                    {
-                        return true;
-                    }
+                    var scopes = scopeClaim.Value.Split(' ');                    
                     return scopes.Contains(AuthorizationConstants.SenderScope);
                 }
             }
@@ -316,10 +291,6 @@ namespace Altinn.Correspondence.API.Auth
                 if (scopeClaim != null)
                 {
                     var scopes = scopeClaim.Value.Split(' ');
-                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
-                    {
-                        return true;
-                    }
                     return scopes.Contains(AuthorizationConstants.ServiceOwnerScope) &&
                            scopes.Contains(AuthorizationConstants.SenderScope);
                 }
@@ -351,10 +322,6 @@ namespace Altinn.Correspondence.API.Auth
                 if (scopeClaim != null)
                 {
                     var scopes = scopeClaim.Value.Split(' ');
-                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
-                    {
-                        return true;
-                    }
                     return scopes.Contains(AuthorizationConstants.RecipientScope);
                 }
             }
@@ -366,10 +333,6 @@ namespace Altinn.Correspondence.API.Auth
                 if (scopeClaim != null)
                 {
                     var scopes = scopeClaim.Value.Split(' ');
-                    if (scopes.Contains(AuthorizationConstants.MigrateScope))
-                    {
-                        return true;
-                    }
                     return scopes.Contains(AuthorizationConstants.RecipientScope);
                 }
             }
