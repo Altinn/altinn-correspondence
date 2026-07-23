@@ -12,6 +12,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
+using Altinn.Notifications.Core.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -23,12 +24,14 @@ namespace Altinn.Correspondence.Application.CreateNotificationOrder;
 public class CreateNotificationOrderHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnRegisterService altinnRegisterService,
+    IAltinnProfileService altinnProfileService,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IResourceRegistryService resourceRegistryService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
+    MobileNumberHelper mobileNumberHelper,
     ILogger<CreateNotificationOrderHandler> logger,
     ApplicationDbContext dbContext)
 {
@@ -149,12 +152,13 @@ public class CreateNotificationOrderHandler(
         return message.Replace("{textToken}", token + " ").Trim();
     }
 
-    private List<NotificationOrderRequestV2> CreateNotificationOrderRequestsV2(NotificationRequest notificationRequest, NotificationContext context, List<NotificationContent> contents)
+    private async Task<List<NotificationOrderRequestV2>> CreateNotificationOrderRequestsV2(NotificationRequest notificationRequest, NotificationContext context, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         logger.LogInformation("Creating notification order request V2 for {NotificationId}", context.Id);
 
         // Determine recipients to process - behavior depends on OverrideRegisteredContactInformation flag
         List<Recipient> recipientsToProcess = new List<Recipient>();
+        Recipient? correspondenceRecipient = null;
 
         // If OverrideRegisteredContactInformation is false (default), add the default correspondence recipient
         if (!notificationRequest.OverrideRegisteredContactInformation)
@@ -172,19 +176,25 @@ public class CreateNotificationOrderHandler(
                 throw new InvalidOperationException($"Unsupported correspondence recipient format for notifications: {recipient}");
             }
 
-            recipientsToProcess.Add(new Recipient
+            correspondenceRecipient = new Recipient
             {
                 OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
                 NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null,
                 ExternalIdentity = isExternalIdentity ? recipient : null
-            });
-        
+            };
+            recipientsToProcess.Add(correspondenceRecipient);
+
         }
-        
+
         // Add custom recipients if they exist (in addition to default recipient when OverrideRegisteredContactInformation is false)
         if (notificationRequest.CustomRecipients != null && notificationRequest.CustomRecipients.Any())
         {
             recipientsToProcess.AddRange(notificationRequest.CustomRecipients);
+        }
+
+        if (correspondenceRecipient is not null)
+        {
+            recipientsToProcess = await RemoveCustomRecipientsAlreadyOnRecipient(recipientsToProcess, correspondenceRecipient, notificationRequest, context, cancellationToken);
         }
 
         // Deduplicate recipients based on the same key used for idempotency to avoid tracking and PK conflicts
@@ -235,6 +245,96 @@ public class CreateNotificationOrderHandler(
 
         logger.LogInformation("Created {Count} notification request(s) V2 for {NotificationId}", notificationOrders.Count, context.Id);
         return notificationOrders;
+    }
+
+    /// <summary>
+    /// Removes custom email/SMS recipients whose address is already registered on the correspondence recipient,
+    /// since those addresses receive the notification sent to the recipient's registered contact information.
+    /// </summary>
+    private async Task<List<Recipient>> RemoveCustomRecipientsAlreadyOnRecipient(List<Recipient> recipients, Recipient correspondenceRecipient, NotificationRequest notificationRequest, NotificationContext context, CancellationToken cancellationToken)
+    {
+        var channels = new List<NotificationChannel> { notificationRequest.NotificationChannel };
+        if (notificationRequest.SendReminder)
+        {
+            channels.Add(notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel);
+        }
+        bool notifiesRegisteredEmails = channels.Any(channel => channel is NotificationChannel.Email or NotificationChannel.EmailAndSms or NotificationChannel.EmailPreferred);
+        bool notifiesRegisteredMobileNumbers = channels.Any(channel => channel is NotificationChannel.Sms or NotificationChannel.EmailAndSms or NotificationChannel.SmsPreferred);
+
+        bool hasCustomEmailRecipients = recipients.Any(recipient => !string.IsNullOrEmpty(recipient.EmailAddress));
+        bool hasCustomSmsRecipients = recipients.Any(recipient => !string.IsNullOrEmpty(recipient.MobileNumber));
+        if (!(hasCustomEmailRecipients && notifiesRegisteredEmails) && !(hasCustomSmsRecipients && notifiesRegisteredMobileNumbers))
+        {
+            return recipients;
+        }
+
+        var registeredAddresses = correspondenceRecipient switch
+        {
+            { OrganizationNumber: { } organizationNumber } => await GetAddressesRegisteredOnOrganization(organizationNumber, context.ResourceId, cancellationToken),
+            // TODO: Altinn Profile has no contact information lookup for persons or self-identified users exposed to correspondence yet
+            _ => RegisteredAddresses.None
+        };
+
+        var registeredEmails = notifiesRegisteredEmails
+            ? registeredAddresses.Emails.Select(email => email.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var registeredMobileNumbers = notifiesRegisteredMobileNumbers
+            ? registeredAddresses.MobileNumbers.Select(NormalizeMobileNumber).ToHashSet()
+            : [];
+
+        if (registeredEmails.Count == 0 && registeredMobileNumbers.Count == 0)
+        {
+            return recipients;
+        }
+
+        bool IsRegisteredOnRecipient(Recipient recipient) =>
+            (!string.IsNullOrEmpty(recipient.EmailAddress) && registeredEmails.Contains(recipient.EmailAddress.Trim()))
+            || (!string.IsNullOrEmpty(recipient.MobileNumber) && registeredMobileNumbers.Contains(NormalizeMobileNumber(recipient.MobileNumber)));
+
+        var filteredRecipients = recipients.Where(recipient => !IsRegisteredOnRecipient(recipient)).ToList();
+
+        if (filteredRecipients.Count != recipients.Count)
+        {
+            logger.LogInformation(
+                "Removed {RemovedCount} custom recipient(s) for {NotificationId} because their address is already registered on the correspondence recipient",
+                recipients.Count - filteredRecipients.Count,
+                context.Id);
+        }
+
+        return filteredRecipients;
+    }
+
+    private async Task<RegisteredAddresses> GetAddressesRegisteredOnOrganization(string organizationNumber, string resourceId, CancellationToken cancellationToken)
+    {
+        var organizationNumbers = new List<string> { organizationNumber };
+        var organizationAddresses = await altinnProfileService.GetOrganizationNotificationAddresses(organizationNumbers, cancellationToken);
+        var userRegisteredContactPoints = await altinnProfileService.GetUserRegisteredContactPoints(organizationNumbers, resourceId, cancellationToken);
+        var userContactPoints = userRegisteredContactPoints.SelectMany(unit => unit.UserContactPoints).ToList();
+
+        var emails = organizationAddresses.SelectMany(organization => organization.EmailList)
+            .Concat(userContactPoints.Select(contactPoint => contactPoint.Email))
+            .Where(email => !string.IsNullOrWhiteSpace(email))
+            .Select(email => email!)
+            .ToList();
+
+        var mobileNumbers = organizationAddresses.SelectMany(organization => organization.MobileNumberList)
+            .Concat(userContactPoints.Select(contactPoint => contactPoint.MobileNumber))
+            .Where(mobileNumber => !string.IsNullOrWhiteSpace(mobileNumber))
+            .Select(mobileNumber => mobileNumber!)
+            .ToList();
+
+        return new RegisteredAddresses(emails, mobileNumbers);
+    }
+
+    private string NormalizeMobileNumber(string mobileNumber)
+    {
+        return mobileNumberHelper.EnsureCountryCodeIfValidNumber(mobileNumber.Replace(" ", string.Empty));
+    }
+
+    private sealed record RegisteredAddresses(List<string> Emails, List<string> MobileNumbers)
+    {
+        public static readonly RegisteredAddresses None = new([], []);
     }
 
     private static string BuildRecipientKey(Recipient recipient)
@@ -360,7 +460,7 @@ public class CreateNotificationOrderHandler(
     private async Task PersistNotificationOrderRequests(NotificationRequest notificationRequest, NotificationContext context, List<NotificationContent> notificationContents, CancellationToken cancellationToken)
     {
         // Create notification order requests
-        var notificationOrderRequests = CreateNotificationOrderRequestsV2(notificationRequest, context, notificationContents);
+        var notificationOrderRequests = await CreateNotificationOrderRequestsV2(notificationRequest, context, notificationContents, cancellationToken);
 
         logger.LogInformation("Persisting {Count} notification order requests for {NotificationId}", notificationOrderRequests.Count, context.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
