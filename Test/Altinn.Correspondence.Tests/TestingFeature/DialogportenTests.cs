@@ -211,7 +211,7 @@ public class DialogportenTests
             Recipient = $"{UrnConstants.PersonIdAttribute}:{CustomWebApplicationFactory.ReservedSsn}",
             RequestedPublishTime = DateTimeOffset.UtcNow,
             ResourceId = correspondence.Correspondence.ResourceId,
-            Sender = correspondence.Correspondence.Sender,
+            Sender = correspondence.Correspondence.Sender!,
             SendersReference = correspondence.Correspondence.SendersReference,
             Content = new CorrespondenceContentEntity
             {
@@ -276,7 +276,7 @@ public class DialogportenTests
             Recipient = correspondence.Recipients[0],
             RequestedPublishTime = DateTimeOffset.UtcNow.AddSeconds(-5),
             ResourceId = correspondence.Correspondence.ResourceId,
-            Sender = correspondence.Correspondence.Sender,
+            Sender = correspondence.Correspondence.Sender!,
             SendersReference = correspondence.Correspondence.SendersReference,
             Content = new CorrespondenceContentEntity
             {
