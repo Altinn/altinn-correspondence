@@ -57,13 +57,13 @@ jobs:
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     # Set up .NET SDK version 10
     - name: Setup .NET SDK
       env:
         DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: '10.0.x'
         
