@@ -10,6 +10,7 @@ using Altinn.Correspondence.Integrations.Altinn.Authorization;
 using Altinn.Correspondence.Integrations.Altinn.ContactReservationRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
+using Altinn.Correspondence.Integrations.Altinn.Profile;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Altinn.ResourceRegistry;
 using Altinn.Correspondence.Integrations.Altinn.Storage;
@@ -48,6 +49,7 @@ public static class DependencyInjection
             services.AddScoped<IDialogportenService, DialogportenDevService>();
             services.AddScoped<IAltinnAuthorizationService, AltinnAuthorizationDevService>();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
+            services.AddScoped<IAltinnProfileService, AltinnProfileDevService>();
             services.AddScoped<IAltinnAccessManagementService, AltinnAccessManagementDevService>();
             services.AddScoped<IContactReservationRegistryService, ContactReservationRegistryDevService>();
             services.AddScoped<IAltinnStorageService, AltinnStorageDevService>();
@@ -59,6 +61,7 @@ public static class DependencyInjection
             services.RegisterAltinnHttpClientForAuthorization<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IResourceRegistryService, ResourceRegistryService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnRegisterService, AltinnRegisterService>(maskinportenSettings, altinnOptions);
+            services.RegisterAltinnHttpClient<IAltinnProfileService, AltinnProfileService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnAccessManagementService, AltinnAccessManagementService>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IEventBus, AltinnEventBus>(maskinportenSettings, altinnOptions);
             services.RegisterAltinnHttpClient<IAltinnNotificationService, AltinnNotificationService>(maskinportenSettings, altinnOptions);
