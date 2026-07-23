@@ -1,5 +1,4 @@
 ﻿using Altinn.Correspondence.Application.Helpers;
-using Altinn.Correspondence.Application.ProcessLegacyParty;
 using Altinn.Correspondence.Application.SendNotificationOrder;
 using Altinn.Correspondence.Application.SendSlackNotification;
 using Altinn.Correspondence.Common.Helpers;
@@ -151,7 +150,6 @@ public class PublishCorrespondenceHandler(
                 };
                 await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
                 
-                backgroundJobClient.Enqueue<ProcessLegacyPartyHandler>((handler) => handler.Process(correspondence!.Recipient, null, cancellationToken));
                 backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
             }
 
