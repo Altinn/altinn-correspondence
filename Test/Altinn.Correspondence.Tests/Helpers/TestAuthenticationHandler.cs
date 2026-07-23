@@ -16,9 +16,8 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
 		IOptionsMonitor<AuthenticationSchemeOptions> options,
 		ILoggerFactory logger,
 		UrlEncoder encoder,
-		ISystemClock clock,
 		IHttpContextAccessor httpContextAccessor)
-		: base(options, logger, encoder, clock)
+		: base(options, logger, encoder)
 	{
 		var claimsJson = httpContextAccessor.HttpContext?.Request.Headers["X-Custom-Claims"].ToString();
 		if (!string.IsNullOrEmpty(claimsJson))
