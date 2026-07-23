@@ -50,10 +50,11 @@ public class GetCorrespondenceDetailsHandler(
             hasAccessAsRecipient ? "recipient" : "sender",
             request.CorrespondenceId);
         var latestStatus = correspondence.GetHighestStatus();
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
+        var userPartyUrn = user?.GetCallerPartyUrn() ?? string.Empty;
+        var party = await altinnRegisterService.LookUpPartyById(userPartyUrn, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());
+            logger.LogError("Could not find party UUID for caller {caller}", userPartyUrn);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         DialogPortenSystemLabel? systemLabel = null;

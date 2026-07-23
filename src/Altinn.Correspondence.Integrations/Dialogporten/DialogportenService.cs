@@ -1162,7 +1162,7 @@ public class DialogportenService(HttpClient _httpClient,
         {
             Id = activity.Id,
             CreatedAt = activity.CreatedAt,
-            Type = Enum.Parse<ActivityType>(activity.Type),
+            Type = Enum.Parse<ActivityType>(activity.Type!),
             PerformedBy = new ActivityPerformedBy
             {
                 ActorId = activity.PerformedBy.ActorId,
