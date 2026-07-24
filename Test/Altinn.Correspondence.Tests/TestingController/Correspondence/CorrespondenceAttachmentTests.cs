@@ -61,7 +61,10 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .Build();
             formData = CorrespondenceHelper.CorrespondenceToFormData(payload2.Correspondence);
             formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
-            formData.Add(new StreamContent(fileStream), "attachments", file.FileName);
+            using var fileStream2a = File.OpenRead("./Data/Markdown.txt");
+            using var fileStream2b = File.OpenRead("./Data/Markdown.txt");
+            formData.Add(new StreamContent(fileStream2a), "attachments", file.FileName);
+            formData.Add(new StreamContent(fileStream2b), "attachments", file.FileName);
 
             // Act
             var uploadCorrespondenceResponse2 = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
