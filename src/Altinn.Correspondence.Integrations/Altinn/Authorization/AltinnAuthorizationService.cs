@@ -208,6 +208,39 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
         return results;
     }
 
+    public async Task<List<int>> AuthorizeUserIdsForResource(int partyId, IReadOnlyCollection<int> userIds, string resourceId, CancellationToken cancellationToken = default)
+    {
+        var distinctUserIds = userIds.Distinct().ToList();
+        if (distinctUserIds.Count == 0)
+        {
+            return [];
+        }
+        if (_httpClient.BaseAddress is null)
+        {
+            _logger.LogWarning("Authorization service disabled");
+            return distinctUserIds;
+        }
+
+        XacmlJsonRequestRoot jsonRequest = AltinnTokenXacmlMapper.CreateUserContactPointDecisionRequest(distinctUserIds, partyId, resourceId.WithoutPrefix());
+        var responseContent = await AuthorizeRequest(jsonRequest, cancellationToken);
+        if (responseContent.Response.Count != distinctUserIds.Count)
+        {
+            _logger.LogError("Authorization response count mismatch. Expected: {Expected}, Received: {Received}",
+                distinctUserIds.Count, responseContent.Response.Count);
+            throw new InvalidOperationException($"Authorization service returned {responseContent.Response.Count} decisions but {distinctUserIds.Count} were requested");
+        }
+
+        var authorizedUserIds = new List<int>();
+        for (int i = 0; i < responseContent.Response.Count; i++)
+        {
+            if (responseContent.Response[i].Decision == "Permit")
+            {
+                authorizedUserIds.Add(distinctUserIds[i]);
+            }
+        }
+        return authorizedUserIds;
+    }
+
     private async Task<bool> CheckUserAccess(ClaimsPrincipal? user, string resourceId, string party, string? correspondenceId, List<ResourceAccessLevel> rights, CancellationToken cancellationToken = default)
     {
         resourceId = resourceId.WithoutPrefix();

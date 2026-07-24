@@ -25,6 +25,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<INotificationTemplateRepository> _mockNotificationTemplateRepository;
         private readonly Mock<IAltinnRegisterService> _mockAltinnRegisterService;
         private readonly Mock<IAltinnProfileService> _mockAltinnProfileService;
+        private readonly Mock<IAltinnAuthorizationService> _mockAltinnAuthorizationService;
         private readonly Mock<ICorrespondenceNotificationRepository> _mockCorrespondenceNotificationRepository;
         private readonly Mock<IIdempotencyKeyRepository> _mockIdempotencyKeyRepository;
         private readonly Mock<IResourceRegistryService> _mockResourceRegistryService;
@@ -39,6 +40,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockNotificationTemplateRepository = new Mock<INotificationTemplateRepository>();
             _mockAltinnRegisterService = new Mock<IAltinnRegisterService>();
             _mockAltinnProfileService = new Mock<IAltinnProfileService>();
+            _mockAltinnAuthorizationService = new Mock<IAltinnAuthorizationService>();
             _mockCorrespondenceNotificationRepository = new Mock<ICorrespondenceNotificationRepository>();
             _mockIdempotencyKeyRepository = new Mock<IIdempotencyKeyRepository>();
             _mockResourceRegistryService = new Mock<IResourceRegistryService>();
@@ -58,6 +60,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _mockAltinnProfileService
                 .Setup(x => x.GetUserRegisteredContactPoints(It.IsAny<List<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<UnitContactPoints>());
+            _mockAltinnAuthorizationService
+                .Setup(x => x.AuthorizeUserIdsForResource(It.IsAny<int>(), It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((int partyId, IReadOnlyCollection<int> userIds, string resourceId, CancellationToken ct) => userIds.ToList());
             _mockResourceRegistryService
                 .Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync("Resource Title");
@@ -66,6 +71,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockCorrespondenceRepository.Object,
                 _mockAltinnRegisterService.Object,
                 _mockAltinnProfileService.Object,
+                _mockAltinnAuthorizationService.Object,
                 _mockNotificationTemplateRepository.Object,
                 _mockCorrespondenceNotificationRepository.Object,
                 _mockIdempotencyKeyRepository.Object,
@@ -413,9 +419,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new UnitContactPoints
                     {
                         OrganizationNumber = "991825827",
+                        PartyId = 500,
                         UserContactPoints =
                         [
-                            new UserRegisteredContactPoint { Email = "user@example.com", MobileNumber = "99999999" }
+                            new UserRegisteredContactPoint { UserId = 123, Email = "user@example.com", MobileNumber = "99999999" }
                         ]
                     }
                 });
@@ -436,6 +443,54 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Contains(orders, o => o.Recipient.RecipientSms?.PhoneNumber == "+4791111111");
             Assert.DoesNotContain(orders, o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
             Assert.DoesNotContain(orders, o => o.Recipient.RecipientEmail != null);
+        }
+
+        [Fact]
+        public async Task Process_ShouldKeepCustomSmsRecipient_WhenMatchingUserOnOrganizationIsNotAuthorized()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, correspondence, _) = SetupOrderData(requestedPublishTime);
+            correspondence.Recipient = "urn:altinn:organization:identifier-no:991825827";
+            request.NotificationRequest.CustomRecipients =
+            [
+                new Recipient { MobileNumber = "+4799999999" }
+            ];
+
+            _mockAltinnProfileService
+                .Setup(x => x.GetUserRegisteredContactPoints(It.Is<List<string>>(orgs => orgs.Contains("991825827")), correspondence.ResourceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<UnitContactPoints>
+                {
+                    new UnitContactPoints
+                    {
+                        OrganizationNumber = "991825827",
+                        PartyId = 500,
+                        UserContactPoints =
+                        [
+                            new UserRegisteredContactPoint { UserId = 123, MobileNumber = "99999999" }
+                        ]
+                    }
+                });
+
+            // The user who registered the matching mobile number is no longer authorized for the resource
+            _mockAltinnAuthorizationService
+                .Setup(x => x.AuthorizeUserIdsForResource(It.IsAny<int>(), It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<int>());
+
+            var captured = new List<CorrespondenceNotificationEntity>();
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured.Add(n))
+                .ReturnsAsync(Guid.NewGuid());
+
+            // Act
+            await _handler.Process(request, CancellationToken.None);
+
+            // Assert: the custom recipient is kept, because Notifications would not deliver to the unauthorized user's address
+            var orders = captured.Select(n => JsonSerializer.Deserialize<NotificationOrderRequestV2>(n.OrderRequest!)!).ToList();
+            Assert.Equal(2, orders.Count);
+            Assert.Contains(orders, o => o.Recipient.RecipientOrganization != null);
+            Assert.Contains(orders, o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
         }
 
         [Fact]

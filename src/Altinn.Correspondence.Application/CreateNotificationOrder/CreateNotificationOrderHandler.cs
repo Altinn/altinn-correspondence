@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
+using Altinn.Correspondence.Core.Models.Profile;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -25,6 +26,7 @@ public class CreateNotificationOrderHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnRegisterService altinnRegisterService,
     IAltinnProfileService altinnProfileService,
+    IAltinnAuthorizationService altinnAuthorizationService,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IIdempotencyKeyRepository idempotencyKeyRepository,
@@ -261,16 +263,21 @@ public class CreateNotificationOrderHandler(
         bool notifiesRegisteredEmails = channels.Any(channel => channel is NotificationChannel.Email or NotificationChannel.EmailAndSms or NotificationChannel.EmailPreferred);
         bool notifiesRegisteredMobileNumbers = channels.Any(channel => channel is NotificationChannel.Sms or NotificationChannel.EmailAndSms or NotificationChannel.SmsPreferred);
 
-        bool hasCustomEmailRecipients = recipients.Any(recipient => !string.IsNullOrEmpty(recipient.EmailAddress));
-        bool hasCustomSmsRecipients = recipients.Any(recipient => !string.IsNullOrEmpty(recipient.MobileNumber));
-        if (!(hasCustomEmailRecipients && notifiesRegisteredEmails) && !(hasCustomSmsRecipients && notifiesRegisteredMobileNumbers))
+        var customEmails = notifiesRegisteredEmails
+            ? recipients.Where(recipient => !string.IsNullOrEmpty(recipient.EmailAddress)).Select(recipient => recipient.EmailAddress!.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var customMobileNumbers = notifiesRegisteredMobileNumbers
+            ? recipients.Where(recipient => !string.IsNullOrEmpty(recipient.MobileNumber)).Select(recipient => NormalizeMobileNumber(recipient.MobileNumber!)).ToHashSet()
+            : new HashSet<string>();
+
+        if (customEmails.Count == 0 && customMobileNumbers.Count == 0)
         {
             return recipients;
         }
 
         var registeredAddresses = correspondenceRecipient switch
         {
-            { OrganizationNumber: { } organizationNumber } => await GetAddressesRegisteredOnOrganization(organizationNumber, context.ResourceId, cancellationToken),
+            { OrganizationNumber: { } organizationNumber } => await GetAddressesRegisteredOnOrganization(organizationNumber, context.ResourceId, customEmails, customMobileNumbers, cancellationToken),
             // TODO: Altinn Profile has no contact information lookup for persons or self-identified users exposed to correspondence yet
             _ => RegisteredAddresses.None
         };
@@ -305,26 +312,53 @@ public class CreateNotificationOrderHandler(
         return filteredRecipients;
     }
 
-    private async Task<RegisteredAddresses> GetAddressesRegisteredOnOrganization(string organizationNumber, string resourceId, CancellationToken cancellationToken)
+    private async Task<RegisteredAddresses> GetAddressesRegisteredOnOrganization(string organizationNumber, string resourceId, HashSet<string> customEmails, HashSet<string> customMobileNumbers, CancellationToken cancellationToken)
     {
         var organizationNumbers = new List<string> { organizationNumber };
         var organizationAddresses = await altinnProfileService.GetOrganizationNotificationAddresses(organizationNumbers, cancellationToken);
         var userRegisteredContactPoints = await altinnProfileService.GetUserRegisteredContactPoints(organizationNumbers, resourceId, cancellationToken);
-        var userContactPoints = userRegisteredContactPoints.SelectMany(unit => unit.UserContactPoints).ToList();
+        var authorizedUserContactPoints = await GetAuthorizedUserContactPointsMatchingCustomRecipients(userRegisteredContactPoints, resourceId, customEmails, customMobileNumbers, cancellationToken);
 
         var emails = organizationAddresses.SelectMany(organization => organization.EmailList)
-            .Concat(userContactPoints.Select(contactPoint => contactPoint.Email))
+            .Concat(authorizedUserContactPoints.Select(contactPoint => contactPoint.Email))
             .Where(email => !string.IsNullOrWhiteSpace(email))
             .Select(email => email!)
             .ToList();
 
         var mobileNumbers = organizationAddresses.SelectMany(organization => organization.MobileNumberList)
-            .Concat(userContactPoints.Select(contactPoint => contactPoint.MobileNumber))
+            .Concat(authorizedUserContactPoints.Select(contactPoint => contactPoint.MobileNumber))
             .Where(mobileNumber => !string.IsNullOrWhiteSpace(mobileNumber))
             .Select(mobileNumber => mobileNumber!)
             .ToList();
 
         return new RegisteredAddresses(emails, mobileNumbers);
+    }
+
+    /// <summary>
+    /// Returns the user-registered contact points whose address matches a custom recipient and whose user is authorized
+    /// for the resource. Notifications performs the same authorization before sending to a user's registered contact
+    /// information, so an unauthorized user's address is never actually delivered to and must not deduplicate a custom
+    /// recipient. Only user contact points matching a custom recipient are authorized, since the rest cannot affect the result.
+    /// </summary>
+    private async Task<List<UserRegisteredContactPoint>> GetAuthorizedUserContactPointsMatchingCustomRecipients(List<UnitContactPoints> unitContactPoints, string resourceId, HashSet<string> customEmails, HashSet<string> customMobileNumbers, CancellationToken cancellationToken)
+    {
+        bool MatchesCustomRecipient(UserRegisteredContactPoint contactPoint) =>
+            (!string.IsNullOrWhiteSpace(contactPoint.Email) && customEmails.Contains(contactPoint.Email.Trim()))
+            || (!string.IsNullOrWhiteSpace(contactPoint.MobileNumber) && customMobileNumbers.Contains(NormalizeMobileNumber(contactPoint.MobileNumber)));
+
+        var authorizedContactPoints = new List<UserRegisteredContactPoint>();
+        foreach (var unit in unitContactPoints)
+        {
+            var candidates = unit.UserContactPoints.Where(MatchesCustomRecipient).ToList();
+            if (candidates.Count == 0)
+            {
+                continue;
+            }
+            var userIds = candidates.Select(contactPoint => contactPoint.UserId).Distinct().ToList();
+            var authorizedUserIds = (await altinnAuthorizationService.AuthorizeUserIdsForResource(unit.PartyId, userIds, resourceId, cancellationToken)).ToHashSet();
+            authorizedContactPoints.AddRange(candidates.Where(contactPoint => authorizedUserIds.Contains(contactPoint.UserId)));
+        }
+        return authorizedContactPoints;
     }
 
     private string NormalizeMobileNumber(string mobileNumber)

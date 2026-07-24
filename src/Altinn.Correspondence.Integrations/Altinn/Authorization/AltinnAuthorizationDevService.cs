@@ -41,5 +41,10 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
         {
             return Task.FromResult(correspondences.ToDictionary(correspondence => ValueTuple.Create(correspondence.Recipient, correspondence.ResourceId), _ => new Nullable<int>(3)));
         }
+
+        public Task<List<int>> AuthorizeUserIdsForResource(int partyId, IReadOnlyCollection<int> userIds, string resourceId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(userIds.ToList());
+        }
     }
 }
