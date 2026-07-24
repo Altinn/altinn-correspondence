@@ -97,7 +97,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 }
             };
 
-            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(correspondenceId, false, false, false, CancellationToken.None, false))
+            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(correspondenceId, false, false, false, CancellationToken.None))
                 .ReturnsAsync(correspondence);
             _mockCorrespondenceNotificationRepository.Setup(x => x.GetPrimaryNotificationsByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceNotificationEntity> { notification });

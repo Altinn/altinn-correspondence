@@ -458,7 +458,7 @@ public class CheckNotificationDeliveryHandlerTests
     {
         _notificationRepositoryMock.Setup(x => x.GetNotificationById(notification.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(notification);
-        _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceById(notification.CorrespondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+        _correspondenceRepositoryMock.Setup(x => x.GetCorrespondenceById(notification.CorrespondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
         if (notificationStatus != null)
         {
