@@ -96,7 +96,7 @@ public class Activity
     public required PerformedBy PerformedBy { get; set; }
 
     [JsonPropertyName("description")]
-    public required List<Description> Description { get; set; }
+    public List<Description>? Description { get; set; }
 }
 
 public class ApiAction

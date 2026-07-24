@@ -1169,7 +1169,7 @@ public class DialogportenService(HttpClient _httpClient,
                 ActorName = activity.PerformedBy.ActorName,
                 ActorType = activity.PerformedBy.ActorType
             },
-            Description = activity.Description.Select(d => new ActivityDescription
+            Description = activity.Description?.Select(d => new ActivityDescription
             {
                 Value = d.Value,
                 LanguageCode = d.LanguageCode
