@@ -2542,7 +2542,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(dialogJobId);
             scheduleRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CorrespondenceEntity
                 {
                     Id = correspondenceId,
@@ -2623,7 +2623,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             };
 
             correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondenceWithNoDialog);
             correspondenceRepositoryMock
                 .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))

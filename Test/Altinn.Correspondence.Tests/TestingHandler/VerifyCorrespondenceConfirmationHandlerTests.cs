@@ -56,7 +56,7 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             .Build();
 
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         _dialogportenServiceMock
@@ -92,7 +92,7 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             .Build();
 
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         _dialogportenServiceMock
@@ -116,7 +116,7 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             .Build();
 
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         // Act
