@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.API.Models
         /// The correspondence content. Contains information about the Correspondence body, subject etc.
         /// </summary>
         [JsonPropertyName("content")]
-        public new CorrespondenceContentExt? Content { get; set; }
+        public required new CorrespondenceContentExt Content { get; set; }
 
         /// <summary>
         /// When the correspondence was created

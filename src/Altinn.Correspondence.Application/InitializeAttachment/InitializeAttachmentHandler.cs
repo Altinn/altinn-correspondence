@@ -15,7 +15,6 @@ namespace Altinn.Correspondence.Application.InitializeAttachment;
 public class InitializeAttachmentHandler(
     IAltinnRegisterService altinnRegisterService,
     IAttachmentRepository attachmentRepository,
-    IAttachmentStatusRepository attachmentStatusRepository,
     IResourceRegistryService resourceRegistryService,
     IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<InitializeAttachmentHandler> logger,
@@ -26,7 +25,12 @@ public class InitializeAttachmentHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var sanitizedResourceId = request.Attachment.ResourceId.SanitizeForLogging().WithoutPrefix();
+        if (user is null)
+        {
+            logger.LogWarning("User is null in InitializeAttachmentHandler");
+            return AuthorizationErrors.NoAccessToResource;
+        }
+        var sanitizedResourceId = request.Attachment.ResourceId.SanitizeForLogging()?.WithoutPrefix();
         logger.LogInformation("Starting attachment initialization process for resource {ResourceId}", sanitizedResourceId);
         
         var serviceOwnerOrgNumber = await resourceRegistryService.GetServiceOwnerOrganizationNumber(request.Attachment.ResourceId, cancellationToken);
@@ -58,10 +62,11 @@ public class InitializeAttachmentHandler(
             return AuthorizationErrors.IncorrectResourceType;
         }
 
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
+        var userPartyUrn = user.GetCallerPartyUrn() ?? string.Empty;
+        var party = await altinnRegisterService.LookUpPartyById(userPartyUrn, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {
-            logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());
+            logger.LogError("Could not find party UUID for caller {caller}", userPartyUrn);
             return AuthorizationErrors.CouldNotFindPartyUuid;
         }
         logger.LogInformation("Retrieved party UUID {PartyUuid} for organization {OrganizationId}", partyUuid, user.GetCallerOrganizationId());

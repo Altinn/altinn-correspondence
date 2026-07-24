@@ -3,11 +3,11 @@ using Altinn.Correspondence.Core.Models.Enums;
 namespace Altinn.Correspondence.Application.Helpers;
 public static class AttachmentStatusExtensions
 {
-    public static AttachmentStatusEntity? GetLatestStatus(this AttachmentEntity attachment)
+    public static AttachmentStatusEntity GetLatestStatus(this AttachmentEntity attachment)
     {
         var statusEntity = attachment.Statuses
             .OrderByDescending(s => s.StatusChanged).FirstOrDefault();
-        return statusEntity;
+        return statusEntity ?? throw new InvalidOperationException("Attachment has no statuses.");
     }
     public static bool StatusHasBeen(this AttachmentEntity attachment, AttachmentStatus status)
     {

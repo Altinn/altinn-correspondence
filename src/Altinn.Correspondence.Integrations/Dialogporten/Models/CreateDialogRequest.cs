@@ -2,16 +2,17 @@
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Models;
 
+//TODO: Dobbeltsjekk om disse er riktige!
 public class CreateDialogRequest
 {
     [JsonPropertyName("id")]
-    public string? Id { get; set; }
+    public required string Id { get; set; }
 
     [JsonPropertyName("serviceResource")]
-    public string ServiceResource { get; set; }
+    public required string ServiceResource { get; set; }
 
     [JsonPropertyName("party")]
-    public string Party { get; set; }
+    public required string Party { get; set; }
 
     [JsonPropertyName("progress")]
     public int? Progress { get; set; }
@@ -23,7 +24,7 @@ public class CreateDialogRequest
     public string? ExtendedStatus { get; set; }
 
     [JsonPropertyName("externalReference")]
-    public string ExternalReference { get; set; }
+    public required string ExternalReference { get; set; }
 
     [JsonPropertyName("visibleFrom")]
     public DateTimeOffset? VisibleFrom { get; set; }
@@ -41,87 +42,87 @@ public class CreateDialogRequest
     public DateTimeOffset? UpdatedAt { get; set; }
 
     [JsonPropertyName("status")]
-    public string Status { get; set; }
+    public required string Status { get; set; }
 
     [JsonPropertyName("systemLabel")]
     public string SystemLabel { get; set; } = "Default";
 
     [JsonPropertyName("content")]
-    public Content Content { get; set; }
+    public required Content Content { get; set; }
 
     [JsonPropertyName("searchTags")]
-    public List<SearchTag> SearchTags { get; set; }
+    public List<SearchTag>? SearchTags { get; set; }
 
     [JsonPropertyName("attachments")]
-    public List<Attachment> Attachments { get; set; }
+    public List<Attachment>? Attachments { get; set; }
 
     [JsonPropertyName("transmissions")]
-    public List<Transmission> Transmissions { get; set; }
+    public List<Transmission>? Transmissions { get; set; }
 
     [JsonPropertyName("guiActions")]
-    public List<GuiAction> GuiActions { get; set; }
+    public required List<GuiAction> GuiActions { get; set; }
 
     [JsonPropertyName("apiActions")]
-    public List<ApiAction> ApiActions { get; set; }
+    public required List<ApiAction> ApiActions { get; set; }
 
     [JsonPropertyName("activities")]
-    public List<Activity> Activities { get; set; }
+    public List<Activity> Activities { get; set; } = new List<Activity>();
 
     [JsonPropertyName("serviceOwnerContext")]
-    public ServiceOwnerContext ServiceOwnerContext { get; set; }
+    public ServiceOwnerContext? ServiceOwnerContext { get; set; }
 }
 
 public class Activity
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public required string Id { get; set; }
 
     [JsonPropertyName("createdAt")]
     public DateTimeOffset CreatedAt { get; set; }
 
     [JsonPropertyName("extendedType")]
-    public string ExtendedType { get; set; }
+    public string? ExtendedType { get; set; }
 
     [JsonPropertyName("type")]
-    public string Type { get; set; }
+    public string? Type { get; set; }
 
     [JsonPropertyName("relatedActivityId")]
-    public string RelatedActivityId { get; set; }
+    public string? RelatedActivityId { get; set; }
 
     [JsonPropertyName("transmissionId")]
-    public string TransmissionId { get; set; }
+    public string? TransmissionId { get; set; }
 
     [JsonPropertyName("performedBy")]
-    public PerformedBy PerformedBy { get; set; }
+    public required PerformedBy PerformedBy { get; set; }
 
     [JsonPropertyName("description")]
-    public List<Description> Description { get; set; }
+    public List<Description>? Description { get; set; }
 }
 
 public class ApiAction
 {
     [JsonPropertyName("action")]
-    public string Action { get; set; }
+    public required string Action { get; set; }
 
     [JsonPropertyName("authorizationAttribute")]
-    public string AuthorizationAttribute { get; set; }
+    public string? AuthorizationAttribute { get; set; }
 
     [JsonPropertyName("endpoints")]
-    public List<Endpoint> Endpoints { get; set; }
+    public required List<Endpoint> Endpoints { get; set; }
 
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public required string Name { get; set; }
 }
 
 public class Attachment
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public required string Id { get; set; }
     [JsonPropertyName("displayName")]
-    public List<DisplayName> DisplayName { get; set; }
+    public required List<DisplayName> DisplayName { get; set; }
 
     [JsonPropertyName("urls")]
-    public List<DialogUrl> Urls { get; set; }
+    public required List<DialogUrl> Urls { get; set; }
 
     [JsonPropertyName("expiresAt")]
     public DateTimeOffset? ExpiresAt { get; set; }
@@ -130,7 +131,7 @@ public class Attachment
 public class Content
 {
     [JsonPropertyName("title")]
-    public ContentValue Title { get; set; }
+    public required ContentValue Title { get; set; }
 
     [JsonPropertyName("summary")]
     public ContentValue? Summary { get; set; }
@@ -152,40 +153,40 @@ public class Content
 public class Description
 {
     [JsonPropertyName("value")]
-    public string Value { get; set; }
+    public required string Value { get; set; }
 
     [JsonPropertyName("languageCode")]
-    public string LanguageCode { get; set; }
+    public required string LanguageCode { get; set; }
 }
 
 public class DisplayName
 {
     [JsonPropertyName("value")]
-    public string Value { get; set; }
+    public required string Value { get; set; }
 
     [JsonPropertyName("languageCode")]
-    public string LanguageCode { get; set; }
+    public required string LanguageCode { get; set; }
 }
 
 public class Endpoint
 {
     [JsonPropertyName("version")]
-    public string Version { get; set; }
+    public string? Version { get; set; }
 
     [JsonPropertyName("url")]
-    public string Url { get; set; }
+    public required string Url { get; set; }
 
     [JsonPropertyName("httpMethod")]
-    public string HttpMethod { get; set; }
+    public required string HttpMethod { get; set; }
 
     [JsonPropertyName("documentationUrl")]
-    public string DocumentationUrl { get; set; }
+    public string? DocumentationUrl { get; set; }
 
     [JsonPropertyName("requestSchema")]
-    public string RequestSchema { get; set; }
+    public string? RequestSchema { get; set; }
 
     [JsonPropertyName("responseSchema")]
-    public string ResponseSchema { get; set; }
+    public string? ResponseSchema { get; set; }
 
     [JsonPropertyName("deprecated")]
     public bool Deprecated { get; set; } = false;
@@ -197,168 +198,168 @@ public class Endpoint
 public class ExtendedStatus
 {
     [JsonPropertyName("value")]
-    public List<DialogValue> Value { get; set; }
+    public List<DialogValue>? Value { get; set; }
 
     [JsonPropertyName("mediaType")]
-    public string MediaType { get; set; }
+    public string? MediaType { get; set; }
 }
 
 public class GuiAction
 {
     [JsonPropertyName("action")]
-    public string Action { get; set; }
+    public required string Action { get; set; }
 
     [JsonPropertyName("url")]
-    public string Url { get; set; }
+    public required string Url { get; set; }
 
     [JsonPropertyName("authorizationAttribute")]
-    public string AuthorizationAttribute { get; set; }
+    public string? AuthorizationAttribute { get; set; }
 
     [JsonPropertyName("isDeleteDialogAction")]
     public bool IsDeleteDialogAction { get; set; }
 
     [JsonPropertyName("httpMethod")]
-    public string HttpMethod { get; set; }
+    public required string HttpMethod { get; set; }
 
     [JsonPropertyName("priority")]
-    public string Priority { get; set; }
+    public required string Priority { get; set; }
 
     [JsonPropertyName("title")]
-    public List<Title> Title { get; set; }
+    public required List<Title> Title { get; set; }
 
     [JsonPropertyName("prompt")]
-    public List<Prompt> Prompt { get; set; }
+    public List<Prompt>? Prompt { get; set; }
 }
 
 public class PerformedBy
 {
     [JsonPropertyName("actorType")]
-    public string ActorType { get; set; }
+    public required string ActorType { get; set; }
 
     [JsonPropertyName("actorName")]
-    public string ActorName { get; set; }
+    public string? ActorName { get; set; }
 
     [JsonPropertyName("actorId")]
-    public string ActorId { get; set; }
+    public string? ActorId { get; set; }
 }
 
 public class Prompt
 {
     [JsonPropertyName("value")]
-    public string Value { get; set; }
+    public string? Value { get; set; }
 
     [JsonPropertyName("languageCode")]
-    public string LanguageCode { get; set; }
+    public string? LanguageCode { get; set; }
 }
 
 public class SearchTag
 {
     [JsonPropertyName("value")]
-    public string Value { get; set; }
+    public required string Value { get; set; }
 }
 
 public class Sender
 {
     [JsonPropertyName("actorType")]
-    public string ActorType { get; set; }
+    public required string ActorType { get; set; }
 
     [JsonPropertyName("actorName")]
-    public string ActorName { get; set; }
+    public string? ActorName { get; set; }
 
     [JsonPropertyName("actorId")]
-    public string ActorId { get; set; }
+    public string? ActorId { get; set; }
 }
 
 public class SenderName
 {
     [JsonPropertyName("value")]
-    public List<DialogValue> Value { get; set; }
+    public required List<DialogValue> Value { get; set; }
 
     [JsonPropertyName("mediaType")]
-    public string MediaType { get; set; }
+    public string? MediaType { get; set; }
 }
 
 public class ContentValue
 {
     [JsonPropertyName("value")]
-    public List<DialogValue> Value { get; set; }
+    public required List<DialogValue> Value { get; set; }
 
     [JsonPropertyName("mediaType")]
-    public string MediaType { get; set; }
+    public string? MediaType { get; set; }
 }
 
 public class Title
 {
     [JsonPropertyName("value")]
-    public string Value { get; set; }
+    public required string Value { get; set; }
 
     [JsonPropertyName("mediaType")]
-    public string MediaType { get; set; }
+    public string? MediaType { get; set; }
 
     [JsonPropertyName("languageCode")]
-    public string LanguageCode { get; set; }
+    public required string LanguageCode { get; set; }
 }
 
 public class Transmission
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("createdAt")]
     public DateTimeOffset CreatedAt { get; set; }
 
     [JsonPropertyName("authorizationAttribute")]
-    public string AuthorizationAttribute { get; set; }
+    public string? AuthorizationAttribute { get; set; }
 
     [JsonPropertyName("extendedType")]
-    public string ExtendedType { get; set; }
+    public string? ExtendedType { get; set; }
 
     [JsonPropertyName("relatedTransmissionId")]
-    public string RelatedTransmissionId { get; set; }
+    public string? RelatedTransmissionId { get; set; }
 
     [JsonPropertyName("type")]
-    public string Type { get; set; }
+    public string? Type { get; set; }
 
     [JsonPropertyName("sender")]
-    public Sender Sender { get; set; }
+    public Sender? Sender { get; set; }
 
     [JsonPropertyName("content")]
-    public Content Content { get; set; }
+    public Content? Content { get; set; }
 
     [JsonPropertyName("attachments")]
-    public List<Attachment> Attachments { get; set; }
+    public List<Attachment>? Attachments { get; set; }
 }
 
 public class DialogUrl
 {
     [JsonPropertyName("url")]
-    public string Url { get; set; }
+    public required string Url { get; set; }
 
     [JsonPropertyName("mediaType")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? MediaType { get; set; }
 
     [JsonPropertyName("consumerType")]
-    public string ConsumerType { get; set; }
+    public string? ConsumerType { get; set; }
 }
 
 public class DialogValue
 {
     [JsonPropertyName("value")]
-    public string Value { get; set; }
+    public required string Value { get; set; }
 
     [JsonPropertyName("languageCode")]
-    public string LanguageCode { get; set; }
+    public required string LanguageCode { get; set; }
 }
 
 public class ServiceOwnerContext
 {
     [JsonPropertyName("serviceOwnerLabels")]
-    public List<ServiceOwnerLabel> ServiceOwnerLabels { get; set; }
+    public required List<ServiceOwnerLabel> ServiceOwnerLabels { get; set; }
 }
 
 public class ServiceOwnerLabel
 {
     [JsonPropertyName("value")]
-    public string Value { get; set; }
+    public required string Value { get; set; }
 }

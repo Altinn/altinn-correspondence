@@ -124,6 +124,11 @@ public class CleanupMarkdownAndHTMLInSummaryHandler(
     {
         var dialogId = correspondence.ExternalReferences
             .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
+            if (string.IsNullOrEmpty(dialogId))
+            {
+                logger.LogWarning("Skipping correspondence {correspondenceId} as it has no dialog ID", correspondence.Id);
+                return (false, false);
+            }
             var originalSummary = correspondence.Content?.MessageSummary;
 
             if (originalSummary == null)

@@ -29,7 +29,6 @@ using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Tests.Extensions;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using HangfireScheduleHelper = Altinn.Correspondence.Application.Helpers.HangfireScheduleHelper;
@@ -205,7 +204,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Arrange
             var correspondence = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithCorrespondenceContent(null)
+                .WithCorrespondenceContent(null!) // deliberately null to test API null-guard
                 .Build();
 
             // Act
@@ -265,7 +264,9 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             // Temporarily disabled until changed by customer #1331
             return;
+            #pragma warning disable // Temporarily disable warning for unreachable code until test should be enabled again
             var payload = new CorrespondenceBuilder()
+            #pragma warning restore
             .CreateCorrespondence()
             .WithMessageSummary("<h1>test</h1>")
             .Build();
@@ -341,7 +342,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         {
             var payload = new CorrespondenceBuilder()
                 .CreateCorrespondence()
-                .WithMessageBody(null)
+                .WithMessageBody(null!) // deliberately null to test API null-guard
                 .Build();
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -581,6 +582,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.InternalServerError, initializeCorrespondenceResponse.StatusCode);
             var body = await initializeCorrespondenceResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.NotNull(body);
             Assert.Equal(body.Status, (int)HttpStatusCode.InternalServerError);
         }
 
@@ -649,18 +651,17 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-
-            payload.Correspondence.ReplyOptions.First().LinkURL = "www.altinn.no";
+            payload.Correspondence.ReplyOptions!.First().LinkURL = "www.altinn.no";
             initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-            payload.Correspondence.ReplyOptions.First().LinkURL = "https://www.al tinn.no";
+            payload.Correspondence.ReplyOptions!.First().LinkURL = "https://www.al tinn.no";
             initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
 
-            payload.Correspondence.ReplyOptions.First().LinkURL = "C:\\Users\\User\\Desktop";
+            payload.Correspondence.ReplyOptions!.First().LinkURL = "C:\\Users\\User\\Desktop";
             initializeCorrespondenceResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
@@ -976,7 +977,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     memoryStream.Position = 0;
 
                     var streamContent = new StreamContent(memoryStream);
-                    formData.Add(streamContent, "attachments", attachment.FileName);
+                    formData.Add(streamContent, "attachments", attachment.FileName!);
                 }
 
                 // Act
@@ -1027,7 +1028,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     memoryStream.Position = 0;
 
                     var streamContent = new StreamContent(memoryStream);
-                    formData.Add(streamContent, "attachments", attachment.FileName);
+                    formData.Add(streamContent, "attachments", attachment.FileName!);
                 }
 
                 // Act
@@ -1163,7 +1164,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     memoryStream.Position = 0;
 
                     var streamContent = new StreamContent(memoryStream);
-                    formData.Add(streamContent, "attachments", attachment.FileName);
+                    formData.Add(streamContent, "attachments", attachment.FileName!);
                 }
 
                 // Act
@@ -1298,6 +1299,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "FailAssociatedCorrespondences"),
                 It.IsAny<IState>()), Times.Once);
+            Assert.NotNull(uploadResponseContent);
             var correspondenceId = uploadResponseContent.Correspondences.First().CorrespondenceId;
             await malwareScanHandler.FailAssociatedCorrespondences(attachment2.Id, Guid.NewGuid(), CancellationToken.None);
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(_senderClient, _responseSerializerOptions, uploadResponseContent.Correspondences.First().CorrespondenceId, CorrespondenceStatusExt.Failed);
@@ -1712,6 +1714,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 cancellationToken: CancellationToken.None);
 
             var externalReference = correspondence?.ExternalReferences;
+            Assert.NotNull(externalReference);
             var dialogId = externalReference.First().ReferenceValue;
             Assert.NotNull(dialogId);
 
@@ -1730,6 +1733,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 includeForwardingEvents: false,
                 cancellationToken: CancellationToken.None);
             var transmissionExternalReference = transmission?.ExternalReferences;
+            Assert.NotNull(transmissionExternalReference);
             Assert.Equal(2, transmissionExternalReference.Count);
             Assert.Contains("DialogportenTransmissionId", transmissionExternalReference.Select(r => r.ReferenceType.ToString()));
         }
@@ -2270,6 +2274,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 cancellationToken: CancellationToken.None);
 
             var externalReference = correspondence?.ExternalReferences;
+            Assert.NotNull(externalReference);
             var dialogId = externalReference.First().ReferenceValue;
             Assert.NotNull(dialogId);
 
@@ -2317,6 +2322,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 cancellationToken: CancellationToken.None);
 
             var externalReference = correspondence?.ExternalReferences;
+            Assert.NotNull(externalReference);
             var dialogId = externalReference.First().ReferenceValue;
             Assert.NotNull(dialogId);
 
@@ -2550,6 +2556,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     Recipient = $"urn:altinn:organization:identifier-no:{recipientOrgNo}",
                     ResourceId = "resource-123",
                     SendersReference = "ref-123",
+                    Content = new CorrespondenceContentEntity
+                    {
+                        Language = "nb",
+                        CorrespondenceId = correspondenceId,
+                        MessageTitle = "Test message title",
+                        MessageSummary = "Test message summary",
+                        MessageBody = "Test message body",
+                        Attachments = new List<CorrespondenceAttachmentEntity>{}
+                    },
                     RequestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(5),
                     Created = DateTimeOffset.UtcNow.AddMinutes(-30),
                     Statuses = new List<CorrespondenceStatusEntity>()
@@ -2607,6 +2622,15 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 IsConfidential = false,
                 ResourceId = "resource-123",
                 SendersReference = "ref-123",
+                Content = new CorrespondenceContentEntity
+                {
+                    Language = "nb",
+                    CorrespondenceId = correspondenceId,
+                    MessageTitle = "Test message title",
+                    MessageSummary = "Test message summary",
+                    MessageBody = "Test message body",
+                    Attachments = new List<CorrespondenceAttachmentEntity>{}
+                },
                 RequestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(-10),
                 Created = DateTimeOffset.UtcNow.AddMinutes(-30),
                 ExternalReferences = new List<ExternalReferenceEntity>(),

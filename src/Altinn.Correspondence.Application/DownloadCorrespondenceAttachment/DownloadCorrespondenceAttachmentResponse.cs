@@ -2,7 +2,7 @@
 {
     public class DownloadCorrespondenceAttachmentResponse
     {
-        public Stream Stream { get; set; }
-        public string FileName { get; set; }
+        public Stream Stream { get; set; } = Stream.Null;
+        public string FileName { get; set; } = string.Empty;
     }
 }

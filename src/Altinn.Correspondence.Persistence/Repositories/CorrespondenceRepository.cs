@@ -107,12 +107,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             if (includeContent)
             {
-                correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
+                correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a!.Statuses);
             }
 
             var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
 
-            if (correspondence != null && includeContent && correspondence.Content?.Attachments != null)
+            if (correspondence != null && includeContent && correspondence.Content != null)
             {
                 correspondence.Content.Attachments = correspondence.Content.Attachments
                     .OrderBy(a => a.Created)
@@ -179,7 +179,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                      && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published || status.Status == CorrespondenceStatus.ReadyForPublish  // Correspondence is not published
                                                            || status.Status == CorrespondenceStatus.Failed)
                      && correspondence.Content.Attachments.All(correspondenceAttachment => // All attachments of correspondence are published
-                            correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
+                            correspondenceAttachment.Attachment!.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Published) // All attachments must be published
                          && !correspondenceAttachment.Attachment.Statuses.Any(statusEntity => statusEntity.Status == AttachmentStatus.Purged || statusEntity.Status == AttachmentStatus.Expired))) // No attachments can be purged or expired
                 .ToListAsync(cancellationToken);
 
@@ -534,6 +534,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     ServiceOwnerMigrationStatus = c.ServiceOwnerMigrationStatus,
                     Altinn2CorrespondenceId = c.Altinn2CorrespondenceId,
                     MessageSender = c.MessageSender,
+                    Content = c.Content,
                     Statuses = new List<CorrespondenceStatusEntity>(), // Initialize required property
                     StatusFetched = new List<CorrespondenceStatusFetchedEntity>()
                 })

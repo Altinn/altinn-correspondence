@@ -50,8 +50,9 @@ static void BuildAndRun(string[] args)
     StartupAppSettingsLogging.LogConfigurationKeys(builder.Configuration, bootstrapLogger, false);
     ConfigureServices(builder.Services, builder.Configuration, builder.Environment, bootstrapLogger);
 
-    var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>();
-    bootstrapLogger.LogInformation($"Running in environment {builder.Environment.EnvironmentName} with base url {generalSettings?.CorrespondenceBaseUrl ?? "NULL"}");
+    var generalSettings = builder.Configuration.GetSection(nameof(GeneralSettings)).Get<GeneralSettings>()
+        ?? throw new InvalidOperationException($"Missing {nameof(GeneralSettings)} configuration section");
+    bootstrapLogger.LogInformation("Running in environment {Environment} with base url {BaseUrl}", builder.Environment.EnvironmentName, generalSettings.CorrespondenceBaseUrl);
     builder.Services.ConfigureOpenTelemetry(generalSettings);
 
     var app = builder.Build();

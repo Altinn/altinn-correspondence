@@ -84,6 +84,11 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             }
 
             var caller = user?.GetCallerPartyUrn();
+            if (caller is null)
+            {
+                logger.LogWarning("Could not determine caller for correspondence {ResourceId}", request.Correspondence.ResourceId);
+                return AuthorizationErrors.CouldNotDetermineCaller;
+            }
             var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
             if (party?.Uuid is not Guid partyUuid)
             {
@@ -183,10 +188,10 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 return CorrespondenceErrors.ExistingAttachmentNotFound;
             }
 
-            var totalRequestedAttachments = (existingAttachmentIds?.Count ?? 0) + (uploadAttachmentMetadata?.Count ?? 0);
+            var totalRequestedAttachments = existingAttachmentIds.Count + uploadAttachmentMetadata.Count;
             if (totalRequestedAttachments > 100)
             {
-                logger.LogWarning("Attachment count exceeded: existing={ExistingCount}, new={NewCount}", existingAttachmentIds?.Count ?? 0, uploadAttachmentMetadata?.Count ?? 0);
+                logger.LogWarning("Attachment count exceeded: existing={ExistingCount}, new={NewCount}", existingAttachmentIds.Count, uploadAttachmentMetadata.Count);
                 return CorrespondenceErrors.AttachmentCountExceeded;
             }
 
@@ -231,20 +236,18 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             }
 
             var hasRecipientNamePlaceholder =
-                request.Correspondence.Content?.MessageBody?.Contains("{{recipientName}}", StringComparison.Ordinal) == true ||
-                request.Correspondence.Content?.MessageTitle?.Contains("{{recipientName}}", StringComparison.Ordinal) == true ||
-                request.Correspondence.Content?.MessageSummary?.Contains("{{recipientName}}", StringComparison.Ordinal) == true;
+                request.Correspondence.Content.MessageBody.Contains("{{recipientName}}", StringComparison.Ordinal) ||
+                request.Correspondence.Content.MessageTitle.Contains("{{recipientName}}", StringComparison.Ordinal) ||
+                request.Correspondence.Content.MessageSummary.Contains("{{recipientName}}", StringComparison.Ordinal);
 
             if (hasRecipientNamePlaceholder)
             {
                 var recipientsToSearch = request.Recipients.Select(r => r.WithoutPrefix()).ToList();
-                validatedData.RecipientDetails = await altinnRegisterService.LookUpPartiesByIds(recipientsToSearch, cancellationToken);
-                if (validatedData.RecipientDetails == null || validatedData.RecipientDetails.Count != recipientsToSearch.Count)
+                validatedData.RecipientDetails = await altinnRegisterService.LookUpPartiesByIds(recipientsToSearch, cancellationToken) ?? [];
+                if (validatedData.RecipientDetails.Count != recipientsToSearch.Count)
                 {
                     return CorrespondenceErrors.RecipientLookupFailed(recipientsToSearch.Except(
-                        validatedData.RecipientDetails != null ?
-                        validatedData.RecipientDetails.Select(r => r.GetExternalUrn()?.WithoutPrefix() ?? string.Empty) :
-                        new List<string>()).ToList());
+                        validatedData.RecipientDetails.Select(r => r.GetExternalUrn()?.WithoutPrefix() ?? string.Empty)).ToList());
                 }
                 foreach (var details in validatedData.RecipientDetails)
                 {
@@ -258,7 +261,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             if (request.Notification != null)
             {
                 logger.LogDebug("Validating notification template {TemplateId}", request.Notification.NotificationTemplate);
-                var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content?.Language);
+                var templates = await notificationTemplateRepository.GetNotificationTemplates(request.Notification.NotificationTemplate, cancellationToken, request.Correspondence.Content.Language);
                 if (templates.Count == 0)
                 {
                     logger.LogWarning("Notification template {TemplateId} not found", request.Notification.NotificationTemplate);
@@ -289,7 +292,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             if (existingAttachmentIds.Count > 0)
             {
                 logger.LogDebug("Adding {Count} existing attachments", existingAttachmentIds.Count);
-                validatedData.AttachmentsToBeUploaded.AddRange(existingAttachments.Where(a => a != null).Select(a => a!));
+                validatedData.AttachmentsToBeUploaded.AddRange(existingAttachments);
             }
 
             logger.LogDebug("Uploading {Count} attachments", validatedData.UploadTargetAttachments.Count);

@@ -42,7 +42,7 @@ namespace Altinn.Correspondence.API.Models
         /// The attachment data type in MIME format
         /// </summary>
         [JsonPropertyName("dataType")]
-        public string DataType { get; set; }
+        public string DataType { get; set; } = string.Empty;
 
         /// <summary>
         /// The expiration time for this attachment on this correspondence.

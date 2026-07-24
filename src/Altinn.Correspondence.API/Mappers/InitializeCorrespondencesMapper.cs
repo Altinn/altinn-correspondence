@@ -19,7 +19,7 @@ internal static class InitializeCorrespondencesMapper
         var correspondence = new CorrespondenceEntity
         {
             SendersReference = request.Correspondence.SendersReference,
-            Recipient = null,
+            Recipient = null!, // Populated per-recipient in InitializeCorrespondenceHelper.MapToCorrespondenceEntityAsync
             RecipientType = null,
             ResourceId = request.Correspondence.ResourceId.WithoutPrefix(),
             Sender = UrnConstants.PlaceholderSender, // This is not required anymore from caller, but it still has to be set to a valid format
@@ -40,9 +40,9 @@ internal static class InitializeCorrespondencesMapper
                 MessageSummary = request.Correspondence.Content.MessageSummary ?? string.Empty,
                 MessageBody = request.Correspondence.Content.MessageBody,
                 Attachments = request.Correspondence.Content.Attachments.Select(
-                    attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, request.Correspondence.ResourceId, request.Correspondence.Sender)
+                    attachment => InitializeCorrespondenceAttachmentMapper.MapToEntity(attachment, request.Correspondence.ResourceId, UrnConstants.PlaceholderSender)
                 ).ToList()
-            } : null,
+            } : null!,
             IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             IsConfidential = request.Correspondence.IsConfidential,
             OriginalRequest = rawRequest
@@ -61,7 +61,7 @@ internal static class InitializeCorrespondencesMapper
         {
             Correspondence = correspondence,
             Attachments = attachments ?? new List<IFormFile>(),
-            ExistingAttachments = request.ExistingAttachments ?? new List<Guid>(),
+            ExistingAttachments = request.ExistingAttachments,
             Recipients = request.Recipients.Select(NormalizeRecipientToUrn).ToList(),
             Notification = correspondenceNotification,
             IdempotentKey = request.IdempotentKey

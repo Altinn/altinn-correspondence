@@ -235,6 +235,8 @@ public class CreateDialogRequestMapperTests
         var secondResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: created.AddSeconds(1));
 
         // Assert
+        Assert.NotNull(firstResult.Id);
+        Assert.NotNull(secondResult.Id);
         Assert.Equal(firstResult.Id, secondResult.Id);
         Assert.NotEqual(correspondenceId.ToString(), firstResult.Id);
         Assert.Equal(7, GetUuidVersion(Guid.Parse(firstResult.Id)));
@@ -258,6 +260,8 @@ public class CreateDialogRequestMapperTests
         var secondResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcNow);
 
         // Assert
+        Assert.NotNull(firstResult.Id);
+        Assert.NotNull(secondResult.Id);
         Assert.Equal(firstResult.Id, secondResult.Id);
         Assert.Equal(7, GetUuidVersion(Guid.Parse(firstResult.Id)));
         Assert.Equal(created.ToUnixTimeMilliseconds(), GetTimestampFromUuidV7(Guid.Parse(firstResult.Id)).ToUnixTimeMilliseconds());

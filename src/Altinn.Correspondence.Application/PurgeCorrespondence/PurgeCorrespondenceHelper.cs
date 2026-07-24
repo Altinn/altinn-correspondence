@@ -41,10 +41,6 @@ public class PurgeCorrespondenceHelper(
     public Error? ValidatePurgeRequestRecipient(CorrespondenceEntity correspondence)
     {
         var highestStatus = correspondence.GetHighestStatus();
-        if (highestStatus == null)
-        {
-            return CorrespondenceErrors.CouldNotRetrieveStatus;
-        }
         if (highestStatus.Status.IsPurged())
         {
             return CorrespondenceErrors.CorrespondenceAlreadyPurged;

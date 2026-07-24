@@ -5,9 +5,9 @@ namespace Altinn.Correspondence.Integrations.Slack
     public class SlackDevClient : ISlackClient
     {
         private readonly HttpClient _httpClient;
-        private readonly Uri _webhookUri;
+        private readonly Uri? _webhookUri;
         private const string POST_SUCCESS = "ok";
-        public SlackDevClient(string webhookUrl, HttpClient httpClient = null)
+        public SlackDevClient(string webhookUrl, HttpClient? httpClient = null)
         {
             _httpClient = httpClient ?? new HttpClient();
             if (!Uri.TryCreate(webhookUrl, UriKind.Absolute, out _webhookUri))

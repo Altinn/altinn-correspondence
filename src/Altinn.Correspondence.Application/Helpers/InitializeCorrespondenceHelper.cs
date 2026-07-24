@@ -313,6 +313,7 @@ namespace Altinn.Correspondence.Application.Helpers
             var expirationAnchorTime = request.Correspondence.RequestedPublishTime > baseTimestamp
                 ? request.Correspondence.RequestedPublishTime
                 : baseTimestamp;
+            var content = request.Correspondence.Content ?? throw new InvalidOperationException("Content must not be null after validation");
             return new CorrespondenceEntity
             {
                 ResourceId = request.Correspondence.ResourceId,
@@ -332,10 +333,10 @@ namespace Altinn.Correspondence.Application.Helpers
                         Created = DateTimeOffset.UtcNow,
                         ExpirationTime = a.ExpirationInDays.HasValue ? expirationAnchorTime.AddDays(a.ExpirationInDays.Value) : null,
                     }).ToList(),
-                    Language = request.Correspondence.Content.Language,
-                    MessageBody = AddRecipientToMessage(request.Correspondence.Content.MessageBody, partyDetails?.GetDisplayName() ?? string.Empty),
-                    MessageSummary = AddRecipientToMessage(request.Correspondence.Content.MessageSummary, partyDetails?.GetDisplayName() ?? string.Empty),
-                    MessageTitle = AddRecipientToMessage(request.Correspondence.Content.MessageTitle, partyDetails?.GetDisplayName() ?? string.Empty),
+                    Language = content.Language,
+                    MessageBody = AddRecipientToMessage(content.MessageBody, partyDetails?.GetDisplayName() ?? string.Empty),
+                    MessageSummary = AddRecipientToMessage(content.MessageSummary, partyDetails?.GetDisplayName() ?? string.Empty),
+                    MessageTitle = AddRecipientToMessage(content.MessageTitle, partyDetails?.GetDisplayName() ?? string.Empty),
                 },
                 RequestedPublishTime = request.Correspondence.RequestedPublishTime,
                 DueDateTime = request.Correspondence.DueDateTime,
@@ -373,10 +374,14 @@ namespace Altinn.Correspondence.Application.Helpers
         /// Validates the uploaded files. 
         /// Checks that the filename is valid, the files are the same as the attachments, and the files are not too large
         /// </summary>
-        public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity> attachments)
+        public Error? ValidateAttachmentFiles(List<IFormFile> files, List<CorrespondenceAttachmentEntity>? attachments)
         {
             var uploadTargetAttachments = new List<CorrespondenceAttachmentEntity>();
-
+            if (attachments is null)
+            {
+                logger.LogDebug("No attachments provided for validation");
+                return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+            }
             foreach (var attachmentMetadata in attachments)
             {
                 var attachment = attachmentMetadata.Attachment;
@@ -410,6 +415,11 @@ namespace Altinn.Correspondence.Application.Helpers
             for (int i = 0; i < uploadTargetAttachments.Count; i++)
             {
                 var attachment = uploadTargetAttachments[i].Attachment!;
+                if (attachment.FileName is null)
+                {
+                    logger.LogDebug("Attachment with id {AttachmentId} does not have a filename. Upload target attachments: {UploadTargetAttachmentCount}, Uploaded files: {UploadedFileCount}", attachment.Id, uploadTargetAttachments.Count, files.Count);
+                    return CorrespondenceErrors.UploadedFilesDoesNotMatchAttachments;
+                }
                 if (!TryResolveFileIndex(files, uniqueFileIndexByName, usedFileIndices, attachment.FileName, i, out var fileIndex))
                 {
                     logger.LogDebug("Could not resolve file index for attachment with filename {AttachmentFileName}. Expected file index: {ExpectedFileIndex}", attachment.FileName, i);
@@ -455,7 +465,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 return CorrespondenceStatus.Reserved;
             }
             var status = correspondence.Statuses.LastOrDefault()?.Status ?? CorrespondenceStatus.Initialized;
-            if (correspondence.Content.Attachments.All(c => c.Attachment?.Statuses != null && c.Attachment.StatusHasBeen(AttachmentStatus.Published)))
+            if (correspondence.Content.Attachments.All(c => c.Attachment!.StatusHasBeen(AttachmentStatus.Published)))
             {
                 status = CorrespondenceStatus.ReadyForPublish;
             }
@@ -493,7 +503,7 @@ namespace Altinn.Correspondence.Application.Helpers
                     uploadResponse = await attachmentHelper.UploadAttachment(f, attachment.Id, partyUuid, cancellationToken);
                 }
                 var error = uploadResponse.Match(
-                    _ => { return null; },
+                    _ => { return (Error?)null; },
                     error => { return error; }
                 );
                 if (error != null) return error;

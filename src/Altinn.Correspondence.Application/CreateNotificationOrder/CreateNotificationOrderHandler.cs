@@ -429,7 +429,7 @@ public class CreateNotificationOrderHandler(
             SendersReference = correspondence.SendersReference,
             MessageSender = string.IsNullOrEmpty(correspondence.MessageSender) ? null : correspondence.MessageSender,
             SenderUrn = correspondence.Sender,
-            MessageTitle = correspondence.Content?.MessageTitle,
+            MessageTitle = correspondence.Content.MessageTitle,
             RequestedPublishTime = correspondence.RequestedPublishTime,
             IgnoreReservation = correspondence.IgnoreReservation
         };

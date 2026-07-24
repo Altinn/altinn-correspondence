@@ -15,7 +15,6 @@ using System.Web;
 public class CascadeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>, IAuthenticationSignInHandler
 {
     private readonly IAuthenticationSchemeProvider _schemeProvider;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IHybridCacheWrapper _cache;
     private readonly GeneralSettings _generalSettings;
     private readonly IdportenTokenValidator _tokenValidator;
@@ -25,15 +24,12 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory loggerFactory,
         UrlEncoder encoder,
-        ISystemClock clock,
         IAuthenticationSchemeProvider schemeProvider,
-        IHttpContextAccessor httpContextAccessor,
         IOptions<GeneralSettings> generalSettings,
         IdportenTokenValidator tokenValidator,
         IHybridCacheWrapper cache)
-        : base(options, loggerFactory, encoder, clock)
+        : base(options, loggerFactory, encoder)
     {
-        _httpContextAccessor = httpContextAccessor;
         _generalSettings = generalSettings.Value;
         _schemeProvider = schemeProvider;
         _tokenValidator = tokenValidator;
@@ -88,7 +84,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
         }
 
         _logger.LogInformation("Attempting to retrieve token for session");
-        var token = await _cache.GetAsync<string>(sessionId);
+        var token = await _cache.GetAsync<string>(sessionId.ToString());
         
         if (string.IsNullOrEmpty(token))
         {
@@ -96,7 +92,7 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             return AuthenticateResult.NoResult();
         }
         _logger.LogInformation("Successfully retrieved token from cache for session");
-        await _cache.RemoveAsync(sessionId);
+        await _cache.RemoveAsync(sessionId.ToString());
         _logger.LogDebug("Removed token from cache for session");
 
         try 
@@ -120,6 +116,11 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
 
     public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
     {
+        if (properties is null)
+        {
+            throw new SecurityTokenMalformedException("Should have had authentication properties");
+        }
+
         var sessionId = Guid.NewGuid().ToString();
         _logger.LogInformation("Storing token in cache for session in SignInAsync");
         await _cache.SetAsync(
@@ -129,8 +130,8 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
             {
                 Expiration = TimeSpan.FromMinutes(5)
             });
-        
-        var redirectUrl = properties?.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
+
+        var redirectUrl = properties.Items["endpoint"] ?? throw new SecurityTokenMalformedException("Should have had an endpoint");
         redirectUrl = AppendSessionToUrl($"{_generalSettings.CorrespondenceBaseUrl.TrimEnd('/')}{redirectUrl}", sessionId);
         Response.Redirect(redirectUrl);
     }
@@ -139,20 +140,18 @@ public class CascadeAuthenticationHandler : AuthenticationHandler<Authentication
     {
         if (Request.Query.TryGetValue("session", out var sessionId))
         {
-            await _cache.RemoveAsync(sessionId);
+            await _cache.RemoveAsync(sessionId.ToString());
         }
         await Task.CompletedTask;
     }
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        var httpContext = _httpContextAccessor.HttpContext;
-        var request = httpContext.Request;
-        var redirectUrl = request.Path + request.QueryString.Value;
+        var redirectUrl = Request.Path + Request.QueryString.Value;
 
         properties.RedirectUri = redirectUrl;
         properties.Items["endpoint"] = redirectUrl;
-        if(_httpContextAccessor.HttpContext.Request.Headers["Authorization"].ToString().StartsWith("Bearer")) 
+        if(Request.Headers["Authorization"].ToString().StartsWith("Bearer"))
         {
             _logger.LogInformation("Challenging with JwtBearer scheme");
             return Context.ChallengeAsync(JwtBearerDefaults.AuthenticationScheme, properties);

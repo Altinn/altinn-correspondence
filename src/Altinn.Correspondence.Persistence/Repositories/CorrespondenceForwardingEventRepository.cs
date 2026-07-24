@@ -39,9 +39,9 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
     {
         var correspondenceForwardingEventQuery = _context.CorrespondenceForwardingEvents.AsSplitQuery()
             .Include(c => c.Correspondence)
-            .ThenInclude(c => c.Content)
+            .ThenInclude(c => c!.Content)
             .Include(c => c.Correspondence)
-            .ThenInclude(c => c.ExternalReferences)
+            .ThenInclude(c => c!.ExternalReferences)
             .AsQueryable();
 
         var forwardingEvent = await correspondenceForwardingEventQuery.SingleOrDefaultAsync(c => c.Id == forwardingEventId, cancellationToken);

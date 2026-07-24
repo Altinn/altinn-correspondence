@@ -4,8 +4,8 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences;
 
 public class InitializeCorrespondencesResponse
 {
-    public List<InitializedCorrespondences> Correspondences { get; set; }
-    public List<Guid> AttachmentIds { get; set; }
+    public List<InitializedCorrespondences> Correspondences { get; set; } = new List<InitializedCorrespondences>();
+    public List<Guid> AttachmentIds { get; set; } = new List<Guid>();
 }
 
 public class InitializedCorrespondences

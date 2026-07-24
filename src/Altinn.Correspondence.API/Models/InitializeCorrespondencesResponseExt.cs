@@ -11,11 +11,11 @@ public class InitializeCorrespondencesResponseExt
     /// The initialized correspondences
     /// </summary>
     [JsonPropertyName("correspondences")]
-    public List<InitializedCorrespondencesExt> Correspondences { get; set; }
+    public List<InitializedCorrespondencesExt> Correspondences { get; set; } = new List<InitializedCorrespondencesExt>();
 
     /// <summary>
     /// The IDs of the attachments that is included in the correspondences
     /// </summary>
     [JsonPropertyName("attachmentIds")]
-    public List<Guid> AttachmentIds { get; set; }
+    public List<Guid> AttachmentIds { get; set; } = new List<Guid>();
 }

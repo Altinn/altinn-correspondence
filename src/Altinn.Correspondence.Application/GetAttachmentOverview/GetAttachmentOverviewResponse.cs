@@ -9,15 +9,15 @@ public class GetAttachmentOverviewResponse
 
     public AttachmentDataLocationType DataLocationType { get; set; }
 
-    public AttachmentStatus Status { get; set; }
+    public required AttachmentStatus Status { get; set; }
 
     public required string StatusText { get; set; }
 
     public DateTimeOffset StatusChanged { get; set; }
 
-    public string FileName { get; set; } = string.Empty;
+    public required string FileName { get; set; }
 
-    public string DisplayName { get; set; } = string.Empty;
+    public string? DisplayName { get; set; } = string.Empty;
 
     public string? Checksum { get; set; } = string.Empty;
 

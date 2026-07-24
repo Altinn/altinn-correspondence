@@ -16,7 +16,7 @@ public class IdportenTokenValidator
         _oidcOptions = oidcOptions;
     }
 
-    public async Task<ClaimsPrincipal> ValidateTokenAsync(string token)
+    public async Task<ClaimsPrincipal?> ValidateTokenAsync(string token)
     {
         var options = _oidcOptions.Get(OpenIdConnectDefaults.AuthenticationScheme);
 

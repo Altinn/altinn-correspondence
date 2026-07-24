@@ -18,6 +18,10 @@ public class NotificationMapper
     {
         var correspondence = notification.Correspondence ?? throw new ArgumentException($"Correspondence with id {notification.CorrespondenceId} not found when mapping notification", nameof(notification));
         NotificationsStatusDetails nsd = new NotificationsStatusDetails();
+        if (notification.NotificationSent == null)
+        {
+            throw new ArgumentException($"Notification with id {notification.Id} has no notification sent time", nameof(notification));
+        }
         var sendStatus = new StatusExt()
         {
             Status = "Completed",
@@ -54,7 +58,7 @@ public class NotificationMapper
             SendersReference = null,
             RequestedSendTime = notification.RequestedSendTime,
             Created = notification.Created,
-            Creator = correspondence?.ResourceId != null ? await _resourceRegistryService.GetServiceOwnerOrgCode(correspondence.ResourceId) : "Not found",
+            Creator = correspondence.ResourceId != null ? await _resourceRegistryService.GetServiceOwnerOrgCode(correspondence.ResourceId) ?? "Not found" : "Not found",
             IsReminder = notification.IsReminder,
             NotificationChannel = notification.NotificationChannel,
             ResourceId = correspondence.ResourceId,
@@ -93,7 +97,7 @@ public class NotificationMapper
             SendersReference = notificationDetails.SendersReference,
             RequestedSendTime = notification.RequestedSendTime,
             Created = notification.Created,
-            Creator = correspondence?.ResourceId != null ? await _resourceRegistryService.GetServiceOwnerOrgCode(correspondence.ResourceId) : "Not found",
+            Creator = correspondence.ResourceId != null ? await _resourceRegistryService.GetServiceOwnerOrgCode(correspondence.ResourceId) ?? "Not found" : "Not found",
             IsReminder = notification.IsReminder,
             NotificationChannel = notification.NotificationChannel,
             ResourceId = correspondence.ResourceId,

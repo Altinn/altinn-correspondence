@@ -124,6 +124,7 @@ public class CleanupBruksmonsterHandlerTests
             SendersReference = "ref",
             Sender = "0192:910753614",
             Created = DateTimeOffset.UtcNow,
+            FileName = "file.txt",
             AttachmentSize = 1,
             StorageProvider = null
         }).ToList();

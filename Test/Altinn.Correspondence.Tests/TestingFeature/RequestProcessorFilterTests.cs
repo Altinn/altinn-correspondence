@@ -45,7 +45,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             catch (Exception e)
             {
                 // Assert
-                Assert.False(true, $"Exception thrown: {e.Message}");
+                Assert.Fail($"Exception thrown: {e.Message}");
             }
 
             // Assert

@@ -24,7 +24,7 @@ public class AltinnEventBus : IEventBus
         _logger = logger;
     }
 
-    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string party, CancellationToken cancellationToken = default)
+    public async Task Publish(AltinnEventType type, string resourceId, string itemId, string eventSource, string? party = null, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Publishing cloud event {type} for resource {resourceId} with event source {eventSource} and item ID {itemId}. Recipient is {recipient}.", type, resourceId, eventSource, itemId, party);
 
@@ -41,9 +41,9 @@ public class AltinnEventBus : IEventBus
         }
     }
 
-    private CloudEvent CreateCloudEvent(AltinnEventType type, string resourceId, string itemId, string party, string eventSource)
+    private CloudEvent CreateCloudEvent(AltinnEventType type, string resourceId, string itemId, string? party, string eventSource)
     {
-        var alternativeSubjectFormated = handleAlternativeSubject(party.WithoutPrefix());
+        var alternativeSubjectFormated = party is not null ? handleAlternativeSubject(party.WithoutPrefix()) : null;
         CloudEvent cloudEvent = new CloudEvent()
         {
             Id = Guid.NewGuid(),
@@ -53,7 +53,7 @@ public class AltinnEventBus : IEventBus
             ResourceInstance = itemId,
             Type = "no.altinn.correspondence." + type.ToString().ToLowerInvariant(),
             Source = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/') + "/correspondence/api/v1/" + eventSource,
-            Subject = party.WithUrnPrefix(),
+            Subject = party?.WithUrnPrefix(),
             AlternativeSubject = alternativeSubjectFormated
         };
 

@@ -20,12 +20,16 @@ public class MarkCorrespondenceAsReadHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
-    IEventBus eventBus,
     ILogger<MarkCorrespondenceAsReadHandler> logger,
     ApplicationDbContext dbContext) : IHandler<MarkCorrespondenceAsReadRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(MarkCorrespondenceAsReadRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
+        if (user == null)
+        {
+            logger.LogWarning("Unauthorized attempt to mark correspondence {CorrespondenceId} as read - no user context provided", request.CorrespondenceId);
+            return AuthorizationErrors.NoAccessToResource;
+        }
         logger.LogInformation("Processing mark as read request for correspondence {CorrespondenceId}", 
             request.CorrespondenceId);
         
@@ -63,8 +67,7 @@ public class MarkCorrespondenceAsReadHandler(
                 updateError);
             return updateError;
         }
-        
-        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn(), cancellationToken);
+        var party = await altinnRegisterService.LookUpPartyById(user.GetCallerPartyUrn() ?? string.Empty, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {
             logger.LogError("Could not find party UUID for caller {caller}", user.GetCallerPartyUrn());
@@ -104,15 +107,11 @@ public class MarkCorrespondenceAsReadHandler(
     private Error? ValidateCurrentStatus(CorrespondenceEntity correspondence)
     {
         var currentStatus = correspondence.GetHighestStatus();
-        if (currentStatus is null)
-        {
-            return CorrespondenceErrors.CouldNotRetrieveStatus;
-        }
         if (!currentStatus.Status.IsAvailableForRecipient())
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        if (currentStatus!.Status.IsPurged())
+        if (currentStatus.Status.IsPurged())
         {
             return CorrespondenceErrors.CorrespondenceNotFound;
         }

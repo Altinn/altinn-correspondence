@@ -72,7 +72,7 @@ public class Program
                         MaxDegreeOfParallelism = 32
                     };
                     options.Logger($"Starting population of database with batch size of {options.BatchSize} and with {options.MaxDegreeOfParallelism} parallel threads");
-                    var databasePopulator = new DatabasePopulator(dbContext.Database.GetConnectionString(), options); 
+                    var databasePopulator = new DatabasePopulator(dbContext.Database.GetConnectionString()!, options);
                     // Generate correspondences and get their IDs
                     var correspondenceIds = databasePopulator.PopulateWithCorrespondences(bulkCopycount);
 
@@ -115,6 +115,7 @@ public class Program
         while (!streamReader.EndOfStream)
         {
             var row = streamReader.ReadLine();
+            if (row == null) continue;
             lineCount++;
             Match match = Regex.Match(row, pattern);
             if (lineCount % 10000 == 0)
