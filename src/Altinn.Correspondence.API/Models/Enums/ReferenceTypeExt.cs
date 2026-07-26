@@ -1,8 +1,11 @@
-﻿namespace Altinn.Correspondence.API.Models.Enums
+﻿using Altinn.Authorization.ModelUtils;
+
+namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
     /// Defines what kind of reference
     /// </summary>
+    [StringEnumConverter]
     public enum ReferenceTypeExt : int
     {
         /// <summary>

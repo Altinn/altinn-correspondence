@@ -1,5 +1,7 @@
 using Altinn.Correspondence.API.Models.Enums;
 using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
+
 
 namespace Altinn.Correspondence.API.Models
 {
@@ -12,7 +14,7 @@ namespace Altinn.Correspondence.API.Models
         /// Correspondence Status Event
         /// </summary>
         [JsonPropertyName("status")]
-        public CorrespondenceStatusExt Status { get; set; }
+        public NonExhaustiveEnum<CorrespondenceStatusExt> Status { get; set; }
 
         /// <summary>
         /// Correspondence Status Text description

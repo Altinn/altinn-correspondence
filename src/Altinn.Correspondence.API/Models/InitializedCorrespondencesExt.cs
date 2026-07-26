@@ -1,6 +1,7 @@
 
-using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Correspondence.API.Models.Enums;
+using System.Text.Json.Serialization;
 
 namespace Altinn.Correspondence.API.Models;
 /// <summary>
@@ -18,7 +19,7 @@ public class InitializedCorrespondencesExt
     /// The current status of the correspondence
     /// </summary>
     [JsonPropertyName("status")]
-    public CorrespondenceStatusExt Status { get; set; }
+    public NonExhaustiveEnum<CorrespondenceStatusExt> Status { get; set; }
 
     /// <summary>
     /// The recipient of the correspondence

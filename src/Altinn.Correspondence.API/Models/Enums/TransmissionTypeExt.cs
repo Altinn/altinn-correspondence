@@ -1,8 +1,11 @@
+using Altinn.Authorization.ModelUtils;
+
 namespace Altinn.Correspondence.API.Models.Enums
 {
     /// <summary>
     /// Defines the type of a transmission.
     /// </summary>
+    [StringEnumConverter]
     public enum TransmissionTypeExt : int
     {
         Information = 1,
