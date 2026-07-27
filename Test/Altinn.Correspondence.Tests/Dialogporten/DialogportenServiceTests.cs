@@ -50,7 +50,7 @@ public class DialogportenServiceTests
 
         var mockRepo = new Mock<ICorrespondenceRepository>();
         mockRepo
-            .Setup(r => r.GetCorrespondenceById(correspondence.Id, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(r => r.GetCorrespondenceById(correspondence.Id, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         var mockIdem = new Mock<IIdempotencyKeyRepository>();
@@ -109,7 +109,7 @@ public class DialogportenServiceTests
 
         var mockRepo = new Mock<ICorrespondenceRepository>();
         mockRepo
-            .Setup(r => r.GetCorrespondenceById(correspondence.Id, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(r => r.GetCorrespondenceById(correspondence.Id, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         var mockIdem = new Mock<IIdempotencyKeyRepository>();
@@ -165,7 +165,7 @@ public class DialogportenServiceTests
 
         var mockRepo = new Mock<ICorrespondenceRepository>();
         mockRepo
-            .Setup(r => r.GetCorrespondenceById(correspondence.Id, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(r => r.GetCorrespondenceById(correspondence.Id, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
         mockRepo
             .Setup(r => r.RemoveExternalReference(correspondence, ReferenceType.DialogportenDialogId, It.IsAny<CancellationToken>()))

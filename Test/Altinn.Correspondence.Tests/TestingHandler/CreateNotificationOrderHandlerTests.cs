@@ -119,7 +119,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             };
 
             _mockCorrespondenceRepository
-                .Setup(x => x.GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), CancellationToken.None, false))
+                .Setup(x => x.GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), CancellationToken.None))
                 .ReturnsAsync(correspondence);
 
             _mockNotificationTemplateRepository

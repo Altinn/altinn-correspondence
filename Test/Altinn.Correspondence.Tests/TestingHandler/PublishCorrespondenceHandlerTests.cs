@@ -66,7 +66,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _altinnRegisterServiceMock.SetupPartyByIdLookup("310244007", partyUuid);
 
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             _correspondenceRepositoryMock

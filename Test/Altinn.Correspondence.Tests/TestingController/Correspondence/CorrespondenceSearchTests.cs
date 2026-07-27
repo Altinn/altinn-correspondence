@@ -615,30 +615,5 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
             Assert.Empty(result.Ids);
         }
-
-        [Fact]
-        public async Task GetCorrespondences_WithAltinn2CorrespondenceId_WhenStillMigrating_ReturnsEmptyList()
-        {
-            // Arrange
-            var resourceId = Guid.NewGuid().ToString();
-            var altinn2CorrespondenceId = new Random().Next(100000, int.MaxValue);
-
-            using var scope = _factory.Services.CreateScope();
-            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
-            var correspondence = new CorrespondenceEntityBuilder()
-                .WithResourceId(resourceId)
-                .WithAltinn2CorrespondenceId(altinn2CorrespondenceId)
-                .WithIsMigrating(true)
-                .Build();
-            await correspondenceRepository.CreateCorrespondence(correspondence, CancellationToken.None);
-
-            // Act
-            var search = await _senderClient.GetAsync($"/correspondence/api/v1/correspondence?resourceId={resourceId}&altinn2CorrespondenceId={altinn2CorrespondenceId}&role={"recipientandsender"}");
-
-            // Assert
-            Assert.Equal(HttpStatusCode.OK, search.StatusCode);
-            var result = await search.Content.ReadFromJsonAsync<GetCorrespondencesResponse>(_responseSerializerOptions);
-            Assert.Empty(result.Ids);
-        }
     }
 }
