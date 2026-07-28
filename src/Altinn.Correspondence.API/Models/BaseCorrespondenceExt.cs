@@ -107,6 +107,12 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("isConfidential")]
         public bool IsConfidential { get; set; }
+
+        /// <summary>
+        /// Specifies whether the correspondence can be forwarded by the recipient
+        /// </summary>
+        [JsonPropertyName("allowForwarding")]
+        public bool AllowForwarding { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Property)]

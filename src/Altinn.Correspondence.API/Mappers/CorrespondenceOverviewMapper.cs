@@ -38,6 +38,7 @@ internal static class CorrespondenceOverviewMapper
             Read = correspondenceOverview.Read,
             IsConfirmationNeeded = correspondenceOverview.IsConfirmationNeeded,
             IsConfidential = correspondenceOverview.IsConfidential,
+            AllowForwarding = correspondenceOverview.AllowForwarding,
             Altinn2CorrespondenceId = correspondenceOverview.Altinn2CorrespondenceId
         };
         return Correspondence;

@@ -51,6 +51,8 @@ public class GetCorrespondenceOverviewResponse
     
     public bool IsConfidential { get; set; }
 
+    public bool AllowForwarding { get; set; }
+
     public int? Altinn2CorrespondenceId { get; set; }
 }
 

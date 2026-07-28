@@ -52,6 +52,8 @@ public class GetCorrespondenceDetailsResponse
     
     public bool IsConfidential { get; set; }
 
+    public bool AllowForwarding { get; set; }
+
     public int? Altinn2CorrespondenceId { get; set; }
 
     public DialogPortenSystemLabel? SystemLabel { get; set; }

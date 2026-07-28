@@ -34,6 +34,7 @@ internal static class CorrespondenceDetailsMapper
             Read = correspondenceDetails.Read,
             IsConfirmationNeeded = correspondenceDetails.IsConfirmationNeeded,
             IsConfidential = correspondenceDetails.IsConfidential,
+            AllowForwarding = correspondenceDetails.AllowForwarding,
             Altinn2CorrespondenceId = correspondenceDetails.Altinn2CorrespondenceId,
             SystemLabel = correspondenceDetails.SystemLabel ?? DialogPortenSystemLabel.Default
         };
