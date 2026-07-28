@@ -194,30 +194,30 @@ public class CreateNotificationOrderHandler(
             recipientsToProcess.AddRange(notificationRequest.CustomRecipients);
         }
 
-        if (correspondenceRecipient is not null)
-        {
-            recipientsToProcess = await RemoveCustomRecipientsAlreadyOnRecipient(recipientsToProcess, correspondenceRecipient, notificationRequest, context, cancellationToken);
-        }
+        var recipientPlans = correspondenceRecipient is not null
+            ? await DeduplicateAgainstRegisteredContactInfo(recipientsToProcess, correspondenceRecipient, notificationRequest, context, cancellationToken)
+            : recipientsToProcess.Select(recipient => new RecipientNotificationPlan(recipient, notificationRequest.SendReminder)).ToList();
 
         // Deduplicate recipients based on the same key used for idempotency to avoid tracking and PK conflicts
-        var distinctRecipients = recipientsToProcess
-            .GroupBy(BuildRecipientKey)
-            .Select(g => g.First())
+        var distinctPlans = recipientPlans
+            .GroupBy(plan => BuildRecipientKey(plan.Recipient))
+            .Select(group => group.First())
             .ToList();
 
-        if (distinctRecipients.Count != recipientsToProcess.Count)
+        if (distinctPlans.Count != recipientPlans.Count)
         {
             logger.LogInformation(
                 "Deduplicated recipients for {NotificationId}: {OriginalCount} -> {DistinctCount}",
                 context.Id,
-                recipientsToProcess.Count,
-                distinctRecipients.Count);
+                recipientPlans.Count,
+                distinctPlans.Count);
         }
 
         var notificationOrders = new List<NotificationOrderRequestV2>();
 
-        foreach (var recipient in distinctRecipients)
+        foreach (var plan in distinctPlans)
         {
+            var recipient = plan.Recipient;
             var notificationOrder = new NotificationOrderRequestV2
             {
                 SendersReference = $"corr-{context.SendersReference}",
@@ -228,7 +228,7 @@ public class CreateNotificationOrderHandler(
                 Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: false)
             };
 
-            if (notificationRequest.SendReminder)
+            if (plan.IncludeReminder)
             {
                 notificationOrder.Reminders =
                 [
@@ -250,29 +250,35 @@ public class CreateNotificationOrderHandler(
     }
 
     /// <summary>
-    /// Removes custom email/SMS recipients whose address is already registered on the correspondence recipient,
-    /// since those addresses receive the notification sent to the recipient's registered contact information.
+    /// Deduplicates custom email/SMS recipients against the correspondence recipient's registered contact information,
+    /// evaluated per phase (main notification vs reminder) because the two can use different channels. A custom recipient
+    /// is dropped only when nothing unique would be lost - the main notification duplicates its address and either the
+    /// reminder also duplicates it or there is no reminder. When only the reminder duplicates, the reminder is suppressed;
+    /// when only the main duplicates, the recipient is kept and a duplicate main notification is accepted so its unique
+    /// reminder is still delivered (the order model cannot carry a reminder without a main notification).
     /// </summary>
-    private async Task<List<Recipient>> RemoveCustomRecipientsAlreadyOnRecipient(List<Recipient> recipients, Recipient correspondenceRecipient, NotificationRequest notificationRequest, NotificationContext context, CancellationToken cancellationToken)
+    private async Task<List<RecipientNotificationPlan>> DeduplicateAgainstRegisteredContactInfo(List<Recipient> recipients, Recipient correspondenceRecipient, NotificationRequest notificationRequest, NotificationContext context, CancellationToken cancellationToken)
     {
-        var channels = new List<NotificationChannel> { notificationRequest.NotificationChannel };
-        if (notificationRequest.SendReminder)
-        {
-            channels.Add(notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel);
-        }
-        bool notifiesRegisteredEmails = channels.Any(channel => channel is NotificationChannel.Email or NotificationChannel.EmailAndSms or NotificationChannel.EmailPreferred);
-        bool notifiesRegisteredMobileNumbers = channels.Any(channel => channel is NotificationChannel.Sms or NotificationChannel.EmailAndSms or NotificationChannel.SmsPreferred);
+        static bool NotifiesEmail(NotificationChannel channel) => channel is NotificationChannel.Email or NotificationChannel.EmailAndSms or NotificationChannel.EmailPreferred;
+        static bool NotifiesMobileNumber(NotificationChannel channel) => channel is NotificationChannel.Sms or NotificationChannel.EmailAndSms or NotificationChannel.SmsPreferred;
 
-        var customEmails = notifiesRegisteredEmails
+        var reminderChannel = notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel;
+        bool mainNotifiesEmail = NotifiesEmail(notificationRequest.NotificationChannel);
+        bool mainNotifiesMobileNumber = NotifiesMobileNumber(notificationRequest.NotificationChannel);
+        bool reminderNotifiesEmail = notificationRequest.SendReminder && NotifiesEmail(reminderChannel);
+        bool reminderNotifiesMobileNumber = notificationRequest.SendReminder && NotifiesMobileNumber(reminderChannel);
+
+        var customEmails = mainNotifiesEmail || reminderNotifiesEmail
             ? recipients.Where(recipient => !string.IsNullOrEmpty(recipient.EmailAddress)).Select(recipient => recipient.EmailAddress!.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase)
             : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var customMobileNumbers = notifiesRegisteredMobileNumbers
+        var customMobileNumbers = mainNotifiesMobileNumber || reminderNotifiesMobileNumber
             ? recipients.Where(recipient => !string.IsNullOrEmpty(recipient.MobileNumber)).Select(recipient => NormalizeMobileNumber(recipient.MobileNumber!)).ToHashSet()
             : new HashSet<string>();
 
+        var keepAll = recipients.Select(recipient => new RecipientNotificationPlan(recipient, notificationRequest.SendReminder)).ToList();
         if (customEmails.Count == 0 && customMobileNumbers.Count == 0)
         {
-            return recipients;
+            return keepAll;
         }
 
         var registeredAddresses = correspondenceRecipient switch
@@ -282,34 +288,59 @@ public class CreateNotificationOrderHandler(
             _ => RegisteredAddresses.None
         };
 
-        var registeredEmails = notifiesRegisteredEmails
-            ? registeredAddresses.Emails.Select(email => email.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase)
-            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        var registeredMobileNumbers = notifiesRegisteredMobileNumbers
-            ? registeredAddresses.MobileNumbers.Select(NormalizeMobileNumber).ToHashSet()
-            : [];
+        var registeredEmails = registeredAddresses.Emails.Select(email => email.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var registeredMobileNumbers = registeredAddresses.MobileNumbers.Select(NormalizeMobileNumber).ToHashSet();
 
         if (registeredEmails.Count == 0 && registeredMobileNumbers.Count == 0)
         {
-            return recipients;
+            return keepAll;
         }
 
-        bool IsRegisteredOnRecipient(Recipient recipient) =>
-            (!string.IsNullOrEmpty(recipient.EmailAddress) && registeredEmails.Contains(recipient.EmailAddress.Trim()))
-            || (!string.IsNullOrEmpty(recipient.MobileNumber) && registeredMobileNumbers.Contains(NormalizeMobileNumber(recipient.MobileNumber)));
+        bool RegisteredInPhase(Recipient recipient, bool notifiesEmail, bool notifiesMobileNumber) =>
+            (notifiesEmail && !string.IsNullOrEmpty(recipient.EmailAddress) && registeredEmails.Contains(recipient.EmailAddress.Trim()))
+            || (notifiesMobileNumber && !string.IsNullOrEmpty(recipient.MobileNumber) && registeredMobileNumbers.Contains(NormalizeMobileNumber(recipient.MobileNumber)));
 
-        var filteredRecipients = recipients.Where(recipient => !IsRegisteredOnRecipient(recipient)).ToList();
+        var plans = new List<RecipientNotificationPlan>();
+        int removedRecipients = 0;
+        int suppressedReminders = 0;
+        int duplicateMainNotifications = 0;
+        foreach (var recipient in recipients)
+        {
+            bool duplicatedByMainNotification = RegisteredInPhase(recipient, mainNotifiesEmail, mainNotifiesMobileNumber);
+            bool duplicatedByReminder = RegisteredInPhase(recipient, reminderNotifiesEmail, reminderNotifiesMobileNumber);
 
-        if (filteredRecipients.Count != recipients.Count)
+            // Drop only when nothing unique is lost: the main notification duplicates and either the reminder also
+            // duplicates or there is no reminder. When only the main duplicates, keep the recipient and accept a duplicate
+            // main notification so its unique reminder still reaches the address - the order model has no reminder-only order.
+            if (duplicatedByMainNotification && (duplicatedByReminder || !notificationRequest.SendReminder))
+            {
+                removedRecipients++;
+                continue;
+            }
+            if (duplicatedByMainNotification)
+            {
+                duplicateMainNotifications++;
+            }
+
+            bool includeReminder = notificationRequest.SendReminder && !duplicatedByReminder;
+            if (notificationRequest.SendReminder && !includeReminder)
+            {
+                suppressedReminders++;
+            }
+            plans.Add(new RecipientNotificationPlan(recipient, includeReminder));
+        }
+
+        if (removedRecipients > 0 || suppressedReminders > 0 || duplicateMainNotifications > 0)
         {
             logger.LogInformation(
-                "Removed {RemovedCount} custom recipient(s) for {NotificationId} because their address is already registered on the correspondence recipient",
-                recipients.Count - filteredRecipients.Count,
-                context.Id);
+                "Deduplicated custom recipients for {NotificationId} against registered contact information: removed {RemovedRecipients} recipient(s), suppressed {SuppressedReminders} reminder(s), kept {DuplicateMainNotifications} with a duplicate main notification to preserve a unique reminder",
+                context.Id,
+                removedRecipients,
+                suppressedReminders,
+                duplicateMainNotifications);
         }
 
-        return filteredRecipients;
+        return plans;
     }
 
     private async Task<RegisteredAddresses> GetAddressesRegisteredOnOrganization(string organizationNumber, string resourceId, HashSet<string> customEmails, HashSet<string> customMobileNumbers, CancellationToken cancellationToken)
@@ -370,6 +401,8 @@ public class CreateNotificationOrderHandler(
     {
         public static readonly RegisteredAddresses None = new([], []);
     }
+
+    private sealed record RecipientNotificationPlan(Recipient Recipient, bool IncludeReminder);
 
     private static string BuildRecipientKey(Recipient recipient)
     {

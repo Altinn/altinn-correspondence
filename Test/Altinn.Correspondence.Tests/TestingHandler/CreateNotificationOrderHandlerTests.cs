@@ -364,6 +364,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
             var (request, correspondence, _) = SetupOrderData(requestedPublishTime);
             correspondence.Recipient = "urn:altinn:organization:identifier-no:991825827";
+            request.NotificationRequest.SendReminder = false;
             request.NotificationRequest.CustomRecipients =
             [
                 new Recipient { EmailAddress = "registered@example.com" },
@@ -399,12 +400,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ShouldRemoveCustomSmsRecipient_WhenMobileNumberIsRegisteredByUserOnRecipientOrganization()
+        public async Task Process_ShouldDeduplicatePerPhase_WhenMainAndReminderUseDifferentChannels()
         {
             // Arrange
             var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
             var (request, correspondence, _) = SetupOrderData(requestedPublishTime);
             correspondence.Recipient = "urn:altinn:organization:identifier-no:991825827";
+            request.NotificationRequest.NotificationChannel = NotificationChannel.EmailPreferred;
+            request.NotificationRequest.ReminderNotificationChannel = NotificationChannel.SmsPreferred;
             request.NotificationRequest.CustomRecipients =
             [
                 new Recipient { MobileNumber = "+4799999999" },
@@ -436,13 +439,18 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Act
             await _handler.Process(request, CancellationToken.None);
 
-            // Assert: registered mobile number (without country code) matches custom recipient with country code
+            // Assert
             var orders = captured.Select(n => JsonSerializer.Deserialize<NotificationOrderRequestV2>(n.OrderRequest!)!).ToList();
-            Assert.Equal(2, orders.Count);
+            Assert.Equal(4, orders.Count);
             Assert.Contains(orders, o => o.Recipient.RecipientOrganization != null);
-            Assert.Contains(orders, o => o.Recipient.RecipientSms?.PhoneNumber == "+4791111111");
-            Assert.DoesNotContain(orders, o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
-            Assert.DoesNotContain(orders, o => o.Recipient.RecipientEmail != null);
+            var duplicatedEmail = orders.Single(o => o.Recipient.RecipientEmail?.EmailAddress == "user@example.com");
+            Assert.NotNull(duplicatedEmail.Reminders);
+            Assert.True(duplicatedEmail.Reminders!.Count >= 1);
+            var duplicatedSms = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
+            Assert.Null(duplicatedSms.Reminders);
+            var otherSms = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4791111111");
+            Assert.NotNull(otherSms.Reminders);
+            Assert.True(otherSms.Reminders!.Count >= 1);
         }
 
         [Fact]
@@ -472,7 +480,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     }
                 });
 
-            // The user who registered the matching mobile number is no longer authorized for the resource
             _mockAltinnAuthorizationService
                 .Setup(x => x.AuthorizeUserIdsForResource(It.IsAny<int>(), It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<int>());
@@ -486,7 +493,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Act
             await _handler.Process(request, CancellationToken.None);
 
-            // Assert: the custom recipient is kept, because Notifications would not deliver to the unauthorized user's address
+            // Assert
             var orders = captured.Select(n => JsonSerializer.Deserialize<NotificationOrderRequestV2>(n.OrderRequest!)!).ToList();
             Assert.Equal(2, orders.Count);
             Assert.Contains(orders, o => o.Recipient.RecipientOrganization != null);
@@ -543,7 +550,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Act
             await _handler.Process(request, CancellationToken.None);
 
-            // Assert: no lookup since the recipient's registered contact information will not be notified
+            // Assert
             _mockAltinnProfileService.Verify(
                 x => x.GetOrganizationNotificationAddresses(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()),
                 Times.Never);
@@ -569,7 +576,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Act
             await _handler.Process(request, CancellationToken.None);
 
-            // Assert: the lookup only covers organization recipients
+            // Assert
             _mockAltinnProfileService.Verify(
                 x => x.GetOrganizationNotificationAddresses(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()),
                 Times.Never);
@@ -609,7 +616,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Act
             await _handler.Process(request, CancellationToken.None);
 
-            // Assert: the email channel never notifies the registered mobile number, so the custom SMS recipient is kept without any lookup
+            // Assert
             _mockAltinnProfileService.Verify(
                 x => x.GetOrganizationNotificationAddresses(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()),
                 Times.Never);
@@ -646,7 +653,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Act
             await _handler.Process(request, CancellationToken.None);
 
-            // Assert: the SMS channel never notifies the registered email, so the custom email recipient is kept without any lookup
+            // Assert
             _mockAltinnProfileService.Verify(
                 x => x.GetOrganizationNotificationAddresses(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()),
                 Times.Never);
@@ -656,7 +663,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ShouldRemoveCustomSmsRecipient_WhenReminderChannelNotifiesRegisteredMobileNumbers()
+        public async Task Process_ShouldSuppressReminderButKeepMainSms_WhenOnlyReminderChannelNotifiesRegisteredMobileNumber()
         {
             // Arrange
             var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
@@ -681,13 +688,99 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     }
                 ]);
 
+            var captured = new List<CorrespondenceNotificationEntity>();
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured.Add(n))
+                .ReturnsAsync(Guid.NewGuid());
+
             // Act
             await _handler.Process(request, CancellationToken.None);
 
-            // Assert: the reminder channel notifies the registered mobile number, so the custom SMS recipient is removed
+            // Assert
+            var orders = captured.Select(n => JsonSerializer.Deserialize<NotificationOrderRequestV2>(n.OrderRequest!)!).ToList();
+            Assert.Equal(2, orders.Count);
+            Assert.Contains(orders, o => o.Recipient.RecipientOrganization != null);
+            var customSms = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
+            Assert.Null(customSms.Reminders);
+        }
+
+        [Fact]
+        public async Task Process_ShouldRemoveCustomSmsRecipientEntirely_WhenMainChannelNotifiesRegisteredMobileNumber()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, correspondence, _) = SetupOrderData(requestedPublishTime);
+            correspondence.Recipient = "urn:altinn:organization:identifier-no:991825827";
+            request.NotificationRequest.NotificationChannel = NotificationChannel.SmsPreferred;
+            request.NotificationRequest.SendReminder = false;
+            request.NotificationRequest.CustomRecipients =
+            [
+                new Recipient { MobileNumber = "+4799999999" }
+            ];
+
+            _mockAltinnProfileService
+                .Setup(x => x.GetOrganizationNotificationAddresses(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(
+                [
+                    new OrgNotificationAddresses
+                    {
+                        OrganizationNumber = "991825827",
+                        MobileNumberList = ["+4799999999"]
+                    }
+                ]);
+
+            // Act
+            await _handler.Process(request, CancellationToken.None);
+
+            // Assert
             _mockCorrespondenceNotificationRepository.Verify(
                 x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_ShouldKeepReminderAtCostOfDuplicateMain_WhenMainDuplicatesButReminderDoesNot()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, correspondence, _) = SetupOrderData(requestedPublishTime);
+            correspondence.Recipient = "urn:altinn:organization:identifier-no:991825827";
+            request.NotificationRequest.NotificationChannel = NotificationChannel.SmsPreferred;
+            request.NotificationRequest.SendReminder = true;
+            request.NotificationRequest.ReminderNotificationChannel = NotificationChannel.Email;
+            request.NotificationRequest.CustomRecipients =
+            [
+                new Recipient { MobileNumber = "+4799999999" }
+            ];
+
+            _mockAltinnProfileService
+                .Setup(x => x.GetOrganizationNotificationAddresses(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(
+                [
+                    new OrgNotificationAddresses
+                    {
+                        OrganizationNumber = "991825827",
+                        MobileNumberList = ["+4799999999"]
+                    }
+                ]);
+
+            var captured = new List<CorrespondenceNotificationEntity>();
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured.Add(n))
+                .ReturnsAsync(Guid.NewGuid());
+
+            // Act
+            await _handler.Process(request, CancellationToken.None);
+
+            // Assert
+            var orders = captured.Select(n => JsonSerializer.Deserialize<NotificationOrderRequestV2>(n.OrderRequest!)!).ToList();
+            Assert.Equal(2, orders.Count);
+            Assert.Contains(orders, o => o.Recipient.RecipientOrganization != null);
+            var customSms = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
+            Assert.NotNull(customSms.Reminders);
+            Assert.True(customSms.Reminders!.Count >= 1);
         }
     }
 }
