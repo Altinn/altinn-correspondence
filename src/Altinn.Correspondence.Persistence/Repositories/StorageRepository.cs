@@ -410,6 +410,25 @@ namespace Altinn.Correspondence.Persistence.Repositories
             throw;
         }
     }
+
+    public async Task<string> GenerateSasUrl(AttachmentEntity attachment, StorageProviderEntity? storageProvider, CancellationToken cancellationToken)
+    {
+        var blobContainerClient = await GetBlobContainerClient(attachment.Id, storageProvider);
+        BlockBlobClient blockBlobClient = blobContainerClient.GetBlockBlobClient(attachment.Id.ToString());
+
+        // Generate a SAS token that is valid for 1 hour
+        var sasBuilder = new Azure.Storage.Sas.BlobSasBuilder
+        {
+            BlobContainerName = blobContainerClient.Name,
+            BlobName = blockBlobClient.Name,
+            Resource = "b",
+            ExpiresOn = DateTimeOffset.UtcNow.AddHours(1)
+        };
+        sasBuilder.SetPermissions(Azure.Storage.Sas.BlobSasPermissions.Read);
+
+        Uri sasUri = blockBlobClient.GenerateSasUri(sasBuilder);
+        return sasUri.ToString();
+    }
 }
 
 internal static class BlobRetryPolicy

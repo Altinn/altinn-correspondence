@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Notifications;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 
@@ -83,6 +84,19 @@ public class AltinnDevNotificationService : IAltinnNotificationService
             Type = "Email",
             Status = "Completed",
             Recipients = []
+        };
+    }
+
+    public async Task<ComposedEmailResponse> CreateComposedEmail(ComposedEmailRequest composedEmailRequest, CancellationToken cancellationToken = default)
+    {
+        return new ComposedEmailResponse
+        {
+            NotificationOrderId = Guid.NewGuid(),
+            Notification = new ComposedEmailNotificationResponse
+            {
+                ShipmentId = Guid.NewGuid(),
+                SendersReference = "AltinnCorrespondence"
+            }
         };
     }
 }

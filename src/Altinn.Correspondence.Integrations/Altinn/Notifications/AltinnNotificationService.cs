@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Models.Notifications;
 using System.Text.Json;
 using System.Net;
+using Altinn.Correspondence.Core.Notifications;
 
 namespace Altinn.Correspondence.Integrations.Altinn.Notifications;
 
@@ -134,6 +135,26 @@ public class AltinnNotificationService : IAltinnNotificationService
         {
             _logger.LogError("Unexpected null or invalid json response from Notification v2.");
             throw new BadHttpRequestException("Failed to process get notification details v2 from Altinn Notification");
+        }
+        return responseContent;
+    }
+
+    public async Task<ComposedEmailResponse> CreateComposedEmail(ComposedEmailRequest composedEmailRequest, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Creating composed email in Altinn Notification");
+        var response = await _httpClient.PostAsJsonAsync("notifications/api/v1/future/orders/composed-email", composedEmailRequest, cancellationToken);
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to create composed email in Altinn Notification. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogError("Body: {Response}", responseJson);
+            throw new BadHttpRequestException($"Failed to create composed email. Status code: {response.StatusCode}. Response body: {responseJson}. IdempotencyId: {composedEmailRequest.IdempotencyId}");
+        }
+        var responseContent = await response.Content.ReadFromJsonAsync<ComposedEmailResponse>(cancellationToken: cancellationToken);
+        if (responseContent is null)
+        {
+            _logger.LogError("Unexpected null or invalid json response from Notification.");
+            throw new BadHttpRequestException("Failed to process create composed email response from Altinn Notification");
         }
         return responseContent;
     }
