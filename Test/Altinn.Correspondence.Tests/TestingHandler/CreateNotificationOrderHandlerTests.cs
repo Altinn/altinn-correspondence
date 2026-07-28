@@ -442,12 +442,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Assert
             var orders = captured.Select(n => JsonSerializer.Deserialize<NotificationOrderRequestV2>(n.OrderRequest!)!).ToList();
             Assert.Equal(4, orders.Count);
-            Assert.Contains(orders, o => o.Recipient.RecipientOrganization != null);
-            var duplicatedEmail = orders.Single(o => o.Recipient.RecipientEmail?.EmailAddress == "user@example.com");
-            Assert.NotNull(duplicatedEmail.Reminders);
-            Assert.True(duplicatedEmail.Reminders!.Count >= 1);
-            var duplicatedSms = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
-            Assert.Null(duplicatedSms.Reminders);
+            var mainOrder = orders.Single(o => o.Recipient.RecipientOrganization != null);
+            var reminderOnlyEmail = orders.Single(o => o.Recipient.RecipientEmail?.EmailAddress == "user@example.com");
+            Assert.Null(reminderOnlyEmail.Reminders);
+            Assert.Equal(mainOrder.RequestedSendTime.AddDays(1), reminderOnlyEmail.RequestedSendTime);
+            var reminderSuppressedSms = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
+            Assert.Null(reminderSuppressedSms.Reminders);
+            Assert.Equal(mainOrder.RequestedSendTime, reminderSuppressedSms.RequestedSendTime);
             var otherSms = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4791111111");
             Assert.NotNull(otherSms.Reminders);
             Assert.True(otherSms.Reminders!.Count >= 1);
@@ -740,7 +741,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
-        public async Task Process_ShouldKeepReminderAtCostOfDuplicateMain_WhenMainDuplicatesButReminderDoesNot()
+        public async Task Process_ShouldEmitReminderOnlyOrder_WhenMainDuplicatesButReminderDoesNot()
         {
             // Arrange
             var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
@@ -777,10 +778,11 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Assert
             var orders = captured.Select(n => JsonSerializer.Deserialize<NotificationOrderRequestV2>(n.OrderRequest!)!).ToList();
             Assert.Equal(2, orders.Count);
-            Assert.Contains(orders, o => o.Recipient.RecipientOrganization != null);
-            var customSms = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
-            Assert.NotNull(customSms.Reminders);
-            Assert.True(customSms.Reminders!.Count >= 1);
+            var mainOrder = orders.Single(o => o.Recipient.RecipientOrganization != null);
+            var reminderOnly = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
+            Assert.Null(reminderOnly.Reminders);
+            Assert.NotNull(reminderOnly.ConditionEndpoint);
+            Assert.Equal(mainOrder.RequestedSendTime.AddDays(1), reminderOnly.RequestedSendTime);
         }
     }
 }

@@ -196,7 +196,7 @@ public class CreateNotificationOrderHandler(
 
         var recipientPlans = correspondenceRecipient is not null
             ? await DeduplicateAgainstRegisteredContactInfo(recipientsToProcess, correspondenceRecipient, notificationRequest, context, cancellationToken)
-            : recipientsToProcess.Select(recipient => new RecipientNotificationPlan(recipient, notificationRequest.SendReminder)).ToList();
+            : recipientsToProcess.Select(recipient => new RecipientNotificationPlan(recipient, IncludeMain: true, IncludeReminder: notificationRequest.SendReminder)).ToList();
 
         // Deduplicate recipients based on the same key used for idempotency to avoid tracking and PK conflicts
         var distinctPlans = recipientPlans
@@ -213,36 +213,56 @@ public class CreateNotificationOrderHandler(
                 distinctPlans.Count);
         }
 
+        var mainSendTime = context.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
+            ? DateTime.UtcNow
+            : context.RequestedPublishTime.UtcDateTime;
+        var reminderDelayDays = hostEnvironment.IsProduction() ? 7 : 1;
+        var conditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString())?.ToString();
+
         var notificationOrders = new List<NotificationOrderRequestV2>();
 
         foreach (var plan in distinctPlans)
         {
             var recipient = plan.Recipient;
-            var notificationOrder = new NotificationOrderRequestV2
+            if (plan.IncludeMain)
             {
-                SendersReference = $"corr-{context.SendersReference}",
-                RequestedSendTime = context.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
-                    ? DateTime.UtcNow
-                    : context.RequestedPublishTime.UtcDateTime,
-                IdempotencyId = context.Id.CreateVersion5(BuildRecipientKey(recipient)),
-                Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: false)
-            };
+                var notificationOrder = new NotificationOrderRequestV2
+                {
+                    SendersReference = $"corr-{context.SendersReference}",
+                    RequestedSendTime = mainSendTime,
+                    IdempotencyId = context.Id.CreateVersion5(BuildRecipientKey(recipient)),
+                    Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: false)
+                };
 
-            if (plan.IncludeReminder)
-            {
-                notificationOrder.Reminders =
-                [
-                    new ReminderV2
-                    {
-                        SendersReference = $"corr-{context.SendersReference}",
-                        DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
-                        ConditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString())?.ToString(),
-                        Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
-                    }
-                ];
+                if (plan.IncludeReminder)
+                {
+                    notificationOrder.Reminders =
+                    [
+                        new ReminderV2
+                        {
+                            SendersReference = $"corr-{context.SendersReference}",
+                            DelayDays = reminderDelayDays,
+                            ConditionEndpoint = conditionEndpoint,
+                            Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
+                        }
+                    ];
+                }
+
+                notificationOrders.Add(notificationOrder);
             }
-
-            notificationOrders.Add(notificationOrder);
+            else if (plan.IncludeReminder)
+            {
+                // The main notification already reaches this address via the correspondence recipient, but the reminder does
+                // not. Send the reminder as its own conditional, delayed order so it is delivered without a duplicate main.
+                notificationOrders.Add(new NotificationOrderRequestV2
+                {
+                    SendersReference = $"corr-{context.SendersReference}",
+                    RequestedSendTime = mainSendTime.AddDays(reminderDelayDays),
+                    ConditionEndpoint = conditionEndpoint,
+                    IdempotencyId = context.Id.CreateVersion5($"{BuildRecipientKey(recipient)}:reminder"),
+                    Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
+                });
+            }
         }
 
         logger.LogInformation("Created {Count} notification request(s) V2 for {NotificationId}", notificationOrders.Count, context.Id);
@@ -251,11 +271,11 @@ public class CreateNotificationOrderHandler(
 
     /// <summary>
     /// Deduplicates custom email/SMS recipients against the correspondence recipient's registered contact information,
-    /// evaluated per phase (main notification vs reminder) because the two can use different channels. A custom recipient
-    /// is dropped only when nothing unique would be lost - the main notification duplicates its address and either the
-    /// reminder also duplicates it or there is no reminder. When only the reminder duplicates, the reminder is suppressed;
-    /// when only the main duplicates, the recipient is kept and a duplicate main notification is accepted so its unique
-    /// reminder is still delivered (the order model cannot carry a reminder without a main notification).
+    /// evaluated per phase (main notification vs reminder) because the two can use different channels. Each phase is kept
+    /// only when it is not already delivered by the correspondence recipient's notification: an address reached by the main
+    /// notification does not get a duplicate main, and one reached by the reminder does not get a duplicate reminder. When
+    /// only the reminder survives (the main duplicates but the reminder does not), the plan's IncludeMain is false and the
+    /// reminder is later emitted as its own conditional, delayed order so it is delivered without a duplicate main.
     /// </summary>
     private async Task<List<RecipientNotificationPlan>> DeduplicateAgainstRegisteredContactInfo(List<Recipient> recipients, Recipient correspondenceRecipient, NotificationRequest notificationRequest, NotificationContext context, CancellationToken cancellationToken)
     {
@@ -275,7 +295,7 @@ public class CreateNotificationOrderHandler(
             ? recipients.Where(recipient => !string.IsNullOrEmpty(recipient.MobileNumber)).Select(recipient => NormalizeMobileNumber(recipient.MobileNumber!)).ToHashSet()
             : new HashSet<string>();
 
-        var keepAll = recipients.Select(recipient => new RecipientNotificationPlan(recipient, notificationRequest.SendReminder)).ToList();
+        var keepAll = recipients.Select(recipient => new RecipientNotificationPlan(recipient, IncludeMain: true, IncludeReminder: notificationRequest.SendReminder)).ToList();
         if (customEmails.Count == 0 && customMobileNumbers.Count == 0)
         {
             return keepAll;
@@ -303,41 +323,36 @@ public class CreateNotificationOrderHandler(
         var plans = new List<RecipientNotificationPlan>();
         int removedRecipients = 0;
         int suppressedReminders = 0;
-        int duplicateMainNotifications = 0;
+        int reminderOnlyOrders = 0;
         foreach (var recipient in recipients)
         {
-            bool duplicatedByMainNotification = RegisteredInPhase(recipient, mainNotifiesEmail, mainNotifiesMobileNumber);
-            bool duplicatedByReminder = RegisteredInPhase(recipient, reminderNotifiesEmail, reminderNotifiesMobileNumber);
+            bool includeMain = !RegisteredInPhase(recipient, mainNotifiesEmail, mainNotifiesMobileNumber);
+            bool includeReminder = notificationRequest.SendReminder && !RegisteredInPhase(recipient, reminderNotifiesEmail, reminderNotifiesMobileNumber);
 
-            // Drop only when nothing unique is lost: the main notification duplicates and either the reminder also
-            // duplicates or there is no reminder. When only the main duplicates, keep the recipient and accept a duplicate
-            // main notification so its unique reminder still reaches the address - the order model has no reminder-only order.
-            if (duplicatedByMainNotification && (duplicatedByReminder || !notificationRequest.SendReminder))
+            if (!includeMain && !includeReminder)
             {
                 removedRecipients++;
                 continue;
             }
-            if (duplicatedByMainNotification)
+            if (!includeMain)
             {
-                duplicateMainNotifications++;
+                reminderOnlyOrders++;
             }
-
-            bool includeReminder = notificationRequest.SendReminder && !duplicatedByReminder;
-            if (notificationRequest.SendReminder && !includeReminder)
+            else if (notificationRequest.SendReminder && !includeReminder)
             {
                 suppressedReminders++;
             }
-            plans.Add(new RecipientNotificationPlan(recipient, includeReminder));
+            plans.Add(new RecipientNotificationPlan(recipient, includeMain, includeReminder));
         }
 
-        if (removedRecipients > 0 || suppressedReminders > 0 || duplicateMainNotifications > 0)
+        if (removedRecipients > 0 || suppressedReminders > 0 || reminderOnlyOrders > 0)
         {
             logger.LogInformation(
-                "Deduplicated custom recipients for {NotificationId} against registered contact information: removed {RemovedRecipients} recipient(s), suppressed {SuppressedReminders} reminder(s), kept {DuplicateMainNotifications} with a duplicate main notification to preserve a unique reminder",
+                "Deduplicated custom recipients for {NotificationId} against registered contact information: removed {RemovedRecipients} recipient(s), suppressed {SuppressedReminders} reminder(s), emitted {ReminderOnlyOrders} reminder-only order(s) where the main notification duplicated",
                 context.Id,
                 removedRecipients,
                 suppressedReminders,
-                duplicateMainNotifications);
+                reminderOnlyOrders);
         }
 
         return plans;
@@ -402,7 +417,7 @@ public class CreateNotificationOrderHandler(
         public static readonly RegisteredAddresses None = new([], []);
     }
 
-    private sealed record RecipientNotificationPlan(Recipient Recipient, bool IncludeReminder);
+    private sealed record RecipientNotificationPlan(Recipient Recipient, bool IncludeMain, bool IncludeReminder);
 
     private static string BuildRecipientKey(Recipient recipient)
     {

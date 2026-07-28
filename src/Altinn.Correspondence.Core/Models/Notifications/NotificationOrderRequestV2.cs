@@ -10,6 +10,8 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 
         public DateTime RequestedSendTime { get; set; }
 
+        public string? ConditionEndpoint { get; set; }
+
         public DialogportenAssociation? DialogportenAssociation { get; set; }
 
         public Guid IdempotencyId { get; set; }
