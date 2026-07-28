@@ -36,6 +36,7 @@ using Altinn.Correspondence.Application.SmsNotificationLengthStatistics;
 using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorrespondences;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
+using Altinn.Correspondence.Application.ForwardCorrespondence;
 
 namespace Altinn.Correspondence.Application;
 
@@ -64,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<MarkCorrespondenceAsReadHandler>();
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
+        services.AddScoped<ForwardCorrespondenceHandler>();
 
         // Serviceowner
         services.AddScoped<InitializeServiceOwnerHandler>();
@@ -102,6 +104,7 @@ public static class DependencyInjection
         services.AddScoped<NotificationMapper>();
         services.AddScoped<InitializeCorrespondenceValidationHelper>();
         services.AddScoped<PartyUrnHelper>();
+        services.AddScoped<ComposedEmailHelper>();
 
 
         services.AddScoped<UnreadConfidentialCorrespondenceHandler>();

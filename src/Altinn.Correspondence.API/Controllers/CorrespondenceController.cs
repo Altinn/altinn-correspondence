@@ -13,6 +13,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
+using Altinn.Correspondence.Application.ForwardCorrespondence;
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -665,6 +666,30 @@ namespace Altinn.Correspondence.API.Controllers
 
             return commandResult.Match(
                 data => Ok(data),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Forwards a correspondence to a user-provided email address.
+        /// </summary>
+        [HttpPost]
+        [Produces("application/json")]
+        [Route("{correspondenceId}/forward")]
+        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        public async Task<ActionResult> ForwardCorrespondence(
+            Guid correspondenceId,
+            [FromBody] ForwardCorrespondenceRequest request,
+            [FromServices] ForwardCorrespondenceHandler handler,
+            CancellationToken cancellationToken
+        )
+        {
+            _logger.LogInformation("Processing forwarding request for correspondence: {correspondenceId}", correspondenceId);
+            request.CorrespondenceId = correspondenceId;
+            var commandResult = await handler.Process(request, HttpContext.User, cancellationToken);
+            return commandResult.Match(
+                result => Ok(result),
                 Problem
             );
         }

@@ -60,7 +60,7 @@ public static class CorrespondenceErrors
     public static Error CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag = new Error(1060, "Confidential correspondences (resources with the access package post-til-virksomheten-med-taushetsbelagt-innhold) cannot be initialized without setting the 'IsConfidential' flag to true", HttpStatusCode.BadRequest);
     public static Error CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag = new Error(1061, "Correspondences cannot be initialized with 'IsConfidential' flag set to true if the resource is not confidential", HttpStatusCode.BadRequest);
     public static Error UnreadConfidentialCorrespondencesNotFound = new Error(1062, "No unread confidential correspondences found", HttpStatusCode.NotFound);
-
+    public static Error ForwardingNotAllowed = new Error(1063, "Correspondence does not allow forwarding", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
