@@ -32,7 +32,8 @@ function getCorrespondence(serviceOwner, endUser, traceCalls) {
         scopes: "altinn:correspondence.read", 
         pid: endUser.ssn,
         orgno: serviceOwner.orgno,
-        consumerOrgNo: serviceOwner.orgno
+        consumerOrgNo: serviceOwner.orgno,
+        org: serviceOwner.org
     }
 
     var paramsWithToken = {
