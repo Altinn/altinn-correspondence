@@ -74,7 +74,6 @@ public static class AltinnTokenXacmlMapper
         return jsonRequest;
     }
 
-
     public static XacmlJsonRequestRoot CreateUserContactPointDecisionRequest(IReadOnlyList<int> userIds, int partyId, string resourceId)
     {
         XacmlJsonRequest request = new XacmlJsonRequest

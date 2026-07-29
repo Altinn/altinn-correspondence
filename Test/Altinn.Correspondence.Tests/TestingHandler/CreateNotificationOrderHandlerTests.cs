@@ -416,6 +416,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             ];
 
             _mockAltinnProfileService
+                .Setup(x => x.GetOrganizationNotificationAddresses(It.Is<List<string>>(orgs => orgs.Contains("991825827")), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<OrgNotificationAddresses>
+                {
+                    new OrgNotificationAddresses { OrganizationNumber = "991825827", EmailList = ["org-official@example.com"] }
+                });
+
+            _mockAltinnProfileService
                 .Setup(x => x.GetUserRegisteredContactPoints(It.Is<List<string>>(orgs => orgs.Contains("991825827")), correspondence.ResourceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<UnitContactPoints>
                 {
@@ -465,6 +472,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             [
                 new Recipient { MobileNumber = "+4799999999" }
             ];
+
+            _mockAltinnProfileService
+                .Setup(x => x.GetOrganizationNotificationAddresses(It.Is<List<string>>(orgs => orgs.Contains("991825827")), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<OrgNotificationAddresses>
+                {
+                    new OrgNotificationAddresses { OrganizationNumber = "991825827", EmailList = ["org-official@example.com"] }
+                });
 
             _mockAltinnProfileService
                 .Setup(x => x.GetUserRegisteredContactPoints(It.Is<List<string>>(orgs => orgs.Contains("991825827")), correspondence.ResourceId, It.IsAny<CancellationToken>()))
@@ -685,6 +699,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new OrgNotificationAddresses
                     {
                         OrganizationNumber = "991825827",
+                        EmailList = ["org@example.com"],
                         MobileNumberList = ["+4799999999"]
                     }
                 ]);
@@ -762,6 +777,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     new OrgNotificationAddresses
                     {
                         OrganizationNumber = "991825827",
+                        EmailList = ["org@example.com"],
                         MobileNumberList = ["+4799999999"]
                     }
                 ]);
@@ -783,6 +799,48 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.Null(reminderOnly.Reminders);
             Assert.NotNull(reminderOnly.ConditionEndpoint);
             Assert.Equal(mainOrder.RequestedSendTime.AddDays(1), reminderOnly.RequestedSendTime);
+        }
+
+        [Fact]
+        public async Task Process_ShouldNotDeduplicate_WhenOrganizationLacksAChannelTheNotificationOrderUses()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, correspondence, _) = SetupOrderData(requestedPublishTime);
+            correspondence.Recipient = "urn:altinn:organization:identifier-no:991825827";
+            request.NotificationRequest.NotificationChannel = NotificationChannel.Email;
+            request.NotificationRequest.SendReminder = true;
+            request.NotificationRequest.ReminderNotificationChannel = NotificationChannel.Sms;
+            request.NotificationRequest.CustomRecipients =
+            [
+                new Recipient { EmailAddress = "registered@example.com" }
+            ];
+
+            _mockAltinnProfileService
+                .Setup(x => x.GetOrganizationNotificationAddresses(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(
+                [
+                    new OrgNotificationAddresses
+                    {
+                        OrganizationNumber = "991825827",
+                        EmailList = ["registered@example.com"]
+                    }
+                ]);
+
+            var captured = new List<CorrespondenceNotificationEntity>();
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured.Add(n))
+                .ReturnsAsync(Guid.NewGuid());
+
+            // Act
+            await _handler.Process(request, CancellationToken.None);
+
+            // Assert
+            var orders = captured.Select(n => JsonSerializer.Deserialize<NotificationOrderRequestV2>(n.OrderRequest!)!).ToList();
+            Assert.Equal(2, orders.Count);
+            Assert.Contains(orders, o => o.Recipient.RecipientOrganization != null);
+            Assert.Contains(orders, o => o.Recipient.RecipientEmail?.EmailAddress == "registered@example.com");
         }
     }
 }
