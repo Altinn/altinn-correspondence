@@ -416,18 +416,36 @@ namespace Altinn.Correspondence.Persistence.Repositories
         var blobContainerClient = await GetBlobContainerClient(attachment.Id, storageProvider);
         BlockBlobClient blockBlobClient = blobContainerClient.GetBlockBlobClient(attachment.Id.ToString());
 
+        var startsOn = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var expiresOn = DateTimeOffset.UtcNow.AddHours(1);
+
         // Generate a SAS token that is valid for 1 hour
         var sasBuilder = new Azure.Storage.Sas.BlobSasBuilder
         {
             BlobContainerName = blobContainerClient.Name,
             BlobName = blockBlobClient.Name,
             Resource = "b",
-            ExpiresOn = DateTimeOffset.UtcNow.AddHours(1)
+            StartsOn = startsOn,
+            ExpiresOn = expiresOn
         };
         sasBuilder.SetPermissions(Azure.Storage.Sas.BlobSasPermissions.Read);
 
-        Uri sasUri = blockBlobClient.GenerateSasUri(sasBuilder);
-        return sasUri.ToString();
+        if (blockBlobClient.CanGenerateSasUri)
+        {
+            return blockBlobClient.GenerateSasUri(sasBuilder).ToString();
+        }
+
+        // Clients authenticated with a TokenCredential (managed identity) don't hold an account key,
+        // so a SAS must instead be signed with a short-lived user delegation key.
+        var userDelegationKey = await blobContainerClient.GetParentBlobServiceClient()
+            .GetUserDelegationKeyAsync(startsOn, expiresOn, cancellationToken);
+        var sasQueryParameters = sasBuilder.ToSasQueryParameters(userDelegationKey.Value, blobContainerClient.GetParentBlobServiceClient().AccountName);
+
+        var sasUriBuilder = new UriBuilder(blockBlobClient.Uri)
+        {
+            Query = sasQueryParameters.ToString()
+        };
+        return sasUriBuilder.Uri.ToString();
     }
 }
 
