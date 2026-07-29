@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Application.SendSlackNotification;
 using Hangfire;
@@ -12,6 +13,7 @@ using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
@@ -53,7 +55,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceStatusRepositoryMock.Object,
                 _contactReservationRegistryServiceMock.Object,
                 _backgroundJobClientMock.Object,
-                _idempotencyKeyRepositoryMock.Object);
+                _idempotencyKeyRepositoryMock.Object,
+                TestDbContextFactory.Create());
         }
 
         private void SetupCommonMocks(Guid correspondenceId, Guid partyUuid, CorrespondenceEntity correspondence)
@@ -63,7 +66,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _altinnRegisterServiceMock.SetupPartyByIdLookup("310244007", partyUuid);
 
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             _correspondenceRepositoryMock
@@ -144,6 +147,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.IsAny<IState>()),
                 Times.AtLeastOnce);
 
+            VerifyEventPublished(AltinnEventType.CorrespondencePublishFailed, senderUrn, Times.Once());
+            VerifyEventPublished(AltinnEventType.CorrespondencePublishFailed, recipientUrn, Times.Never());
+
             _backgroundJobClientMock.Verify(
                 x => x.Create(
                     It.Is<Job>(job =>
@@ -189,6 +195,9 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     It.Is<Job>(job => job.Type == typeof(SendSlackNotificationHandler) && job.Method.Name == nameof(SendSlackNotificationHandler.Process)),
                     It.IsAny<IState>()),
                 Times.Never);
+
+            VerifyEventPublished(AltinnEventType.CorrespondencePublished, recipientUrn, Times.Once());
+            VerifyEventPublished(AltinnEventType.CorrespondencePublished, senderUrn, Times.Never());
 
             _idempotencyKeyRepositoryMock.Verify(x => x.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -256,5 +265,16 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.UpdatePublished(correspondenceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
+
+        private void VerifyEventPublished(AltinnEventType eventType, string subject, Times times)
+        {
+            _backgroundJobClientMock.Verify(x => x.Create(
+                It.Is<Job>(job =>
+                    job.Type == typeof(IEventBus) &&
+                    job.Method.Name == nameof(IEventBus.Publish) &&
+                    (AltinnEventType)job.Args[0] == eventType &&
+                    (string)job.Args[4] == subject),
+                It.Is<IState>(state => state is EnqueuedState)), times);
+        }
     }
-} 
+}

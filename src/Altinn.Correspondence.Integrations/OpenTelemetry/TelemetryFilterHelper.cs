@@ -1,14 +1,12 @@
-using Altinn.Correspondence.Core.Options;
-
 namespace Altinn.Correspondence.Integrations.OpenTelemetry;
 
 public static class TelemetryFilterHelper
 {
     /// <summary>
-    /// Determines if a request should be excluded from telemetry based on path and settings.
+    /// Determines if a request should be excluded from telemetry based on path.
     /// Returns true if the request should be EXCLUDED.
     /// </summary>
-    public static bool ShouldExcludeRequest(string? path, GeneralSettings settings)
+    public static bool ShouldExcludeRequest(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -29,20 +27,6 @@ public static class TelemetryFilterHelper
             pathSpan.Equals("/healthz", StringComparison.OrdinalIgnoreCase))
         {
             return true;
-        }
-
-        // Exclude sync calls if disabled (check before migration since it's more specific)
-        if (pathSpan.Contains("/correspondence/api/v1/migration/correspondence/sync".AsSpan(), StringComparison.OrdinalIgnoreCase))
-        {
-            return settings.DisableTelemetryForSync;
-        }
-
-        // Exclude migration calls if disabled
-        if (pathSpan.Contains("/correspondence/api/v1/migration/correspondence".AsSpan(), StringComparison.OrdinalIgnoreCase)
-            || pathSpan.Contains("/correspondence/api/v1/migration/makemigratedcorrespondenceavailable".AsSpan(), StringComparison.OrdinalIgnoreCase)
-            || pathSpan.Contains("/correspondence/api/v1/migration/attachment".AsSpan(), StringComparison.OrdinalIgnoreCase))
-        {
-            return settings.DisableTelemetryForMigration;
         }
 
         return false;

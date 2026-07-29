@@ -2,6 +2,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Repositories;
+using Altinn.Correspondence.Tests.Helpers;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -43,7 +44,8 @@ public class InitializeCorrespondencesHandlerTests
             null!,
             null!,
             null!,
-            NullLogger<InitializeCorrespondencesHandler>.Instance);
+            NullLogger<InitializeCorrespondencesHandler>.Instance,
+            TestDbContextFactory.Create());
 
         await handler.ScheduleTransmissionAndPublishJobs(
             correspondenceId,

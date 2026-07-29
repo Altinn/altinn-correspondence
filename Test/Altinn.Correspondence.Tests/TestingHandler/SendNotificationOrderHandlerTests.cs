@@ -12,6 +12,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.EntityFrameworkCore;
 using Altinn.Correspondence.Application.CheckNotificationDelivery;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests.TestingHandler
 {
@@ -40,7 +41,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockAltinnNotificationService.Object,
                 _mockIdempotencyKeyRepository.Object,
                 _mockBackgroundJobClient.Object,
-                _mockLogger.Object);
+                _mockLogger.Object,
+                TestDbContextFactory.Create());
         }
 
         private (Guid correspondenceId, CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification, NotificationOrderRequestV2 orderRequest, NotificationOrderRequestResponseV2 response) SetupData()
@@ -95,7 +97,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 }
             };
 
-            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(correspondenceId, false, false, false, CancellationToken.None, false))
+            _mockCorrespondenceRepository.Setup(x => x.GetCorrespondenceById(correspondenceId, false, false, false, CancellationToken.None))
                 .ReturnsAsync(correspondence);
             _mockCorrespondenceNotificationRepository.Setup(x => x.GetPrimaryNotificationsByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<CorrespondenceNotificationEntity> { notification });

@@ -6,6 +6,7 @@ using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -23,7 +24,8 @@ public class DownloadCorrespondenceAttachmentHandler(
     IAltinnRegisterService altinnRegisterService,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     AttachmentHelper attachmentHelper,
-    ILogger<DownloadCorrespondenceAttachmentHandler> logger) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
+    ILogger<DownloadCorrespondenceAttachmentHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<DownloadCorrespondenceAttachmentRequest, DownloadCorrespondenceAttachmentResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
@@ -109,7 +111,7 @@ public class DownloadCorrespondenceAttachmentHandler(
         _logger.LogInformation("Retrieved party UUID {PartyUuid} for caller {caller}", partyUuid, caller);
         var attachmentStream = await storageRepository.DownloadAttachment(attachment.Id, attachment.StorageProvider, cancellationToken);
         
-        return await TransactionWithRetriesPolicy.Execute<DownloadCorrespondenceAttachmentResponse>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             try
             {
@@ -142,6 +144,6 @@ public class DownloadCorrespondenceAttachmentHandler(
                 FileName = attachment.FileName,
                 Stream = attachmentStream
             };
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 }

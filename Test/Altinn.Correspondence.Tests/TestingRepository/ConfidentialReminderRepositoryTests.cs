@@ -2,19 +2,13 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Persistence.Repositories;
 using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
+using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Tests.TestingRepository;
 
-public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcontainerFixture>
+public class ConfidentialReminderRepositoryTests
 {
-    private readonly PostgresTestcontainerFixture _fixture;
-
-    public ConfidentialReminderRepositoryTests(PostgresTestcontainerFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
     private async Task<CorrespondenceEntity> SeedCorrespondenceAsync(TestApplicationDbContext context)
     {
         var correspondence = new CorrespondenceEntityBuilder().Build();
@@ -38,7 +32,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task AddConfidentialReminder_NewReminder_PersistsAndReturnsId()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
         var correspondence = await SeedCorrespondenceAsync(context);
         var reminder = CreateReminder(correspondence.Id, "urn:altinn:organization:identifier-no:991825827");
@@ -58,7 +52,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task AddConfidentialReminder_DuplicateCorrespondenceId_ReturnsExistingIdAndDoesNotInsertDuplicate()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
         var correspondence = await SeedCorrespondenceAsync(context);
         var first = CreateReminder(correspondence.Id, "urn:altinn:organization:identifier-no:991825827");
@@ -80,7 +74,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task RemoveConfidentialReminderByCorrespondenceId_ExistingReminder_RemovesIt()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
         var correspondence = await SeedCorrespondenceAsync(context);
         var reminder = CreateReminder(correspondence.Id, "urn:altinn:organization:identifier-no:991825827");
@@ -99,7 +93,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task NumberOfRemindersForRecipient_CountsOnlyRemindersForGivenRecipient()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
         var recipient = $"urn:altinn:organization:identifier-no:192837465";
 
@@ -124,7 +118,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task NumberOfRemindersForRecipient_WhenNoneExist_ReturnsZero()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
 
         // Act
@@ -138,7 +132,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task CorrespondenceHasReminder_WhenReminderExists_ReturnsTrue()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
         var correspondence = await SeedCorrespondenceAsync(context);
         var reminder = CreateReminder(correspondence.Id, "urn:altinn:organization:identifier-no:991825827");
@@ -156,7 +150,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task CorrespondenceHasReminder_WhenNoReminderExists_ReturnsFalse()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
 
         // Act
@@ -170,7 +164,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task GetDialogIdOfReminderForRecipient_WhenReminderExists_ReturnsDialogId()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
         var correspondence = await SeedCorrespondenceAsync(context);
         var dialogId = Guid.NewGuid();
@@ -190,7 +184,7 @@ public class ConfidentialReminderRepositoryTests : IClassFixture<PostgresTestcon
     public async Task GetDialogIdOfReminderForRecipient_WhenNoReminderExists_ReturnsNull()
     {
         // Arrange
-        await using var context = _fixture.CreateDbContext();
+        await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
 
         // Act

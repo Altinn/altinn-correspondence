@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Azure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,8 @@ namespace Altinn.Correspondence.Application.Helpers
         IBackgroundJobClient backgroundJobClient,
         MalwareScanResultHandler malwareScanResultHandler,
         IOptions<GeneralSettings> generalSettings,
-        ILogger<AttachmentHelper> logger)
+        ILogger<AttachmentHelper> logger,
+        ApplicationDbContext dbContext)
     {
 
         private static readonly Regex InvalidCharactersRegex = new Regex(
@@ -63,7 +65,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 return uploadError;
             }
             var (dataLocationUrl, checksum, size) = successResult;
-            return await TransactionWithRetriesPolicy.Execute<OneOf<UploadAttachmentResponse, Error>>(async (cancellationToken) =>
+            return await DatabaseTransactionHelper.ExecuteAsync<OneOf<UploadAttachmentResponse, Error>>(dbContext, async (cancellationToken) =>
             {
                 var isValidUpdate = await attachmentRepository.SetDataLocationUrl(attachment, AttachmentDataLocationType.AltinnCorrespondenceAttachment, dataLocationUrl, storageProvider, cancellationToken);
                 logger.LogInformation("Set dataLocationUrl of {attachmentId}", attachmentId);
@@ -99,7 +101,7 @@ namespace Altinn.Correspondence.Application.Helpers
                     StatusChanged = currentStatus.StatusChanged,
                     StatusText = currentStatus.StatusText
                 };
-            }, logger, cancellationToken);
+            }, cancellationToken);
         }
 
         private bool ShouldBypassMalwareScan(AttachmentEntity attachment)

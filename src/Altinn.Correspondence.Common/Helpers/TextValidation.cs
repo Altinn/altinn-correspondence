@@ -19,8 +19,8 @@ public class TextValidation
 
     public static bool ValidatePlainText(string text)
     {
-        // Ignore backticks in the comparison so backticks are always accepted.
-        var normalizedInput = text.Replace("`", "");
+        // Ignore backticks and backslashes so they are always accepted.
+        var normalizedInput = text.Replace("`", "").Replace("\\", "");
         var converter = new ReverseMarkdown.Converter();
         var markdown = converter.Convert(normalizedInput);
         var pipelineBuilder = new MarkdownPipelineBuilder()

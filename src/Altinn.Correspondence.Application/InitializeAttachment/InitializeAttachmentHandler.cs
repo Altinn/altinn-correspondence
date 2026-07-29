@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Persistence;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -20,7 +21,8 @@ public class InitializeAttachmentHandler(
     ILogger<InitializeAttachmentHandler> logger,
     IBackgroundJobClient backgroundJobClient,
     AttachmentHelper attachmentHelper,
-    ServiceOwnerHelper serviceOwnerHelper) : IHandler<InitializeAttachmentRequest, Guid>
+    ServiceOwnerHelper serviceOwnerHelper,
+    ApplicationDbContext dbContext) : IHandler<InitializeAttachmentRequest, Guid>
 {
     public async Task<OneOf<Guid, Error>> Process(InitializeAttachmentRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -84,7 +86,7 @@ public class InitializeAttachmentHandler(
         attachment.ServiceOwnerId = serviceOwnerId;
         attachment.ServiceOwnerMigrationStatus = serviceOwnerMigrationStatus;
         
-        return await TransactionWithRetriesPolicy.Execute<Guid>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
         {
             var initializedAttachment = await attachmentRepository.InitializeAttachment(attachment, cancellationToken);   
             await attachmentHelper.SetAttachmentStatus(initializedAttachment.Id, AttachmentStatus.Initialized, partyUuid, cancellationToken);
@@ -99,7 +101,7 @@ public class InitializeAttachmentHandler(
                 initializedAttachment.Id, 
                 sanitizedResourceId);
             return initializedAttachment.Id;
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 
 }

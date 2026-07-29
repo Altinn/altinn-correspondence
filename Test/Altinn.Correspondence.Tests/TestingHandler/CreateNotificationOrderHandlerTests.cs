@@ -7,6 +7,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Application.CreateNotificationOrder;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Microsoft.Extensions.Hosting;
@@ -60,7 +61,8 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _mockResourceRegistryService.Object,
                 _mockHostEnvironment.Object,
                 _mockGeneralSettings.Object,
-                _mockLogger.Object);
+                _mockLogger.Object,
+                TestDbContextFactory.Create());
         }
 
         private (CreateNotificationOrderRequest request, CorrespondenceEntity correspondence, NotificationTemplateEntity template) SetupOrderData(DateTimeOffset requestedPublishTime)
@@ -117,7 +119,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             };
 
             _mockCorrespondenceRepository
-                .Setup(x => x.GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), CancellationToken.None, false))
+                .Setup(x => x.GetCorrespondenceById(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), CancellationToken.None))
                 .ReturnsAsync(correspondence);
 
             _mockNotificationTemplateRepository

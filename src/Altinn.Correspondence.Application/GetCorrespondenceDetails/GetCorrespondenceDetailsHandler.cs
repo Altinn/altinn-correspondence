@@ -6,6 +6,7 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Persistence;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -20,7 +21,8 @@ public class GetCorrespondenceDetailsHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IDialogportenService dialogportenService,
     NotificationMapper notificationMapper,
-    ILogger<GetCorrespondenceDetailsHandler> logger) : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
+    ILogger<GetCorrespondenceDetailsHandler> logger,
+    ApplicationDbContext dbContext) : IHandler<GetCorrespondenceDetailsRequest, GetCorrespondenceDetailsResponse>
 {
     public async Task<OneOf<GetCorrespondenceDetailsResponse, Error>> Process(GetCorrespondenceDetailsRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
@@ -78,7 +80,7 @@ public class GetCorrespondenceDetailsHandler(
             }
         }
 
-        return await TransactionWithRetriesPolicy.Execute<OneOf<GetCorrespondenceDetailsResponse, Error>>(async (cancellationToken) =>
+        return await DatabaseTransactionHelper.ExecuteAsync<OneOf<GetCorrespondenceDetailsResponse, Error>>(dbContext, async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
@@ -183,6 +185,6 @@ public class GetCorrespondenceDetailsHandler(
                 IsConfidential = correspondence.IsConfidential,
                 SystemLabel = systemLabel
             };
-        }, logger, cancellationToken);
+        }, cancellationToken);
     }
 }

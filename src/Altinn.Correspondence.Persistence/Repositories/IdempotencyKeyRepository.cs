@@ -5,14 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Altinn.Correspondence.Persistence.Repositories;
 
-public class IdempotencyKeyRepository : IIdempotencyKeyRepository
+public class IdempotencyKeyRepository(ApplicationDbContext dbContext, int maxHardDeleteBatchSize = IdempotencyKeyRepository.DefaultMaxHardDeleteBatchSize) : IIdempotencyKeyRepository
 {
-    private readonly ApplicationDbContext _dbContext;
+    private const int DefaultMaxHardDeleteBatchSize = 10000;
 
-    public IdempotencyKeyRepository(ApplicationDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
+    private readonly ApplicationDbContext _dbContext = dbContext;
 
 
     public async Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
@@ -76,7 +73,7 @@ public class IdempotencyKeyRepository : IIdempotencyKeyRepository
         {
             return 0;
         }
-        if (keys.Count > 1000) // Safety margin
+        if (keys.Count > maxHardDeleteBatchSize)
         {
             throw new ArgumentException($"Too many idempotency keys to delete. Total idempotency keys in requested hard delete operation: {keys.Count}");
         }

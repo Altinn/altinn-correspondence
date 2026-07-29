@@ -9,6 +9,7 @@ using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Altinn.Correspondence.Application.VerifyCorrespondenceConfirmation;
+using Altinn.Correspondence.Tests.Helpers;
 
 namespace Altinn.Correspondence.Tests.TestingHandler;
 
@@ -37,7 +38,8 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             _correspondenceStatusRepositoryMock.Object,
             _backgroundJobClientMock.Object,
             _dialogportenServiceMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            TestDbContextFactory.Create());
     }
 
     [Fact]
@@ -54,7 +56,7 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             .Build();
 
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         _dialogportenServiceMock
@@ -90,7 +92,7 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             .Build();
 
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         _dialogportenServiceMock
@@ -114,7 +116,7 @@ public class VerifyCorrespondenceConfirmationHandlerTests
             .Build();
 
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         // Act
