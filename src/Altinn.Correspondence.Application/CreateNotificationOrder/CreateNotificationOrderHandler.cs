@@ -7,13 +7,11 @@ using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
-using Altinn.Correspondence.Core.Models.Profile;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
-using Altinn.Notifications.Core.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -25,15 +23,13 @@ namespace Altinn.Correspondence.Application.CreateNotificationOrder;
 public class CreateNotificationOrderHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnRegisterService altinnRegisterService,
-    IAltinnProfileService altinnProfileService,
-    IAltinnAuthorizationService altinnAuthorizationService,
+    CustomRecipientDeduplicationHelper customRecipientDeduplicationHelper,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IResourceRegistryService resourceRegistryService,
     IHostEnvironment hostEnvironment,
     IOptions<GeneralSettings> generalSettings,
-    MobileNumberHelper mobileNumberHelper,
     ILogger<CreateNotificationOrderHandler> logger,
     ApplicationDbContext dbContext)
 {
@@ -194,9 +190,7 @@ public class CreateNotificationOrderHandler(
             recipientsToProcess.AddRange(notificationRequest.CustomRecipients);
         }
 
-        var recipientPlans = correspondenceRecipient is not null
-            ? await DeduplicateAgainstRegisteredContactInfo(recipientsToProcess, correspondenceRecipient, notificationRequest, context, cancellationToken)
-            : recipientsToProcess.Select(recipient => new RecipientNotificationPlan(recipient, IncludeMain: true, IncludeReminder: notificationRequest.SendReminder)).ToList();
+        var recipientPlans = await customRecipientDeduplicationHelper.Deduplicate(recipientsToProcess, correspondenceRecipient, notificationRequest, context.ResourceId, context.Id, cancellationToken);
 
         // Deduplicate recipients based on the same key used for idempotency to avoid tracking and PK conflicts
         var distinctPlans = recipientPlans
@@ -268,166 +262,6 @@ public class CreateNotificationOrderHandler(
         logger.LogInformation("Created {Count} notification request(s) V2 for {NotificationId}", notificationOrders.Count, context.Id);
         return notificationOrders;
     }
-
-    /// <summary>
-    /// Deduplicates custom email/SMS recipients against the correspondence recipient's registered contact information,
-    /// evaluated per phase (main notification vs reminder) because the two can use different channels. Deduplication is
-    /// skipped entirely unless the organization's official notification addresses cover every channel the order uses: the
-    /// correspondence recipient's order bundles the main notification and the reminder, only official addresses are resolved
-    /// when the order is created, and Altinn Notifications rejects the whole order if a channel cannot be resolved - in which
-    /// case it delivers nothing and custom recipients must not be suppressed. When the order will be created, custom
-    /// recipients are deduplicated against the official addresses plus the user-registered contact points that are
-    /// authorized for the resource, which is what the order actually delivers to.
-    /// </summary>
-    private async Task<List<RecipientNotificationPlan>> DeduplicateAgainstRegisteredContactInfo(List<Recipient> recipients, Recipient correspondenceRecipient, NotificationRequest notificationRequest, NotificationContext context, CancellationToken cancellationToken)
-    {
-        static bool NotifiesEmail(NotificationChannel channel) => channel is NotificationChannel.Email or NotificationChannel.EmailAndSms or NotificationChannel.EmailPreferred;
-        static bool NotifiesMobileNumber(NotificationChannel channel) => channel is NotificationChannel.Sms or NotificationChannel.EmailAndSms or NotificationChannel.SmsPreferred;
-
-        var reminderChannel = notificationRequest.ReminderNotificationChannel ?? notificationRequest.NotificationChannel;
-        bool mainNotifiesEmail = NotifiesEmail(notificationRequest.NotificationChannel);
-        bool mainNotifiesMobileNumber = NotifiesMobileNumber(notificationRequest.NotificationChannel);
-        bool reminderNotifiesEmail = notificationRequest.SendReminder && NotifiesEmail(reminderChannel);
-        bool reminderNotifiesMobileNumber = notificationRequest.SendReminder && NotifiesMobileNumber(reminderChannel);
-
-        var customEmails = mainNotifiesEmail || reminderNotifiesEmail
-            ? recipients.Where(recipient => !string.IsNullOrEmpty(recipient.EmailAddress)).Select(recipient => recipient.EmailAddress!.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase)
-            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var customMobileNumbers = mainNotifiesMobileNumber || reminderNotifiesMobileNumber
-            ? recipients.Where(recipient => !string.IsNullOrEmpty(recipient.MobileNumber)).Select(recipient => NormalizeMobileNumber(recipient.MobileNumber!)).ToHashSet()
-            : new HashSet<string>();
-
-        var keepAll = recipients.Select(recipient => new RecipientNotificationPlan(recipient, IncludeMain: true, IncludeReminder: notificationRequest.SendReminder)).ToList();
-        if (customEmails.Count == 0 && customMobileNumbers.Count == 0)
-        {
-            return keepAll;
-        }
-
-        // Only an organization recipient has a contact-address lookup; persons and self-identified users have none.
-        if (correspondenceRecipient.OrganizationNumber is not { } organizationNumber)
-        {
-            return keepAll;
-        }
-
-        var organizationNumbers = new List<string> { organizationNumber };
-        var organizationAddresses = await altinnProfileService.GetOrganizationNotificationAddresses(organizationNumbers, cancellationToken);
-        var officialEmails = organizationAddresses.SelectMany(organization => organization.EmailList)
-            .Where(email => !string.IsNullOrWhiteSpace(email))
-            .Select(email => email.Trim())
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var officialMobileNumbers = organizationAddresses.SelectMany(organization => organization.MobileNumberList)
-            .Where(mobileNumber => !string.IsNullOrWhiteSpace(mobileNumber))
-            .Select(NormalizeMobileNumber)
-            .ToHashSet();
-
-        // The correspondence recipient's order bundles the main notification and the reminder, and Altinn Notifications
-        // rejects the whole order if the organization lacks contact information for a channel it uses. Only the official
-        // organization addresses are resolved when the order is created, so user-registered contact points cannot rescue a
-        // missing channel. If the order would be rejected it delivers nothing, so custom recipients must not be deduplicated.
-        bool OrganizationCanReceive(NotificationChannel channel) => channel switch
-        {
-            NotificationChannel.Email => officialEmails.Count > 0,
-            NotificationChannel.Sms => officialMobileNumbers.Count > 0,
-            NotificationChannel.EmailAndSms => officialEmails.Count > 0 && officialMobileNumbers.Count > 0,
-            NotificationChannel.EmailPreferred or NotificationChannel.SmsPreferred => officialEmails.Count > 0 || officialMobileNumbers.Count > 0,
-            _ => false
-        };
-
-        bool organizationOrderWillDeliver = OrganizationCanReceive(notificationRequest.NotificationChannel)
-            && (!notificationRequest.SendReminder || OrganizationCanReceive(reminderChannel));
-        if (!organizationOrderWillDeliver)
-        {
-            logger.LogInformation("Skipping custom recipient deduplication for {NotificationId}: the organization is missing contact information for a channel the notification order uses, so the order would not deliver", context.Id);
-            return keepAll;
-        }
-
-        // The order will deliver to the organization's official addresses plus the user-registered contact points that are
-        // authorized for the resource, so custom recipients are deduplicated against that combined set.
-        var userRegisteredContactPoints = await altinnProfileService.GetUserRegisteredContactPoints(organizationNumbers, context.ResourceId, cancellationToken);
-        var authorizedUserContactPoints = await GetAuthorizedUserContactPointsMatchingCustomRecipients(userRegisteredContactPoints, context.ResourceId, customEmails, customMobileNumbers, cancellationToken);
-
-        var registeredEmails = officialEmails
-            .Concat(authorizedUserContactPoints.Where(contactPoint => !string.IsNullOrWhiteSpace(contactPoint.Email)).Select(contactPoint => contactPoint.Email!.Trim()))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var registeredMobileNumbers = officialMobileNumbers
-            .Concat(authorizedUserContactPoints.Where(contactPoint => !string.IsNullOrWhiteSpace(contactPoint.MobileNumber)).Select(contactPoint => NormalizeMobileNumber(contactPoint.MobileNumber!)))
-            .ToHashSet();
-
-        bool RegisteredInPhase(Recipient recipient, bool notifiesEmail, bool notifiesMobileNumber) =>
-            (notifiesEmail && !string.IsNullOrEmpty(recipient.EmailAddress) && registeredEmails.Contains(recipient.EmailAddress.Trim()))
-            || (notifiesMobileNumber && !string.IsNullOrEmpty(recipient.MobileNumber) && registeredMobileNumbers.Contains(NormalizeMobileNumber(recipient.MobileNumber)));
-
-        var plans = new List<RecipientNotificationPlan>();
-        int removedRecipients = 0;
-        int suppressedReminders = 0;
-        int reminderOnlyOrders = 0;
-        foreach (var recipient in recipients)
-        {
-            bool includeMain = !RegisteredInPhase(recipient, mainNotifiesEmail, mainNotifiesMobileNumber);
-            bool includeReminder = notificationRequest.SendReminder && !RegisteredInPhase(recipient, reminderNotifiesEmail, reminderNotifiesMobileNumber);
-
-            if (!includeMain && !includeReminder)
-            {
-                removedRecipients++;
-                continue;
-            }
-            if (!includeMain)
-            {
-                reminderOnlyOrders++;
-            }
-            else if (notificationRequest.SendReminder && !includeReminder)
-            {
-                suppressedReminders++;
-            }
-            plans.Add(new RecipientNotificationPlan(recipient, includeMain, includeReminder));
-        }
-
-        if (removedRecipients > 0 || suppressedReminders > 0 || reminderOnlyOrders > 0)
-        {
-            logger.LogInformation(
-                "Deduplicated custom recipients for {NotificationId} against registered contact information: removed {RemovedRecipients} recipient(s), suppressed {SuppressedReminders} reminder(s), emitted {ReminderOnlyOrders} reminder-only order(s) where the main notification duplicated",
-                context.Id,
-                removedRecipients,
-                suppressedReminders,
-                reminderOnlyOrders);
-        }
-
-        return plans;
-    }
-
-    /// <summary>
-    /// Returns the user-registered contact points whose address matches a custom recipient and whose user is authorized
-    /// for the resource. Notifications performs the same authorization before sending to a user's registered contact
-    /// information, so an unauthorized user's address is never actually delivered to and must not deduplicate a custom
-    /// recipient. Only user contact points matching a custom recipient are authorized, since the rest cannot affect the result.
-    /// </summary>
-    private async Task<List<UserRegisteredContactPoint>> GetAuthorizedUserContactPointsMatchingCustomRecipients(List<UnitContactPoints> unitContactPoints, string resourceId, HashSet<string> customEmails, HashSet<string> customMobileNumbers, CancellationToken cancellationToken)
-    {
-        bool MatchesCustomRecipient(UserRegisteredContactPoint contactPoint) =>
-            (!string.IsNullOrWhiteSpace(contactPoint.Email) && customEmails.Contains(contactPoint.Email.Trim()))
-            || (!string.IsNullOrWhiteSpace(contactPoint.MobileNumber) && customMobileNumbers.Contains(NormalizeMobileNumber(contactPoint.MobileNumber)));
-
-        var authorizedContactPoints = new List<UserRegisteredContactPoint>();
-        foreach (var unit in unitContactPoints)
-        {
-            var candidates = unit.UserContactPoints.Where(MatchesCustomRecipient).ToList();
-            if (candidates.Count == 0)
-            {
-                continue;
-            }
-            var userIds = candidates.Select(contactPoint => contactPoint.UserId).Distinct().ToList();
-            var authorizedUserIds = (await altinnAuthorizationService.AuthorizeUserIdsForResource(unit.PartyId, userIds, resourceId, cancellationToken)).ToHashSet();
-            authorizedContactPoints.AddRange(candidates.Where(contactPoint => authorizedUserIds.Contains(contactPoint.UserId)));
-        }
-        return authorizedContactPoints;
-    }
-
-    private string NormalizeMobileNumber(string mobileNumber)
-    {
-        return mobileNumberHelper.EnsureCountryCodeIfValidNumber(mobileNumber.Replace(" ", string.Empty));
-    }
-
-    private sealed record RecipientNotificationPlan(Recipient Recipient, bool IncludeMain, bool IncludeReminder);
 
     private static string BuildRecipientKey(Recipient recipient)
     {

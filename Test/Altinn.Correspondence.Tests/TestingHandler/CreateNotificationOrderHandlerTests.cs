@@ -67,18 +67,22 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync("Resource Title");
 
+            var deduplicationHelper = new CustomRecipientDeduplicationHelper(
+                _mockAltinnProfileService.Object,
+                _mockAltinnAuthorizationService.Object,
+                new MobileNumberHelper(),
+                Mock.Of<ILogger<CustomRecipientDeduplicationHelper>>());
+
             _handler = new CreateNotificationOrderHandler(
                 _mockCorrespondenceRepository.Object,
                 _mockAltinnRegisterService.Object,
-                _mockAltinnProfileService.Object,
-                _mockAltinnAuthorizationService.Object,
+                deduplicationHelper,
                 _mockNotificationTemplateRepository.Object,
                 _mockCorrespondenceNotificationRepository.Object,
                 _mockIdempotencyKeyRepository.Object,
                 _mockResourceRegistryService.Object,
                 _mockHostEnvironment.Object,
                 _mockGeneralSettings.Object,
-                new MobileNumberHelper(),
                 _mockLogger.Object,
                 TestDbContextFactory.Create());
         }

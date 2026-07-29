@@ -111,6 +111,7 @@ public static class DependencyInjection
         services.AddScoped<CorrespondenceMigrationEventHelper>();
         services.AddScoped<InitializeCorrespondenceValidationHelper>();
         services.AddScoped<PartyUrnHelper>();
+        services.AddScoped<CreateNotificationOrder.CustomRecipientDeduplicationHelper>();
 
         // Legacy
         services.AddScoped<LegacyGetCorrespondencesHandler>();
