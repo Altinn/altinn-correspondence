@@ -37,7 +37,7 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.16.0" />
-    <PackageReference Include="ReverseMarkdown" Version="6.1.0" />
+    <PackageReference Include="ReverseMarkdown" Version="6.1.1" />
     <PackageReference Include="Slack.Webhooks" Version="1.1.6" />
     <PackageReference Include="UUIDNext" Version="4.2.4" />
   </ItemGroup>
