@@ -1,9 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using Altinn.Correspondence.Application.BatchJobs;
 
 namespace Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
 
-public class UpdateOldCorrespondencesWithDownloadAllRequest : IChainedBatchJobCursorState
+public class UpdateOldCorrespondencesWithDownloadAllRequest
 {
     [Range(1, int.MaxValue - 1)]
     public int windowSize { get; set; } = 10000;
