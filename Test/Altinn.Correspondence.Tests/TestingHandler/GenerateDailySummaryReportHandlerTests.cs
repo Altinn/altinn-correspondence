@@ -127,7 +127,8 @@ public class GenerateDailySummaryReportHandlerTests
 
         // Verify sender org number value is actually present in the parquet data
         response.FileStream.Position = 0;
-        var rows = await ParquetSerializer.DeserializeAsync<ParquetDailySummaryData>(response.FileStream, cancellationToken: CancellationToken.None);
+        var deserializationResult = await ParquetSerializer.DeserializeAsync<ParquetDailySummaryData>(response.FileStream, cancellationToken: CancellationToken.None);
+        var rows = deserializationResult.Data;
         Assert.Single(rows);
         Assert.Equal("910753614", rows[0].SenderOrgNumber);
     }
