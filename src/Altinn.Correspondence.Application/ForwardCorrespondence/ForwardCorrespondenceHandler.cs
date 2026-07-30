@@ -17,7 +17,7 @@ public class ForwardCorrespondenceHandler(
 {
     public async Task<OneOf<Guid, Error>> Process(ForwardCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken);
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(request.CorrespondenceId, true, true, false, cancellationToken, true);
         if (correspondence == null)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);

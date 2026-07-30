@@ -40,7 +40,8 @@ namespace Altinn.Correspondence.Core.Repositories
             bool includeStatus,
             bool includeContent,
             bool includeForwardingEvents,
-            CancellationToken cancellationToken);
+            CancellationToken cancellationToken,
+            bool includeAttachmentStorageProvider = false);
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
             Guid guid,

@@ -87,7 +87,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeStatus,
             bool includeContent,
             bool includeForwardingEvents,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool includeAttachmentStorageProvider = false)
         {
             logger.LogDebug("Retrieving correspondence {CorrespondenceId} including: status={IncludeStatus} content={IncludeContent}", guid, includeStatus, includeContent);
             var correspondences = _context.Correspondences.AsSplitQuery().Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
@@ -101,6 +102,10 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (includeContent)
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.Statuses);
+                if (includeAttachmentStorageProvider)
+                {
+                    correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a.StorageProvider);
+                }
             }
 
             var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
