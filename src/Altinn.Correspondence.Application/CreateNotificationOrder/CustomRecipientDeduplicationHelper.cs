@@ -20,9 +20,7 @@ public class CustomRecipientDeduplicationHelper(
     /// deduplicating custom recipients against the contact information the correspondence recipient's own notification
     /// already delivers to. Deduplication is evaluated per phase (main notification vs reminder), since the two can use
     /// different channels. What the correspondence recipient's notification actually delivers to is resolved per
-    /// recipient type; only organization recipients are supported today, so custom recipients are never deduplicated
-    /// against a person or self-identified correspondence recipient (nor when its registered contact information is
-    /// overridden). This method holds the logic common to all recipient types and dispatches the type-specific lookup.
+    /// recipient type; only organization recipients are supported for now.
     /// </summary>
     public async Task<List<RecipientNotificationPlan>> Deduplicate(
         List<Recipient> recipients,
@@ -114,11 +112,7 @@ public class CustomRecipientDeduplicationHelper(
 
     /// <summary>
     /// Resolves the contact information an organization correspondence recipient's own notification delivers to, or null
-    /// when custom recipients must not be deduplicated against it. The organization's order bundles the main notification
-    /// and the reminder, and Altinn Notifications rejects the whole order if the organization lacks contact information for
-    /// a channel it uses; only the official organization addresses are resolved when the order is created, so if they do not
-    /// cover every channel the order delivers nothing and null is returned. Otherwise the order delivers to the official
-    /// addresses plus the user-registered contact points authorized for the resource, which is the returned set.
+    /// when custom recipients must not be deduplicated against it.
     /// </summary>
     private async Task<RegisteredContactInfo?> GetOrganizationRegisteredContactInfo(string organizationNumber, NotificationRequest notificationRequest, string resourceId, HashSet<string> customEmails, HashSet<string> customMobileNumbers, Guid notificationId, CancellationToken cancellationToken)
     {
@@ -166,9 +160,7 @@ public class CustomRecipientDeduplicationHelper(
 
     /// <summary>
     /// Returns the user-registered contact points whose address matches a custom recipient and whose user is authorized
-    /// for the resource. Notifications performs the same authorization before sending to a user's registered contact
-    /// information, so an unauthorized user's address is never actually delivered to and must not deduplicate a custom
-    /// recipient. Only user contact points matching a custom recipient are authorized, since the rest cannot affect the result.
+    /// for the resource. Only checks the addresses who match a custom recipient to avoid redundant authorization checks.
     /// </summary>
     private async Task<List<UserRegisteredContactPoint>> GetAuthorizedUserContactPointsMatchingCustomRecipients(List<UnitContactPoints> unitContactPoints, string resourceId, HashSet<string> customEmails, HashSet<string> customMobileNumbers, CancellationToken cancellationToken)
     {
