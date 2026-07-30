@@ -417,7 +417,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         BlockBlobClient blockBlobClient = blobContainerClient.GetBlockBlobClient(attachment.Id.ToString());
 
         var startsOn = DateTimeOffset.UtcNow.AddMinutes(-5);
-        var expiresOn = DateTimeOffset.UtcNow.AddMinutes(30);
+        var expiresOn = DateTimeOffset.UtcNow.AddHours(1);
 
         // Generate a SAS token that is valid for 1 hour
         var sasBuilder = new Azure.Storage.Sas.BlobSasBuilder
@@ -445,7 +445,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             Query = sasQueryParameters.ToString()
         };
-        _logger.LogInformation(sasUriBuilder.Uri.ToString());
         return sasUriBuilder.Uri.ToString();
     }
 }
