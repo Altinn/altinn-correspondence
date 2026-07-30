@@ -69,17 +69,6 @@ public class VerifyCorrespondenceConfirmationHandler(
                 correspondence.Sender,
                 CancellationToken.None));
 
-            if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
-            {
-                backgroundJobClient.Enqueue<IAltinnStorageService>((syncToAltinn2) =>
-                    syncToAltinn2.SyncCorrespondenceEventToSblBridge(
-                        correspondence.Altinn2CorrespondenceId.Value,
-                        partyId,
-                        operationTimestamp,
-                        SyncEventType.Confirm,
-                        CancellationToken.None));
-            }
-
             backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) =>
                 dialogportenService.CreateConfirmedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, callerPartyUrn));
 
@@ -87,5 +76,3 @@ public class VerifyCorrespondenceConfirmationHandler(
         }, cancellationToken);
     }
 }
-
-

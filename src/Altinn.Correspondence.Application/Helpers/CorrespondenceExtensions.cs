@@ -11,21 +11,6 @@ public static class CorrespondenceStatusExtensions
         return statusEntity;
     }
 
-    public static CorrespondenceStatusEntity? GetHighestStatusForLegacyCorrespondence(this CorrespondenceEntity correspondence)
-    {
-        var statusEntity = correspondence.Statuses
-            .Where(s => s.Status != CorrespondenceStatus.Fetched && s.Status != CorrespondenceStatus.AttachmentsDownloaded)
-            .OrderByDescending(s => s.Status).FirstOrDefault();
-        return statusEntity;
-    }
-
-    public static CorrespondenceStatusEntity? GetHighestStatusForLegacyCorrespondenceList(this CorrespondenceEntity correspondence)
-    {
-        var statusEntity = correspondence.Statuses
-            .Where(s => !s.Status.IsPurged() && s.Status != CorrespondenceStatus.Fetched && s.Status != CorrespondenceStatus.AttachmentsDownloaded)
-            .OrderByDescending(s => s.Status).FirstOrDefault();
-        return statusEntity;
-    }
     public static bool IsPurged(this CorrespondenceStatus correspondenceStatus)
     {
         return correspondenceStatus == CorrespondenceStatus.PurgedByRecipient || correspondenceStatus == CorrespondenceStatus.PurgedByAltinn;

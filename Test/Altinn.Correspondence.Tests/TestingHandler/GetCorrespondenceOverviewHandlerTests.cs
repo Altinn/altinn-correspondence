@@ -116,7 +116,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Act
@@ -175,7 +175,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Act
@@ -226,7 +226,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Act
@@ -279,7 +279,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Mock confidential reminder - correspondence has a reminder
@@ -346,7 +346,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Mock confidential reminder - correspondence has a reminder
@@ -413,7 +413,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
 
             // Mock correspondence repository
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Act
@@ -441,7 +441,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var request = new GetCorrespondenceOverviewRequest { CorrespondenceId = correspondenceId };
 
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((CorrespondenceEntity?)null);
 
             // Act
@@ -468,7 +468,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var request = new GetCorrespondenceOverviewRequest { CorrespondenceId = correspondenceId };
 
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
             _altinnAuthorizationServiceMock
                 .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
@@ -515,7 +515,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             _confidentialReminderRepositoryMock
@@ -564,7 +564,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             _confidentialReminderRepositoryMock
@@ -620,7 +620,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             // Act
@@ -664,7 +664,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
             _correspondenceRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(correspondence);
 
             _cacheMock

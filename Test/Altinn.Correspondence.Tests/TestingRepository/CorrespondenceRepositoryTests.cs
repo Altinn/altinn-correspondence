@@ -454,13 +454,6 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(1))
                 .Build();
 
-            var migrating = new CorrespondenceEntityBuilder()
-                .WithRequestedPublishTime(baseTime.AddMinutes(1))
-                .WithAltinn2CorrespondenceId(5002)
-                .WithIsMigrating(true)
-                .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(2))
-                .Build();
-
             var notConfirmed = new CorrespondenceEntityBuilder()
                 .WithRequestedPublishTime(baseTime.AddMinutes(2))
                 .WithAltinn2CorrespondenceId(5003)
@@ -472,10 +465,10 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 .WithStatus(CorrespondenceStatus.Confirmed, baseTime.AddMinutes(3))
                 .Build();
 
-            context.Correspondences.AddRange(valid, migrating, notConfirmed, noAltinn2Id);
+            context.Correspondences.AddRange(valid, notConfirmed, noAltinn2Id);
             await context.SaveChangesAsync();
 
-            var windowIds = new List<Guid> { valid.Id, migrating.Id, notConfirmed.Id, noAltinn2Id.Id };
+            var windowIds = new List<Guid> { valid.Id, notConfirmed.Id, noAltinn2Id.Id };
 
             var result = await repo.GetCorrespondencesWithAltinn2IdNotMigratingAndConfirmedStatus(windowIds, CancellationToken.None);
 

@@ -1,5 +1,4 @@
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using System.Security.Claims;
 
@@ -30,16 +29,6 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
         public Task<bool> CheckAccessAsSender(ClaimsPrincipal? user, string resourceId, string sender, string? instance, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(true);
-        }
-
-        public Task<int?> CheckUserAccessAndGetMinimumAuthLevel(ClaimsPrincipal? user, string subjectUserId, string resourceId, List<ResourceAccessLevel> rights, string recipient, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult((int?)3);
-        }
-
-        public Task<Dictionary<(string, string), int?>> CheckUserAccessAndGetMinimumAuthLevelWithMultirequest(ClaimsPrincipal? user, string subjectUserId, List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(correspondences.ToDictionary(correspondence => ValueTuple.Create(correspondence.Recipient, correspondence.ResourceId), _ => new Nullable<int>(3)));
         }
 
         public Task<List<int>> AuthorizeUserIdsForResource(int partyId, IReadOnlyCollection<int> userIds, string resourceId, CancellationToken cancellationToken = default)

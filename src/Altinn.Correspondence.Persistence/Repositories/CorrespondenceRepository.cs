@@ -75,7 +75,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .FilterBySenderOrRecipient(orgNo, role)             // Filter by role
                 .FilterByStatus(status, orgNo, role)                // Filter by status
                 .Where(c => string.IsNullOrEmpty(sendersReference) || c.SendersReference == sendersReference) // Filter by sendersReference
-                .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .OrderByDescending(c => c.RequestedPublishTime)              // Sort by RequestedPublishTime
                 .Select(c => c.Id);
 
@@ -88,17 +87,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeStatus,
             bool includeContent,
             bool includeForwardingEvents,
-            CancellationToken cancellationToken,
-            bool includeIsMigrating = false)
+            CancellationToken cancellationToken)
         {
             logger.LogDebug("Retrieving correspondence {CorrespondenceId} including: status={IncludeStatus} content={IncludeContent}", guid, includeStatus, includeContent);
             var correspondences = _context.Correspondences.AsSplitQuery().Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
 
-            // Exclude migrating correspondences unless explicitly requested, added as an option since this method is frequently used in unit tests where it it useful to override
-            if (!includeIsMigrating)
-            {
-                correspondences = correspondences.Where(c => !c.IsMigrating);
-            }
             if (includeStatus)
             {
                 correspondences = correspondences
@@ -163,7 +156,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             var correspondence = _context.Correspondences
                 .Where(c => c.Content != null && c.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId))
-                .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .AsQueryable();
 
             correspondence = includeStatus ? correspondence.Include(c => c.Statuses) : correspondence;
@@ -173,7 +165,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<CorrespondenceEntity>> GetNonPublishedCorrespondencesByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var correspondences = await _context.Correspondences
-                .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
                 .Where(correspondence =>
                         correspondence.Content!.Attachments.Any(attachment => attachment.AttachmentId == attachmentId) // Correspondence has the given attachment
                      && !correspondence.Statuses.Any(status => status.Status == CorrespondenceStatus.Published || status.Status == CorrespondenceStatus.ReadyForPublish  // Correspondence is not published
@@ -338,7 +329,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var query = _context.Correspondences
                 .AsNoTracking()
                 .FilterMigrated(filterMigrated)
-                .Where(c => c.IsMigrating == false)
                 .AsQueryable();
 
             if (lastCreated.HasValue)
@@ -680,7 +670,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             var correspondence = await _context.Correspondences
             .Where(c => c.IdempotencyKeys.Any(k => k.Id == idempotentKey))
-            .Where(c => c.IsMigrating == false) // Filter out migrated correspondences that have not become available yet
             .SingleOrDefaultAsync(cancellationToken);
 
             return correspondence;
@@ -691,7 +680,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await _context.Correspondences
                 .Where(c => c.Altinn2CorrespondenceId == altinn2CorrespondenceId)
                 .Where(c => c.ResourceId == resourceId)
-                .Where(c => c.IsMigrating == false)
                 .FilterBySenderOrRecipient(orgNo, role)
                 .SingleOrDefaultAsync(cancellationToken);
         }
@@ -729,7 +717,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .AsSplitQuery()
                 .Where(c => correspondenceIds.Contains(c.Id))
                 .Where(c => c.Altinn2CorrespondenceId != null)
-                .Where(c => !c.IsMigrating)
                 .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
                 .Include(c => c.Content)
                 .Include(c => c.ExternalReferences)
@@ -750,7 +737,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
             query = query
                 .Where(c => c.Altinn2CorrespondenceId != null)
-                .Where(c => !c.IsMigrating)
                 .Where(c => c.Statuses.Any(s => s.Status == CorrespondenceStatus.Confirmed))
                 .Include(c => c.Content)
                 .Include(c => c.ExternalReferences)

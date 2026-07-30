@@ -21,7 +21,7 @@ var TOKENS = {
 };
 const BASE_URL = "http://localhost:5096";
 
-const resource_id = "dagl-correspondence";
+const resource_id = "bruno-correspondence";
 const sender = "0192:313154599";
 const file = open("./data/testfile.txt", "b");
 
