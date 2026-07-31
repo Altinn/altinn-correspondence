@@ -17,6 +17,15 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 table: "CorrespondenceForwardingEvents",
                 type: "uuid",
                 nullable: false);
+
+            migrationBuilder.AlterColumn<int>(
+                name: "ForwardedByUserId",
+                schema: "correspondence",
+                table: "CorrespondenceForwardingEvents",
+                type: "integer",
+                nullable: true,
+                oldClrType: typeof(int),
+                oldType: "integer");
         }
 
         /// <inheritdoc />
@@ -26,6 +35,16 @@ namespace Altinn.Correspondence.Persistence.Migrations
                 name: "NotificationShipmentId",
                 schema: "correspondence",
                 table: "CorrespondenceForwardingEvents");
+
+            migrationBuilder.AlterColumn<int>(
+                name: "ForwardedByUserId",
+                schema: "correspondence",
+                table: "CorrespondenceForwardingEvents",
+                type: "integer",
+                nullable: false,
+                oldClrType: typeof(int?),
+                oldType: "integer",
+                oldNullable: true);
         }
     }
 }
