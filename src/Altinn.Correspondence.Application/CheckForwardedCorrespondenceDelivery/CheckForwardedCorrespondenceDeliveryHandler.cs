@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.SendSlackNotification;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
@@ -12,6 +13,8 @@ namespace Altinn.Correspondence.Application.CheckForwardedCorrespondenceDelivery
 public class CheckForwardedCorrespondenceDeliveryHandler(
     IAltinnNotificationService altinnNotificationService,
     IBackgroundJobClient backgroundJobClient,
+    ICorrespondenceStatusRepository correspondenceStatusRepository,
+    ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
     ILogger<CheckForwardedCorrespondenceDeliveryHandler> logger)
 {
     private static readonly int[] PollBackoffSeconds =
@@ -45,12 +48,22 @@ public class CheckForwardedCorrespondenceDeliveryHandler(
             return;
         }
 
+        var forwardingEvent = await correspondenceForwardingEventRepository.GetForwardingEvent(forwardingEventId, cancellationToken);
+
         if (notification.Recipients.Any(r => r.Status == NotificationStatusV2.Email_Delivered))
         {
             logger.LogInformation(
                 "Forwarded correspondence shipment {ShipmentId} has been delivered. Queuing Dialogporten activity update for forwarding event {ForwardingEventId}.",
                 shipmentId, forwardingEventId);
             backgroundJobClient.Enqueue<IDialogportenService>(x => x.AddForwardingEvent(forwardingEventId, CancellationToken.None));
+            await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = forwardingEvent.CorrespondenceId,
+                Correspondence = forwardingEvent.Correspondence,
+                Status = CorrespondenceStatus.Forwarded,
+                StatusChanged = forwardingEvent.ForwardedOnDate,
+                PartyUuid = forwardingEvent.ForwardedByPartyUuid
+            }, cancellationToken);
             return;
         }
 
