@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,14 +13,16 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729112501_Expand_ForwardingEvent_Table")]
+    partial class Expand_ForwardingEvent_Table
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("correspondence")
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -403,8 +406,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("MailboxSupplier")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("NotificationShipmentId")
+                    b.Property<Guid>("NotificationOrderId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset?>("SyncedFromAltinn2")
                         .HasColumnType("timestamp with time zone");
@@ -625,20 +631,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("CorrespondenceId");
 
                     b.ToTable("IdempotencyKeys", "correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.LegacyPartyEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("PartyId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LegacyParties", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.NotificationTemplateEntity", b =>

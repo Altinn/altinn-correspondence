@@ -15,7 +15,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         [Required]
         public Guid ForwardedByPartyUuid { get; set; }
         
-        public int ForwardedByUserId { get; set; }
+        public int? ForwardedByUserId { get; set; }
 
         [Required]
         public Guid ForwardedByUserUuid { get; set; }
@@ -41,5 +41,7 @@ namespace Altinn.Correspondence.Core.Models.Entities
         public DateTimeOffset? SyncedFromAltinn2 { get; set; }
 
         public Guid? DialogActivityId { get; set; }
+
+        public Guid NotificationShipmentId { get; set; }
     }
 }
