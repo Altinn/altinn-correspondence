@@ -335,7 +335,9 @@ namespace Altinn.Correspondence.Persistence.Repositories
             {
                 if (lastId.HasValue)
                 {
-                    query = query.Where(c => c.Created > lastCreated.Value || (c.Created == lastCreated.Value && c.Id > lastId.Value));
+                    query = query.Where(c => EF.Functions.GreaterThan(
+                ValueTuple.Create(c.Created, c.Id),
+                ValueTuple.Create(lastCreated.Value, lastId.Value)));
                 }
                 else
                 {
