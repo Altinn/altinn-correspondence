@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260729112501_Expand_ForwardingEvent_Table")]
-    partial class Expand_ForwardingEvent_Table
+    [Migration("20260803105936_Add_Forwarding_And_ForwardingEmailIdempotency")]
+    partial class Add_Forwarding_And_ForwardingEmailIdempotency
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -406,11 +406,8 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("MailboxSupplier")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("NotificationOrderId")
+                    b.Property<Guid?>("NotificationShipmentId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset?>("SyncedFromAltinn2")
                         .HasColumnType("timestamp with time zone");
@@ -418,6 +415,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CorrespondenceId");
+
+                    b.HasIndex("CorrespondenceId", "ForwardedToEmailAddress")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CorrespondenceForwardingEvents_CorrespondenceId_ForwardedToEmailAddress_Unique")
+                        .HasFilter("\"ForwardedToEmailAddress\" IS NOT NULL");
 
                     b.HasIndex("CorrespondenceId", "ForwardedOnDate", "ForwardedByPartyUuid")
                         .IsUnique()

@@ -48,14 +48,13 @@ public class ForwardCorrespondenceHandler(
             return AuthorizationErrors.NoAccessToResource;
         }
 
-        logger.LogInformation("Forwarding correspondence {CorrespondenceId} to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
-        var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, cancellationToken);
-        var composedEmailResponse = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
-        if (composedEmailResponse == null)
+        var alreadyForwardedToRecipient = await correspondenceForwardingEventRepository.HasCorrespondenceBeenForwardedToRecipient(request.CorrespondenceId, request.ForwardTo, cancellationToken);
+        if (alreadyForwardedToRecipient)
         {
-            logger.LogError("Failed to create composed email for correspondence {CorrespondenceId}", request.CorrespondenceId);
-            return CorrespondenceErrors.ForwardingNotAllowed;
+            logger.LogWarning("Correspondence {CorrespondenceId} has already been forwarded to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
+            return CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient;
         }
+
         var caller = user.GetCallerPartyUrn();
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
@@ -72,13 +71,37 @@ public class ForwardCorrespondenceHandler(
             ForwardedByUserUuid = partyUuid,
             ForwardedToEmailAddress = request.ForwardTo,
             CorrespondenceId = request.CorrespondenceId,
-            Correspondence = correspondence,
-            NotificationShipmentId = composedEmailResponse.Notification.ShipmentId
+            Correspondence = correspondence
         };
         var forwardingEventId = await correspondenceForwardingEventRepository.AddForwardingEventForSync(forwardingEvent, cancellationToken);
+        if (forwardingEventId == Guid.Empty)
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} has already been forwarded to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
+            return CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient;
+        }
 
-        backgroundJobClient.Enqueue<CheckForwardedCorrespondenceDeliveryHandler>(x =>
-            x.Process(composedEmailResponse.Notification.ShipmentId, forwardingEventId, CancellationToken.None));
-        return forwardingEventId;
+        logger.LogInformation("Forwarding correspondence {CorrespondenceId} to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
+        try
+        {
+            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, cancellationToken);
+            var composedEmailResponse = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
+            if (composedEmailResponse == null)
+            {
+                logger.LogError("Failed to create composed email for correspondence {CorrespondenceId}", request.CorrespondenceId);
+                await correspondenceForwardingEventRepository.DeleteForwardingEvent(forwardingEventId, cancellationToken);
+                return CorrespondenceErrors.ForwardingNotAllowed;
+            }
+
+            await correspondenceForwardingEventRepository.SetNotificationShipmentId(forwardingEventId, composedEmailResponse.Notification.ShipmentId, cancellationToken);
+
+            backgroundJobClient.Enqueue<CheckForwardedCorrespondenceDeliveryHandler>(x =>
+                x.Process(composedEmailResponse.Notification.ShipmentId, forwardingEventId, CancellationToken.None));
+            return forwardingEventId;
+        }
+        catch
+        {
+            await correspondenceForwardingEventRepository.DeleteForwardingEvent(forwardingEventId, cancellationToken);
+            throw;
+        }
     }
 }

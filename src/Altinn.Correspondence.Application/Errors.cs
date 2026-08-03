@@ -61,6 +61,7 @@ public static class CorrespondenceErrors
     public static Error CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag = new Error(1061, "Correspondences cannot be initialized with 'IsConfidential' flag set to true if the resource is not confidential", HttpStatusCode.BadRequest);
     public static Error UnreadConfidentialCorrespondencesNotFound = new Error(1062, "No unread confidential correspondences found", HttpStatusCode.NotFound);
     public static Error ForwardingNotAllowed = new Error(1063, "Correspondence does not allow forwarding", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceAlreadyForwardedToRecipient = new Error(1064, "Correspondence has already been forwarded to the specified recipient", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors

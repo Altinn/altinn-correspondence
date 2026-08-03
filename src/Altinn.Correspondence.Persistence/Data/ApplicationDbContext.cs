@@ -113,6 +113,15 @@ public class ApplicationDbContext : DbContext
                      nameof(CorrespondenceForwardingEventEntity.ForwardedByPartyUuid))
             .IsUnique()
             .HasDatabaseName("IX_CorrespondenceForwardingEvents_Unique");
+
+        // CorrespondenceForwardingEventEntity - unique on (CorrespondenceId, ForwardedToEmailAddress)
+        // Ensures a correspondence can only ever be forwarded to a given email address once
+        modelBuilder.Entity<CorrespondenceForwardingEventEntity>()
+            .HasIndex(nameof(CorrespondenceForwardingEventEntity.CorrespondenceId),
+                     nameof(CorrespondenceForwardingEventEntity.ForwardedToEmailAddress))
+            .IsUnique()
+            .HasFilter("\"ForwardedToEmailAddress\" IS NOT NULL")
+            .HasDatabaseName("IX_CorrespondenceForwardingEvents_CorrespondenceId_ForwardedToEmailAddress_Unique");
     }
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

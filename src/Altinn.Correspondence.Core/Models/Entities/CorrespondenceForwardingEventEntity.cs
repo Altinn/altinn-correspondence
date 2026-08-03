@@ -42,6 +42,6 @@ namespace Altinn.Correspondence.Core.Models.Entities
 
         public Guid? DialogActivityId { get; set; }
 
-        public Guid NotificationShipmentId { get; set; }
+        public Guid? NotificationShipmentId { get; set; }
     }
 }

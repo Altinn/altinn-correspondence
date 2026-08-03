@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("correspondence")
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -403,7 +403,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("MailboxSupplier")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("NotificationShipmentId")
+                    b.Property<Guid?>("NotificationShipmentId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("SyncedFromAltinn2")
@@ -412,6 +412,11 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CorrespondenceId");
+
+                    b.HasIndex("CorrespondenceId", "ForwardedToEmailAddress")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CorrespondenceForwardingEvents_CorrespondenceId_ForwardedToEmailAddress_Unique")
+                        .HasFilter("\"ForwardedToEmailAddress\" IS NOT NULL");
 
                     b.HasIndex("CorrespondenceId", "ForwardedOnDate", "ForwardedByPartyUuid")
                         .IsUnique()
