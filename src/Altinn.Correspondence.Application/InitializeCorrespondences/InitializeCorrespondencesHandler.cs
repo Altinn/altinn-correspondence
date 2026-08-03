@@ -40,7 +40,12 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Processing correspondence initialization request for resource {ResourceId}", request.Correspondence.ResourceId);
+        logger.LogInformation(
+            "Processing correspondence initialization request for resource {ResourceId} from consumer {ConsumerOrganizationId} with {RecipientCount} recipients, idempotency key present: {HasIdempotentKey}",
+            request.Correspondence.ResourceId.SanitizeForLogging(),
+            user?.GetCallerOrganizationId()?.SanitizeForLogging(),
+            request.Recipients?.Count ?? 0,
+            request.IdempotentKey.HasValue);
 
         if (request.IdempotentKey.HasValue)
         {
