@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Altinn.AccessManagement;
 using Altinn.Correspondence.Integrations.Altinn.Events;
 using Altinn.Correspondence.Integrations.Altinn.Notifications;
+using Altinn.Correspondence.Integrations.Altinn.Profile;
 using Altinn.Correspondence.Integrations.Altinn.Register;
 using Altinn.Correspondence.Integrations.Dialogporten;
 using Altinn.Correspondence.Integrations.Hangfire;
@@ -93,6 +94,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             services.OverrideAuthorization();
             services.OverrideAltinnAuthorization();
             services.AddScoped<IAltinnRegisterService, AltinnRegisterDevService>();
+            services.AddScoped<IAltinnProfileService, AltinnProfileDevService>();
             altinnStorageServiceMock.Setup(x => x.SyncCorrespondenceEventToSblBridge(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), SyncEventType.Read, It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult<bool>(true))
                 .Verifiable();
