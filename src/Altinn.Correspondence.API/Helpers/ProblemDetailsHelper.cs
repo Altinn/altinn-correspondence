@@ -29,7 +29,7 @@ public static class ProblemDetailsHelper
     public static ObjectResult ToProblemResult(Error error)
     {
         var descriptor = _factory.Create((uint)error.ErrorCode, error.StatusCode, error.Message);
-        var problemDetails = descriptor.ToProblemDetails();
+        var problemDetails = descriptor.ToProblemDetails(error.Message);
 
         if (StatusCodeMappings.TryGetValue(error.StatusCode, out var mapping))
         {

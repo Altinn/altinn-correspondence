@@ -21,17 +21,13 @@ public static class MessageBodyHelpers
 
         var config = new Config
         {
-            UnknownTags = Config.UnknownTagsOption.Bypass, 
-            GithubFlavored = true, 
-            RemoveComments = true,
-            SmartHrefHandling = false,
-            DefaultCodeBlockLanguage = "",
-            WhitelistUriSchemes = [
-                "mailto",
-                "http",
-                "https"
-                ]
+            GithubFlavored = true
         };
+        config.Tags.Unknown = Config.UnknownTagsOption.Bypass;
+        config.Formatting.RemoveComments = true;
+        config.Links.SmartHref = false;
+        config.Formatting.DefaultCodeBlockLanguage = "";
+        config.Links.WhitelistedSchemes.UnionWith(["mailto", "http", "https"]);
 
         var converter = new Converter(config);
         var processed = converter.Convert(html);

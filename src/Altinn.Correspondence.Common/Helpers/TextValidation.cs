@@ -21,25 +21,23 @@ public class TextValidation
     {
         // Ignore backticks and backslashes so they are always accepted.
         var normalizedInput = text.Replace("`", "").Replace("\\", "");
-        var converter = new ReverseMarkdown.Converter();
+        var config = new ReverseMarkdown.Config();
+        config.Formatting.CleanupSpaces = false;
+        var converter = new ReverseMarkdown.Converter(config);
         var markdown = converter.Convert(normalizedInput);
         var pipelineBuilder = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions();
         pipelineBuilder.BlockParsers.TryRemove<ListBlockParser>();
         var pipeline = pipelineBuilder.Build();
         var plaintext = Markdown.ToPlainText(markdown, pipeline);
-        return plaintext.Trim() == normalizedInput.Trim();
+        return Regex.Replace(plaintext, @"\s+", "") == Regex.Replace(normalizedInput, @"\s+", "");
     }
 
     public static bool ValidateMarkdown(string markdown)
     {
-        var config = new ReverseMarkdown.Config
-        {
-            CleanupUnnecessarySpaces = false,
-            WhitelistUriSchemes = [
-                "br"
-            ],
-        };
+        var config = new ReverseMarkdown.Config();
+        config.Formatting.CleanupSpaces = false;
+        config.Links.WhitelistedSchemes.Add("br");
         var converter = new ReverseMarkdown.Converter(config);
         // change all codeblocks to <code> to keep html content in codeblocks
         var markdownWithCodeBlocks = ReplaceMarkdownCodeWithHtmlCode(markdown);

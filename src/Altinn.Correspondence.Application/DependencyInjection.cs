@@ -102,6 +102,7 @@ public static class DependencyInjection
         services.AddScoped<NotificationMapper>();
         services.AddScoped<InitializeCorrespondenceValidationHelper>();
         services.AddScoped<PartyUrnHelper>();
+        services.AddScoped<CreateNotificationOrder.CustomRecipientDeduplicationHelper>();
 
 
         services.AddScoped<UnreadConfidentialCorrespondenceHandler>();

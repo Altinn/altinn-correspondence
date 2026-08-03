@@ -33,7 +33,8 @@ function createCorrespondence(serviceOwner, endUser, traceCalls) {
         scopes: serviceOwner.scopes, 
         pid: serviceOwner.ssn,
         orgno: serviceOwner.orgno,
-        consumerOrgNo: serviceOwner.orgno
+        consumerOrgNo: serviceOwner.orgno,
+        org: serviceOwner.org
     };
 
     var paramsWithToken = {
