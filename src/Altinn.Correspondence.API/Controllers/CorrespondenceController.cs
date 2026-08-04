@@ -155,6 +155,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Requires uploads of specified attachments if any before it can be Published. <br />
         /// Supports file sizes up to 2 GB each <br />
         /// </remarks>
+        /// <param name="attachments">The attachment files as binary parts, one per entry in Correspondence.Content.Attachments, each part named with the FileName set in its entry</param>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
         /// <response code="400"><ul>
         /// <li>1002: Message title must be plain text</li>
