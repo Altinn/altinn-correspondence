@@ -20,19 +20,19 @@ internal static class CorrespondenceHelper
     {
         var formData = new MultipartFormDataContent(){
             { new StringContent(correspondence.ResourceId), "correspondence.resourceId" },
-            { new StringContent(correspondence.Sender), "correspondence.sender" },
+            { new StringContent(correspondence.Sender ?? string.Empty), "correspondence.sender" },
             { new StringContent(correspondence.SendersReference), "correspondence.sendersReference" },
-            { new StringContent(correspondence.RequestedPublishTime.ToString()), "correspondence.RequestedPublishTime" },
-            { new StringContent(correspondence.DueDateTime.ToString()), "correspondence.dueDateTime" },
-            { new StringContent(correspondence.Content.MessageTitle), "correspondence.content.MessageTitle" },
-            { new StringContent(correspondence.Content.MessageSummary), "correspondence.content.MessageSummary" },
-            { new StringContent(correspondence.Content.MessageBody), "correspondence.content.MessageBody" },
-            { new StringContent(correspondence.Content.Language), "correspondence.content.Language" },
+            { new StringContent(correspondence.RequestedPublishTime.ToString() ?? string.Empty), "correspondence.RequestedPublishTime" },
+            { new StringContent(correspondence.DueDateTime.ToString() ?? string.Empty), "correspondence.dueDateTime" },
+            { new StringContent(correspondence.Content?.MessageTitle ?? string.Empty), "correspondence.content.MessageTitle" },
+            { new StringContent(correspondence.Content?.MessageSummary ?? string.Empty), "correspondence.content.MessageSummary" },
+            { new StringContent(correspondence.Content?.MessageBody ?? string.Empty), "correspondence.content.MessageBody" },
+            { new StringContent(correspondence.Content?.Language ?? string.Empty), "correspondence.content.Language" },
             { new StringContent((correspondence.IgnoreReservation ?? false).ToString()), "correspondence.IgnoreReservation" },
         };
         if (correspondence.Notification != null)
         {
-            formData.Add(new StringContent(correspondence.Notification.NotificationTemplate.ToString()), "correspondence.Notification.NotificationTemplate");
+            formData.Add(new StringContent(correspondence.Notification.NotificationTemplate.ToString() ?? string.Empty), "correspondence.Notification.NotificationTemplate");
             formData.Add(new StringContent(correspondence.Notification.SendReminder.ToString()), "correspondence.Notification.SendReminder");
             if (correspondence.Notification.EmailBody != null) formData.Add(new StringContent(correspondence.Notification.EmailBody), "correspondence.Notification.EmailBody");
             if (correspondence.Notification.EmailSubject != null) formData.Add(new StringContent(correspondence.Notification.EmailSubject), "correspondence.Notification.EmailSubject");
@@ -42,7 +42,7 @@ internal static class CorrespondenceHelper
             if (correspondence.Notification.ReminderSmsBody != null) formData.Add(new StringContent(correspondence.Notification.ReminderSmsBody), "correspondence.Notification.ReminderSmsBody");
         }
 
-        correspondence.Content.Attachments.Select((attachment, index) => new[]
+        (correspondence.Content?.Attachments ?? []).Select((attachment, index) => new[]
         {
             new { Key = $"correspondence.content.Attachments[{index}].DataLocationType", Value = attachment.DataLocationType.ToString() },
             new { Key = $"correspondence.content.Attachments[{index}].FileName", Value = attachment.FileName ?? "" },
@@ -58,7 +58,7 @@ internal static class CorrespondenceHelper
         }).SelectMany(x => x).ToList()
         .ForEach(item => formData.Add(new StringContent(item.Value), item.Key));
 
-        correspondence.ReplyOptions.Select((replyOption, index) => new[]
+        correspondence.ReplyOptions?.Select((replyOption, index) => new[]
         {
             new { Key = $"correspondence.ReplyOptions[{index}].LinkURL", Value = replyOption.LinkURL },
             new { Key = $"correspondence.ReplyOptions[{index}].LinkText", Value = replyOption.LinkText ?? "" }

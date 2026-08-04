@@ -2,6 +2,6 @@ namespace Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadC
 
 public class PurgeDialogAndDeleteReminderForReadCorrespondencesResponse
 {
-    public string JobId { get; set; }
+    public string JobId { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
 }

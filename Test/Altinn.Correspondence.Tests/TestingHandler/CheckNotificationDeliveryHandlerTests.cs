@@ -443,6 +443,14 @@ public class CheckNotificationDeliveryHandlerTests
             Sender = "test_sender",
             ResourceId = "test_resource",
             SendersReference = "test_reference",
+            Content = new CorrespondenceContentEntity
+            {
+                Language = "en",
+                MessageTitle = "Test title",
+                MessageSummary = "Test summary",
+                MessageBody = "Test body",
+                Attachments = new List<CorrespondenceAttachmentEntity>()
+            },
             RequestedPublishTime = DateTimeOffset.UtcNow,
             Statuses = new List<CorrespondenceStatusEntity>(),
             Created = DateTimeOffset.UtcNow

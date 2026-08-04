@@ -24,6 +24,7 @@ public class AttachmentRepositoryTests
             SendersReference = "ref-a",
             Sender = "0192:910753614",
             Created = DateTimeOffset.UtcNow,
+            FileName = "file-a.txt",
             AttachmentSize = 1
         };
         var linkedB = new AttachmentEntity
@@ -33,6 +34,7 @@ public class AttachmentRepositoryTests
             SendersReference = "ref-b",
             Sender = "0192:910753614",
             Created = DateTimeOffset.UtcNow,
+            FileName = "file-b.txt",
             AttachmentSize = 1
         };
         var orphanC = new AttachmentEntity
@@ -42,6 +44,7 @@ public class AttachmentRepositoryTests
             SendersReference = "ref-c",
             Sender = "0192:910753614",
             Created = DateTimeOffset.UtcNow,
+            FileName = "file-c.txt",
             AttachmentSize = 1
         };
         var orphanD = new AttachmentEntity
@@ -51,6 +54,7 @@ public class AttachmentRepositoryTests
             SendersReference = "ref-d",
             Sender = "0192:910753614",
             Created = DateTimeOffset.UtcNow,
+            FileName = "file-d.txt",
             AttachmentSize = 1
         };
 
@@ -97,6 +101,7 @@ public class AttachmentRepositoryTests
                 SendersReference = $"ref-{i}",
                 Sender = "0192:910753614",
                 Created = DateTimeOffset.UtcNow,
+                FileName = $"file-{i}.txt",
                 AttachmentSize = 1
             })
             .ToList();
@@ -134,6 +139,7 @@ public class AttachmentRepositoryTests
                 SendersReference = $"ref-{i}",
                 Sender = "0192:910753614",
                 Created = DateTimeOffset.UtcNow,
+                FileName = $"file-{i}.txt",
                 AttachmentSize = 1
             })
             .ToList();

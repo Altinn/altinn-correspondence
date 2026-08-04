@@ -360,7 +360,7 @@ public class DialogportenServiceTests
             a.Description.Any(d => d.LanguageCode == "nb" && d.Value.Contains("Digipost")));
 
         Assert.NotNull(mailboxForwardingActivity);
-        var nbDescription = mailboxForwardingActivity!.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        var nbDescription = mailboxForwardingActivity!.Description!.FirstOrDefault(d => d.LanguageCode == "nb");
         Assert.NotNull(nbDescription);
         Assert.Equal("sendte \"Default title\" til Digipost", nbDescription!.Value);
     }

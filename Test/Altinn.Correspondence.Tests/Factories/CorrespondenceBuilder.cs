@@ -7,7 +7,7 @@ namespace Altinn.Correspondence.Tests.Factories
 {
     public class CorrespondenceBuilder
     {
-        private InitializeCorrespondencesExt _correspondence;
+        private InitializeCorrespondencesExt _correspondence = null!;
         public InitializeCorrespondencesExt Build()
         {
             return _correspondence;
@@ -19,8 +19,8 @@ namespace Altinn.Correspondence.Tests.Factories
                 Correspondence = new BaseCorrespondenceExt()
                 {
                     ResourceId = "1",
-                    Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                     SendersReference = "1",
+                    Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                     Content = new InitializeCorrespondenceContentExt()
                     {
                         Language = "nb",
@@ -50,19 +50,19 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondence.Correspondence.ResourceId = resourceId;
             return this;
         }
-        public CorrespondenceBuilder WithCorrespondenceContent(InitializeCorrespondenceContentExt? content)
+        public CorrespondenceBuilder WithCorrespondenceContent(InitializeCorrespondenceContentExt content)
         {
             _correspondence.Correspondence.Content = content;
             return this;
         }
         public CorrespondenceBuilder WithLanguageCode(string? languageCode)
         {
-            _correspondence.Correspondence.Content.Language = languageCode;
+            _correspondence.Correspondence.Content?.Language = languageCode;
             return this;
         }
         public CorrespondenceBuilder WithMessageTitle(string title)
         {
-            _correspondence.Correspondence.Content.MessageTitle = title;
+            _correspondence.Correspondence.Content!.MessageTitle = title;
             return this;
         }
         public CorrespondenceBuilder WithMessageSender(string messageSender)
@@ -72,12 +72,12 @@ namespace Altinn.Correspondence.Tests.Factories
         }
         public CorrespondenceBuilder WithMessageBody(string messageBody)
         {
-            _correspondence.Correspondence.Content.MessageBody = messageBody;
+            _correspondence.Correspondence.Content!.MessageBody = messageBody;
             return this;
         }
         public CorrespondenceBuilder WithMessageSummary(string? messageSummary)
         {
-            _correspondence.Correspondence.Content.MessageSummary = messageSummary;
+            _correspondence.Correspondence.Content?.MessageSummary = messageSummary;
             return this;
         }
         public CorrespondenceBuilder WithAttachments()
@@ -305,6 +305,14 @@ namespace Altinn.Correspondence.Tests.Factories
                 Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 Recipient = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
                 SendersReference = "1",
+                Content = new CorrespondenceContentEntity()
+                {
+                    Language = "nb",
+                    MessageTitle = "test",
+                    MessageSummary = "test",
+                    MessageBody = "test",
+                    Attachments = new List<CorrespondenceAttachmentEntity>()
+                },
                 RequestedPublishTime = DateTimeOffset.UtcNow,
                 Statuses = new List<CorrespondenceStatusEntity>(),
                 Created = DateTimeOffset.UtcNow,

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Slack.Webhooks;
 
-public class SlackNotificationService(IConfiguration configuration,
+public class SlackNotificationService(
     ISlackClient slackClient,
     IHostEnvironment hostEnvironment,
     SlackSettings slackSettings,

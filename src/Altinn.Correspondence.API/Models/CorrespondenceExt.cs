@@ -29,7 +29,7 @@ public class CorrespondenceExt
     [StringLength(255, MinimumLength = 0)]
     public string? MessageSender { get; set; }
 
-    public CorrespondenceContentEntity? Content { get; set; }
+    public required CorrespondenceContentEntity Content { get; set; }
 
     public required DateTimeOffset RequestedPublishTime { get; set; }
 

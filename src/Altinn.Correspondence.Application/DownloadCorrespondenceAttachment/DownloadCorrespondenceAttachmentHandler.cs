@@ -101,7 +101,7 @@ public class DownloadCorrespondenceAttachmentHandler(
             await _idempotencyKeyRepository.CreateAsync(idempotencyKey, cancellationToken);
         }
 
-        var caller = user.GetCallerPartyUrn();
+        var caller = user?.GetCallerPartyUrn() ?? string.Empty;
 		var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {

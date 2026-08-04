@@ -6,10 +6,10 @@ namespace Altinn.Correspondence.Tests.Factories
 {
     public class AttachmentBuilder
     {
-        private InitializeAttachmentExt _attachment;
+        private InitializeAttachmentExt _attachment = null!;
         public InitializeAttachmentExt Build()
         {
-            return _attachment;
+            return _attachment!;
         }
         public AttachmentBuilder CreateAttachment()
         {

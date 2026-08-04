@@ -5,7 +5,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Models;
 public class CreateTransmissionRequest
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public required string Id { get; set; }
 
     [JsonPropertyName("createdAt")]
     public DateTimeOffset CreatedAt { get; set; }
@@ -20,7 +20,7 @@ public class CreateTransmissionRequest
     public string? ExtendedType { get; set; }
 
     [JsonPropertyName("externalReference")]
-    public string ExternalReference { get; set; }
+    public string? ExternalReference { get; set; }
 
     [JsonPropertyName("relatedTransmissionId")]
     public Guid? RelatedTransmissionId { get; set; }
@@ -29,28 +29,25 @@ public class CreateTransmissionRequest
     public TransmissionType Type { get; set; }
 
     [JsonPropertyName("sender")]
-    public TransmissionSender Sender { get; set; }
+    public required TransmissionSender Sender { get; set; }
 
     [JsonPropertyName("content")]
-    public TransmissionContent Content { get; set; }
+    public required TransmissionContent Content { get; set; }
 
     [JsonPropertyName("attachments")]
-    public List<TransmissionAttachment> Attachments { get; set; }
-
-    [JsonPropertyName("title")]
-    public TransmissionTitle Title { get; set; }
+    public required List<TransmissionAttachment> Attachments { get; set; }
     }
 
 public class TransmissionAttachment
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public required string Id { get; set; }
 
     [JsonPropertyName("displayName")]
-    public List<TransmissionDisplayName> DisplayName { get; set; }
+    public required List<TransmissionDisplayName> DisplayName { get; set; }
 
     [JsonPropertyName("urls")]
-    public List<TransmissionUrl> Urls { get; set; }
+    public required List<TransmissionUrl> Urls { get; set; }
 
     [JsonPropertyName("expiresAt")]
     public DateTimeOffset? ExpiresAt { get; set; }
@@ -59,83 +56,83 @@ public class TransmissionAttachment
     public class TransmissionContent
     {
         [JsonPropertyName("title")]
-        public TransmissionTitle Title { get; set; }
+        public required TransmissionTitle Title { get; set; }
 
         [JsonPropertyName("summary")]
-        public TransmissionSummary Summary { get; set; }
+        public TransmissionSummary? Summary { get; set; }
 
         [JsonPropertyName("contentReference")]
-        public TransmissionContentReference ContentReference { get; set; }
+        public required TransmissionContentReference ContentReference { get; set; }
     }
 
     public class TransmissionContentReference
     {
         [JsonPropertyName("value")]
-        public List<TransmissionValue> Value { get; set; }
+        public required List<TransmissionValue> Value { get; set; }
 
         [JsonPropertyName("mediaType")]
-        public string MediaType { get; set; }
+        public required string MediaType { get; set; }
     }
 
     public class TransmissionDisplayName
     {
         [JsonPropertyName("value")]
-        public string Value { get; set; }
+        public required string Value { get; set; }
 
         [JsonPropertyName("languageCode")]
-        public string LanguageCode { get; set; }
+        public required string LanguageCode { get; set; }
     }
 
     public class TransmissionSender
     {
         [JsonPropertyName("actorType")]
-        public string ActorType { get; set; }
+        public required string ActorType { get; set; }
 
         [JsonPropertyName("actorName")]
-        public string ActorName { get; set; }
+        public string? ActorName { get; set; }
 
         [JsonPropertyName("actorId")]
-        public string ActorId { get; set; }
+        public string? ActorId { get; set; }
     }
 
     public class TransmissionSummary
     {
         [JsonPropertyName("value")]
-        public List<TransmissionValue> Value { get; set; }
+        public required List<TransmissionValue> Value { get; set; }
 
         [JsonPropertyName("mediaType")]
-        public string MediaType { get; set; }
+        public required string MediaType { get; set; }
     }
 
     public class TransmissionTitle
     {
         [JsonPropertyName("value")]
-        public List<TransmissionValue> Value { get; set; }
+        public required List<TransmissionValue> Value { get; set; }
 
         [JsonPropertyName("mediaType")]
-        public string MediaType { get; set; }
+        public required string MediaType { get; set; }
     }
 
     public class TransmissionUrl
     {
         [JsonPropertyName("url")]
-        public string Url { get; set; }
+        public required string Url { get; set; }
 
         [JsonPropertyName("mediaType")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? MediaType { get; set; }
 
         [JsonPropertyName("consumerType")]
-        public string ConsumerType { get; set; }
+        public required string ConsumerType { get; set; }
     }
 
     public class TransmissionValue
     {
         [JsonPropertyName("value")]
-        public string Value { get; set; }
+        public required string Value { get; set; }
 
         [JsonPropertyName("languageCode")]
-        public string LanguageCode { get; set; }
+        public required string LanguageCode { get; set; }
     }
 
     public enum TransmissionType

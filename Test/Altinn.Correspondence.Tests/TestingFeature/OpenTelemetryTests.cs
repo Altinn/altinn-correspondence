@@ -16,10 +16,10 @@ public class OpenTelemetryTests
     "/api/healthcheck")]
     [InlineData("", "")]
     [InlineData(null, null)]
-    public void NormalizeUrlPath_ShouldReplaceIdsCorrectly(string input, string expected)
+    public void NormalizeUrlPath_ShouldReplaceIdsCorrectly(string? input, string? expected)
     {
         // Act
-        var result = HttpClientActivityEnricher.NormalizeUrlPath(input);
+        var result = HttpClientActivityEnricher.NormalizeUrlPath(input!);
 
         // Assert
         Assert.Equal(expected, result);

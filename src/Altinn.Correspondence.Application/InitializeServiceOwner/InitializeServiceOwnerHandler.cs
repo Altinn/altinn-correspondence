@@ -19,6 +19,10 @@ public class InitializeServiceOwnerHandler(IServiceOwnerRepository serviceOwnerR
             return new Error(1, "Service owner already exists", System.Net.HttpStatusCode.Conflict);
         }
         var serviceOwner = await serviceOwnerRepository.GetServiceOwnerByOrgNo(request.ServiceOwnerId, cancellationToken);
+        if (serviceOwner == null)
+        {
+            return new Error(2, "Service owner could not be retrieved after creation", System.Net.HttpStatusCode.InternalServerError);
+        }
         resourceManager.DeployStorageAccountsForServiceOwner(serviceOwner, cancellationToken);
         return true;
     }

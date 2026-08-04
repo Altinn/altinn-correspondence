@@ -70,6 +70,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Attachment
             // Assert
             Assert.True(downloadResponseAfterAttached.StatusCode == HttpStatusCode.BadRequest, await downloadResponseAfterAttached.Content.ReadAsStringAsync());
             var data = await downloadResponseAfterAttached.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.NotNull(data?.Detail);
             Assert.Equal(data.Detail, AttachmentErrors.AttachedToAPublishedCorrespondence.Message);
         }
 

@@ -75,11 +75,11 @@ namespace Altinn.Correspondence.Tests.TestingFeature
         {
             _mockCache.Setup(cache => cache.GetOrCreateAsync(
                 key,
-                It.IsAny<Func<CancellationToken, ValueTask<byte[]>>>(),
+                It.IsAny<Func<CancellationToken, ValueTask<byte[]?>>>(),
                 It.IsAny<HybridCacheEntryOptions>(),
                 It.IsAny<IEnumerable<string>?>(),
                 It.IsAny<CancellationToken>()
-            )).ReturnsAsync(null as byte[]); 
+            )).ReturnsAsync(null as byte[]);
         }
 
         private void MockSetupSimulateStoreInCache(string key, string serializedValue, CancellationToken cancellationToken)

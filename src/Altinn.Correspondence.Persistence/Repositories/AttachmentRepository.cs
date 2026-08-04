@@ -132,14 +132,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return results.ToDictionary(x => x.AttachmentId, x => x.MaxExpirationTime);
         }
 
-        public async Task<List<AttachmentEntity?>> GetAttachmentsByCorrespondence(Guid correspondenceId, CancellationToken cancellationToken)
+        public async Task<List<AttachmentEntity>> GetAttachmentsByCorrespondence(Guid correspondenceId, CancellationToken cancellationToken)
         {
             return await _context.Correspondences
                 .Where(c => c.Id == correspondenceId && c.Content != null)
                 .SelectMany(c => c.Content!.Attachments)
                 .Include(ca => ca.Attachment)
                 .ThenInclude(a => a!.StorageProvider)
-                .Select(ca => ca.Attachment)
+                .Select(ca => ca.Attachment!)
                 .ToListAsync(cancellationToken);
         }
 
