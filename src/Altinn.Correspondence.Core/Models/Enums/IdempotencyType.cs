@@ -37,7 +37,11 @@ public enum IdempotencyType
     PurgeCorrespondence = 5,
 
     /// <summary>
+    /// Indicates that this is an idempotency key for resolving a notification's final delivery status
+    /// </summary>
+    NotificationDeliveryResolution = 6,
+    
     /// Indicates that a Hangfire publish job has been scheduled for a correspondence
     /// </summary>
-    SchedulePublishCorrespondence = 6,
-} 
+    SchedulePublishCorrespondence = 7,
+}

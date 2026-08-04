@@ -42,6 +42,20 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
     {
         _logger.LogInformation("Executing batch starting after cursor {cursorId}", request.CursorId?.ToString().SanitizeForLogging());
 
+        if (request.CursorId.HasValue && !request.CursorCreated.HasValue)
+        {
+            var cursorCorrespondence = await _correspondenceRepository.GetCorrespondenceById(
+                request.CursorId.Value, false, false, false, cancellationToken);
+            if (cursorCorrespondence is null)
+            {
+                _logger.LogError(
+                    "CursorId {cursorId} was provided without CursorCreated and could not be resolved to a correspondence. Aborting to avoid restarting from the beginning.",
+                    request.CursorId.Value.ToString().SanitizeForLogging());
+                return;
+            }
+            request.CursorCreated = cursorCorrespondence.Created;
+        }
+
         var queueLimit = request.windowSize * 2;
         var enqueuedJobs = JobStorage.Current.GetMonitoringApi().EnqueuedCount(HangfireQueues.Migration);
         if (enqueuedJobs >= queueLimit)

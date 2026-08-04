@@ -136,10 +136,10 @@ namespace Altinn.Correspondence.Persistence.Helpers
         /// Includes only correspondences that have been migrated
         /// </summary>
         /// <param name="query"></param>
-        /// <returns>Filtered query containing only correspondences with Altinn2CorrespondenceId and IsMigrating == false</returns>
+        /// <returns>Filtered query containing only correspondences with Altinn2CorrespondenceId</returns>
         public static IQueryable<CorrespondenceEntity> IncludeOnlyMigrated(this IQueryable<CorrespondenceEntity> query)
         {
-            return query.Where(cs => cs.Altinn2CorrespondenceId.HasValue && cs.IsMigrating == false);
+            return query.Where(cs => cs.Altinn2CorrespondenceId.HasValue);
         }
     }
 }

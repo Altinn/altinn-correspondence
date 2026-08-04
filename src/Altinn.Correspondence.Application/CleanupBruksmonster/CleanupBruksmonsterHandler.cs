@@ -58,8 +58,15 @@ public class CleanupBruksmonsterHandler(
     {
         foreach (var correspondenceId in correspondenceIds)
         {
-            logger.LogInformation("Purging correspondence dialog {correspondenceId}", correspondenceId);
-            await dialogportenService.PurgeCorrespondenceDialog(correspondenceId);
+            logger.LogInformation("Purging dialog for correspondence {correspondenceId}", correspondenceId);
+            try
+            {
+                await dialogportenService.PurgeCorrespondenceDialog(correspondenceId);
+            }
+            catch (ArgumentException ex)
+            {
+                logger.LogInformation(ex, "dialog already purged for correspondence {correspondenceId}; skipping and continuing with remaining correspondences", correspondenceId);
+            }
         }
     }
 

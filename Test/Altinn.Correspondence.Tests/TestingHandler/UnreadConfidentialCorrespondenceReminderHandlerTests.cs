@@ -60,7 +60,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
         // Arrange
         var correspondenceId = Guid.NewGuid();
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync((CorrespondenceEntity?)null);
 
         // Act
@@ -86,7 +86,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
             .WithStatus(CorrespondenceStatus.Read)
             .Build();
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         // Act
@@ -114,7 +114,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
             .WithStatus(status)
             .Build();
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         // Act
@@ -140,7 +140,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
         var newDialogId = Guid.NewGuid();
         var correspondence = CreateUnreadCorrespondence(correspondenceId);
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
         _confidentialReminderRepositoryMock
             .Setup(x => x.NumberOfRemindersForRecipient(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -172,7 +172,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
         var correspondenceId = Guid.NewGuid();
         var correspondence = CreateUnreadCorrespondence(correspondenceId);
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
         _confidentialReminderRepositoryMock
             .Setup(x => x.NumberOfRemindersForRecipient(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -202,7 +202,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
         var existingDialogId = Guid.NewGuid();
         var correspondence = CreateUnreadCorrespondence(correspondenceId);
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
         _confidentialReminderRepositoryMock
             .Setup(x => x.NumberOfRemindersForRecipient(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -235,7 +235,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
         var newDialogId = Guid.NewGuid();
         var correspondence = CreateUnreadCorrespondence(correspondenceId);
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
         _confidentialReminderRepositoryMock
             .Setup(x => x.NumberOfRemindersForRecipient(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -269,7 +269,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
         var newDialogId = Guid.NewGuid();
         var correspondence = CreateUnreadCorrespondence(correspondenceId);
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
         _confidentialReminderRepositoryMock
             .Setup(x => x.NumberOfRemindersForRecipient(It.IsAny<string>(), It.IsAny<CancellationToken>()))

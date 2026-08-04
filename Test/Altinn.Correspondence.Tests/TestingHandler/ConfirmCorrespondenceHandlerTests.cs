@@ -54,7 +54,7 @@ public class ConfirmCorrespondenceHandlerTests
         var user = CreateUserWithCallerUrn($"{UrnConstants.PersonIdAttribute}:10108000398");
 
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondence.Id, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(correspondence);
 
         _altinnAuthorizationServiceMock
