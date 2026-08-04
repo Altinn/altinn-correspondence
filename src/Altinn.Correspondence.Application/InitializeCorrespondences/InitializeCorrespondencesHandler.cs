@@ -146,12 +146,24 @@ public class InitializeCorrespondencesHandler(
             
                 if (request.Notification != null)
                 {
-                    notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
+                    if (correspondence.ResourceId == "deklarasjonsoversikt-altinn3")
                     {
-                        CorrespondenceId = correspondence.Id,
-                        NotificationRequest = request.Notification,
-                        Language = correspondence.Content != null ? correspondence.Content.Language : null,
-                    }, cancellationToken));
+                        notificationJobId = backgroundJobClient.Schedule<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
+                        {
+                            CorrespondenceId = correspondence.Id,
+                            NotificationRequest = request.Notification,
+                            Language = correspondence.Content != null ? correspondence.Content.Language : null,
+                        }, cancellationToken), DateTimeOffset.UtcNow + TimeSpan.FromHours(3));
+                    }
+                    else
+                    {
+                        notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
+                        {
+                            CorrespondenceId = correspondence.Id,
+                            NotificationRequest = request.Notification,
+                            Language = correspondence.Content != null ? correspondence.Content.Language : null,
+                        }, cancellationToken));
+                    }
                 }
             }
 
