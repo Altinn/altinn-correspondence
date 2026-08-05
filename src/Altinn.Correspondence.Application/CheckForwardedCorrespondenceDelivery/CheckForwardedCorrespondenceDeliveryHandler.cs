@@ -20,6 +20,8 @@ public class CheckForwardedCorrespondenceDeliveryHandler(
     private static readonly int[] PollBackoffSeconds =
     [
         60,
+        3 * 60,
+        8 * 60,
         15 * 60,
         4 * 60 * 60,
         8 * 60 * 60,
@@ -62,6 +64,7 @@ public class CheckForwardedCorrespondenceDeliveryHandler(
                 Correspondence = forwardingEvent.Correspondence,
                 Status = CorrespondenceStatus.Forwarded,
                 StatusChanged = forwardingEvent.ForwardedOnDate,
+                StatusText = CorrespondenceStatus.Forwarded.ToString(),
                 PartyUuid = forwardingEvent.ForwardedByPartyUuid
             }, cancellationToken);
             return;
