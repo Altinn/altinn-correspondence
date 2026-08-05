@@ -111,7 +111,7 @@ public class ApiAction
     public required List<Endpoint> Endpoints { get; set; }
 
     [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    public string? Name { get; set; }
 }
 
 public class Attachment
@@ -207,7 +207,7 @@ public class ExtendedStatus
 public class GuiAction
 {
     [JsonPropertyName("action")]
-    public required string Action { get; set; }
+    public string? Action { get; set; }
 
     [JsonPropertyName("url")]
     public required string Url { get; set; }
@@ -219,13 +219,13 @@ public class GuiAction
     public bool IsDeleteDialogAction { get; set; }
 
     [JsonPropertyName("httpMethod")]
-    public required string HttpMethod { get; set; }
+    public string? HttpMethod { get; set; }
 
     [JsonPropertyName("priority")]
-    public required string Priority { get; set; }
+    public string? Priority { get; set; }
 
     [JsonPropertyName("title")]
-    public required List<Title> Title { get; set; }
+    public List<Title>? Title { get; set; }
 
     [JsonPropertyName("prompt")]
     public List<Prompt>? Prompt { get; set; }
