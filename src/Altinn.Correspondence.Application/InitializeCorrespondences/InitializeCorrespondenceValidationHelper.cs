@@ -104,6 +104,10 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                     return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
                 }
             }
+            if (request.Correspondence.IsConfidential && request.Correspondence.AllowForwarding)
+            {
+                return CorrespondenceErrors.CannotAllowForwardingOnConfidentialCorrespondence;
+            }
             if (request.Recipients.Count != request.Recipients.Distinct().Count())
             {
                 return CorrespondenceErrors.DuplicateRecipients;

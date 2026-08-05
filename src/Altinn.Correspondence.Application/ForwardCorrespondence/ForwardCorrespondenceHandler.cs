@@ -3,6 +3,7 @@ using Altinn.Correspondence.Application.CheckForwardedCorrespondenceDelivery;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Hangfire;
@@ -36,18 +37,38 @@ public class ForwardCorrespondenceHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} not found", request.CorrespondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        if (!correspondence.AllowForwarding)
-        {
-            logger.LogWarning("Correspondence {CorrespondenceId} does not allow forwarding", request.CorrespondenceId);
-            return CorrespondenceErrors.ForwardingNotAllowed;
-        }
         var userHasAccess = await altinnAuthorizationService.CheckAccessAsRecipient(user, correspondence, cancellationToken);
         if (!userHasAccess)
         {
             logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
             return AuthorizationErrors.NoAccessToResource;
         }
+        
+        if (!correspondence.AllowForwarding)
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} does not allow forwarding", request.CorrespondenceId);
+            return CorrespondenceErrors.ForwardingNotAllowed;
+        }
+        if (request.ForwardingText is not null)
+        {
+            if (request.ForwardingText.Length > 200)
+            {
+                logger.LogWarning("Forwarding text for correspondence {CorrespondenceId} exceeds 200 characters", request.CorrespondenceId);
+                return CorrespondenceErrors.ForwardingTextTooLong;
+            }
+            if (!TextValidation.ValidatePlainText(request.ForwardingText))
+            {
+                logger.LogWarning("Forwarding text for correspondence {CorrespondenceId} is not plain text", request.CorrespondenceId);
+                return CorrespondenceErrors.ForwardingTextIsNotPlainText;
+            }
+        }
 
+        var hasBeenRead = correspondence.StatusHasBeen(CorrespondenceStatus.Read);
+        if (!hasBeenRead)
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} has not been read and cannot be forwarded", request.CorrespondenceId);
+            return CorrespondenceErrors.ForwardBeforeRead;
+        }
         var alreadyForwardedToRecipient = await correspondenceForwardingEventRepository.HasCorrespondenceBeenForwardedToRecipient(request.CorrespondenceId, request.ForwardTo, cancellationToken);
         if (alreadyForwardedToRecipient)
         {
@@ -70,6 +91,7 @@ public class ForwardCorrespondenceHandler(
             ForwardedByPartyUuid = partyUuid,
             ForwardedByUserUuid = partyUuid,
             ForwardedToEmailAddress = request.ForwardTo,
+            ForwardingText = request.ForwardingText,
             CorrespondenceId = request.CorrespondenceId,
             Correspondence = correspondence
         };
@@ -83,7 +105,7 @@ public class ForwardCorrespondenceHandler(
         logger.LogInformation("Forwarding correspondence {CorrespondenceId} to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
         try
         {
-            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, cancellationToken);
+            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, request.ForwardingText, cancellationToken);
             var composedEmailResponse = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
             if (composedEmailResponse == null)
             {

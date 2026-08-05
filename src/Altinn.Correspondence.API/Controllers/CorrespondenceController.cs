@@ -676,7 +676,7 @@ namespace Altinn.Correspondence.API.Controllers
         [HttpPost]
         [Produces("application/json")]
         [Route("{correspondenceId}/forward")]
-        [Authorize(Policy = AuthorizationConstants.Recipient, AuthenticationSchemes = AuthorizationConstants.AllSchemes)]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> ForwardCorrespondence(
             Guid correspondenceId,
