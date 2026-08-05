@@ -688,13 +688,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         private static ServiceOwnerContext GetServiceOwnerContextForCorrespondence(CorrespondenceEntity correspondence)
         {
             var corrUrn = $"urn:altinn:correspondence-id:{correspondence.Id}";
-            return new ServiceOwnerContext
+            var labels = new List<ServiceOwnerLabel>{new ServiceOwnerLabel { Value = corrUrn }};
+            if (correspondence.AllowForwarding)
             {
-                ServiceOwnerLabels = new List<ServiceOwnerLabel>
-                {
-                    new ServiceOwnerLabel { Value = corrUrn }
-                }
-            };
+                labels.Add(new ServiceOwnerLabel { Value = "correspondence-allow-forwarding" });
+            }
+            return new ServiceOwnerContext { ServiceOwnerLabels = labels };
         }
 
         internal static List<Attachment> GetAttachmentsForDialogPatchRequest(CorrespondenceEntity correspondence, string baseUrl)
