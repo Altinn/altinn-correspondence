@@ -2,7 +2,6 @@
 
 namespace Altinn.Correspondence.Integrations.Dialogporten.Models;
 
-//TODO: Dobbeltsjekk om disse er riktige!
 public class CreateDialogRequest
 {
     [JsonPropertyName("id")]
@@ -24,7 +23,7 @@ public class CreateDialogRequest
     public string? ExtendedStatus { get; set; }
 
     [JsonPropertyName("externalReference")]
-    public required string ExternalReference { get; set; }
+    public string? ExternalReference { get; set; }
 
     [JsonPropertyName("visibleFrom")]
     public DateTimeOffset? VisibleFrom { get; set; }
