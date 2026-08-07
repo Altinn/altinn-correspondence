@@ -29,7 +29,7 @@ using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.API.Models.Enums;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Tests.Extensions;
+using Altinn.Correspondence.Core.Models.Enums;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using HangfireScheduleHelper = Altinn.Correspondence.Application.Helpers.HangfireScheduleHelper;
@@ -992,6 +992,66 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     stream.Dispose();
                 }
             }
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithAllowForwardingAndAttachmentsOver10MB_ReturnsBadRequest()
+        {
+            // Arrange
+            var attachmentData = AttachmentHelper.GetAttachmentMetaData("large-file.txt");
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAllowForwarding(true)
+                .WithAttachments([attachmentData])
+                .Build();
+
+            var formData = CorrespondenceHelper.CorrespondenceToFormData(payload.Correspondence);
+            formData.Add(new StringContent($"{UrnConstants.OrganizationNumberAttribute}:986252932"), "recipients[0]");
+            formData.Add(new StringContent("true"), "correspondence.AllowForwarding");
+
+            using var memoryStream = new MemoryStream(new byte[10_000_001]);
+            using var streamContent = new StreamContent(memoryStream);
+            formData.Add(streamContent, "attachments", attachmentData.FileName);
+
+            // Act
+            var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var content = await response.Content.ReadAsStringAsync();
+            using var document = JsonDocument.Parse(content);
+            var problem = document.RootElement;
+            Assert.Equal(CorrespondenceErrors.CannotAllowForwardingOnCorrespondenceWithLargeAttachments.Message, problem.GetProperty("detail").GetString());
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithAllowForwardingOnResourceWithAuthLevelAboveZero_ReturnsBadRequest()
+        {
+            // Arrange
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                var resourceRegistryService = new Mock<IResourceRegistryService>();
+                resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+                resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("CorrespondenceService");
+                resourceRegistryService.Setup(x => x.GetConfidentialType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.NotConfidential);
+                resourceRegistryService.Setup(x => x.GetMinimumAuthenticationLevelForResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(3);
+                services.AddScoped(_ => resourceRegistryService.Object);
+            });
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithAllowForwarding(true)
+                .Build();
+
+            // Act
+            var unitSenderClient = testFactory.CreateSenderClient();
+            var initializeCorrespondenceResponse = await unitSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
+            var content = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+            using var document = JsonDocument.Parse(content);
+            var problem = document.RootElement;
+            Assert.Equal(CorrespondenceErrors.CannotAllowForwardingOnCorrespondenceWithAuthLevel.Message, problem.GetProperty("detail").GetString());
         }
 
         [Fact]
