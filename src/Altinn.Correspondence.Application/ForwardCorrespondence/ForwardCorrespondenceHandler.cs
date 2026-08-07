@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Altinn.Correspondence.Application.CheckForwardedCorrespondenceDelivery;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
@@ -23,6 +24,9 @@ public class ForwardCorrespondenceHandler(
     ILogger<ForwardCorrespondenceHandler> logger
 ) : IHandler<ForwardCorrespondenceRequest, Guid>
 {
+
+    private static readonly Regex emailRegex = new Regex(@"^((""[^""]+"")|(([a-zA-Z0-9æøåÆØÅ!#$%&'*+\-=?\^_`{|}~])+(\.([a-zA-Z0-9æøåÆØÅ!#$%&'*+\-=?\^_`{|}~])+)*))@((((([a-zA-Z0-9æøåÆØÅ]([a-zA-Z0-9\-æøåÆØÅ]{0,61})[a-zA-Z0-9æøåÆØÅ]\.)|[a-zA-Z0-9æøåÆØÅ]\.){1,9})([a-zA-Z]{2,14}))|((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})))$");
+
     public async Task<OneOf<Guid, Error>> Process(ForwardCorrespondenceRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (user is null)
@@ -42,6 +46,12 @@ public class ForwardCorrespondenceHandler(
         {
             logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
             return AuthorizationErrors.NoAccessToResource;
+        }
+
+        if (request.ForwardTo is null || !emailRegex.IsMatch(request.ForwardTo))
+        {
+            logger.LogWarning("Invalid email address provided for forwarding correspondence {CorrespondenceId}", request.CorrespondenceId);
+            return NotificationErrors.InvalidEmailProvided;
         }
         
         if (!correspondence.AllowForwarding)
