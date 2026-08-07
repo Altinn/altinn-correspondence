@@ -16,6 +16,7 @@ public class ComposedEmailHelper(
         {
             IdempotencyId = Guid.NewGuid(),
             SendersReference = correspondence.SendersReference,
+            RequestedSendTime = DateTimeOffset.UtcNow.AddSeconds(10),
             Recipient = new ComposedEmailRecipient
             {
                 EmailAddress = forwardTo,
