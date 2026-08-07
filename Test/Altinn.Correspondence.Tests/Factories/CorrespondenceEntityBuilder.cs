@@ -230,5 +230,11 @@ namespace Altinn.Correspondence.Tests.Factories
             _correspondenceEntity.PropertyList = propertyList;
             return this;
         }
+
+        public CorrespondenceEntityBuilder WithAllowForwarding(bool allowForwarding)
+        {
+            _correspondenceEntity.AllowForwarding = allowForwarding;
+            return this;
+        }
     }
 }
