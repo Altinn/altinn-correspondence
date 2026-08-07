@@ -11,11 +11,11 @@ namespace Altinn.Correspondence.Application.CheckNotification;
 public class CheckNotificationHandler(
     ICorrespondenceRepository correspondenceRepository,
     ILogger<CheckNotificationHandler> logger,
-    SendSlackNotificationHandler slackNotificationHandler) : IHandler<Guid, CheckNotificationResponse>
+    SendSlackNotificationHandler slackNotificationHandler)
 {
-    public async Task<OneOf<CheckNotificationResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<CheckNotificationResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, bool isMainNotification, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Checking notification status for correspondence {CorrespondenceId}", correspondenceId);
+        logger.LogInformation("Checking notification status for correspondence {CorrespondenceId} - IsMainNotification: {IsMainNotification}", correspondenceId, isMainNotification);
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
         var response = new CheckNotificationResponse
         {
@@ -27,7 +27,7 @@ public class CheckNotificationHandler(
             response.SendNotification = false;
             return response;
         }
-        if (correspondence.StatusHasBeen(CorrespondenceStatus.Read))
+        if (!isMainNotification && correspondence.StatusHasBeen(CorrespondenceStatus.Read))
         {
             logger.LogInformation("Notification not needed for correspondence {CorrespondenceId} - already read", correspondenceId);
             response.SendNotification = false;

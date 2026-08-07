@@ -235,7 +235,30 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             Assert.NotNull(deserialized!.Reminders);
             Assert.True(deserialized.Reminders!.Count >= 1);
             Assert.NotNull(deserialized.Reminders![0].ConditionEndpoint);
-            Assert.Contains($"/correspondence/api/v1/correspondence/{correspondence.Id}/notification/check", deserialized.Reminders![0].ConditionEndpoint!);
+            Assert.EndsWith($"/correspondence/api/v1/correspondence/{correspondence.Id}/notification/check", deserialized.Reminders![0].ConditionEndpoint!);
+        }
+
+        [Fact]
+        public async Task Process_ShouldSetMainConditionEndpoint_OnTheMainOrder()
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, correspondence, _) = SetupOrderData(requestedPublishTime);
+
+            CorrespondenceNotificationEntity? captured = null;
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured = n)
+                .ReturnsAsync(Guid.NewGuid());
+
+            // Act
+            await _handler.Process(request, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(captured);
+            var deserialized = JsonSerializer.Deserialize<NotificationOrderRequestV2>(captured!.OrderRequest!);
+            Assert.NotNull(deserialized);
+            Assert.EndsWith($"/correspondence/api/v1/correspondence/{correspondence.Id}/notification/check/main", deserialized!.ConditionEndpoint!);
         }
 
         [Fact]
@@ -801,7 +824,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var mainOrder = orders.Single(o => o.Recipient.RecipientOrganization != null);
             var reminderOnly = orders.Single(o => o.Recipient.RecipientSms?.PhoneNumber == "+4799999999");
             Assert.Null(reminderOnly.Reminders);
-            Assert.NotNull(reminderOnly.ConditionEndpoint);
+            Assert.EndsWith("/notification/check", reminderOnly.ConditionEndpoint);
             Assert.Equal(mainOrder.RequestedSendTime.AddDays(1), reminderOnly.RequestedSendTime);
         }
 
