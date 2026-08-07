@@ -193,4 +193,30 @@ public class ResourceRegistryService : IResourceRegistryService
             return ConfidentialTypeEnum.ExplicitlyDelegated;
         return ConfidentialTypeEnum.NotConfidential;
     }
+
+    public async Task<int> GetMinimumAuthenticationLevelForResource(string resourceId, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}/policy", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NoContent)
+        {
+            return 0;
+        }
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            _logger.LogError("Failed to get resource policy from Altinn Resource Registry. Status code: {StatusCode}", response.StatusCode);
+            throw new BadHttpRequestException("Failed to get resource policy from Altinn Resource Registry");
+        }
+        var xml = await response.Content.ReadAsStringAsync(cancellationToken);
+        GetResourcePolicyAuthLevelResponse resourcePolicy;
+        try
+        {
+            resourcePolicy = GetResourcePolicyAuthLevelResponse.Parse(xml);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to parse XACML policy XML from Altinn Resource Registry");
+            throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry when getting resource policy");
+        }
+        return resourcePolicy.MinimumAuthenticationLevels.Min();
+    }
 }

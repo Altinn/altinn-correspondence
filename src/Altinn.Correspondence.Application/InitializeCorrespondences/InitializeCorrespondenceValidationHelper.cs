@@ -104,9 +104,13 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                     return CorrespondenceErrors.CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag;
                 }
             }
-            if (request.Correspondence.IsConfidential && request.Correspondence.AllowForwarding)
+            if (request.Correspondence.AllowForwarding)
             {
-                return CorrespondenceErrors.CannotAllowForwardingOnConfidentialCorrespondence;
+                var authLevel = await resourceRegistryService.GetMinimumAuthenticationLevelForResource(request.Correspondence.ResourceId, cancellationToken);
+                if (authLevel > 0)
+                {
+                    return CorrespondenceErrors.CannotAllowForwardingOnCorrespondenceWithAuthLevel;
+                }
             }
             if (request.Recipients.Count != request.Recipients.Distinct().Count())
             {

@@ -65,7 +65,7 @@ public static class CorrespondenceErrors
     public static Error ForwardBeforeRead = new Error(1065, "Correspondence must be read before it can be forwarded", HttpStatusCode.BadRequest);
     public static Error ForwardingTextTooLong = new Error(1066, "Forwarding text cannot exceed 200 characters", HttpStatusCode.BadRequest);
     public static Error ForwardingTextIsNotPlainText = new Error(1067, "Forwarding text must be plain text", HttpStatusCode.BadRequest);
-    public static Error CannotAllowForwardingOnConfidentialCorrespondence = new Error(1068, "Correspondence cannot allow forwarding if it is confidential", HttpStatusCode.BadRequest);
+    public static Error CannotAllowForwardingOnCorrespondenceWithAuthLevel = new Error(1068, "Correspondence cannot allow forwarding if the resource for the correspondence has a required authorization level above 0", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
