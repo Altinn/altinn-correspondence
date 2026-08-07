@@ -37,6 +37,7 @@ using Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadCorre
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownloadAll;
 using Altinn.Correspondence.Application.ForwardCorrespondence;
+using Altinn.Correspondence.Application.CheckForwardedCorrespondenceDelivery;
 
 namespace Altinn.Correspondence.Application;
 
@@ -66,6 +67,9 @@ public static class DependencyInjection
         services.AddScoped<DownloadCorrespondenceAttachmentHandler>();
         services.AddScoped<PurgeCorrespondenceHandler>();
         services.AddScoped<ForwardCorrespondenceHandler>();
+        services.AddScoped<CanCorrespondenceBeForwardedHandler>();
+        services.AddScoped<CheckForwardedCorrespondenceDeliveryHandler>();
+
 
         // Serviceowner
         services.AddScoped<InitializeServiceOwnerHandler>();

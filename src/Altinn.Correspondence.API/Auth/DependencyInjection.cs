@@ -265,6 +265,9 @@ namespace Altinn.Correspondence.API.Auth
                 options.AddPolicy(AuthorizationConstants.Maintenance, policy =>
                     policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.MaintenanceScope))
                           .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
+                options.AddPolicy(AuthorizationConstants.CheckAllowForwardingPolicy, policy =>
+                    policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.AllowForwardingCheckScope))
+                          .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
             });
         }
 

@@ -812,5 +812,22 @@ namespace Altinn.Correspondence.Persistence.Repositories
             await _context.SaveChangesAsync(cancellationToken);
             return true;
         }
+
+        public async Task<bool?> DoesCorrespondenceAllowForwarding(Guid correspondenceId, CancellationToken cancellationToken = default)
+        {
+            var correspondence = await _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.Id == correspondenceId)
+                .Select(c => new { c.Id, c.AllowForwarding })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            if (correspondence == null)
+            {
+                logger.LogWarning("Correspondence with ID {CorrespondenceId} not found", correspondenceId);
+                return null;
+            }
+
+            return correspondence.AllowForwarding;
+        }
     }
 }

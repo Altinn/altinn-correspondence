@@ -694,6 +694,33 @@ namespace Altinn.Correspondence.API.Controllers
             );
         }
 
+        /// <summary>
+        /// Used by AF to check if a correspondence can be forwarded to a user-provided email address.
+        /// </summary>
+        /// <remarks>
+        /// One of the scopes: <br/>
+        /// - altinn:correspondence.forward.check <br />
+        /// </remarks>
+        [HttpGet]
+        [Produces("application/json")]
+        [Route("{correspondenceId}/forward/check")]
+        [Authorize(Policy = AuthorizationConstants.CheckAllowForwardingPolicy)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        [HideFromPublicApi]
+        public async Task<ActionResult> CanCorrespondenceBeForwarded(
+            Guid correspondenceId,
+            [FromServices] CanCorrespondenceBeForwardedHandler handler,
+            CancellationToken cancellationToken
+        )
+        {
+            _logger.LogInformation("Checking if correspondence can be forwarded: {correspondenceId}", correspondenceId);
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
+            return commandResult.Match(
+                result => Ok(result),
+                Problem
+            );
+        }
+
         private ActionResult Problem(Error error) => ProblemDetailsHelper.ToProblemResult(error);
     }
 }
