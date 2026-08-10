@@ -39,7 +39,12 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Processing correspondence initialization request for resource {ResourceId}", request.Correspondence.ResourceId);
+        logger.LogInformation(
+            "Processing correspondence initialization request for resource {ResourceId} from consumer {ConsumerOrganizationId} with {RecipientCount} recipients, idempotency key present: {HasIdempotentKey}",
+            request.Correspondence.ResourceId.SanitizeForLogging(),
+            user?.GetCallerOrganizationId()?.SanitizeForLogging(),
+            request.Recipients?.Count ?? 0,
+            request.IdempotentKey.HasValue);
 
         if (request.IdempotentKey.HasValue)
         {
@@ -137,63 +142,33 @@ public class InitializeCorrespondencesHandler(
                 await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, idempotencyKey, cancellationToken);
             }
 
-            var validationResult = await ValidateDialogOrTransmissionJob(correspondence, request, cancellationToken);
-            if (validationResult.IsT1)
-            {
-                return validationResult.AsT1;
-            }
-
-            var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
+            string? notificationJobId = null;
+            var isReserved = correspondence.GetHighestStatus().Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
             {
-                postCommitActions.Add(() => ScheduleCorrespondenceJobs(correspondence, request, cancellationToken));
+                if (correspondence.DueDateTime is not null)
+                {
+                    backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
+                }
+                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+            
+                if (request.Notification != null)
+                {
+                    notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
+                    {
+                        CorrespondenceId = correspondence.Id,
+                        NotificationRequest = request.Notification,
+                        Language = correspondence.Content.Language,
+                    }, cancellationToken));
+                }
             }
 
-            initializedCorrespondences.Add(new InitializedCorrespondences()
+            foreach (var correspondenceAttachment in correspondence.Content.Attachments)
             {
-                CorrespondenceId = correspondence.Id,
-                Status = correspondence.GetHighestStatus().Status,
-                Recipient = correspondence.Recipient
-            });
-        }
-
-        return new InitializeCorrespondencesCommitResult(
-            new InitializeCorrespondencesResponse()
-            {
-                Correspondences = initializedCorrespondences,
-                AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
-            },
-            postCommitActions);
-    }
-
-    private async Task ScheduleCorrespondenceJobs(
-        CorrespondenceEntity correspondence,
-        InitializeCorrespondencesRequest request,
-        CancellationToken cancellationToken)
-    {
-        string? notificationJobId = null;
-        if (correspondence.DueDateTime is not null)
-        {
-            backgroundJobClient.Schedule<CorrespondenceDueDateHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), correspondence.DueDateTime.Value);
-        }
-        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondenceInitialized, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-
-        if (request.Notification != null)
-        {
-            notificationJobId = backgroundJobClient.Enqueue<CreateNotificationOrderHandler>((handler) => handler.Process(new CreateNotificationOrderRequest()
-            {
-                CorrespondenceId = correspondence.Id,
-                NotificationRequest = request.Notification,
-                Language = correspondence.Content != null ? correspondence.Content.Language : null,
-            }, cancellationToken));
-        }
-
-        foreach (var correspondenceAttachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
-        {
-            if (correspondenceAttachment.ExpirationTime is not DateTimeOffset scheduleAt)
-            {
-                continue;
-            }
+                if (correspondenceAttachment.ExpirationTime is not DateTimeOffset scheduleAt)
+                {
+                    continue;
+                }
 
             if (scheduleAt < DateTimeOffset.UtcNow)
             {
@@ -207,14 +182,28 @@ public class InitializeCorrespondencesHandler(
 
         await ScheduleDialogOrTransmissionJob(correspondence, request, notificationJobId, cancellationToken);
 
-        if (correspondence.IsConfidential)
-        {
-            logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
-            var unreadCheckDelay = hostEnvironment.IsProduction()
-                ? correspondence.RequestedPublishTime.AddDays(7)
-                : correspondence.RequestedPublishTime.AddMinutes(1);
-            backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
+            if (correspondence.IsConfidential)
+            {
+                logger.LogInformation("Scheduling job to check for unread confidential correspondence for correspondence {CorrespondenceId}", correspondence.Id);
+                var unreadCheckDelay = hostEnvironment.IsProduction()
+                    ? correspondence.RequestedPublishTime.AddDays(7)
+                    : correspondence.RequestedPublishTime.AddMinutes(1);
+                backgroundJobClient.Schedule<UnreadConfidentialCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, cancellationToken), unreadCheckDelay);
+            }
+
+            initializedCorrespondences.Add(new InitializedCorrespondences()
+            {
+                CorrespondenceId = correspondence.Id,
+                Status = correspondence.GetHighestStatus().Status,
+                Recipient = correspondence.Recipient
+            });
         }
+
+        return new InitializeCorrespondencesResponse()
+        {
+            Correspondences = initializedCorrespondences,
+            AttachmentIds = correspondences.SelectMany(c => c.Content.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
+        };
     }
 
     public async Task CreateDialogportenDialog(Guid correspondenceId)

@@ -10,7 +10,7 @@ namespace Altinn.Correspondence.Tests.Fixtures
         {
         }
 
-        protected new bool IsAccessTokenValid() => false;
+        protected bool IsAccessTokenValid() => false;
     }
 
 }

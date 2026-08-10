@@ -79,7 +79,7 @@ public static class StringExtensions
     /// </summary>
     /// <param name="input">The input string to sanitize.</param>
     /// <returns>A sanitized string safe for logging.</returns>
-    public static string SanitizeForLogging(this string input)
+    public static string? SanitizeForLogging(this string? input)
     {
         if (string.IsNullOrEmpty(input)) return input;
         

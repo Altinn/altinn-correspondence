@@ -49,6 +49,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 SendersReference = "senders-reference-1",
                 ResourceId = "res-1",
                 Created = DateTimeOffset.UtcNow,
+                FileName = "file.txt",
                 AttachmentSize = 1,
                 Statuses = new List<AttachmentStatusEntity>
                 {
@@ -81,6 +82,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 SendersReference = "senders-reference-1",
                 ResourceId = "res-1",
                 Created = DateTimeOffset.UtcNow,
+                FileName = "file.txt",
                 AttachmentSize = 1,
                 StorageProvider = new StorageProviderEntity { StorageResourceName = "storage-resource-name-1", ServiceOwnerId = "service-owner-id-1", Active = true },
                 Statuses = new List<AttachmentStatusEntity>(),

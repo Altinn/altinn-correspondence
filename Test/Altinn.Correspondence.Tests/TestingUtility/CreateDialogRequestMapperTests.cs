@@ -235,6 +235,8 @@ public class CreateDialogRequestMapperTests
         var secondResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: created.AddSeconds(1));
 
         // Assert
+        Assert.NotNull(firstResult.Id);
+        Assert.NotNull(secondResult.Id);
         Assert.Equal(firstResult.Id, secondResult.Id);
         Assert.NotEqual(correspondenceId.ToString(), firstResult.Id);
         Assert.Equal(7, GetUuidVersion(Guid.Parse(firstResult.Id)));
@@ -258,6 +260,8 @@ public class CreateDialogRequestMapperTests
         var secondResult = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, currentUtcNow: currentUtcNow);
 
         // Assert
+        Assert.NotNull(firstResult.Id);
+        Assert.NotNull(secondResult.Id);
         Assert.Equal(firstResult.Id, secondResult.Id);
         Assert.Equal(7, GetUuidVersion(Guid.Parse(firstResult.Id)));
         Assert.Equal(created.ToUnixTimeMilliseconds(), GetTimestampFromUuidV7(Guid.Parse(firstResult.Id)).ToUnixTimeMilliseconds());
@@ -316,11 +320,11 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(initialActivity);
 
         // Verify initial notification text in Norwegian and English
-        var initialNbDescription = initialActivity.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        var initialNbDescription = initialActivity.Description!.FirstOrDefault(d => d.LanguageCode == "nb");
         Assert.NotNull(initialNbDescription);
         Assert.Equal("Varsel om mottatt melding sendt til test@example.com på e-post.", initialNbDescription.Value);
 
-        var initialEnDescription = initialActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
+        var initialEnDescription = initialActivity.Description!.FirstOrDefault(d => d.LanguageCode == "en");
         Assert.NotNull(initialEnDescription);
         Assert.Equal("Notification about received message sent to test@example.com on Email.", initialEnDescription.Value);
 
@@ -330,11 +334,11 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(reminderActivity);
 
         // Verify reminder notification text in Norwegian and English
-        var reminderNbDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        var reminderNbDescription = reminderActivity.Description!.FirstOrDefault(d => d.LanguageCode == "nb");
         Assert.NotNull(reminderNbDescription);
         Assert.Equal("Revarsel om mottatt melding sendt til test@example.com på e-post.", reminderNbDescription.Value);
 
-        var reminderEnDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
+        var reminderEnDescription = reminderActivity.Description!.FirstOrDefault(d => d.LanguageCode == "en");
         Assert.NotNull(reminderEnDescription);
         Assert.Equal("Reminder notification about received message sent to test@example.com on Email.", reminderEnDescription.Value);
     }
@@ -392,11 +396,11 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(initialActivity);
 
         // Verify initial SMS notification text in Norwegian and English
-        var initialNbDescription = initialActivity.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        var initialNbDescription = initialActivity.Description!.FirstOrDefault(d => d.LanguageCode == "nb");
         Assert.NotNull(initialNbDescription);
         Assert.Equal("Varsel om mottatt melding sendt til +4712345678 på SMS.", initialNbDescription.Value);
 
-        var initialEnDescription = initialActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
+        var initialEnDescription = initialActivity.Description!.FirstOrDefault(d => d.LanguageCode == "en");
         Assert.NotNull(initialEnDescription);
         Assert.Equal("Notification about received message sent to +4712345678 on SMS.", initialEnDescription.Value);
 
@@ -406,11 +410,11 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(reminderActivity);
 
         // Verify reminder SMS notification text in Norwegian and English
-        var reminderNbDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "nb");
+        var reminderNbDescription = reminderActivity.Description!.FirstOrDefault(d => d.LanguageCode == "nb");
         Assert.NotNull(reminderNbDescription);
         Assert.Equal("Revarsel om mottatt melding sendt til +4712345678 på SMS.", reminderNbDescription.Value);
 
-        var reminderEnDescription = reminderActivity.Description.FirstOrDefault(d => d.LanguageCode == "en");
+        var reminderEnDescription = reminderActivity.Description!.FirstOrDefault(d => d.LanguageCode == "en");
         Assert.NotNull(reminderEnDescription);
         Assert.Equal("Reminder notification about received message sent to +4712345678 on SMS.", reminderEnDescription.Value);
     }
@@ -467,7 +471,7 @@ public class CreateDialogRequestMapperTests
         Assert.NotNull(result.Activities);
         var forwardingActivity = result.Activities.FirstOrDefault(a => a.Type == "Information");
         Assert.NotNull(forwardingActivity);
-        Assert.Contains("videresendt til user1@awesometestusers.com", forwardingActivity.Description[0].Value);
+        Assert.Contains("videresendt til user1@awesometestusers.com", forwardingActivity.Description![0].Value);
     }
 
     private static int GetUuidVersion(Guid guid)

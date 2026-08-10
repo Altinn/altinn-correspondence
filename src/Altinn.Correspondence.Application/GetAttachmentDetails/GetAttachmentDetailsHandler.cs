@@ -52,10 +52,10 @@ public class GetAttachmentDetailsHandler(
             SendersReference = attachment.SendersReference,
             CorrespondenceIds = correspondenceIds,
             FileName = attachment.FileName,
-            DisplayName = attachment.DisplayName,
+            DisplayName = attachment.DisplayName ?? attachment.FileName,
             Sender = attachment.Sender,
             IsEncrypted = attachment.IsEncrypted,
-            Checksum = attachment.Checksum,
+            Checksum = attachment.Checksum ?? string.Empty,
             ExpirationInDays = attachment.ExpirationInDays,
         };
         logger.LogInformation("Successfully retrieved details for attachment {AttachmentId} with status {Status}", 

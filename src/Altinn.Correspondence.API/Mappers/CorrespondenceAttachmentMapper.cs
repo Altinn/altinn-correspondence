@@ -11,6 +11,10 @@ internal static class CorrespondenceAttachmentMapper
 
     internal static CorrespondenceAttachmentExt MapToExternal(CorrespondenceAttachmentEntity attachment)
     {
+        if (attachment.Attachment is null)
+        {
+            throw new InvalidOperationException($"Attachment navigation property was not loaded for CorrespondenceAttachmentEntity with AttachmentId {attachment.AttachmentId}.");
+        }
         var fileName = attachment.Attachment.FileName;
         var contentType = FileConstants.GetMIMEType(fileName);
 
@@ -25,8 +29,8 @@ internal static class CorrespondenceAttachmentMapper
             Checksum = attachment.Attachment.Checksum,
             DataLocationType = (AttachmentDataLocationTypeExt)attachment.Attachment.DataLocationType,
             Status = (AttachmentStatusExt)attachment.Attachment.GetLatestStatus()!.Status,
-            StatusText = attachment.Attachment.GetLatestStatus()!.StatusText,
-            StatusChanged = attachment.Attachment.GetLatestStatus()!.StatusChanged,
+            StatusText = attachment.Attachment.GetLatestStatus().StatusText,
+            StatusChanged = attachment.Attachment.GetLatestStatus().StatusChanged,
             Created = attachment.Created,
             ExpirationTime = attachment.ExpirationTime
         };

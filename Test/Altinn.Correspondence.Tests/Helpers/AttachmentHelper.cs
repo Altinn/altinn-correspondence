@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.Tests.Helpers
 {
     internal static class AttachmentHelper
     {
-        public static InitializeCorrespondenceAttachmentExt GetAttachmentMetaData(string fileName, AttachmentOverviewExt existingAttachmentData = null)
+        public static InitializeCorrespondenceAttachmentExt GetAttachmentMetaData(string fileName, AttachmentOverviewExt? existingAttachmentData = null)
         {
             var attachmentData = new InitializeCorrespondenceAttachmentExt()
             {

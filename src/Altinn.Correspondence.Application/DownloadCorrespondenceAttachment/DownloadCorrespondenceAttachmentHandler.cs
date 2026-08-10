@@ -91,7 +91,7 @@ public class DownloadCorrespondenceAttachmentHandler(
             activityId = Guid.NewGuid().ToString();
         }
 
-        var caller = user.GetCallerPartyUrn();
+        var caller = user?.GetCallerPartyUrn() ?? string.Empty;
 		var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {

@@ -68,14 +68,14 @@ namespace Altinn.Correspondence.Common.Helpers
             return partyUrn ?? GetCallerOrganizationId(user)?.WithUrnPrefix();
         }
 
-        public static bool CallingAsSender(this ClaimsPrincipal user)
+        public static bool CallingAsSender(this ClaimsPrincipal? user)
         {
-            var scope = user.Claims.FirstOrDefault(c => c.Type == "scope")?.Value;
+            var scope = user?.Claims.FirstOrDefault(c => c.Type == "scope")?.Value;
             return scope?.Contains("altinn:correspondence.write") ?? false;
         }
-        public static bool CallingAsRecipient(this ClaimsPrincipal user)
+        public static bool CallingAsRecipient(this ClaimsPrincipal? user)
         {
-            var scope = user.Claims.FirstOrDefault(c => c.Type == "scope")?.Value;
+            var scope = user?.Claims.FirstOrDefault(c => c.Type == "scope")?.Value;
             return scope?.Contains("altinn:correspondence.read") ?? false;
         }
     }

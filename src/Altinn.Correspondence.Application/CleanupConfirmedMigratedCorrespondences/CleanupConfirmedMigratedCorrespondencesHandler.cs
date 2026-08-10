@@ -45,7 +45,7 @@ public class CleanupConfirmedMigratedCorrespondencesHandler(
         var allErrors = new List<string>();
         try
         {
-            DateTimeOffset? lastCreated = null;
+            // DateTimeOffset? lastCreated = null;
             Guid? lastId = null;
             bool isMoreCorrespondences = true;
 

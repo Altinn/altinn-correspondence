@@ -80,7 +80,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
         }
 
-        public static string GetAccountNameFromConnectionString(string connectionString)
+        public static string? GetAccountNameFromConnectionString(string connectionString)
         {
             var parts = connectionString.Split(';');
             foreach (var part in parts)
