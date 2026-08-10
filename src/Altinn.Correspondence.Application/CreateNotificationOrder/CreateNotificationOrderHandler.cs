@@ -211,7 +211,8 @@ public class CreateNotificationOrderHandler(
             ? DateTime.UtcNow
             : context.RequestedPublishTime.UtcDateTime;
         var reminderDelayDays = hostEnvironment.IsProduction() ? 7 : 1;
-        var conditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString())?.ToString();
+        var mainConditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString(), isMainNotification: true)?.ToString();
+        var reminderConditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString(), isMainNotification: false)?.ToString();
 
         var notificationOrders = new List<NotificationOrderRequestV2>();
 
@@ -224,6 +225,7 @@ public class CreateNotificationOrderHandler(
                 {
                     SendersReference = $"corr-{context.SendersReference}",
                     RequestedSendTime = mainSendTime,
+                    ConditionEndpoint = mainConditionEndpoint,
                     IdempotencyId = context.Id.CreateVersion5(BuildRecipientKey(recipient)),
                     Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: false)
                 };
@@ -236,7 +238,7 @@ public class CreateNotificationOrderHandler(
                         {
                             SendersReference = $"corr-{context.SendersReference}",
                             DelayDays = reminderDelayDays,
-                            ConditionEndpoint = conditionEndpoint,
+                            ConditionEndpoint = reminderConditionEndpoint,
                             Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
                         }
                     ];
@@ -252,7 +254,7 @@ public class CreateNotificationOrderHandler(
                 {
                     SendersReference = $"corr-{context.SendersReference}",
                     RequestedSendTime = mainSendTime.AddDays(reminderDelayDays),
-                    ConditionEndpoint = conditionEndpoint,
+                    ConditionEndpoint = reminderConditionEndpoint,
                     IdempotencyId = context.Id.CreateVersion5($"{BuildRecipientKey(recipient)}:reminder"),
                     Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
                 });
@@ -370,10 +372,11 @@ public class CreateNotificationOrderHandler(
         throw new InvalidOperationException("Recipient must have exactly one identifier");
     }
 
-    private Uri? CreateConditionEndpoint(string correspondenceId)
+    private Uri? CreateConditionEndpoint(string correspondenceId, bool isMainNotification)
     {
         var baseUrl = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/');
-        var path = $"/correspondence/api/v1/correspondence/{Uri.EscapeDataString(correspondenceId)}/notification/check";
+        var checkRoute = isMainNotification ? "check/main" : "check";
+        var path = $"/correspondence/api/v1/correspondence/{Uri.EscapeDataString(correspondenceId)}/notification/{checkRoute}";
         var conditionEndpoint = new Uri(new Uri(baseUrl), path);
 
         if (conditionEndpoint.Host == "localhost")

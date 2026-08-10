@@ -90,4 +90,73 @@ public class NotificationTests
         Assert.False(checkNotificationResponse.SendNotification);
     }
 
+    [Fact]
+    public async Task CheckMainNotification_For_Non_Existing_Correspondence()
+    {
+        var correspondenceId = Guid.NewGuid();
+
+        var response = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/notification/check/main");
+        response.EnsureSuccessStatusCode();
+        var responseContent = await response.Content.ReadAsStringAsync();
+        var checkNotificationResponse = JsonSerializer.Deserialize<CheckNotificationResponse>(responseContent, _responseSerializerOptions);
+        Assert.NotNull(checkNotificationResponse);
+        Assert.False(checkNotificationResponse.SendNotification);
+    }
+
+    [Fact]
+    public async Task CheckMainNotification_For_Correspondence_With_Read_Status_Gives_True()
+    {
+        var client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithRequestedPublishTime(DateTime.UtcNow.AddHours(-1))
+            .Build();
+
+        var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+        var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions)!.Correspondences.First().CorrespondenceId;
+
+        await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+        var recipientClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
+        var fetchResponse = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}"); // Fetch in order to read
+        fetchResponse.EnsureSuccessStatusCode();
+        var markasread = await recipientClient.PostAsync($"correspondence/api/v1/correspondence/{correspondenceId}/markasread", null);
+        markasread.EnsureSuccessStatusCode();
+
+        var response = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/notification/check/main");
+        var content = await response.Content.ReadAsStringAsync();
+        var checkNotificationResponse = JsonSerializer.Deserialize<CheckNotificationResponse>(content, _responseSerializerOptions);
+        Assert.NotNull(checkNotificationResponse);
+        Assert.True(checkNotificationResponse.SendNotification);
+    }
+
+    [Fact]
+    public async Task CheckMainNotification_For_Purged_Correspondence_Gives_False()
+    {
+        var client = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.SenderScope));
+        var correspondence = new CorrespondenceBuilder()
+            .CreateCorrespondence()
+            .WithRequestedPublishTime(DateTime.UtcNow.AddHours(-1))
+            .Build();
+
+        var initializeCorrespondenceResponse = await client.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
+        initializeCorrespondenceResponse.EnsureSuccessStatusCode();
+        var responseContent = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
+        var correspondenceId = JsonSerializer.Deserialize<InitializeCorrespondencesResponseExt>(responseContent, _responseSerializerOptions)!.Correspondences.First().CorrespondenceId;
+
+        await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(client, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
+
+        var recipientClient = _factory.CreateClientWithAddedClaims(("scope", AuthorizationConstants.RecipientScope));
+        var purgeResponse = await recipientClient.DeleteAsync($"correspondence/api/v1/correspondence/{correspondenceId}/purge");
+        purgeResponse.EnsureSuccessStatusCode();
+
+        var response = await _client.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/notification/check/main");
+        var content = await response.Content.ReadAsStringAsync();
+        var checkNotificationResponse = JsonSerializer.Deserialize<CheckNotificationResponse>(content, _responseSerializerOptions);
+        Assert.NotNull(checkNotificationResponse);
+        Assert.False(checkNotificationResponse.SendNotification);
+    }
+
 }
