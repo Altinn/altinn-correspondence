@@ -93,6 +93,38 @@ public class ForwardCorrespondenceHandlerTests
         Assert.Equal(AuthorizationErrors.NoAccessToResource, result.AsT1);
     }
 
+    [Theory]
+    [InlineData("not-an-email")]
+    [InlineData("")]
+    [InlineData("a@b@c.com")]
+    [InlineData("missing-domain@")]
+    [InlineData("x@y.com\r\nBcc: evil@example.com")]
+    [InlineData("x@y.com\nBcc: evil@example.com")]
+    public async Task Process_InvalidForwardToEmail_ReturnsInvalidEmailProvided(string forwardTo)
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, forwardTo: forwardTo);
+        SetupCorrespondence(correspondence, hasAccess: true);
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT1);
+        Assert.Equal(NotificationErrors.InvalidEmailProvided, result.AsT1);
+    }
+
+    [Fact]
+    public async Task Process_ForwardToEmailIsNull_ReturnsInvalidEmailProvided()
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, forwardTo: null!);
+        SetupCorrespondence(correspondence, hasAccess: true);
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT1);
+        Assert.Equal(NotificationErrors.InvalidEmailProvided, result.AsT1);
+    }
+
     [Fact]
     public async Task Process_ForwardingNotAllowedOnCorrespondence_ReturnsForwardingNotAllowed()
     {
