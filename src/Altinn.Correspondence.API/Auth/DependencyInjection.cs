@@ -267,7 +267,7 @@ namespace Altinn.Correspondence.API.Auth
                           .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.CheckAllowForwardingPolicy, policy =>
                     policy.AddRequirements(new ScopeAccessRequirement(AuthorizationConstants.AllowForwardingCheckScope))
-                          .AddAuthenticationSchemes(AuthorizationConstants.MaskinportenScheme));
+                          .AddAuthenticationSchemes(AuthorizationConstants.AllSchemes));
             });
         }
 
