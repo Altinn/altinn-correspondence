@@ -101,7 +101,6 @@ public class PublishCorrespondenceHandler(
             {
                 CorrespondenceStatusEntity status;
                 AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
-
                 await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
                 {
                     Id = publishIdempotencyId,
@@ -169,7 +168,13 @@ public class PublishCorrespondenceHandler(
                 }
                 logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
                 return Task.CompletedTask;
-            }, cancellationToken);
+            },
+            cancellationToken,
+            DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
+            {
+                logger.LogInformation("Publish already completed for correspondence {CorrespondenceId}; skipping", correspondenceId);
+                return Task.CompletedTask;
+            }));
     }
 
     private async Task<bool> HasRecipientBeenSetToReservedInKRR(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
