@@ -170,6 +170,7 @@ public class AttachmentRepositoryTests
             Id = Guid.NewGuid(),
             ResourceId = "res-defer-upload",
             SendersReference = "ref-defer",
+            FileName = "file-defer.txt",
             Sender = "0192:910753614",
             Created = DateTimeOffset.UtcNow,
             AttachmentSize = 1

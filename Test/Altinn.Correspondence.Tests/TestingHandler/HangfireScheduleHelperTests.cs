@@ -55,6 +55,15 @@ public class HangfireScheduleHelperTests
             Recipient = "urn:altinn:organization:identifier-no:310244007",
             ResourceId = "resource-123",
             SendersReference = "ref-123",
+            Content = new CorrespondenceContentEntity
+            {
+                Language = "nb",
+                CorrespondenceId = correspondenceId,
+                MessageTitle = "Test message title",
+                MessageSummary = "Test message summary",
+                MessageBody = "Test message body",
+                Attachments = new List<CorrespondenceAttachmentEntity> { }
+            },
             RequestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(5),
             Created = DateTimeOffset.UtcNow.AddMinutes(-30),
             Statuses = new List<CorrespondenceStatusEntity>()
@@ -66,7 +75,7 @@ public class HangfireScheduleHelperTests
     {
         var correspondenceId = Guid.NewGuid();
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSchedulableCorrespondence(correspondenceId));
 
         await CreateHelper().SchedulePublishAtPublishTime(correspondenceId, CancellationToken.None);
@@ -86,7 +95,7 @@ public class HangfireScheduleHelperTests
         var correspondenceId = Guid.NewGuid();
         var scheduleIdempotencyId = correspondenceId.CreateVersion5("SchedulePublishCorrespondence");
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSchedulableCorrespondence(correspondenceId));
         _idempotencyKeyRepositoryMock
             .Setup(x => x.GetByIdAsync(scheduleIdempotencyId, It.IsAny<CancellationToken>()))
@@ -107,7 +116,7 @@ public class HangfireScheduleHelperTests
     {
         var correspondenceId = Guid.NewGuid();
         _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>(), false))
+            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSchedulableCorrespondence(correspondenceId));
 
         await CreateHelper(TestDbContextFactory.CreateUniqueViolationOnDeferredSave())

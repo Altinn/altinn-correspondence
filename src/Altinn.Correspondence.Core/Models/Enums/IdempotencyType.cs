@@ -40,7 +40,6 @@ public enum IdempotencyType
     /// Indicates that this is an idempotency key for resolving a notification's final delivery status
     /// </summary>
     NotificationDeliveryResolution = 6,
-}
 
     /// <summary>
     /// Indicates that a Hangfire publish job has been scheduled for a correspondence

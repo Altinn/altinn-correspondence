@@ -372,9 +372,15 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
             var (request, _, _) = SetupOrderData(requestedPublishTime);
 
+            var deduplicationHelper = new CustomRecipientDeduplicationHelper(
+                _mockAltinnProfileService.Object,
+                _mockAltinnAuthorizationService.Object,
+                new MobileNumberHelper(),
+                Mock.Of<ILogger<CustomRecipientDeduplicationHelper>>());
             var handler = new CreateNotificationOrderHandler(
                 _mockCorrespondenceRepository.Object,
                 _mockAltinnRegisterService.Object,
+                deduplicationHelper,
                 _mockNotificationTemplateRepository.Object,
                 _mockCorrespondenceNotificationRepository.Object,
                 _mockIdempotencyKeyRepository.Object,

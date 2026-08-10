@@ -58,6 +58,15 @@ public class PurgeCorrespondenceHelperTests
             Recipient = "urn:altinn:organization:identifier-no:310244007",
             ResourceId = "resource-123",
             SendersReference = "ref-123",
+            Content = new CorrespondenceContentEntity
+            {
+                Language = "nb",
+                CorrespondenceId = correspondenceId,
+                MessageTitle = "Test message title",
+                MessageSummary = "Test message summary",
+                MessageBody = "Test message body",
+                Attachments = new List<CorrespondenceAttachmentEntity> { }
+            },
             RequestedPublishTime = DateTimeOffset.UtcNow,
             Created = DateTimeOffset.UtcNow,
             ExternalReferences = new List<ExternalReferenceEntity>(),
