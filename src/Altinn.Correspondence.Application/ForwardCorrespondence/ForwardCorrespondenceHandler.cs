@@ -5,6 +5,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Hangfire;
@@ -53,7 +54,12 @@ public class ForwardCorrespondenceHandler(
             logger.LogWarning("Invalid email address provided for forwarding correspondence {CorrespondenceId}", request.CorrespondenceId);
             return NotificationErrors.InvalidEmailProvided;
         }
-        
+        if (request.ForwardTo.Length > 1000)
+        {
+            logger.LogWarning("Email address provided for forwarding correspondence {CorrespondenceId} exceeds 1000 characters", request.CorrespondenceId);
+            return NotificationErrors.ForwardToEmailAddressTooLong;
+        }
+
         if (!correspondence.AllowForwarding)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} does not allow forwarding", request.CorrespondenceId);
@@ -73,13 +79,14 @@ public class ForwardCorrespondenceHandler(
             }
         }
 
+        var normalizedForwardTo = request.ForwardTo.Trim().ToLowerInvariant();
         var hasBeenRead = correspondence.StatusHasBeen(CorrespondenceStatus.Read);
         if (!hasBeenRead)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} has not been read and cannot be forwarded", request.CorrespondenceId);
             return CorrespondenceErrors.ForwardBeforeRead;
         }
-        var alreadyForwardedToRecipient = await correspondenceForwardingEventRepository.HasCorrespondenceBeenForwardedToRecipient(request.CorrespondenceId, request.ForwardTo, cancellationToken);
+        var alreadyForwardedToRecipient = await correspondenceForwardingEventRepository.HasCorrespondenceBeenForwardedToRecipient(request.CorrespondenceId, normalizedForwardTo, cancellationToken);
         if (alreadyForwardedToRecipient)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} has already been forwarded to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
@@ -100,7 +107,7 @@ public class ForwardCorrespondenceHandler(
             ForwardedOnDate = DateTimeOffset.UtcNow,
             ForwardedByPartyUuid = partyUuid,
             ForwardedByUserUuid = partyUuid,
-            ForwardedToEmailAddress = request.ForwardTo,
+            ForwardedToEmailAddress = normalizedForwardTo,
             ForwardingText = request.ForwardingText,
             CorrespondenceId = request.CorrespondenceId,
             Correspondence = correspondence
@@ -113,27 +120,36 @@ public class ForwardCorrespondenceHandler(
         }
 
         logger.LogInformation("Forwarding correspondence {CorrespondenceId} to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
+        ComposedEmailResponse composedEmailResponse;
         try
         {
             var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, request.ForwardingText, cancellationToken);
-            var composedEmailResponse = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
-            if (composedEmailResponse == null)
+            var response = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
+            if (response == null)
             {
                 logger.LogError("Failed to create composed email for correspondence {CorrespondenceId}", request.CorrespondenceId);
-                await correspondenceForwardingEventRepository.DeleteForwardingEvent(forwardingEventId, cancellationToken);
-                return CorrespondenceErrors.ForwardingNotAllowed;
+                await correspondenceForwardingEventRepository.DeleteForwardingEvent(forwardingEventId, CancellationToken.None);
+                return NotificationErrors.CreateComposedEmailFailed;
             }
-
-            await correspondenceForwardingEventRepository.SetNotificationShipmentId(forwardingEventId, composedEmailResponse.Notification.ShipmentId, cancellationToken);
-
-            backgroundJobClient.Enqueue<CheckForwardedCorrespondenceDeliveryHandler>(x =>
-                x.Process(composedEmailResponse.Notification.ShipmentId, forwardingEventId, CancellationToken.None));
-            return forwardingEventId;
+            composedEmailResponse = response;
         }
         catch
         {
-            await correspondenceForwardingEventRepository.DeleteForwardingEvent(forwardingEventId, cancellationToken);
+            await correspondenceForwardingEventRepository.DeleteForwardingEvent(forwardingEventId, CancellationToken.None);
             throw;
         }
+
+        try
+        {
+            await correspondenceForwardingEventRepository.SetNotificationShipmentId(forwardingEventId, composedEmailResponse.Notification.ShipmentId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to persist notification shipment id {ShipmentId} for forwarding event {ForwardingEventId}", composedEmailResponse.Notification.ShipmentId, forwardingEventId);
+        }
+
+        backgroundJobClient.Enqueue<CheckForwardedCorrespondenceDeliveryHandler>(x =>
+            x.Process(composedEmailResponse.Notification.ShipmentId, forwardingEventId, CancellationToken.None));
+        return forwardingEventId;
     }
 }

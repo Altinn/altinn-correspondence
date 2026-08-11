@@ -422,6 +422,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         // Generate a SAS token that is valid for 1 hour
         var sasBuilder = new Azure.Storage.Sas.BlobSasBuilder
         {
+            Protocol = Azure.Storage.Sas.SasProtocol.Https,
             BlobContainerName = blobContainerClient.Name,
             BlobName = blockBlobClient.Name,
             Resource = "b",

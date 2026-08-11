@@ -199,7 +199,8 @@ public class ResourceRegistryService : IResourceRegistryService
         var response = await _client.GetAsync($"resourceregistry/api/v1/resource/{resourceId}/policy", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NoContent)
         {
-            return 0;
+            _logger.LogError("No resource policy found in Altinn Resource Registry for resource {ResourceId}", resourceId);
+            throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry when getting resource policy");
         }
         if (response.StatusCode != HttpStatusCode.OK)
         {
@@ -215,6 +216,11 @@ public class ResourceRegistryService : IResourceRegistryService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to parse XACML policy XML from Altinn Resource Registry");
+            throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry when getting resource policy");
+        }
+        if (resourcePolicy.MinimumAuthenticationLevels.Count == 0)
+        {
+            _logger.LogError("No minimum authentication level obligation found in resource policy for resource {ResourceId}", resourceId);
             throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry when getting resource policy");
         }
         return resourcePolicy.MinimumAuthenticationLevels.Min();

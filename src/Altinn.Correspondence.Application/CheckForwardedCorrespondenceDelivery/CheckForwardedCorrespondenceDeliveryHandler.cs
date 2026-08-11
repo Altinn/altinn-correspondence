@@ -50,14 +50,32 @@ public class CheckForwardedCorrespondenceDeliveryHandler(
             return;
         }
 
-        var forwardingEvent = await correspondenceForwardingEventRepository.GetForwardingEvent(forwardingEventId, cancellationToken);
-
         if (notification.Recipients.Any(r => r.Status == NotificationStatusV2.Email_Delivered))
         {
+            CorrespondenceForwardingEventEntity forwardingEvent;
+            try
+            {
+                forwardingEvent = await correspondenceForwardingEventRepository.GetForwardingEvent(forwardingEventId, cancellationToken);
+            }
+            catch (KeyNotFoundException)
+            {
+                logger.LogWarning(
+                    "Forwarding event {ForwardingEventId} for shipment {ShipmentId} was not found. Skipping delivery confirmation.",
+                    forwardingEventId, shipmentId);
+                return;
+            }
+
+            if (forwardingEvent.Correspondence!.StatusHasBeen(CorrespondenceStatus.Forwarded) || forwardingEvent.DialogActivityId is not null)
+            {
+                logger.LogInformation(
+                    "Forwarded correspondence shipment {ShipmentId} for forwarding event {ForwardingEventId} has already been processed. Skipping.",
+                    shipmentId, forwardingEventId);
+                return;
+            }
+
             logger.LogInformation(
                 "Forwarded correspondence shipment {ShipmentId} has been delivered. Queuing Dialogporten activity update for forwarding event {ForwardingEventId}.",
                 shipmentId, forwardingEventId);
-            backgroundJobClient.Enqueue<IDialogportenService>(x => x.AddForwardingEvent(forwardingEventId, CancellationToken.None));
             await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
             {
                 CorrespondenceId = forwardingEvent.CorrespondenceId,
@@ -67,6 +85,7 @@ public class CheckForwardedCorrespondenceDeliveryHandler(
                 StatusText = CorrespondenceStatus.Forwarded.ToString(),
                 PartyUuid = forwardingEvent.ForwardedByPartyUuid
             }, cancellationToken);
+            backgroundJobClient.Enqueue<IDialogportenService>(x => x.AddForwardingEvent(forwardingEventId, CancellationToken.None));
             return;
         }
 

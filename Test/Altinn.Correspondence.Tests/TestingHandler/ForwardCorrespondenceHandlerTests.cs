@@ -202,6 +202,45 @@ public class ForwardCorrespondenceHandlerTests
     }
 
     [Fact]
+    public async Task Process_AlreadyForwardedToRecipientWithDifferentCasing_ReturnsCorrespondenceAlreadyForwardedToRecipient()
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, forwardTo: "Recipient@Example.COM");
+        SetupCorrespondence(correspondence, hasAccess: true);
+        _forwardingEventRepositoryMock
+            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, "recipient@example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT1);
+        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient, result.AsT1);
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Process_ValidRequestWithMixedCaseEmail_PersistsNormalizedEmailAddress()
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, forwardTo: "Recipient@Example.COM");
+        SetupCorrespondence(correspondence, hasAccess: true);
+        _altinnNotificationServiceMock
+            .Setup(x => x.CreateComposedEmail(It.IsAny<ComposedEmailRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComposedEmailResponse
+            {
+                NotificationOrderId = Guid.NewGuid(),
+                Notification = new ComposedEmailNotificationResponse { ShipmentId = Guid.NewGuid() }
+            });
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(
+            It.Is<CorrespondenceForwardingEventEntity>(e => e.ForwardedToEmailAddress == "recipient@example.com"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Process_CouldNotFindPartyUuidForCaller_ReturnsCouldNotFindPartyUuid()
     {
         var correspondence = BuildReadCorrespondence();
@@ -247,7 +286,7 @@ public class ForwardCorrespondenceHandlerTests
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
         Assert.True(result.IsT1);
-        Assert.Equal(CorrespondenceErrors.ForwardingNotAllowed, result.AsT1);
+        Assert.Equal(NotificationErrors.CreateComposedEmailFailed, result.AsT1);
         _forwardingEventRepositoryMock.Verify(x => x.DeleteForwardingEvent(forwardingEventId, It.IsAny<CancellationToken>()), Times.Once);
         _backgroundJobClientMock.Verify(x => x.Create(
             It.Is<Job>(job => job.Type == typeof(CheckForwardedCorrespondenceDeliveryHandler)),
