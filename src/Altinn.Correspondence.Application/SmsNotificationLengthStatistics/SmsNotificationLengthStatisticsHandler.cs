@@ -158,7 +158,7 @@ public class SmsNotificationLengthStatisticsHandler(
             var displayRecipient = string.IsNullOrWhiteSpace(recipientName) ? recipientNumber : recipientName;
             var displayResource = string.IsNullOrWhiteSpace(resourceName) ? correspondence.ResourceId : resourceName;
             var displaySender = string.IsNullOrWhiteSpace(senderName) ? correspondence.Sender.WithoutPrefix() : senderName;
-            var title = correspondence.Content?.MessageTitle ?? string.Empty;
+            var title = correspondence.Content.MessageTitle;
 
             var newBody = BuildNewSmsBody(isPerson, recipientNumber, displayRecipient, title, displayResource);
 

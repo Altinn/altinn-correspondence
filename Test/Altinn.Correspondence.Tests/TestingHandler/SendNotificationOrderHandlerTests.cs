@@ -58,6 +58,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 Id = correspondenceId,
                 ResourceId = "resource1",
                 SendersReference = "ref1",
+                Content = new CorrespondenceContentEntity
+                {
+                    Language = "en",
+                    MessageTitle = "Test title",
+                    MessageSummary = "Test summary",
+                    MessageBody = "Test body",
+                    Attachments = new List<CorrespondenceAttachmentEntity>()
+                },
                 Recipient = "urn:altinn:person:identifier-no:08900499559",
                 RequestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10),
                 Sender = "sender",

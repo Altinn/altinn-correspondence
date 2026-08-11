@@ -23,6 +23,7 @@ namespace Altinn.Correspondence.Application.CreateNotificationOrder;
 public class CreateNotificationOrderHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAltinnRegisterService altinnRegisterService,
+    CustomRecipientDeduplicationHelper customRecipientDeduplicationHelper,
     INotificationTemplateRepository notificationTemplateRepository,
     ICorrespondenceNotificationRepository correspondenceNotificationRepository,
     IIdempotencyKeyRepository idempotencyKeyRepository,
@@ -149,12 +150,13 @@ public class CreateNotificationOrderHandler(
         return message.Replace("{textToken}", token + " ").Trim();
     }
 
-    private List<NotificationOrderRequestV2> CreateNotificationOrderRequestsV2(NotificationRequest notificationRequest, NotificationContext context, List<NotificationContent> contents)
+    private async Task<List<NotificationOrderRequestV2>> CreateNotificationOrderRequestsV2(NotificationRequest notificationRequest, NotificationContext context, List<NotificationContent> contents, CancellationToken cancellationToken)
     {
         logger.LogInformation("Creating notification order request V2 for {NotificationId}", context.Id);
 
         // Determine recipients to process - behavior depends on OverrideRegisteredContactInformation flag
         List<Recipient> recipientsToProcess = new List<Recipient>();
+        Recipient? correspondenceRecipient = null;
 
         // If OverrideRegisteredContactInformation is false (default), add the default correspondence recipient
         if (!notificationRequest.OverrideRegisteredContactInformation)
@@ -172,65 +174,91 @@ public class CreateNotificationOrderHandler(
                 throw new InvalidOperationException($"Unsupported correspondence recipient format for notifications: {recipient}");
             }
 
-            recipientsToProcess.Add(new Recipient
+            correspondenceRecipient = new Recipient
             {
                 OrganizationNumber = isOrganization ? recipientWithoutPrefix : null,
                 NationalIdentityNumber = isPerson ? recipientWithoutPrefix : null,
                 ExternalIdentity = isExternalIdentity ? recipient : null
-            });
-        
+            };
+            recipientsToProcess.Add(correspondenceRecipient);
+
         }
-        
+
         // Add custom recipients if they exist (in addition to default recipient when OverrideRegisteredContactInformation is false)
         if (notificationRequest.CustomRecipients != null && notificationRequest.CustomRecipients.Any())
         {
             recipientsToProcess.AddRange(notificationRequest.CustomRecipients);
         }
 
+        var recipientPlans = await customRecipientDeduplicationHelper.Deduplicate(recipientsToProcess, correspondenceRecipient, notificationRequest, context.ResourceId, context.Id, cancellationToken);
+
         // Deduplicate recipients based on the same key used for idempotency to avoid tracking and PK conflicts
-        var distinctRecipients = recipientsToProcess
-            .GroupBy(BuildRecipientKey)
-            .Select(g => g.First())
+        var distinctPlans = recipientPlans
+            .GroupBy(plan => BuildRecipientKey(plan.Recipient))
+            .Select(group => group.First())
             .ToList();
 
-        if (distinctRecipients.Count != recipientsToProcess.Count)
+        if (distinctPlans.Count != recipientPlans.Count)
         {
             logger.LogInformation(
                 "Deduplicated recipients for {NotificationId}: {OriginalCount} -> {DistinctCount}",
                 context.Id,
-                recipientsToProcess.Count,
-                distinctRecipients.Count);
+                recipientPlans.Count,
+                distinctPlans.Count);
         }
+
+        var mainSendTime = context.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
+            ? DateTime.UtcNow
+            : context.RequestedPublishTime.UtcDateTime;
+        var reminderDelayDays = hostEnvironment.IsProduction() ? 7 : 1;
+        var mainConditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString(), isMainNotification: true)?.ToString();
+        var reminderConditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString(), isMainNotification: false)?.ToString();
 
         var notificationOrders = new List<NotificationOrderRequestV2>();
 
-        foreach (var recipient in distinctRecipients)
+        foreach (var plan in distinctPlans)
         {
-            var notificationOrder = new NotificationOrderRequestV2
+            var recipient = plan.Recipient;
+            if (plan.IncludeMain)
             {
-                SendersReference = $"corr-{context.SendersReference}",
-                RequestedSendTime = context.RequestedPublishTime.UtcDateTime <= DateTime.UtcNow
-                    ? DateTime.UtcNow
-                    : context.RequestedPublishTime.UtcDateTime,
-                IdempotencyId = context.Id.CreateVersion5(BuildRecipientKey(recipient)),
-                Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: false)
-            };
+                var notificationOrder = new NotificationOrderRequestV2
+                {
+                    SendersReference = $"corr-{context.SendersReference}",
+                    RequestedSendTime = mainSendTime,
+                    ConditionEndpoint = mainConditionEndpoint,
+                    IdempotencyId = context.Id.CreateVersion5(BuildRecipientKey(recipient)),
+                    Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: false)
+                };
 
-            if (notificationRequest.SendReminder)
-            {
-                notificationOrder.Reminders =
-                [
-                    new ReminderV2
-                    {
-                        SendersReference = $"corr-{context.SendersReference}",
-                        DelayDays = hostEnvironment.IsProduction() ? 7 : 1,
-                        ConditionEndpoint = CreateConditionEndpoint(context.CorrespondenceId.ToString())?.ToString(),
-                        Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
-                    }
-                ];
+                if (plan.IncludeReminder)
+                {
+                    notificationOrder.Reminders =
+                    [
+                        new ReminderV2
+                        {
+                            SendersReference = $"corr-{context.SendersReference}",
+                            DelayDays = reminderDelayDays,
+                            ConditionEndpoint = reminderConditionEndpoint,
+                            Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
+                        }
+                    ];
+                }
+
+                notificationOrders.Add(notificationOrder);
             }
-
-            notificationOrders.Add(notificationOrder);
+            else if (plan.IncludeReminder)
+            {
+                // The main notification already reaches this address via the correspondence recipient, but the reminder does
+                // not. Send the reminder as its own conditional, delayed order so it is delivered without a duplicate main.
+                notificationOrders.Add(new NotificationOrderRequestV2
+                {
+                    SendersReference = $"corr-{context.SendersReference}",
+                    RequestedSendTime = mainSendTime.AddDays(reminderDelayDays),
+                    ConditionEndpoint = reminderConditionEndpoint,
+                    IdempotencyId = context.Id.CreateVersion5($"{BuildRecipientKey(recipient)}:reminder"),
+                    Recipient = CreateRecipientOrderV2FromRecipient(recipient, notificationRequest, contents.First(), context, isReminder: true)
+                });
+            }
         }
 
         logger.LogInformation("Created {Count} notification request(s) V2 for {NotificationId}", notificationOrders.Count, context.Id);
@@ -344,10 +372,11 @@ public class CreateNotificationOrderHandler(
         throw new InvalidOperationException("Recipient must have exactly one identifier");
     }
 
-    private Uri? CreateConditionEndpoint(string correspondenceId)
+    private Uri? CreateConditionEndpoint(string correspondenceId, bool isMainNotification)
     {
         var baseUrl = _generalSettings.CorrespondenceBaseUrl.TrimEnd('/');
-        var path = $"/correspondence/api/v1/correspondence/{Uri.EscapeDataString(correspondenceId)}/notification/check";
+        var checkRoute = isMainNotification ? "check/main" : "check";
+        var path = $"/correspondence/api/v1/correspondence/{Uri.EscapeDataString(correspondenceId)}/notification/{checkRoute}";
         var conditionEndpoint = new Uri(new Uri(baseUrl), path);
 
         if (conditionEndpoint.Host == "localhost")
@@ -360,7 +389,7 @@ public class CreateNotificationOrderHandler(
     private async Task PersistNotificationOrderRequests(NotificationRequest notificationRequest, NotificationContext context, List<NotificationContent> notificationContents, CancellationToken cancellationToken)
     {
         // Create notification order requests
-        var notificationOrderRequests = CreateNotificationOrderRequestsV2(notificationRequest, context, notificationContents);
+        var notificationOrderRequests = await CreateNotificationOrderRequestsV2(notificationRequest, context, notificationContents, cancellationToken);
 
         logger.LogInformation("Persisting {Count} notification order requests for {NotificationId}", notificationOrderRequests.Count, context.Id);
         foreach (var notificationOrderRequest in notificationOrderRequests)
@@ -429,7 +458,7 @@ public class CreateNotificationOrderHandler(
             SendersReference = correspondence.SendersReference,
             MessageSender = string.IsNullOrEmpty(correspondence.MessageSender) ? null : correspondence.MessageSender,
             SenderUrn = correspondence.Sender,
-            MessageTitle = correspondence.Content?.MessageTitle,
+            MessageTitle = correspondence.Content.MessageTitle,
             RequestedPublishTime = correspondence.RequestedPublishTime,
             IgnoreReservation = correspondence.IgnoreReservation
         };

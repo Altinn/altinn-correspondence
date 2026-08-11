@@ -229,6 +229,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
 
             var initResponse = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
             var correspondenceResponse = await initResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondenceResponse);
             var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
 
             // Arrange - Create client with Maskinporten token that should not work for recipient operations
@@ -289,6 +290,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             // Act
             var initializeResponse = await maskinportenClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
             var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondenceResponse);
             var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
             var detailsResponse = await maskinportenClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
 
@@ -307,6 +309,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             // Act
             var initializeResponse = await validMaskinportenClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
             var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondenceResponse);
             var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
             var detailsResponse = await invalidMaskinportenClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
 
@@ -325,6 +328,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             // Act
             var initializeResponse = await validMaskinportenClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
             var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondenceResponse);
             var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
             var detailsResponse = await invalidMaskinportenClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/details");
 
@@ -346,6 +350,7 @@ namespace Altinn.Correspondence.Tests.TestingFeature
             // Act
             var initializeResponse = await maskinportenSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", correspondence);
             var correspondenceResponse = await initializeResponse.Content.ReadFromJsonAsync<InitializeCorrespondencesResponseExt>(_responseSerializerOptions);
+            Assert.NotNull(correspondenceResponse);
             var correspondenceId = correspondenceResponse.Correspondences.First().CorrespondenceId;
             await CorrespondenceHelper.WaitForCorrespondenceStatusUpdate(maskinportenSenderClient, _responseSerializerOptions, correspondenceId, CorrespondenceStatusExt.Published);
             var contentResponse = await systemUserRecipientClient.GetAsync($"correspondence/api/v1/correspondence/{correspondenceId}/content");

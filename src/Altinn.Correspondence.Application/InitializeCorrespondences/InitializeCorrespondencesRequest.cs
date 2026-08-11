@@ -11,9 +11,9 @@ public class InitializeCorrespondencesRequest
 
     public NotificationRequest? Notification { get; set; }
 
-    public List<Guid> ExistingAttachments { get; set; }
+    public List<Guid> ExistingAttachments { get; set; } = new();
 
-    public List<string> Recipients { get; set; }
+    public required List<string> Recipients { get; set; }
 
     public Guid? IdempotentKey { get; set; }
 }

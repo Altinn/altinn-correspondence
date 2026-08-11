@@ -23,6 +23,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace Altinn.Correspondence.Tests.TestingFeature;
@@ -210,7 +211,7 @@ public class DialogportenTests
             Recipient = $"{UrnConstants.PersonIdAttribute}:{CustomWebApplicationFactory.ReservedSsn}",
             RequestedPublishTime = DateTimeOffset.UtcNow,
             ResourceId = correspondence.Correspondence.ResourceId,
-            Sender = correspondence.Correspondence.Sender,
+            Sender = correspondence.Correspondence.Sender!,
             SendersReference = correspondence.Correspondence.SendersReference,
             Content = new CorrespondenceContentEntity
             {
@@ -275,7 +276,7 @@ public class DialogportenTests
             Recipient = correspondence.Recipients[0],
             RequestedPublishTime = DateTimeOffset.UtcNow.AddSeconds(-5),
             ResourceId = correspondence.Correspondence.ResourceId,
-            Sender = correspondence.Correspondence.Sender,
+            Sender = correspondence.Correspondence.Sender!,
             SendersReference = correspondence.Correspondence.SendersReference,
             Content = new CorrespondenceContentEntity
             {
@@ -350,7 +351,7 @@ public class DialogportenTests
             OnlyGettingContent = true
         };
         var handler = scope.ServiceProvider.GetRequiredService<GetCorrespondenceOverviewHandler>();
-        var result = await handler.Process(request, new(), CancellationToken.None);
+        var result = await handler.Process(request, new ClaimsPrincipal(), CancellationToken.None);
 
         Assert.IsType<GetCorrespondenceOverviewResponse>(result.Value);
 

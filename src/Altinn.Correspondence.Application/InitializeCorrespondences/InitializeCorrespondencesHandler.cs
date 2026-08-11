@@ -40,7 +40,12 @@ public class InitializeCorrespondencesHandler(
 
     public async Task<OneOf<InitializeCorrespondencesResponse, Error>> Process(InitializeCorrespondencesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Processing correspondence initialization request for resource {ResourceId}", request.Correspondence.ResourceId);
+        logger.LogInformation(
+            "Processing correspondence initialization request for resource {ResourceId} from consumer {ConsumerOrganizationId} with {RecipientCount} recipients, idempotency key present: {HasIdempotentKey}",
+            request.Correspondence.ResourceId.SanitizeForLogging(),
+            user?.GetCallerOrganizationId()?.SanitizeForLogging(),
+            request.Recipients?.Count ?? 0,
+            request.IdempotentKey.HasValue);
 
         if (request.IdempotentKey.HasValue)
         {
@@ -135,7 +140,7 @@ public class InitializeCorrespondencesHandler(
             }
             
             string? notificationJobId = null;
-            var isReserved = correspondence.GetHighestStatus()?.Status == CorrespondenceStatus.Reserved;
+            var isReserved = correspondence.GetHighestStatus().Status == CorrespondenceStatus.Reserved;
             if (!isReserved)
             {
                 if (correspondence.DueDateTime is not null)
@@ -150,12 +155,12 @@ public class InitializeCorrespondencesHandler(
                     {
                         CorrespondenceId = correspondence.Id,
                         NotificationRequest = request.Notification,
-                        Language = correspondence.Content != null ? correspondence.Content.Language : null,
+                        Language = correspondence.Content.Language,
                     }, cancellationToken));
                 }
             }
 
-            foreach (var correspondenceAttachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
+            foreach (var correspondenceAttachment in correspondence.Content.Attachments)
             {
                 if (correspondenceAttachment.ExpirationTime is not DateTimeOffset scheduleAt)
                 {
@@ -198,7 +203,7 @@ public class InitializeCorrespondencesHandler(
         return new InitializeCorrespondencesResponse()
         {
             Correspondences = initializedCorrespondences,
-            AttachmentIds = correspondences.SelectMany(c => c.Content?.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
+            AttachmentIds = correspondences.SelectMany(c => c.Content.Attachments.Select(a => a.AttachmentId)).Distinct().ToList()
         };
     }
 

@@ -265,7 +265,7 @@ public class DialogportenService(HttpClient _httpClient,
 
         if (dialogActivityId is not null)
         {
-            createDialogActivityRequest.Id = dialogActivityId.ToString();
+            createDialogActivityRequest.Id = dialogActivityId.Value.ToString();
         }
 
         var response = await _httpClient.PostAsJsonAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/activities?isSilentUpdate=true", createDialogActivityRequest, cancellationToken);
@@ -799,7 +799,7 @@ public class DialogportenService(HttpClient _httpClient,
 
         // Create idempotency keys for each attachment's download activity
         var attachmentIdempotencyKeys = new List<IdempotencyKeyEntity>();
-        foreach (var attachment in correspondence.Content?.Attachments ?? Enumerable.Empty<CorrespondenceAttachmentEntity>())
+        foreach (var attachment in correspondence.Content.Attachments)
         {
             var downloadActivityId = Uuid.NewDatabaseFriendly(Database.PostgreSql);
             var downloadIdempotencyKey = new IdempotencyKeyEntity
@@ -1162,14 +1162,14 @@ public class DialogportenService(HttpClient _httpClient,
         {
             Id = activity.Id,
             CreatedAt = activity.CreatedAt,
-            Type = Enum.Parse<ActivityType>(activity.Type),
+            Type = Enum.Parse<ActivityType>(activity.Type!),
             PerformedBy = new ActivityPerformedBy
             {
                 ActorId = activity.PerformedBy.ActorId,
                 ActorName = activity.PerformedBy.ActorName,
                 ActorType = activity.PerformedBy.ActorType
             },
-            Description = activity.Description.Select(d => new ActivityDescription
+            Description = activity.Description?.Select(d => new ActivityDescription
             {
                 Value = d.Value,
                 LanguageCode = d.LanguageCode
@@ -1290,7 +1290,7 @@ public class DialogportenService(HttpClient _httpClient,
             textType = DialogportenTextType.CorrespondenceInstanceDelegated;
             tokens = new[]
             {
-                correspondence.Content?.MessageTitle ?? string.Empty,
+                correspondence.Content.MessageTitle,
                 forwardedToUser.GetDisplayName() ?? throw new Exception($"No name found for user {forwardedToUser.Uuid}"),
                 forwardingEvent.ForwardingText ?? string.Empty
             };
@@ -1301,7 +1301,7 @@ public class DialogportenService(HttpClient _httpClient,
             textType = DialogportenTextType.CorrespondenceForwardedToEmail;
             tokens = new[]
             {
-                correspondence.Content?.MessageTitle ?? string.Empty,
+                correspondence.Content.MessageTitle,
                 forwardingEvent.ForwardedToEmailAddress,
                 forwardingEvent.ForwardingText ?? string.Empty
             };
@@ -1319,7 +1319,7 @@ public class DialogportenService(HttpClient _httpClient,
             textType = DialogportenTextType.CorrespondenceForwardedToMailboxSupplier;
             tokens = new[]
             {
-                correspondence.Content?.MessageTitle ?? string.Empty,
+                correspondence.Content.MessageTitle,
                 mailboxSupplierName,
                 forwardingEvent.ForwardingText ?? string.Empty
             };

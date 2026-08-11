@@ -76,7 +76,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("", result);
@@ -102,7 +102,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "Line1\rLine2\nLine3\tTabbed";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("Line1\\rLine2\\nLine3\\tTabbed", result);
@@ -115,7 +115,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "Text\0null\bbackspace\fformfeed\vverticalTab";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("Text\\0null\\bbackspace\\fformfeed\\vverticalTab", result);
@@ -128,7 +128,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "<script>alert('xss')</script>";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;", result);
@@ -141,7 +141,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "He said \"Hello\" and she replied 'Hi'";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("He said &quot;Hello&quot; and she replied &#x27;Hi&#x27;", result);
@@ -154,7 +154,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "Tom & Jerry";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("Tom &amp; Jerry", result);
@@ -167,7 +167,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "Text\u0001\u0002\u001FMoreText";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("Text\\u0001\\u0002\\u001FMoreText", result);
@@ -180,7 +180,8 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = new string('A', 1500); // 1500 characters
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
+            Assert.NotNull(result);
 
             // Assert
             Assert.Equal(1000, result.Length);
@@ -195,7 +196,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "This is normal text with numbers 123 and symbols !@#$%^*()-_=+[]{}|;:,./? but no dangerous chars";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("This is normal text with numbers 123 and symbols !@#$%^*()-_=+[]{}|;:,./? but no dangerous chars", result);
@@ -208,7 +209,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "<img src=\"x\" onerror=\"alert('XSS')\"/>\nLog injection\r\nSecond line\t\0null";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             string expected = "&lt;img src=&quot;x&quot; onerror=&quot;alert(&#x27;XSS&#x27;)&quot;/&gt;\\nLog injection\\r\\nSecond line\\t\\0null";
@@ -222,7 +223,7 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             string input = "Normal log entry\n2024-01-01 [ERROR] Fake error injected by attacker";
 
             // Act
-            string result = input.SanitizeForLogging();
+            string? result = input.SanitizeForLogging();
 
             // Assert
             Assert.Equal("Normal log entry\\n2024-01-01 [ERROR] Fake error injected by attacker", result);

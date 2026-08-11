@@ -56,7 +56,7 @@ public class UploadAttachmentHandler(
                 request.AttachmentId, correspondences.Count);
             return AttachmentErrors.CantUploadToExistingCorrespondence;
         }
-        var caller = user?.GetCallerPartyUrn();
+        var caller = user?.GetCallerPartyUrn() ?? string.Empty;
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {

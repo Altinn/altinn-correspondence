@@ -63,6 +63,11 @@ public class PurgeCorrespondenceHandler(
         }
 
         var caller = user.GetCallerPartyUrn() ?? user.GetCallerOrganizationId();
+        if (caller is null)
+        {
+            logger.LogError("Could not determine caller party URN or organization ID for user {User}", user.Identity?.Name);
+            return AuthorizationErrors.CouldNotDetermineCaller;
+        }
         var party = await altinnRegisterService.LookUpPartyById(caller, cancellationToken);
         if (party?.Uuid is not Guid partyUuid)
         {

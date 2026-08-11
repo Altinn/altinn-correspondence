@@ -156,6 +156,7 @@ namespace Altinn.Correspondence.API.Controllers
         /// Requires uploads of specified attachments if any before it can be Published. <br />
         /// Supports file sizes up to 2 GB each <br />
         /// </remarks>
+        /// <param name="attachments">The attachment files as binary parts, one per entry in Correspondence.Content.Attachments, each part named with the FileName set in its entry</param>
         /// <response code="200">Returns metadata about the initialized correspondence</response>
         /// <response code="400"><ul>
         /// <li>1002: Message title must be plain text</li>
@@ -661,8 +662,33 @@ namespace Altinn.Correspondence.API.Controllers
             [FromServices] CheckNotificationHandler handler,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Checking notification for Correspondence with id: {correspondenceId}", correspondenceId.ToString());
-            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
+            _logger.LogInformation("Checking reminder notification for Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, isMainNotification: false, cancellationToken);
+
+            return commandResult.Match(
+                data => Ok(data),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Check if the main notification should be sent
+        /// </summary>
+        /// <remarks>
+        /// Unlike the reminder check, a read correspondence still gets its main notification. Only a correspondence that
+        /// is purged, failed or never published suppresses it.
+        /// </remarks>
+        [HttpGet]
+        [Route("{correspondenceId}/notification/check/main")]
+        [Authorize(Policy = AuthorizationConstants.NotificationCheck)]
+        [HideFromPublicApi]
+        public async Task<ActionResult> CheckMainNotification(
+            Guid correspondenceId,
+            [FromServices] CheckNotificationHandler handler,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Checking main notification for Correspondence with id: {correspondenceId}", correspondenceId.ToString());
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, isMainNotification: true, cancellationToken);
 
             return commandResult.Match(
                 data => Ok(data),

@@ -31,5 +31,9 @@ namespace Altinn.Correspondence.Integrations.Altinn.Authorization
             return Task.FromResult(true);
         }
 
+        public Task<List<int>> AuthorizeUserIdsForResource(int partyId, IReadOnlyCollection<int> userIds, string resourceId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(userIds.ToList());
+        }
     }
 }

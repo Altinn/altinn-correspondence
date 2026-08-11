@@ -92,6 +92,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 IsConfidential = isConfidential,
                 ResourceId = "resource-123",
                 SendersReference = "ref-123",
+                Content = new CorrespondenceContentEntity
+                {
+                    Language = "nb",
+                    MessageTitle = "Test Message",
+                    MessageSummary = "This is a test message summary.",
+                    MessageBody = "This is the body of the test message.",
+                    Attachments = new List<CorrespondenceAttachmentEntity>()
+                },
                 RequestedPublishTime = requestedPublishTime ?? now.AddMinutes(-10),
                 Created = now.AddMinutes(-30),
                 ExternalReferences = new List<ExternalReferenceEntity>

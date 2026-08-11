@@ -24,7 +24,7 @@ namespace Altinn.Correspondence.Application.CorrespondenceDueDate
                 {
                     throw new Exception("Correspondence " + correspondenceId + " not found for exipired due date");
                 }
-                else if (correspondence.Content == null || !correspondence.StatusHasBeen(CorrespondenceStatus.Published))
+                else if (!correspondence.StatusHasBeen(CorrespondenceStatus.Published))
                 {
                     throw new Exception($"Correspondence {correspondenceId} was never published");
                 }
