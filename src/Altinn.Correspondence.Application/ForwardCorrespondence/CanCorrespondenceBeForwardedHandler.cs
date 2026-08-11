@@ -8,9 +8,9 @@ namespace Altinn.Correspondence.Application.ForwardCorrespondence;
 public class CanCorrespondenceBeForwardedHandler(
     ICorrespondenceRepository correspondenceRepository,
     ILogger<CanCorrespondenceBeForwardedHandler> logger
-) : IHandler<Guid, bool>
+) : IHandler<Guid, CanCorrespondenceBeForwardedResponse>
 {
-    public async Task<OneOf<bool, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public async Task<OneOf<CanCorrespondenceBeForwardedResponse, Error>> Process(Guid correspondenceId, ClaimsPrincipal? user, CancellationToken cancellationToken)
     {
         if (user is null)
         {
@@ -23,6 +23,6 @@ public class CanCorrespondenceBeForwardedHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} not found", correspondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        return doesCorrespondenceAllowForwarding.Value;
+        return new CanCorrespondenceBeForwardedResponse { AllowForwarding = doesCorrespondenceAllowForwarding.Value };
     }
 }
