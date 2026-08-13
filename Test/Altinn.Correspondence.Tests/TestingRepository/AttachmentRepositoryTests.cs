@@ -187,6 +187,7 @@ public class AttachmentRepositoryTests
             CancellationToken.None);
 
         Assert.True(staged);
+        Assert.Equal(EntityState.Modified, context.Entry(attachment).State);
         context.DeferSaveChanges = false;
         await context.SaveChangesAsync();
 

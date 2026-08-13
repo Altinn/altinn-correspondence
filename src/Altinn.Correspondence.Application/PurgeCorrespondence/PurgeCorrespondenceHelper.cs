@@ -53,7 +53,7 @@ public class PurgeCorrespondenceHelper(
         }
         return null;
     }
-    public async Task CheckAndPurgeAttachments(Guid correspondenceId, Guid partyUuid, CancellationToken cancellationToken)
+    public async Task CheckAndPurgeAttachments(Guid correspondenceId, Guid partyUuid, List<Action> pendingSideEffects, CancellationToken cancellationToken)
     {
         var attachments = await attachmentRepository.GetAttachmentsByCorrespondence(correspondenceId, cancellationToken);
         foreach (var attachment in attachments)
@@ -64,7 +64,9 @@ public class PurgeCorrespondenceHelper(
                 continue;
             }
 
-            backgroundJobClient.Enqueue<IStorageRepository>(repository => repository.PurgeAttachment(attachment.Id, attachment.StorageProvider, CancellationToken.None));
+            var attachmentId = attachment.Id;
+            var storageProvider = attachment.StorageProvider;
+            pendingSideEffects.Add(() => backgroundJobClient.Enqueue<IStorageRepository>(repository => repository.PurgeAttachment(attachmentId, storageProvider, CancellationToken.None)));
             var attachmentStatus = new AttachmentStatusEntity
             {
                 AttachmentId = attachment.Id,
@@ -77,7 +79,7 @@ public class PurgeCorrespondenceHelper(
         }
     }
 
-    public async Task<Guid> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, int partyId, DateTimeOffset operationTimestamp, CancellationToken cancellationToken, string? partyUrn)
+    public async Task<PurgeCorrespondenceResult> PurgeCorrespondence(CorrespondenceEntity correspondence, bool isSender, Guid partyUuid, int partyId, DateTimeOffset operationTimestamp, CancellationToken cancellationToken, string? partyUrn)
     {
         var purgeIdempotencyId = correspondence.Id.CreateVersion5("PurgeCorrespondence");
         var duplicateCheck = await DatabaseTransactionHelper.Idempotency.CheckAsync(
@@ -88,8 +90,10 @@ public class PurgeCorrespondenceHelper(
         if (duplicateCheck.IsDuplicate)
         {
             logger.LogInformation("Purge already processed for correspondence {CorrespondenceId}; skipping", correspondence.Id);
-            return duplicateCheck.DuplicateResult!;
+            return new PurgeCorrespondenceResult(duplicateCheck.DuplicateResult!, []);
         }
+
+        var pendingSideEffects = new List<Action>();
 
         await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
         {
@@ -111,38 +115,45 @@ public class PurgeCorrespondenceHelper(
             PartyUuid = partyUuid
         }, cancellationToken);
 
-        backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
-        if (correspondence.Altinn2CorrespondenceId.HasValue && correspondence.Altinn2CorrespondenceId > 0)
+        var correspondenceResourceId = correspondence.ResourceId;
+        var correspondenceId = correspondence.Id;
+        var correspondenceSender = correspondence.Sender;
+        var altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId;
+        pendingSideEffects.Add(() => backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(AltinnEventType.CorrespondencePurged, correspondenceResourceId, correspondenceId.ToString(), "correspondence", correspondenceSender, CancellationToken.None)));
+        if (altinn2CorrespondenceId.HasValue && altinn2CorrespondenceId > 0)
         {
-            backgroundJobClient.Enqueue<IAltinnStorageService>(syncEventToAltinn2 => syncEventToAltinn2.SyncCorrespondenceEventToSblBridge(
-                correspondence.Altinn2CorrespondenceId.Value,
+            pendingSideEffects.Add(() => backgroundJobClient.Enqueue<IAltinnStorageService>(syncEventToAltinn2 => syncEventToAltinn2.SyncCorrespondenceEventToSblBridge(
+                altinn2CorrespondenceId.Value,
                 partyId,
                 operationTimestamp,
                 SyncEventType.Delete,
-                CancellationToken.None));
+                CancellationToken.None)));
         }
 
-        await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
+        await CheckAndPurgeAttachments(correspondence.Id, partyUuid, pendingSideEffects, cancellationToken);
 
         var dialogReference = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
         if (dialogReference is not null)
         {
             var dialogId = dialogReference.ReferenceValue;
-            var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(service => service.TrySoftDeleteDialog(dialogId));
+            pendingSideEffects.Add(() =>
+            {
+                var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(service => service.TrySoftDeleteDialog(dialogId));
 
-            #pragma warning disable CS4014 // Intended: Hangfire will run these async methods as jobs
-            backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
-                trySoftDeleteJobId,
-                helper => helper.ReportActivityToDialogporten(isSender, correspondence.Id, operationTimestamp, partyUrn),
-                JobContinuationOptions.OnlyOnSucceededState);
+                #pragma warning disable CS4014 // Intended: Hangfire will run these async methods as jobs
+                backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
+                    trySoftDeleteJobId,
+                    helper => helper.ReportActivityToDialogporten(isSender, correspondenceId, operationTimestamp, partyUrn),
+                    JobContinuationOptions.OnlyOnSucceededState);
 
-            backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
-                trySoftDeleteJobId,
-                helper => helper.ReportNotificationCancelledToDialogporten(correspondence.Id, operationTimestamp),
-                JobContinuationOptions.OnlyOnSucceededState);
-            #pragma warning restore CS4014
+                backgroundJobClient.ContinueJobWith<PurgeCorrespondenceHelper>(
+                    trySoftDeleteJobId,
+                    helper => helper.ReportNotificationCancelledToDialogporten(correspondenceId, operationTimestamp),
+                    JobContinuationOptions.OnlyOnSucceededState);
+                #pragma warning restore CS4014
+            });
         }
-        return correspondence.Id;
+        return new PurgeCorrespondenceResult(correspondence.Id, pendingSideEffects);
     }
 
     public async Task ReportActivityToDialogporten(bool isSender, Guid correspondenceId, DateTimeOffset operationTimestamp, string? partyUrn)

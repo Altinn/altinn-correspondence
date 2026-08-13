@@ -111,21 +111,24 @@ public class SendNotificationOrderHandler(
             await DatabaseTransactionHelper.ExecuteAsync(dbContext, async ct =>
             {
                 await UpdateDatabaseNotificationOrder(notificationOrder, notificationResponse, ct);
-                SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
-                logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notificationOrder.Id);
-                ScheduleNotificationDeliveryCheck(notificationOrder);
                 return Task.CompletedTask;
             }, cancellationToken);
 
+            SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
+            logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notificationOrder.Id);
+            ScheduleNotificationDeliveryCheck(notificationOrder);
+
             if (orderRequest.Reminders != null && orderRequest.Reminders.Count != 0)
             {
-                foreach (var reminderResponse in notificationResponse.Notification.Reminders)
+                for (var reminderIndex = 0; reminderIndex < notificationResponse.Notification.Reminders.Count; reminderIndex++)
                 {
+                    var reminderResponse = notificationResponse.Notification.Reminders[reminderIndex];
                     var reminderNotification = await PersistReminderNotification(
                         notificationOrder,
                         orderRequest,
                         notificationResponse.NotificationOrderId,
                         reminderResponse,
+                        reminderIndex,
                         cancellationToken);
                     if (reminderNotification != null)
                     {
@@ -168,6 +171,7 @@ public class SendNotificationOrderHandler(
         NotificationOrderRequestV2 orderRequest,
         Guid notificationOrderId,
         ReminderResponse reminderResponse,
+        int reminderIndex,
         CancellationToken cancellationToken)
     {
         return await DatabaseTransactionHelper.ExecuteAsync(
@@ -193,7 +197,7 @@ public class SendNotificationOrderHandler(
                     NotificationTemplate = mainNotificationOrder.NotificationTemplate,
                     NotificationChannel = mainNotificationOrder.NotificationChannel,
                     CorrespondenceId = mainNotificationOrder.CorrespondenceId,
-                    RequestedSendTime = mainNotificationOrder.RequestedSendTime.AddDays(orderRequest.Reminders?.FirstOrDefault()?.DelayDays ?? 0),
+                    RequestedSendTime = mainNotificationOrder.RequestedSendTime.AddDays(GetReminderDelayDays(orderRequest, reminderResponse, reminderIndex)),
                     IsReminder = true,
                     ShipmentId = reminderResponse.ShipmentId,
                     NotificationOrderId = notificationOrderId,
@@ -209,5 +213,30 @@ public class SendNotificationOrderHandler(
                 logger.LogWarning("Reminder notification already persisted for shipment {ShipmentId} on correspondence {CorrespondenceId}. Skipping.", reminderResponse.ShipmentId, mainNotificationOrder.CorrespondenceId);
                 return (CorrespondenceNotificationEntity?)null;
             }));
+    }
+
+    private static int GetReminderDelayDays(NotificationOrderRequestV2 orderRequest, ReminderResponse reminderResponse, int reminderIndex)
+    {
+        if (orderRequest.Reminders is not { Count: > 0 } reminders)
+        {
+            return 0;
+        }
+
+        if (!string.IsNullOrEmpty(reminderResponse.SendersReference))
+        {
+            var matchedByReference = reminders.FirstOrDefault(r => r.SendersReference == reminderResponse.SendersReference);
+            if (matchedByReference is not null)
+            {
+                return matchedByReference.DelayDays;
+            }
+        }
+
+        if (reminderIndex < reminders.Count)
+        {
+            return reminders[reminderIndex].DelayDays;
+        }
+
+        throw new InvalidOperationException(
+            $"Could not match reminder response at index {reminderIndex} to a request reminder.");
     }
 }

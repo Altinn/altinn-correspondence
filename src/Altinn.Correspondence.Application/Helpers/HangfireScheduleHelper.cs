@@ -71,7 +71,7 @@ namespace Altinn.Correspondence.Application.Helpers
             if (correspondence is null)
             {
                 logger.LogError("Correspondence with id {CorrespondenceId} not found when scheduling publish", correspondenceId);
-                return;
+                throw new InvalidOperationException($"Correspondence {correspondenceId} not found when scheduling publish");
             }
 
             if (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
@@ -93,6 +93,7 @@ namespace Altinn.Correspondence.Application.Helpers
             }
 
             var publishTime = GetActualPublishTime(correspondence.RequestedPublishTime);
+            var transactionCommitted = true;
             await DatabaseTransactionHelper.ExecuteAsync(
                 dbContext,
                 async ct =>
@@ -107,13 +108,8 @@ namespace Altinn.Correspondence.Application.Helpers
                         IdempotencyType = IdempotencyType.SchedulePublishCorrespondence
                     }, ct);
 
-                    backgroundJobClient.Schedule<PublishCorrespondenceHandler>(
-                        HangfireQueues.Default,
-                        handler => handler.Process(correspondence.Id, null, ct),
-                        publishTime);
-
                     logger.LogInformation(
-                        "Scheduled publish for correspondence {CorrespondenceId} at {PublishTime}",
+                        "Recorded publish schedule for correspondence {CorrespondenceId} at {PublishTime}",
                         correspondenceId,
                         publishTime);
 
@@ -122,9 +118,23 @@ namespace Altinn.Correspondence.Application.Helpers
                 cancellationToken,
                 DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
                 {
+                    transactionCommitted = false;
                     logger.LogInformation("Publish already scheduled for correspondence {CorrespondenceId}; skipping", correspondenceId);
                     return Task.CompletedTask;
                 }));
+
+            if (transactionCommitted)
+            {
+                backgroundJobClient.Schedule<PublishCorrespondenceHandler>(
+                    HangfireQueues.Default,
+                    handler => handler.Process(correspondence.Id, null, cancellationToken),
+                    publishTime);
+
+                logger.LogInformation(
+                    "Scheduled publish for correspondence {CorrespondenceId} at {PublishTime}",
+                    correspondenceId,
+                    publishTime);
+            }
         }
 
         private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime;

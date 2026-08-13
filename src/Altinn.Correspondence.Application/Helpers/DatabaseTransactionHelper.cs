@@ -120,6 +120,7 @@ public static class DatabaseTransactionHelper
                 {
                     if (options.OnUniqueViolation is { } onUniqueViolation)
                     {
+                        dbContext.ChangeTracker.Clear();
                         return onUniqueViolation(ex);
                     }
 

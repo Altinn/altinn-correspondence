@@ -307,11 +307,20 @@ public class DatabaseTransactionHelperTests
 
         var result = await DatabaseTransactionHelper.ExecuteAsync(
             dbContext,
-            _ => Task.FromResult("committed"),
+            async _ =>
+            {
+                dbContext.IdempotencyKeys.Add(new IdempotencyKeyEntity
+                {
+                    Id = Guid.NewGuid(),
+                    IdempotencyType = IdempotencyType.PublishCorrespondence
+                });
+                return "committed";
+            },
             default,
             DatabaseTransactionHelper.Idempotency.OnDuplicate(() => "duplicate-handled"));
 
         Assert.Equal("duplicate-handled", result);
+        Assert.Empty(dbContext.ChangeTracker.Entries());
     }
 
     [Fact]

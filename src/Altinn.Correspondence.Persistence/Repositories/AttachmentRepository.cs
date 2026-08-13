@@ -192,7 +192,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
 			_context.Attachments.RemoveRange(orphanAttachments);
-			return await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
+			var rowsAffected = await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
+			return _context.DeferSaveChanges ? orphanAttachments.Count : rowsAffected;
 		}
 
         public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken)

@@ -104,7 +104,8 @@ public class PurgeCorrespondenceHelperTests
             CancellationToken.None,
             partyUrn: null);
 
-        Assert.Equal(correspondenceId, result);
+        Assert.Equal(correspondenceId, result.CorrespondenceId);
+        Assert.Empty(result.PendingSideEffects);
         _correspondenceStatusRepositoryMock.Verify(
             x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -129,7 +130,8 @@ public class PurgeCorrespondenceHelperTests
             CancellationToken.None,
             partyUrn: null);
 
-        Assert.Equal(correspondenceId, result);
+        Assert.Equal(correspondenceId, result.CorrespondenceId);
+        Assert.NotEmpty(result.PendingSideEffects);
         _correspondenceStatusRepositoryMock.Verify(
             x => x.AddCorrespondenceStatus(
                 It.Is<CorrespondenceStatusEntity>(s =>
