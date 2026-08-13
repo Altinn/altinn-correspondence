@@ -90,10 +90,16 @@ namespace Altinn.Correspondence.Persistence.Repositories
         }
 
 
-        public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken)
+        public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken, Guid? excludingCorrespondenceId = null)
         {
-            return !(await _context.Correspondences.AnyAsync(a => a.Content != null && a.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
-            !a.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn), cancellationToken));
+            // excludingCorrespondenceId: when purging inside a deferred transaction the purge status
+            // is not yet visible to this query, so treat that correspondence as already purged.
+            return !(await _context.Correspondences.AnyAsync(a =>
+                a.Content != null &&
+                a.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
+                (excludingCorrespondenceId == null || a.Id != excludingCorrespondenceId) &&
+                !a.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn),
+                cancellationToken));
         }
 
         public async Task<DateTimeOffset?> GetMaxExpirationTimeForAttachment(Guid attachmentId, CancellationToken cancellationToken)

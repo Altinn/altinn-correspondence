@@ -136,7 +136,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             var attachment = await _senderClient.GetFromJsonAsync<AttachmentOverviewExt>($"correspondence/api/v1/attachment/{correspondenceResponse.AttachmentIds.FirstOrDefault()}", _responseSerializerOptions);
-            Assert.Equal(attachment?.Status, AttachmentStatusExt.Purged);
+            Assert.Equal(AttachmentStatusExt.Purged, attachment?.Status);
         }
 
         [Fact]
