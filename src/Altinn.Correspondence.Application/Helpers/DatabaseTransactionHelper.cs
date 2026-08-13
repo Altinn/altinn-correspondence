@@ -146,9 +146,14 @@ public static class DatabaseTransactionHelper
         CancellationToken cancellationToken = default)
     {
         var strategy = dbContext.Database.CreateExecutionStrategy();
+        var attempt = 0;
         return await strategy.ExecuteAsync(async ct =>
         {
-            dbContext.ChangeTracker.Clear();
+            if (attempt++ > 0)
+            {
+                dbContext.ChangeTracker.Clear();
+            }
+
             return await operation(ct);
         }, cancellationToken);
     }

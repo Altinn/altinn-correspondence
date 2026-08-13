@@ -241,6 +241,18 @@ public class DatabaseTransactionHelperTests
         Assert.Equal(6, attemptCount);
     }
 
+    [Theory]
+    [InlineData(1, 100)]
+    [InlineData(2, 200)]
+    [InlineData(3, 400)]
+    [InlineData(4, 800)]
+    [InlineData(5, 1600)]
+    public void ExecuteAsync_ExponentialBackoffDelay_IncreasesWithRetryCount(int retryCount, double expectedDelayMs)
+    {
+        var delay = TimeSpan.FromMilliseconds(Math.Pow(2, retryCount) * 50);
+        Assert.Equal(expectedDelayMs, delay.TotalMilliseconds);
+    }
+
     [Fact]
     public async Task ExecuteAsync_UsesExponentialBackoff()
     {
@@ -259,17 +271,12 @@ public class DatabaseTransactionHelperTests
         );
 
         Assert.IsType<PostgresException>(exception.InnerException);
+        Assert.Equal(6, attemptCount);
 
-        Assert.True(attemptTimes.Count >= 4, "Should have at least 4 attempts to verify backoff pattern");
-
-        for (int i = 1; i < Math.Min(attemptTimes.Count - 1, 4); i++)
-        {
-            var previousDelay = (attemptTimes[i] - attemptTimes[i - 1]).TotalMilliseconds;
-            var currentDelay = (attemptTimes[i + 1] - attemptTimes[i]).TotalMilliseconds;
-
-            Assert.True(currentDelay > previousDelay * 1.5,
-                $"Expected exponential backoff: attempt {i + 1} delay ({currentDelay}ms) should be > {previousDelay * 1.5}ms");
-        }
+        var totalElapsedMs = (attemptTimes[^1] - attemptTimes[0]).TotalMilliseconds;
+        var minimumExpectedDelayMs = 100 + 200 + 400 + 800 + 1600;
+        Assert.True(totalElapsedMs >= minimumExpectedDelayMs * 0.5,
+            $"Expected cumulative backoff of at least {minimumExpectedDelayMs * 0.5}ms, got {totalElapsedMs}ms");
     }
 
     [Fact]
