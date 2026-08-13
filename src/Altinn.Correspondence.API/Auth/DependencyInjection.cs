@@ -242,6 +242,9 @@ namespace Altinn.Correspondence.API.Auth
 
         public static void ConfigureAuthorization(this IServiceCollection services, IConfiguration config)
         {
+            var altinnOptions = new AltinnOptions();
+            config.GetSection(nameof(AltinnOptions)).Bind(altinnOptions);
+
             services.AddTransient<IAuthorizationHandler, ScopeAccessHandler>();
             services.AddAuthorization(options =>
             {
@@ -249,10 +252,13 @@ namespace Altinn.Correspondence.API.Auth
                     policy.RequireAssertion(SenderScopePolicy)
                           .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme));
                 options.AddPolicy(AuthorizationConstants.Recipient, policy =>
-                    policy.RequireAssertion(RecipientScopePolicy)
+                    policy.RequireAssertion(context =>
+                              RecipientScopePolicy(context, altinnOptions.PlatformGatewayUrl))
                           .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.DialogportenScheme));
                 options.AddPolicy(AuthorizationConstants.SenderOrRecipient, policy =>
-                    policy.RequireAssertion(context => SenderScopePolicy(context) || RecipientScopePolicy(context))
+                    policy.RequireAssertion(context =>
+                        SenderScopePolicy(context) ||
+                        RecipientScopePolicy(context, altinnOptions.PlatformGatewayUrl))
                     .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AuthorizationConstants.MaskinportenScheme, AuthorizationConstants.DialogportenScheme));
                 options.AddPolicy(AuthorizationConstants.DialogportenPolicy, policy =>
                 {
@@ -299,7 +305,7 @@ namespace Altinn.Correspondence.API.Auth
             return false;
         }
 
-        private static bool RecipientScopePolicy(AuthorizationHandlerContext context)
+        internal static bool RecipientScopePolicy(AuthorizationHandlerContext context, string platformGatewayUrl)
         {
             var issuerClaim = context.User.Claims.FirstOrDefault(c => c.Type == "iss");
             if (issuerClaim == null) return false;
@@ -316,7 +322,8 @@ namespace Altinn.Correspondence.API.Auth
             }
 
             // Altinn
-            if (issuerClaim.Value.Contains("altinn.no"))
+            var expectedAltinnIssuer = $"{platformGatewayUrl.TrimEnd('/')}/authentication/api/v1/openid/";
+            if (issuerClaim.Value.Equals(expectedAltinnIssuer, StringComparison.OrdinalIgnoreCase))
             {
                 var scopeClaim = context.User.Claims.FirstOrDefault(c => c.Type == "scope");
                 if (scopeClaim != null)

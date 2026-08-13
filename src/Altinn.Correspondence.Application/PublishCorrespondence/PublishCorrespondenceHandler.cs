@@ -10,9 +10,7 @@ using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Persistence;
-using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Security.Claims;
@@ -84,14 +82,28 @@ public class PublishCorrespondenceHandler(
         {
             errorMessage = $"Recipient of {correspondenceId} lacks roles required to read correspondence. Consider sending physical mail to this recipient instead.";
         }
-        return await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (cancellationToken) =>
+
+        var publishIdempotencyId = correspondenceId.CreateVersion5("PublishCorrespondence");
+        var duplicateCheck = await DatabaseTransactionHelper.Idempotency.CheckAsync(
+            idempotencyKeyRepository,
+            publishIdempotencyId,
+            () => Task.CompletedTask,
+            cancellationToken);
+        if (duplicateCheck.IsDuplicate)
         {
-            CorrespondenceStatusEntity status;
-            AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
-            var publishIdempotencyId = correspondenceId.CreateVersion5("PublishCorrespondence");
-            try
+            logger.LogInformation("Publish already completed for correspondence {CorrespondenceId}; skipping", correspondenceId);
+            return duplicateCheck.DuplicateResult!;
+        }
+
+        var pendingSideEffects = new List<Action>();
+        var transactionCommitted = true;
+        await DatabaseTransactionHelper.ExecuteAsync(
+            dbContext,
+            async cancellationToken =>
             {
-                await idempotencyKeyRepository.CreateAsync(new IdempotencyKeyEntity
+                CorrespondenceStatusEntity status;
+                AltinnEventType eventType = AltinnEventType.CorrespondencePublished;
+                await DatabaseTransactionHelper.Idempotency.StageAsync(idempotencyKeyRepository, new IdempotencyKeyEntity
                 {
                     Id = publishIdempotencyId,
                     CorrespondenceId = correspondenceId,
@@ -100,71 +112,87 @@ public class PublishCorrespondenceHandler(
                     StatusAction = null,
                     IdempotencyType = IdempotencyType.PublishCorrespondence
                 }, cancellationToken);
-            }
-            catch (DbUpdateException e) when (e.IsPostgresUniqueViolation())
-            {
-                logger.LogInformation("Publish already completed for correspondence {CorrespondenceId}; skipping", correspondenceId);
-                return Task.CompletedTask;
-            }
 
-            if (errorMessage.Length > 0)
-            {
-                logger.LogError("Publish failed for correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
-                status = new CorrespondenceStatusEntity
+                if (errorMessage.Length > 0)
                 {
-                    CorrespondenceId = correspondenceId,
-                    Status = CorrespondenceStatus.Failed,
-                    StatusChanged = operationTimestamp,
-                    StatusText = errorMessage,
-                    PartyUuid = senderPartyUuid ?? Guid.Empty
-                };
-                backgroundJobClient.Enqueue<SendSlackNotificationHandler>(
-                    handler => handler.Process("Correspondence failed", errorMessage));
-                eventType = AltinnEventType.CorrespondencePublishFailed;
-                if (hasDialogportenDialog)
-                {
-                    logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
-                    backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId));
-                }
-            }
-            else
-            {
-                if (correspondence!.GetHighestStatus().Status != CorrespondenceStatus.ReadyForPublish)
-                {
-                    await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                    logger.LogError("Publish failed for correspondence {CorrespondenceId}: {ErrorMessage}", correspondenceId, errorMessage);
+                    status = new CorrespondenceStatusEntity
                     {
                         CorrespondenceId = correspondenceId,
-                        Status = CorrespondenceStatus.ReadyForPublish,
+                        Status = CorrespondenceStatus.Failed,
                         StatusChanged = operationTimestamp,
-                        StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
+                        StatusText = errorMessage,
                         PartyUuid = senderPartyUuid ?? Guid.Empty
-                    }, cancellationToken);
+                    };
+                    var failureMessage = errorMessage;
+                    pendingSideEffects.Add(() => backgroundJobClient.Enqueue<SendSlackNotificationHandler>(
+                        handler => handler.Process("Correspondence failed", failureMessage)));
+                    eventType = AltinnEventType.CorrespondencePublishFailed;
+                    if (hasDialogportenDialog)
+                    {
+                        logger.LogInformation("Purging Dialogporten dialog for failed correspondence {CorrespondenceId}", correspondenceId);
+                        pendingSideEffects.Add(() => backgroundJobClient.Enqueue<IDialogportenService>(dialogportenService => dialogportenService.PurgeCorrespondenceDialog(correspondenceId)));
+                    }
                 }
-                status = new CorrespondenceStatusEntity
+                else
                 {
-                    CorrespondenceId = correspondenceId,
-                    Status = CorrespondenceStatus.Published,
-                    StatusChanged = operationTimestamp,
-                    StatusText = CorrespondenceStatus.Published.ToString(),
-                    PartyUuid = senderPartyUuid ?? Guid.Empty
-                };
-                await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
-                
-                backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken));
-            }
+                    if (correspondence!.GetHighestStatus().Status != CorrespondenceStatus.ReadyForPublish)
+                    {
+                        await correspondenceStatusRepository.AddCorrespondenceStatus(new CorrespondenceStatusEntity
+                        {
+                            CorrespondenceId = correspondenceId,
+                            Status = CorrespondenceStatus.ReadyForPublish,
+                            StatusChanged = operationTimestamp,
+                            StatusText = CorrespondenceStatus.ReadyForPublish.ToString(),
+                            PartyUuid = senderPartyUuid ?? Guid.Empty
+                        }, cancellationToken);
+                    }
+                    status = new CorrespondenceStatusEntity
+                    {
+                        CorrespondenceId = correspondenceId,
+                        Status = CorrespondenceStatus.Published,
+                        StatusChanged = operationTimestamp,
+                        StatusText = CorrespondenceStatus.Published.ToString(),
+                        PartyUuid = senderPartyUuid ?? Guid.Empty
+                    };
+                    await correspondenceRepository.UpdatePublished(correspondenceId, status.StatusChanged, cancellationToken);
 
-            await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
-            if (status.Status == CorrespondenceStatus.Published)
+                    pendingSideEffects.Add(() => backgroundJobClient.Enqueue<SendNotificationOrderHandler>((handler) => handler.Process(correspondence!.Id, cancellationToken)));
+                }
+
+                await correspondenceStatusRepository.AddCorrespondenceStatus(status, cancellationToken);
+                var publishedResourceId = correspondence!.ResourceId;
+                var publishedCorrespondenceId = correspondence.Id;
+                if (status.Status == CorrespondenceStatus.Published)
+                {
+                    var eventRecipient = correspondence.Recipient;
+                    pendingSideEffects.Add(() => backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, publishedResourceId, publishedCorrespondenceId.ToString(), "correspondence", eventRecipient, CancellationToken.None)));
+                }
+                else
+                {
+                    var eventSender = correspondence.Sender;
+                    pendingSideEffects.Add(() => backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, publishedResourceId, publishedCorrespondenceId.ToString(), "correspondence", eventSender, CancellationToken.None)));
+                }
+                logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
+                return Task.CompletedTask;
+            },
+            cancellationToken,
+            DatabaseTransactionHelper.Idempotency.OnDuplicate(() =>
             {
-                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Recipient, CancellationToken.None));
-            }
-            else
+                transactionCommitted = false;
+                logger.LogInformation("Publish already completed for correspondence {CorrespondenceId}; skipping", correspondenceId);
+                return Task.CompletedTask;
+            }));
+
+        if (transactionCommitted)
+        {
+            foreach (var sideEffect in pendingSideEffects)
             {
-                backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(eventType, correspondence!.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                sideEffect();
             }
-            logger.LogInformation("Successfully completed publish process for correspondence {CorrespondenceId} with status {Status}", correspondenceId, status.Status);
-            return Task.CompletedTask;
-        }, cancellationToken);
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task<bool> HasRecipientBeenSetToReservedInKRR(CorrespondenceEntity correspondence, CancellationToken cancellationToken)

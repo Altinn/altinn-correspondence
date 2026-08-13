@@ -329,7 +329,7 @@ namespace Altinn.Correspondence.Application.Helpers
                     Attachments = attachmentsToBeUploaded.Select((a, index) => new CorrespondenceAttachmentEntity
                     {
                         Id = Guid.CreateVersion7(baseTimestamp.AddMilliseconds(index)),
-                        Attachment = a,
+                        AttachmentId = a.Id,
                         Created = DateTimeOffset.UtcNow,
                         ExpirationTime = a.ExpirationInDays.HasValue ? expirationAnchorTime.AddDays(a.ExpirationInDays.Value) : null,
                     }).ToList(),

@@ -28,7 +28,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             }
             catch (Exception ex)
             {
@@ -45,7 +45,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<List<Guid>> InitializeMultipleAttachments(List<AttachmentEntity> attachments, CancellationToken cancellationToken)
         {
             await _context.Attachments.AddRangeAsync(attachments, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return attachments.Select(a => a.Id).ToList();
         }
 
@@ -71,29 +71,35 @@ namespace Altinn.Correspondence.Persistence.Repositories
             attachmentEntity.DataLocationType = attachmentDataLocationType;
             attachmentEntity.DataLocationUrl = dataLocationUrl;
             attachmentEntity.StorageProvider = storageProviderEntity;
-            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated == 1;
+            var rowsUpdated = await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
+            return _context.IsDeferredOrPersisted(rowsUpdated);
 
         }
 
         public async Task<bool> SetChecksum(AttachmentEntity attachmentEntity, string? checkSum, CancellationToken cancellationToken)
         {
             attachmentEntity.Checksum = checkSum;
-            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated == 1;
+            var rowsUpdated = await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
+            return _context.IsDeferredOrPersisted(rowsUpdated);
         }
         public async Task<bool> SetAttachmentSize(AttachmentEntity attachmentEntity, long size, CancellationToken cancellationToken)
         {
             attachmentEntity.AttachmentSize = size;
-            var rowsUpdated = await _context.SaveChangesAsync(cancellationToken);
-            return rowsUpdated == 1;
+            var rowsUpdated = await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
+            return _context.IsDeferredOrPersisted(rowsUpdated);
         }
 
 
-        public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken)
+        public async Task<bool> CanAttachmentBeDeleted(Guid attachmentId, CancellationToken cancellationToken, Guid? excludingCorrespondenceId = null)
         {
-            return !(await _context.Correspondences.AnyAsync(a => a.Content != null && a.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
-            !a.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn), cancellationToken));
+            // excludingCorrespondenceId: when purging inside a deferred transaction the purge status
+            // is not yet visible to this query, so treat that correspondence as already purged.
+            return !(await _context.Correspondences.AnyAsync(a =>
+                a.Content != null &&
+                a.Content.Attachments.Any(ca => ca.AttachmentId == attachmentId) &&
+                (excludingCorrespondenceId == null || a.Id != excludingCorrespondenceId) &&
+                !a.Statuses.Any(s => s.Status == CorrespondenceStatus.PurgedByRecipient || s.Status == CorrespondenceStatus.PurgedByAltinn),
+                cancellationToken));
         }
 
         public async Task<DateTimeOffset?> GetMaxExpirationTimeForAttachment(Guid attachmentId, CancellationToken cancellationToken)
@@ -172,7 +178,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 			}
 			attachment.StorageProvider = storageProvider;
 			attachment.DataLocationUrl = dataLocationUrl;
-			await _context.SaveChangesAsync(cancellationToken);
+			await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
 		}
 
 		public async Task<int> HardDeleteOrphanedAttachments(List<Guid> attachmentIds, CancellationToken cancellationToken)
@@ -192,7 +198,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
 			_context.Attachments.RemoveRange(orphanAttachments);
-			return await _context.SaveChangesAsync(cancellationToken);
+			var rowsAffected = await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
+			return _context.DeferSaveChanges ? orphanAttachments.Count : rowsAffected;
 		}
 
         public async Task<List<Guid>> GetAttachmentIdsOnResource(string resourceId, DateTimeOffset minAge, CancellationToken cancellationToken)

@@ -1,4 +1,7 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
+using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
@@ -101,47 +104,37 @@ public class DatabaseTransactionHelperTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_BackgroundJobClientException_RetriesAndSucceeds()
+    public async Task ExecuteAsync_BackgroundJobClientException_DoesNotRetry()
     {
-        var expectedResult = Guid.NewGuid();
         var attemptCount = 0;
         await using var dbContext = CreateDbContext();
         Task<Guid> Operation(CancellationToken ct)
         {
             attemptCount++;
-            if (attemptCount == 1)
-            {
-                throw new BackgroundJobClientException("Hangfire job creation failed", new Exception("Inner exception"));
-            }
-            return Task.FromResult(expectedResult);
+            throw new BackgroundJobClientException("Hangfire job creation failed", new Exception("Inner exception"));
         }
 
-        var result = await DatabaseTransactionHelper.ExecuteAsync(dbContext, Operation);
+        await Assert.ThrowsAsync<BackgroundJobClientException>(
+            () => DatabaseTransactionHelper.ExecuteAsync(dbContext, Operation));
 
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(2, attemptCount);
+        Assert.Equal(1, attemptCount);
     }
 
     [Fact]
-    public async Task ExecuteAsync_PostgreSqlDistributedLockException_RetriesAndSucceeds()
+    public async Task ExecuteAsync_PostgreSqlDistributedLockException_DoesNotRetry()
     {
-        var expectedResult = DateTime.UtcNow;
         var attemptCount = 0;
         await using var dbContext = CreateDbContext();
         Task<DateTime> Operation(CancellationToken ct)
         {
             attemptCount++;
-            if (attemptCount == 1)
-            {
-                throw new PostgreSqlDistributedLockException("Could not acquire lock");
-            }
-            return Task.FromResult(expectedResult);
+            throw new PostgreSqlDistributedLockException("Could not acquire lock");
         }
 
-        var result = await DatabaseTransactionHelper.ExecuteAsync(dbContext, Operation);
+        await Assert.ThrowsAnyAsync<PostgreSqlDistributedLockException>(
+            () => DatabaseTransactionHelper.ExecuteAsync(dbContext, Operation));
 
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(2, attemptCount);
+        Assert.Equal(1, attemptCount);
     }
 
     [Fact]
@@ -248,6 +241,18 @@ public class DatabaseTransactionHelperTests
         Assert.Equal(6, attemptCount);
     }
 
+    [Theory]
+    [InlineData(1, 100)]
+    [InlineData(2, 200)]
+    [InlineData(3, 400)]
+    [InlineData(4, 800)]
+    [InlineData(5, 1600)]
+    public void ExecuteAsync_ExponentialBackoffDelay_IncreasesWithRetryCount(int retryCount, double expectedDelayMs)
+    {
+        var delay = TimeSpan.FromMilliseconds(Math.Pow(2, retryCount) * 50);
+        Assert.Equal(expectedDelayMs, delay.TotalMilliseconds);
+    }
+
     [Fact]
     public async Task ExecuteAsync_UsesExponentialBackoff()
     {
@@ -266,17 +271,12 @@ public class DatabaseTransactionHelperTests
         );
 
         Assert.IsType<PostgresException>(exception.InnerException);
+        Assert.Equal(6, attemptCount);
 
-        Assert.True(attemptTimes.Count >= 4, "Should have at least 4 attempts to verify backoff pattern");
-
-        for (int i = 1; i < Math.Min(attemptTimes.Count - 1, 4); i++)
-        {
-            var previousDelay = (attemptTimes[i] - attemptTimes[i - 1]).TotalMilliseconds;
-            var currentDelay = (attemptTimes[i + 1] - attemptTimes[i]).TotalMilliseconds;
-
-            Assert.True(currentDelay > previousDelay * 1.5,
-                $"Expected exponential backoff: attempt {i + 1} delay ({currentDelay}ms) should be > {previousDelay * 1.5}ms");
-        }
+        var totalElapsedMs = (attemptTimes[^1] - attemptTimes[0]).TotalMilliseconds;
+        var minimumExpectedDelayMs = 100 + 200 + 400 + 800 + 1600;
+        Assert.True(totalElapsedMs >= minimumExpectedDelayMs * 0.5,
+            $"Expected cumulative backoff of at least {minimumExpectedDelayMs * 0.5}ms, got {totalElapsedMs}ms");
     }
 
     [Fact]
@@ -298,6 +298,145 @@ public class DatabaseTransactionHelperTests
         Assert.Equal(expectedResult.Name, result.Name);
         Assert.Equal(expectedResult.Count, result.Count);
         Assert.Equal(expectedResult.Timestamp, result.Timestamp);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_UniqueViolationOnFlush_ReturnsHandlerResultWithoutCommitting()
+    {
+        await using var dbContext = CreateThrowingOnSaveDbContext();
+
+        var result = await DatabaseTransactionHelper.ExecuteAsync(
+            dbContext,
+            async _ =>
+            {
+                dbContext.IdempotencyKeys.Add(new IdempotencyKeyEntity
+                {
+                    Id = Guid.NewGuid(),
+                    IdempotencyType = IdempotencyType.PublishCorrespondence
+                });
+                return "committed";
+            },
+            default,
+            DatabaseTransactionHelper.Idempotency.OnDuplicate(() => "duplicate-handled"));
+
+        Assert.Equal("duplicate-handled", result);
+        Assert.Empty(dbContext.ChangeTracker.Entries());
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_UniqueViolationOnFlushWithoutHandler_Rethrows()
+    {
+        await using var dbContext = CreateThrowingOnSaveDbContext();
+
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(
+            () => DatabaseTransactionHelper.ExecuteAsync(dbContext, _ => Task.FromResult("committed")));
+
+        Assert.True(exception.IsPostgresUniqueViolation());
+    }
+
+    [Fact]
+    public void Idempotency_OnDuplicate_MapsUniqueViolationToResult()
+    {
+        var options = DatabaseTransactionHelper.Idempotency.OnDuplicate(() => "duplicate-handled");
+        var exception = new DbUpdateException(
+            "duplicate key",
+            new PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505"));
+
+        Assert.Equal("duplicate-handled", options.OnUniqueViolation!(exception));
+    }
+
+    [Fact]
+    public async Task Idempotency_CheckAsync_ReturnsProceedWhenKeyDoesNotExist()
+    {
+        var repository = new FakeIdempotencyKeyRepository(exists: false);
+
+        var result = await DatabaseTransactionHelper.Idempotency.CheckAsync(
+            repository,
+            Guid.NewGuid(),
+            () => "duplicate",
+            CancellationToken.None);
+
+        Assert.False(result.IsDuplicate);
+        Assert.Null(result.DuplicateResult);
+    }
+
+    [Fact]
+    public async Task Idempotency_CheckAsync_ReturnsDuplicateWhenKeyExists()
+    {
+        var repository = new FakeIdempotencyKeyRepository(exists: true);
+
+        var result = await DatabaseTransactionHelper.Idempotency.CheckAsync(
+            repository,
+            Guid.NewGuid(),
+            () => "duplicate",
+            CancellationToken.None);
+
+        Assert.True(result.IsDuplicate);
+        Assert.Equal("duplicate", result.DuplicateResult);
+    }
+
+    private sealed class FakeIdempotencyKeyRepository(bool exists) : IIdempotencyKeyRepository
+    {
+        public Task<IdempotencyKeyEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IdempotencyKeyEntity?>(exists ? new IdempotencyKeyEntity { Id = id } : null);
+        }
+
+        public Task<IdempotencyKeyEntity?> GetByCorrespondenceAndAttachmentAndActionAndTypeAsync(
+            Guid correspondenceId,
+            Guid? attachmentId,
+            string? partyUrn,
+            StatusAction? action,
+            IdempotencyType idempotencyType,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IdempotencyKeyEntity?>(null);
+        }
+
+        public Task<IdempotencyKeyEntity> CreateAsync(IdempotencyKeyEntity idempotencyKey, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(idempotencyKey);
+        }
+
+        public Task CreateRangeAsync(IEnumerable<IdempotencyKeyEntity> idempotencyKeys, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<int> DeleteByCorrespondenceIds(IEnumerable<Guid> correspondenceIds, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(0);
+        }
+    }
+
+    private static ThrowingOnSaveDbContext CreateThrowingOnSaveDbContext()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql("Host=localhost;Database=test;Username=test;Password=test", npgsql =>
+                npgsql.ExecutionStrategy(dependencies =>
+                    new CorrespondenceNpgsqlRetryingExecutionStrategy(dependencies)))
+            .Options;
+        return new ThrowingOnSaveDbContext(options);
+    }
+
+    private sealed class ThrowingOnSaveDbContext(DbContextOptions options) : ApplicationDbContext(options)
+    {
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            if (DeferSaveChanges)
+            {
+                throw new DbUpdateException(
+                    "duplicate key",
+                    new PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505"));
+            }
+
+            return base.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private class TestResult

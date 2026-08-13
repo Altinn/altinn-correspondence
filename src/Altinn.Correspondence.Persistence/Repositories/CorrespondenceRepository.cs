@@ -46,13 +46,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
         public async Task<CorrespondenceEntity> CreateCorrespondence(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddAsync(correspondence, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return correspondence;
         }
         public async Task<List<CorrespondenceEntity>> CreateCorrespondences(List<CorrespondenceEntity> correspondences, CancellationToken cancellationToken)
         {
             await _context.Correspondences.AddRangeAsync(correspondences, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return correspondences;
         }
 
@@ -193,7 +193,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 ReferenceType = referenceType,
                 ReferenceValue = referenceValue
             });
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
         }
 
         public async Task<List<Guid>> GetCorrespondenceIdsByAttachmentId(Guid attachmentId, CancellationToken cancellationToken = default)
@@ -209,7 +209,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (correspondence != null)
             {
                 correspondence.Published = published;
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             }
         }
         public async Task UpdateIsMigrating(Guid correspondenceId, bool isMigrating, CancellationToken cancellationToken)
@@ -218,7 +218,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (correspondence != null)
             {
                 correspondence.IsMigrating = isMigrating;
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             }
         }
 
@@ -234,34 +234,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
             _context.ChangeTracker.Clear();
         }
 
-        public async Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(int limit, DateTimeOffset? from, DateTimeOffset? to, CorrespondenceStatus? status, List<string> recipientIds, bool includeActive, bool includeArchived, string searchString, CancellationToken cancellationToken, bool filterMigrated = true)
-        {
-            var correspondences = recipientIds.Count == 1
-                ? _context.Correspondences.Where(c => c.Recipient == recipientIds[0])     // Filter by single recipient
-                : _context.Correspondences.Where(c => recipientIds.Contains(c.Recipient)); // Filter multiple recipients
-
-            correspondences = correspondences
-                .IncludeByStatuses(includeActive, includeArchived, status) // Filter by statuses
-                .ExcludePurged() // Exclude purged correspondences
-                .Where(c => string.IsNullOrEmpty(searchString) || (c.Content != null && c.Content.MessageTitle.Contains(searchString))) // Filter by messageTitle containing searchstring
-                .FilterMigrated(filterMigrated) // Filter all migrated correspondences no matter their IsMigrating status
-                .Include(c => c.Statuses)
-                .Include(c => c.Content)
-                .OrderByDescending(c => c.RequestedPublishTime);             // Sort by RequestedPublishTime
-            // Default logic from A2 is to set 20 years into the past if no from is provided. Better performance to not apply filter in that case.
-            if (from != null && from > DateTime.Now.AddYears(-19)) 
-            {
-                correspondences = correspondences.Where(c => c.RequestedPublishTime > from);
-            }
-            // Default logic from A2 is 9999-12-31 if no to is provided. Better performance to not apply filter in that case.
-            if (to != null && to.Value.Date <= DateTime.UtcNow.Date) 
-            {
-                correspondences = correspondences.Where(c => c.RequestedPublishTime < to); 
-            }
-
-            var result = await correspondences.Take(limit).ToListAsync(cancellationToken);
-            return result;
-        }
         public async Task<bool> AreAllAttachmentsPublished(Guid correspondenceId, CancellationToken cancellationToken = default)
         {
             return await _context.CorrespondenceContents
@@ -462,7 +434,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
             _context.Correspondences.RemoveRange(entities);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesUnlessDeferredAsync(cancellationToken);
             return entities.Count;
         }
 

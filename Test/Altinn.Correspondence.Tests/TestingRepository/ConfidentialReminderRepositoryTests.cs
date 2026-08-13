@@ -95,7 +95,8 @@ public class ConfidentialReminderRepositoryTests
         // Arrange
         await using var context = TestDbContextFactory.Create();
         var repo = new ConfidentialReminderRepository(context);
-        var recipient = $"urn:altinn:organization:identifier-no:192837465";
+        var randomOrgNo = string.Concat(Enumerable.Range(0, 8).Select(_ => Random.Shared.Next(0, 10)));
+        var recipient = $"urn:altinn:organization:identifier-no:{randomOrgNo}";
 
         var c1 = await SeedCorrespondenceAsync(context);
         var c2 = await SeedCorrespondenceAsync(context);
@@ -168,7 +169,8 @@ public class ConfidentialReminderRepositoryTests
         var repo = new ConfidentialReminderRepository(context);
         var correspondence = await SeedCorrespondenceAsync(context);
         var dialogId = Guid.NewGuid();
-        var recipient = $"urn:altinn:organization:identifier-no:123123123";
+        var randomOrgNo = string.Concat(Enumerable.Range(0, 8).Select(_ => Random.Shared.Next(0, 10)));
+        var recipient = $"urn:altinn:organization:identifier-no:{randomOrgNo}";
         var reminder = CreateReminder(correspondence.Id, recipient, dialogId);
         await context.ConfidentialReminders.AddAsync(reminder);
         await context.SaveChangesAsync();

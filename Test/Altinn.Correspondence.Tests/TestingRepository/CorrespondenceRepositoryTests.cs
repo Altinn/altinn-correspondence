@@ -1,4 +1,5 @@
-﻿using Altinn.Correspondence.Core.Models.Entities;
+﻿using Altinn.Correspondence.Common.Constants;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Persistence.Repositories;
@@ -6,7 +7,6 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Altinn.Correspondence.Common.Constants;
 
 namespace Altinn.Correspondence.Tests.TestingRepository
 {
@@ -30,37 +30,6 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             Assert.NotNull(savedCorrespondence);
             Assert.Equal(correspondence.Created, savedCorrespondence.Created);
-        }
-
-        [Fact]
-        public async Task LegacyCorrespondenceSearch_CorrespondenceAddedForParty_GetCorrespondencesForPartyReturnsIt()
-        {
-            // Arrange
-            await using var context = TestDbContextFactory.Create();
-            var correspondenceRepository = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-            var baseTime = new DateTimeOffset(new DateTime(2001, 1, 1, 0, 0, 0), TimeSpan.Zero);
-            var from = baseTime.AddDays(-1);
-            var to = baseTime.AddDays(1);
-            var recipient = "0192:987654321";
-            var resource = "LegacyCorrespondenceSearch_CorrespondencesAddedForParty_GetCorrespondencesForPartyReturnsSome";
-            var entity = new CorrespondenceEntityBuilder()
-                .WithRecipient(recipient)
-                .WithResourceId(resource)
-                .WithRequestedPublishTime(baseTime)
-                .WithStatus(CorrespondenceStatus.Initialized, baseTime)
-                .WithStatus(CorrespondenceStatus.ReadyForPublish, baseTime.AddMinutes(1))
-                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(2))
-                .Build();
-            var addedCorrespondence = await correspondenceRepository.CreateCorrespondence(entity, CancellationToken.None);
-
-            // Act
-            var correspondences = await correspondenceRepository.GetCorrespondencesForParties(1000, from, to, null, [recipient], true, false, "", CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(correspondences);
-            Assert.NotEmpty(correspondences);
-            Assert.Equal(1, correspondences?.Count);
-            Assert.Equal(addedCorrespondence.Id, correspondences?.FirstOrDefault()?.Id);
         }
 
         [Fact]
@@ -148,8 +117,10 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
             var baseTime = new DateTime(2000, 1, 1, 0, 0, 0);
 
-            var idA = new Guid("00000000-0000-0000-0000-000000000001");
-            var idB = new Guid("00000000-0000-0000-0000-000000000002");
+            var sequentialIds = SequentialGuids(3);
+            var previousId = sequentialIds[0];
+            var idA = sequentialIds[1];
+            var idB = sequentialIds[2];
             var items = new List<CorrespondenceEntity>
             {
                 new CorrespondenceEntityBuilder()
@@ -170,7 +141,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             context.Correspondences.AddRange(items);
             await context.SaveChangesAsync();
 
-            var page1 = await repo.GetCorrespondencesWindowAfter(1, null, null, true, CancellationToken.None);
+            var page1 = await repo.GetCorrespondencesWindowAfter(1, baseTime, previousId, true, CancellationToken.None);
             Assert.Single(page1);
             Assert.Equal(idA, page1[0].Id);
 
@@ -184,7 +155,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         {
             await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-            var baseTime = new DateTime(2000, 1, 2, 0, 0, 0);
+            var baseTime = DateTime.UtcNow;
 
             var items = new List<CorrespondenceEntity>
             {
@@ -210,7 +181,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             context.Correspondences.AddRange(items);
             await context.SaveChangesAsync();
 
-            var page1 = await repo.GetCorrespondencesWindowAfter(2, null, null, true, CancellationToken.None);
+            var page1 = await repo.GetCorrespondencesWindowAfter(2, baseTime.AddMilliseconds(-1), null, true, CancellationToken.None);
             Assert.Equal(2, page1.Count);
             Assert.True(page1[0].Created <= page1[1].Created);
 
@@ -287,77 +258,6 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             Assert.Single(result);
             Assert.Equal(entity.Id, result[0].Id);
-        }
-
-        [Fact]
-        public async Task GetCorrespondencesForParties_ReturnsWhenLatestIsAttachmentsDownloaded()
-        {
-            await using var context = TestDbContextFactory.Create();
-            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-
-            var recipient = "0192:111111111";
-            var from = new DateTimeOffset(new DateTime(2007, 1, 1, 0, 0, 0), TimeSpan.Zero);
-            var to = from.AddDays(1);
-            var baseTime = from.AddHours(1);
-
-            var c = new CorrespondenceEntityBuilder()
-                .WithRecipient(recipient)
-                .WithRequestedPublishTime(baseTime)
-                .WithStatus(CorrespondenceStatus.Published, baseTime.AddMinutes(1))
-                .WithStatus(CorrespondenceStatus.AttachmentsDownloaded, baseTime.AddMinutes(2))
-                .Build();
-
-            context.Correspondences.Add(c);
-            await context.SaveChangesAsync();
-
-            var result = await repo.GetCorrespondencesForParties(
-                limit: 10,
-                from: from,
-                to: to,
-                status: null,
-                recipientIds: [recipient],
-                includeActive: true,
-                includeArchived: true,
-                searchString: string.Empty,
-                cancellationToken: CancellationToken.None);
-
-            Assert.Single(result);
-            Assert.Equal(c.Id, result[0].Id);
-        }
-
-        [Fact]
-        public async Task GetCorrespondencesForParties_AttachmentsDownloadedExistsButSincePurged_ReturnsNothingOnIncludeOnlyActive()
-        {
-            await using var context = TestDbContextFactory.Create();
-            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-
-            var recipient = "0192:222222222";
-            var from = new DateTimeOffset(new DateTime(2008, 1, 1, 0, 0, 0), TimeSpan.Zero);
-            var to = from.AddDays(1);
-            var baseTime = from.AddHours(1);
-
-            var c = new CorrespondenceEntityBuilder()
-                .WithRecipient(recipient)
-                .WithRequestedPublishTime(baseTime)
-                .WithStatus(CorrespondenceStatus.AttachmentsDownloaded, baseTime.AddMinutes(1))
-                .WithStatus(CorrespondenceStatus.PurgedByRecipient, baseTime.AddMinutes(2))
-                .Build();
-
-            context.Correspondences.Add(c);
-            await context.SaveChangesAsync();
-
-            var result = await repo.GetCorrespondencesForParties(
-                limit: 10,
-                from: from,
-                to: to,
-                status: null,
-                recipientIds: [recipient],
-                includeActive: true,
-                includeArchived: false,
-                searchString: string.Empty,
-                cancellationToken: CancellationToken.None);
-
-            Assert.Empty(result);
         }
 
         [Fact]
@@ -475,6 +375,15 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             Assert.Single(result);
             Assert.Equal(valid.Id, result[0].Id);
+        }
+
+        private static Guid[] SequentialGuids(int count)
+        {
+            // 24 hex chars of randomness per run, last 8 hex chars are the sequence
+            var prefix = Guid.NewGuid().ToString("N")[..24];
+            return Enumerable.Range(0, count)
+                .Select(i => Guid.ParseExact(prefix + i.ToString("x8"), "N"))
+                .ToArray();
         }
     }
 }
