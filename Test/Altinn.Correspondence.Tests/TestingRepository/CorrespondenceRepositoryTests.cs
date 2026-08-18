@@ -155,7 +155,9 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         {
             await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
-            var baseTime = DateTime.UtcNow;
+            // Use a far-future window so this paging test is isolated from other repository tests
+            // that insert UtcNow-based correspondences into the shared PostgreSQL test database.
+            var baseTime = DateTime.UtcNow.AddYears(100);
 
             var items = new List<CorrespondenceEntity>
             {
