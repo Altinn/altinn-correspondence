@@ -107,6 +107,88 @@ namespace Altinn.Correspondence.Tests.TestingUtility
         }
 
         [Fact]
+        public void GetExternalUrn_ReturnsOrganizationUrn_WhenExternalUrnIsNull()
+        {
+            // Arrange
+            const string organizationIdentifier = "991825827";
+            var expectedUrn = $"{UrnConstants.OrganizationNumberAttribute}:{organizationIdentifier}";
+            var partyString = $$"""
+            {
+              "partyType": "organization",
+              "organizationIdentifier": "{{organizationIdentifier}}",
+              "partyUuid": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:dddddddd-dddd-dddd-dddd-dddddddddddd",
+              "externalUrn": null,
+              "partyId": 4000004,
+              "displayName": "FALLBACK ORG AS",
+              "user": null
+            }
+            """;
+
+            // Act
+            var party = JsonSerializer.Deserialize<Party>(partyString, JsonSerializerOptions.Web);
+            var externalUrn = party!.GetExternalUrn();
+
+            // Assert
+            Assert.Equal(expectedUrn, externalUrn);
+        }
+
+        [Fact]
+        public void GetExternalUrn_ReturnsLowercasedEmailUrn_WhenExternalUrnIsNull()
+        {
+            // Arrange — ID-Porten email usernames should be lowercased in the fallback URN
+            const string username = "Test.User@Example.COM";
+            var expectedUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:{username.ToLowerInvariant()}";
+            var partyString = $$"""
+            {
+              "partyType": "self-identified-user",
+              "partyUuid": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+              "externalUrn": null,
+              "partyId": 5000005,
+              "displayName": "SI EMAIL USER",
+              "user": { "userId": 7000007, "username": "{{username}}", "userIds": [7000007] }
+            }
+            """;
+
+            // Act
+            var party = JsonSerializer.Deserialize<Party>(partyString, JsonSerializerOptions.Web);
+            var externalUrn = party!.GetExternalUrn();
+
+            // Assert
+            Assert.Equal(expectedUrn, externalUrn);
+        }
+
+        [Fact]
+        public void GetExternalUrn_ReturnsLegacyUrn_PreservingCase_WhenExternalUrnIsNull()
+        {
+            // Arrange — legacy (non-email) usernames are preserved as-is
+            const string username = "LegacyUser42";
+            var expectedUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{username}";
+            var partyString = $$"""
+            {
+              "partyType": "self-identified-user",
+              "partyUuid": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:ffffffff-ffff-ffff-ffff-ffffffffffff",
+              "externalUrn": null,
+              "partyId": 6000006,
+              "displayName": "SI LEGACY USER",
+              "user": { "userId": 8000008, "username": "{{username}}", "userIds": [8000008] }
+            }
+            """;
+
+            // Act
+            var party = JsonSerializer.Deserialize<Party>(partyString, JsonSerializerOptions.Web);
+            var externalUrn = party!.GetExternalUrn();
+
+            // Assert
+            Assert.Equal(expectedUrn, externalUrn);
+        }
+
+        [Fact]
         public void GetExternalUrn_ReturnsSystemUserUrn_FromRegisterPayload()
         {
             // Arrange

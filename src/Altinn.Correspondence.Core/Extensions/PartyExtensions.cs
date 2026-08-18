@@ -124,10 +124,12 @@ public static class PartyExtensions
         }
 
         var username = user.Username.Value;
-        var prefix = username.Contains('@', StringComparison.Ordinal)
+        var isEmail = username.Contains('@', StringComparison.Ordinal);
+        var prefix = isEmail
             ? UrnConstants.PersonIdPortenEmailAttribute
             : UrnConstants.PersonLegacySelfIdentifiedAttribute;
+        var normalizedUsername = isEmail ? username.ToLowerInvariant() : username;
 
-        return $"{prefix}:{username}";
+        return $"{prefix}:{normalizedUsername}";
     }
 }
