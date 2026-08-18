@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Register.Contracts;
 
 namespace Altinn.Correspondence.Core.Extensions;
@@ -74,21 +75,61 @@ public static class PartyExtensions
     }
 
     /// <summary>
-    /// Returns the typed identifier URN for the party from the Register API's <c>externalUrn</c> field.
+    /// Returns the typed identifier URN for the party (e.g. person SSN or organization number URN).
+    /// Uses the Register API's <c>externalUrn</c> field when present, otherwise derives the URN from typed party fields.
     /// Returns null for unsupported party types (SystemUser, EnterpriseUser).
-    /// Supported types are Person, Organization, and SelfIdentifiedUser (legacy and idporten-email).
     /// </summary>
     public static string? GetExternalUrn(this Party party)
     {
-        if (party is not (Person or Organization or SelfIdentifiedUser))
+        var fromApi = ReadExternalUrnFromExtensionData(party);
+        if (!string.IsNullOrEmpty(fromApi))
+        {
+            return fromApi;
+        }
+
+        return party switch
+        {
+            Person person => PartyUrn.PersonId.Create(person.PersonIdentifier).ToString(),
+            Organization organization => PartyUrn.OrganizationId.Create(organization.OrganizationIdentifier).ToString(),
+            SelfIdentifiedUser selfIdentifiedUser => BuildSelfIdentifiedExternalUrn(selfIdentifiedUser),
+            _ => null,
+        };
+    }
+
+    private static string? ReadExternalUrnFromExtensionData(Party party)
+    {
+        if (party is not IHasExtensionData { JsonExtensionData: { ValueKind: JsonValueKind.Object } extensionData })
+        {
             return null;
-        if (party is not IHasExtensionData hed)
+        }
+
+        if (!extensionData.TryGetProperty("externalUrn", out var element) || element.ValueKind != JsonValueKind.String)
+        {
             return null;
-        var ext = hed.JsonExtensionData;
-        if (ext.ValueKind != JsonValueKind.Object)
+        }
+
+        return element.GetString();
+    }
+
+    private static string? BuildSelfIdentifiedExternalUrn(SelfIdentifiedUser party)
+    {
+        if (!party.User.HasValue || party.User.Value is not { } user)
+        {
             return null;
-        if (!ext.TryGetProperty("externalUrn", out var element))
+        }
+
+        if (!user.Username.HasValue || string.IsNullOrWhiteSpace(user.Username.Value))
+        {
             return null;
-        return element.ValueKind == JsonValueKind.String ? element.GetString() : null;
+        }
+
+        var username = user.Username.Value;
+        var isEmail = username.Contains('@', StringComparison.Ordinal);
+        var prefix = isEmail
+            ? UrnConstants.PersonIdPortenEmailAttribute
+            : UrnConstants.PersonLegacySelfIdentifiedAttribute;
+        var normalizedUsername = isEmail ? username.ToLowerInvariant() : username;
+
+        return $"{prefix}:{normalizedUsername}";
     }
 }

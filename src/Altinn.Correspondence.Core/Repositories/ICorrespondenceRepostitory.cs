@@ -22,18 +22,6 @@ namespace Altinn.Correspondence.Core.Repositories
             Guid? idempotentKey,
             CancellationToken cancellationToken);
 
-        Task<List<CorrespondenceEntity>> GetCorrespondencesForParties(
-            int limit,
-            DateTimeOffset? from,
-            DateTimeOffset? to,
-            CorrespondenceStatus? status,
-            List<string> recipientIds,
-            bool includeActive,
-            bool includeArchived,
-            string searchString,
-            CancellationToken cancellationToken,
-            bool filterMigrated = true);
-
 
         Task<CorrespondenceEntity?> GetCorrespondenceById(
             Guid guid,

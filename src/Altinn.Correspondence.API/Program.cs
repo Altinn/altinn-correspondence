@@ -126,7 +126,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
                           {
                               policy.WithOrigins(altinnOptions.ArbeidsflateOriginsCommaSeparated.Split(',')).SetIsOriginAllowedToAllowWildcardSubdomains();
                               policy.WithMethods("GET", "POST", "DELETE", "OPTIONS");
-                              policy.WithHeaders("Authorization", "request-id", "request-context", "traceparent");
+                              policy.WithHeaders("Authorization", "request-id", "request-context", "traceparent", "prefer");
                               policy.AllowCredentials();
                           });
     });
