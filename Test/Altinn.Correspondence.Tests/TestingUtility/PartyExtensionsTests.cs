@@ -214,5 +214,76 @@ namespace Altinn.Correspondence.Tests.TestingUtility
             // Assert
             Assert.Equal(expectedUrn, externalUrn);
         }
+
+        /// <summary>
+        /// Regression guard for the Altinn.Register.Contracts 1.7.0 upgrade: <c>externalUrn</c> moved from
+        /// <c>JsonExtensionData</c> to a typed property. The username here derives to the legacy URN, so the
+        /// test only passes if the API-provided value is actually read rather than silently falling through
+        /// to the <see cref="Party"/>-derived construction.
+        /// </summary>
+        [Fact]
+        public void GetExternalUrn_PrefersApiExternalUrn_OverDerivedUrn()
+        {
+            // Arrange
+            const string username = "LegacyUser";
+            var apiUrn = $"{UrnConstants.PersonIdPortenEmailAttribute}:ola@example.com";
+            var derivedUrn = $"{UrnConstants.PersonLegacySelfIdentifiedAttribute}:{username}";
+            var partyString = $$"""
+            {
+              "partyType": "self-identified-user",
+              "partyUuid": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:dddddddd-dddd-dddd-dddd-dddddddddddd",
+              "externalUrn": "{{apiUrn}}",
+              "partyId": 1000000002,
+              "displayName": "Test SI User",
+              "user": {
+                "userId": 77777777,
+                "username": "{{username}}",
+                "userIds": [
+                  77777777
+                ]
+              }
+            }
+            """;
+
+            // Act
+            var party = JsonSerializer.Deserialize<Party>(partyString, JsonSerializerOptions.Web);
+            var externalUrn = party!.GetExternalUrn();
+
+            // Assert
+            Assert.Equal(apiUrn, externalUrn);
+            Assert.NotEqual(derivedUrn, externalUrn);
+        }
+
+        /// <summary>
+        /// The typed <c>ExternalUrn</c> is wrapped in <c>NonExhaustive</c>, so URN schemes the package does
+        /// not know must still round-trip verbatim instead of being dropped.
+        /// </summary>
+        [Fact]
+        public void GetExternalUrn_PreservesUrnScheme_UnknownToContractsPackage()
+        {
+            // Arrange
+            const string unknownSchemeUrn = "urn:altinn:some-future-scheme:abc123";
+            var partyString = $$"""
+            {
+              "partyType": "system-user",
+              "partyUuid": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+              "externalUrn": "{{unknownSchemeUrn}}",
+              "partyId": null,
+              "displayName": "Future Party",
+              "user": null
+            }
+            """;
+
+            // Act
+            var party = JsonSerializer.Deserialize<Party>(partyString, JsonSerializerOptions.Web);
+            var externalUrn = party!.GetExternalUrn();
+
+            // Assert
+            Assert.Equal(unknownSchemeUrn, externalUrn);
+        }
     }
 }
