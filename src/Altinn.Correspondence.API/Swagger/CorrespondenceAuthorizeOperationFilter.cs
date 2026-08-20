@@ -68,6 +68,9 @@ internal sealed class CorrespondenceAuthorizeOperationFilter : IOperationFilter
                     scopes.Add(AuthorizationConstants.MaintenanceScope);
                     scopes.Add(AuthorizationConstants.ServiceOwnerScope);
                     break;
+                case AuthorizationConstants.CheckAllowForwardingPolicy:
+                    scopes.Add(AuthorizationConstants.AllowForwardingCheckScope);
+                    break;
             }
         }
 

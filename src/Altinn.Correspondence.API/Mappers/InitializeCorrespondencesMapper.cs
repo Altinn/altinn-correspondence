@@ -45,6 +45,7 @@ internal static class InitializeCorrespondencesMapper
             } : null!,
             IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
             IsConfidential = request.Correspondence.IsConfidential,
+            AllowForwarding = request.Correspondence.AllowForwarding,
             OriginalRequest = rawRequest
         };
         NotificationRequest? correspondenceNotification = null;

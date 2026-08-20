@@ -49,4 +49,11 @@ public interface IResourceRegistryService
     /// <param name="resourceId">The id of the resource to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task<ConfidentialTypeEnum> GetConfidentialType(string resourceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get the minimum authentication level required to access the resource.
+    /// </summary>
+    /// <param name="resourceId">The id of the resource to check.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task<int> GetMinimumAuthenticationLevelForResource(string resourceId, CancellationToken cancellationToken = default);
 }

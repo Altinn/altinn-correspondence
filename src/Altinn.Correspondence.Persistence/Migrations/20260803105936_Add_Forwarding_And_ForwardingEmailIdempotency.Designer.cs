@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Altinn.Correspondence.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Altinn.Correspondence.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260803105936_Add_Forwarding_And_ForwardingEmailIdempotency")]
+    partial class Add_Forwarding_And_ForwardingEmailIdempotency
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -630,20 +633,6 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.HasIndex("CorrespondenceId");
 
                     b.ToTable("IdempotencyKeys", "correspondence");
-                });
-
-            modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.LegacyPartyEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("PartyId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LegacyParties", "correspondence");
                 });
 
             modelBuilder.Entity("Altinn.Correspondence.Core.Models.Entities.NotificationTemplateEntity", b =>

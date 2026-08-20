@@ -358,6 +358,7 @@ namespace Altinn.Correspondence.Application.Helpers
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
                 IsConfidential = request.Correspondence.IsConfidential,
                 OriginalRequest = request.Correspondence.OriginalRequest,
+                AllowForwarding = request.Correspondence.AllowForwarding
             };
         }
 

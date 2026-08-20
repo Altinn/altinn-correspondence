@@ -296,6 +296,12 @@ namespace Altinn.Correspondence.Tests.Factories
             return this;
         }
 
+        public CorrespondenceBuilder WithAllowForwarding(bool allowForwarding)
+        {
+            _correspondence.Correspondence.AllowForwarding = allowForwarding;
+            return this;
+        }
+
 
         public static CorrespondenceEntity CorrespondenceEntityWithNotifications()
         {

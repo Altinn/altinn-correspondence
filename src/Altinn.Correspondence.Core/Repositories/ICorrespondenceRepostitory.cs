@@ -28,7 +28,8 @@ namespace Altinn.Correspondence.Core.Repositories
             bool includeStatus,
             bool includeContent,
             bool includeForwardingEvents,
-            CancellationToken cancellationToken);
+            CancellationToken cancellationToken,
+            bool includeAttachmentStorageProvider = false);
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdForSync(
             Guid guid,
@@ -106,5 +107,6 @@ namespace Altinn.Correspondence.Core.Repositories
             CancellationToken cancellationToken);
 
         Task<bool> RemoveExternalReference(CorrespondenceEntity correspondence, ReferenceType referenceType, CancellationToken cancellationToken);
+        Task<bool?> DoesCorrespondenceAllowForwarding(Guid correspondenceId, CancellationToken cancellationToken = default);
     }
 }

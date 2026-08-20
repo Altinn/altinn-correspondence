@@ -68,6 +68,11 @@ namespace Altinn.Correspondence.Core.Models.Enums
         /// <summary>
         /// Attachments have been downloaded by recipient
         /// </summary>
-        AttachmentsDownloaded = 12
+        AttachmentsDownloaded = 12,
+
+        /// <summary>
+        /// Message has been forwarded by recipient
+        /// </summary>
+        Forwarded = 13
     }
 }

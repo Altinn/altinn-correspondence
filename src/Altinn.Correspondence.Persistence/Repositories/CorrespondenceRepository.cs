@@ -87,7 +87,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
             bool includeStatus,
             bool includeContent,
             bool includeForwardingEvents,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool includeAttachmentStorageProvider = false)
         {
             logger.LogDebug("Retrieving correspondence {CorrespondenceId} including: status={IncludeStatus} content={IncludeContent}", guid, includeStatus, includeContent);
             var correspondences = _context.Correspondences.AsSplitQuery().Include(c => c.ReplyOptions).Include(c => c.ExternalReferences).Include(c => c.Notifications).AsQueryable();
@@ -101,6 +102,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
             if (includeContent)
             {
                 correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a!.Statuses);
+                if (includeAttachmentStorageProvider)
+                {
+                    correspondences = correspondences.Include(c => c.Content).ThenInclude(content => content.Attachments).ThenInclude(a => a.Attachment).ThenInclude(a => a!.StorageProvider);
+                }
+
             }
 
             var correspondence = await correspondences.SingleOrDefaultAsync(c => c.Id == guid, cancellationToken);
@@ -781,6 +787,23 @@ namespace Altinn.Correspondence.Persistence.Repositories
             _context.ExternalReferences.RemoveRange(referencesToRemove);
             await _context.SaveChangesAsync(cancellationToken);
             return true;
+        }
+
+        public async Task<bool?> DoesCorrespondenceAllowForwarding(Guid correspondenceId, CancellationToken cancellationToken = default)
+        {
+            var correspondence = await _context.Correspondences
+                .AsNoTracking()
+                .Where(c => c.Id == correspondenceId)
+                .Select(c => new { c.Id, c.AllowForwarding })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            if (correspondence == null)
+            {
+                logger.LogWarning("Correspondence with ID {CorrespondenceId} not found", correspondenceId);
+                return null;
+            }
+
+            return correspondence.AllowForwarding;
         }
     }
 }

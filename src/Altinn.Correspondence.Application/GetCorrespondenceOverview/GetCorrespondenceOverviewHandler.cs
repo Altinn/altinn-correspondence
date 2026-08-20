@@ -186,7 +186,9 @@ public class GetCorrespondenceOverviewHandler(
                 Read = readTimestamp ?? correspondence.GetReadTimestamp(),
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 IsConfidential = correspondence.IsConfidential,
-                Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId
+                Altinn2CorrespondenceId = correspondence.Altinn2CorrespondenceId,
+                AllowForwarding = correspondence.AllowForwarding,
+                DueDateTime = correspondence.DueDateTime
             };
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
                 request.CorrespondenceId, 

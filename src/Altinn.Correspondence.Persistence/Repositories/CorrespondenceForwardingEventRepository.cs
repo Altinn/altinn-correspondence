@@ -42,6 +42,8 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
             .ThenInclude(c => c!.Content)
             .Include(c => c.Correspondence)
             .ThenInclude(c => c!.ExternalReferences)
+            .Include(c => c.Correspondence)
+            .ThenInclude(c => c!.Statuses)
             .AsQueryable();
 
         var forwardingEvent = await correspondenceForwardingEventQuery.SingleOrDefaultAsync(c => c.Id == forwardingEventId, cancellationToken);
@@ -60,6 +62,29 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task SetNotificationShipmentId(Guid forwardingEventId, Guid notificationShipmentId, CancellationToken cancellationToken)
+    {
+        var forwardingEvent = await _context.CorrespondenceForwardingEvents.SingleOrDefaultAsync(c => c.Id == forwardingEventId, cancellationToken);
+        if (forwardingEvent == null)
+        {
+            throw new KeyNotFoundException($"Could not find correspondence forwarding event with id {forwardingEventId}");
+        }
+        forwardingEvent.NotificationShipmentId = notificationShipmentId;
+        _context.CorrespondenceForwardingEvents.Update(forwardingEvent);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken)
+    {
+        var forwardingEvent = await _context.CorrespondenceForwardingEvents.SingleOrDefaultAsync(c => c.Id == forwardingEventId, cancellationToken);
+        if (forwardingEvent == null)
+        {
+            return;
+        }
+        _context.CorrespondenceForwardingEvents.Remove(forwardingEvent);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsWithoutDialogActivityBatch(int count, DateTimeOffset lastProcessed, CancellationToken cancellationToken)
     {
         return await _context.CorrespondenceForwardingEvents
@@ -67,5 +92,11 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
             .OrderByDescending(e => e.ForwardedOnDate)
             .Take(count)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> HasCorrespondenceBeenForwardedToRecipient(Guid correspondenceId, string recipientId, CancellationToken cancellationToken)
+    {
+        return await _context.CorrespondenceForwardingEvents
+            .AnyAsync(e => e.CorrespondenceId == correspondenceId && e.ForwardedToEmailAddress == recipientId, cancellationToken);
     }
 }

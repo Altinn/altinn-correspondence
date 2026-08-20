@@ -60,7 +60,13 @@ public static class CorrespondenceErrors
     public static Error CannotInitializeConfidentialCorrespondenceWithoutIsConfidentialFlag = new Error(1060, "Confidential correspondences (resources with the access package post-til-virksomheten-med-taushetsbelagt-innhold) cannot be initialized without setting the 'IsConfidential' flag to true", HttpStatusCode.BadRequest);
     public static Error CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag = new Error(1061, "Correspondences cannot be initialized with 'IsConfidential' flag set to true if the resource is not confidential", HttpStatusCode.BadRequest);
     public static Error UnreadConfidentialCorrespondencesNotFound = new Error(1062, "No unread confidential correspondences found", HttpStatusCode.NotFound);
-
+    public static Error ForwardingNotAllowed = new Error(1063, "Correspondence does not allow forwarding", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceAlreadyForwardedToRecipient = new Error(1064, "Correspondence has already been forwarded to the specified recipient", HttpStatusCode.BadRequest);
+    public static Error ForwardBeforeRead = new Error(1065, "Correspondence must be read before it can be forwarded", HttpStatusCode.BadRequest);
+    public static Error ForwardingTextTooLong = new Error(1066, "Forwarding text cannot exceed 200 characters", HttpStatusCode.BadRequest);
+    public static Error ForwardingTextIsNotPlainText = new Error(1067, "Forwarding text must be plain text", HttpStatusCode.BadRequest);
+    public static Error CannotAllowForwardingOnCorrespondenceWithAuthLevel = new Error(1068, "Correspondence cannot allow forwarding if the resource for the correspondence has a required authorization level above 0", HttpStatusCode.BadRequest);
+    public static Error CannotAllowForwardingOnCorrespondenceWithLargeAttachments = new Error(1069, "Correspondence cannot allow forwarding if the total size of attachments exceeds 10 MB", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
@@ -113,8 +119,12 @@ public static class NotificationErrors
     public static Error InvalidNotificationTemplate = new Error(3023, "Invalid notification template", HttpStatusCode.BadRequest);
     public static Error MissingEmailAndSmsContent = new Error(3024, "Email body, subject and SMS body must be provided when sending email and SMS notifications", HttpStatusCode.BadRequest);
     public static Error MissingEmailAndSmsReminderContent = new Error(3025, "Reminder email body, subject and SMS body must be provided when sending reminder email and SMS notifications", HttpStatusCode.BadRequest);
-    public static Error NotificationFailed(Guid notificationId) => new Error(3026, $"Notification ({notificationId}) has failed status", HttpStatusCode.InternalServerError);}
+    public static Error NotificationFailed(Guid notificationId) => new Error(3026, $"Notification ({notificationId}) has failed status", HttpStatusCode.InternalServerError);
+    public static Error ForwardToEmailAddressTooLong = new Error(3027, "Email address provided for forwarding correspondence exceeds 1000 characters", HttpStatusCode.BadRequest);
+    public static Error CreateComposedEmailFailed = new Error(3028, "Failed to create composed email for correspondence", HttpStatusCode.InternalServerError);
+    }
     
+
 public static class AuthorizationErrors
 {
     public static Error NoAccessToResource = new Error(4001, "You must use an Altinn token, DialogToken or log in to IDPorten as someone with access to the resource and organization in Altinn Authorization", HttpStatusCode.Unauthorized);

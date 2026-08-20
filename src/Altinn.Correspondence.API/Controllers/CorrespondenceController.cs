@@ -13,6 +13,7 @@ using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.MarkCorrespondenceAsRead;
 using Altinn.Correspondence.Application.PurgeCorrespondence;
+using Altinn.Correspondence.Application.ForwardCorrespondence;
 using Altinn.Correspondence.Application.Settings;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -691,6 +692,61 @@ namespace Altinn.Correspondence.API.Controllers
 
             return commandResult.Match(
                 data => Ok(data),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Forwards a correspondence to a user-provided email address.
+        /// </summary>
+        [HttpPost]
+        [Produces("application/json")]
+        [Route("{correspondenceId}/forward")]
+        [Authorize(Policy = AuthorizationConstants.Recipient)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        public async Task<ActionResult> ForwardCorrespondence(
+            Guid correspondenceId,
+            [FromBody] ForwardCorrespondenceRequestExt request,
+            [FromServices] ForwardCorrespondenceHandler handler,
+            CancellationToken cancellationToken
+        )
+        {
+            _logger.LogInformation("Processing forwarding request for correspondence: {correspondenceId}", correspondenceId);
+            var commandResult = await handler.Process(new ForwardCorrespondenceRequest()
+            {
+                CorrespondenceId = correspondenceId,
+                ForwardTo = request.ForwardTo,
+                ForwardingText = request.ForwardingText
+            }, HttpContext.User, cancellationToken);
+            return commandResult.Match(
+                result => Ok(result),
+                Problem
+            );
+        }
+
+        /// <summary>
+        /// Used by AF to check if a correspondence can be forwarded to a user-provided email address.
+        /// </summary>
+        /// <remarks>
+        /// One of the scopes: <br/>
+        /// - altinn:correspondence.forward.check <br />
+        /// </remarks>
+        [HttpGet]
+        [Produces("application/json")]
+        [Route("{correspondenceId}/forward/check")]
+        [Authorize(Policy = AuthorizationConstants.CheckAllowForwardingPolicy)]
+        [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
+        [HideFromPublicApi]
+        public async Task<ActionResult> CanCorrespondenceBeForwarded(
+            Guid correspondenceId,
+            [FromServices] CanCorrespondenceBeForwardedHandler handler,
+            CancellationToken cancellationToken
+        )
+        {
+            _logger.LogInformation("Checking if correspondence can be forwarded: {correspondenceId}", correspondenceId);
+            var commandResult = await handler.Process(correspondenceId, HttpContext.User, cancellationToken);
+            return commandResult.Match(
+                result => Ok(result),
                 Problem
             );
         }
