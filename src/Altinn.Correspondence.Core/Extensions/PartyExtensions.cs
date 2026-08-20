@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Register.Contracts;
@@ -81,7 +80,7 @@ public static class PartyExtensions
     /// </summary>
     public static string? GetExternalUrn(this Party party)
     {
-        var fromApi = ReadExternalUrnFromExtensionData(party);
+        var fromApi = ReadExternalUrn(party);
         if (!string.IsNullOrEmpty(fromApi))
         {
             return fromApi;
@@ -96,20 +95,14 @@ public static class PartyExtensions
         };
     }
 
-    private static string? ReadExternalUrnFromExtensionData(Party party)
-    {
-        if (party is not IHasExtensionData { JsonExtensionData: { ValueKind: JsonValueKind.Object } extensionData })
-        {
-            return null;
-        }
-
-        if (!extensionData.TryGetProperty("externalUrn", out var element) || element.ValueKind != JsonValueKind.String)
-        {
-            return null;
-        }
-
-        return element.GetString();
-    }
+    /// <summary>
+    /// Reads the Register API's <c>externalUrn</c> field. Since Altinn.Register.Contracts 1.7.0 this is a
+    /// typed property; before that it was only reachable through <c>JsonExtensionData</c>. The value is
+    /// wrapped in <c>NonExhaustive</c>, so URN schemes unknown to the package still round-trip verbatim.
+    /// Returns null when the field was not requested or not populated in the response.
+    /// </summary>
+    private static string? ReadExternalUrn(Party party)
+        => party.ExternalUrn.HasValue ? party.ExternalUrn.Value.ToString() : null;
 
     private static string? BuildSelfIdentifiedExternalUrn(SelfIdentifiedUser party)
     {
