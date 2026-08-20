@@ -706,14 +706,18 @@ namespace Altinn.Correspondence.API.Controllers
         [EnableCors(AuthorizationConstants.ArbeidsflateCors)]
         public async Task<ActionResult> ForwardCorrespondence(
             Guid correspondenceId,
-            [FromBody] ForwardCorrespondenceRequest request,
+            [FromBody] ForwardCorrespondenceRequestExt request,
             [FromServices] ForwardCorrespondenceHandler handler,
             CancellationToken cancellationToken
         )
         {
             _logger.LogInformation("Processing forwarding request for correspondence: {correspondenceId}", correspondenceId);
-            request.CorrespondenceId = correspondenceId;
-            var commandResult = await handler.Process(request, HttpContext.User, cancellationToken);
+            var commandResult = await handler.Process(new ForwardCorrespondenceRequest()
+            {
+                CorrespondenceId = correspondenceId,
+                ForwardTo = request.ForwardTo,
+                ForwardingText = request.ForwardingText
+            }, HttpContext.User, cancellationToken);
             return commandResult.Match(
                 result => Ok(result),
                 Problem

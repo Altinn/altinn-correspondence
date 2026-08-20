@@ -179,7 +179,8 @@ public class GetCorrespondenceDetailsHandler(
                 Read = correspondence.GetReadTimestamp(),
                 IsConfirmationNeeded = correspondence.IsConfirmationNeeded,
                 IsConfidential = correspondence.IsConfidential,
-                SystemLabel = systemLabel
+                SystemLabel = systemLabel,
+                AllowForwarding = correspondence.AllowForwarding
             };
         }, cancellationToken);
     }

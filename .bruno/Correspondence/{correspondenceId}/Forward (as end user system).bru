@@ -1,0 +1,22 @@
+meta {
+  name: Forward (as end user system)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{correspondence_base_url}}/correspondence/api/v1/correspondence/{{correspondenceId}}/forward
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{recipient_altinn_token}}
+}
+
+body:json {
+  {
+    "ForwardTo": "roarmj@gmail.com",
+    "ForwardingText": "Dette er fritekst"
+  }
+}
