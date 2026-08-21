@@ -22,6 +22,8 @@ public static class DependencyInjection
             KeyValuePair.Create("service.name", (object)"altinn-correspondence"),
         };
 
+        services.AddHostedService<OpenTelemetryDiagnosticsListener>();
+
         services.AddOpenTelemetry()
             .ConfigureResource(resourceBuilder => resourceBuilder.AddAttributes(attributes))
             .WithMetrics(metrics =>
@@ -31,7 +33,8 @@ public static class DependencyInjection
                         "Microsoft.AspNetCore.Hosting",
                         "Microsoft.AspNetCore.Server.Kestrel",
                         "System.Net.Http",
-                        "Altinn.Correspondence.Integrations.Hangfire")
+                        "Altinn.Correspondence.Integrations.Hangfire",
+                        OpenTelemetryDiagnosticsListener.MeterName)
                     .AddNpgsqlInstrumentation();
             })
             .WithTracing(tracing =>
