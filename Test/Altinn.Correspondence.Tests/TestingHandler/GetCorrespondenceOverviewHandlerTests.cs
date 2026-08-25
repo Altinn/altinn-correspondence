@@ -30,6 +30,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
         private readonly Mock<IDialogportenService> _dialogportenServiceMock;
         private readonly Mock<IConfidentialReminderRepository> _confidentialReminderRepositoryMock;
+        private readonly Mock<IIdempotencyKeyRepository> _idempotencyKeyRepositoryMock;
         private readonly Mock<IHybridCacheWrapper> _cacheMock;
         private readonly Mock<ILogger<GetCorrespondenceOverviewHandler>> _loggerMock;
         private readonly GetCorrespondenceOverviewHandler _handler;
@@ -43,6 +44,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _dialogportenServiceMock = new Mock<IDialogportenService>();
             _confidentialReminderRepositoryMock = new Mock<IConfidentialReminderRepository>();
+            _idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
             _cacheMock = new Mock<IHybridCacheWrapper>();
             _loggerMock = new Mock<ILogger<GetCorrespondenceOverviewHandler>>();
 
@@ -71,6 +73,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _altinnAuthorizationServiceMock.Object,
                 _altinnRegisterServiceMock.Object,
                 _confidentialReminderRepositoryMock.Object,
+                _idempotencyKeyRepositoryMock.Object,
                 _correspondenceRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
@@ -303,9 +306,19 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.RemoveConfidentialReminderByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            // Assert - dialog is soft deleted because recipient has no more confidential reminders
-            _dialogportenServiceMock.Verify(
-                x => x.TrySoftDeleteDialog(reminderDialogId.ToString()),
+            // Assert - dialog soft-delete is enqueued because recipient has no more confidential reminders
+            _backgroundJobClientMock.Verify(
+                x => x.Create(
+                    It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.TrySoftDeleteDialog)),
+                    It.IsAny<IState>()),
+                Times.Once);
+
+            // Assert - idempotency key is wiped so a future unread confidential mail can create a new dialog
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.DeleteByPartyUrnAndTypeAsync(
+                    correspondence.Recipient,
+                    IdempotencyType.ConfidentialReminderDialog,
+                    It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
@@ -374,6 +387,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Assert - dialog is NOT soft deleted because recipient still has other confidential reminders
             _dialogportenServiceMock.Verify(
                 x => x.TrySoftDeleteDialog(It.IsAny<string>()),
+                Times.Never);
+
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.DeleteByPartyUrnAndTypeAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IdempotencyType>(),
+                    It.IsAny<CancellationToken>()),
                 Times.Never);
         }
 

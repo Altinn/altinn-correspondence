@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
 using OneOf;
@@ -10,6 +11,7 @@ namespace Altinn.Correspondence.Application.PurgeDialogAndDeleteReminderForReadC
 
 public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
     IConfidentialReminderRepository confidentialReminderRepository,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     IDialogportenService dialogportenService,
     IBackgroundJobClient backgroundJobClient,
     ILogger<PurgeDialogAndDeleteReminderForReadCorrespondencesHandler> logger) : IHandler<PurgeDialogAndDeleteReminderForReadCorrespondencesResponse>
@@ -87,15 +89,23 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
     {
         try
         {
-            if (await confidentialReminderRepository.NumberOfRemindersForRecipient(reminder.Recipient, cancellationToken) == 1){
-
-            if (!reminder.DialogId.HasValue)
+            if (await confidentialReminderRepository.NumberOfRemindersForRecipient(reminder.Recipient, cancellationToken) == 1)
             {
-                logger.LogWarning("No DialogId found for confidential reminder {reminderId}, skipping dialog deletion", reminder.Id);
-                return true;
+                if (!reminder.DialogId.HasValue)
+                {
+                    logger.LogWarning("No DialogId found for confidential reminder {reminderId}, skipping dialog deletion", reminder.Id);
+                }
+                else
+                {
+                    await dialogportenService.TrySoftDeleteDialog(reminder.DialogId.Value.ToString());
+                }
+
+                // Allow a new reminder dialog for this recipient if confidential mail goes unread again later
+                await idempotencyKeyRepository.DeleteByPartyUrnAndTypeAsync(
+                    reminder.Recipient,
+                    IdempotencyType.ConfidentialReminderDialog,
+                    cancellationToken);
             }
-            await dialogportenService.TrySoftDeleteDialog(reminder.DialogId.Value.ToString());
-        }
         }
         catch (Exception ex)
         {
@@ -104,12 +114,12 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
         }
         try
         {
-        await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(reminder.CorrespondenceId, cancellationToken);
-        logger.LogInformation(
-            "Deleted confidential reminder {reminderId} | CorrespondenceId: {correspondenceId} | DialogId: {dialogId}",
-            reminder.Id, reminder.CorrespondenceId, reminder.DialogId);
-            
-        } catch (Exception ex)
+            await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(reminder.CorrespondenceId, cancellationToken);
+            logger.LogInformation(
+                "Deleted confidential reminder {reminderId} | CorrespondenceId: {correspondenceId} | DialogId: {dialogId}",
+                reminder.Id, reminder.CorrespondenceId, reminder.DialogId);
+        }
+        catch (Exception ex)
         {
             logger.LogError(ex, "Failed to delete confidential reminder {reminderId} for correspondence {correspondenceId}", reminder.Id, reminder.CorrespondenceId);
             throw;

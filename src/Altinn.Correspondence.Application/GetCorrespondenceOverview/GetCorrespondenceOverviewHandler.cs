@@ -21,6 +21,7 @@ public class GetCorrespondenceOverviewHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     IConfidentialReminderRepository confidentialReminderRepository,
+    IIdempotencyKeyRepository idempotencyKeyRepository,
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
@@ -200,13 +201,19 @@ public class GetCorrespondenceOverviewHandler(
                     && !(user?.CallingAsSender() ?? false) 
                     && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
                 {
-                    if (await confidentialReminderRepository.NumberOfRemindersForRecipient(correspondence.Recipient, cancellationToken) == 1)
+                    var recipient = correspondence.Recipient.WithUrnPrefix();
+                    if (await confidentialReminderRepository.NumberOfRemindersForRecipient(recipient, cancellationToken) == 1)
                     {
-                        var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(correspondence.Recipient, cancellationToken);
+                        var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(recipient, cancellationToken);
                         if (reminderDialogId.HasValue)
                         {
-                            await dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString());
+                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString()));
                         }
+                        // Allow a new reminder dialog for this recipient if confidential mail goes unread again later
+                        await idempotencyKeyRepository.DeleteByPartyUrnAndTypeAsync(
+                            recipient,
+                            IdempotencyType.ConfidentialReminderDialog,
+                            cancellationToken);
                     }
                     await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
                 }

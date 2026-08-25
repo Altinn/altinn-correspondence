@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 
@@ -33,7 +34,8 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             _altinnAuthorizationServiceMock.Object,
             _altinnRegisterServiceMock.Object,
             _resourceRegistryServiceMock.Object,
-            _hostEnvironmentMock.Object);
+            _hostEnvironmentMock.Object,
+            Mock.Of<ILogger<GetUnreadConfidentialCorrespondencesHandler>>());
     }
 
     private static ClaimsPrincipal CreateOrgUser(string orgNumber = "991825827")

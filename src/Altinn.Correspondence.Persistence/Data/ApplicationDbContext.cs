@@ -122,6 +122,13 @@ public class ApplicationDbContext : DbContext
             .IsUnique()
             .HasFilter("\"ForwardedToEmailAddress\" IS NOT NULL")
             .HasDatabaseName("IX_CorrespondenceForwardingEvents_CorrespondenceId_ForwardedToEmailAddress_Unique");
+
+        // One active confidential-reminder dialog idempotency key per recipient party
+        modelBuilder.Entity<IdempotencyKeyEntity>()
+            .HasIndex(k => k.PartyUrn)
+            .IsUnique()
+            .HasFilter("\"IdempotencyType\" = 7 AND \"PartyUrn\" IS NOT NULL")
+            .HasDatabaseName("IX_IdempotencyKeys_PartyUrn_ConfidentialReminderDialog");
     }
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
