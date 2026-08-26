@@ -9,6 +9,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Persistence;
+using Altinn.Correspondence.Persistence.Helpers;
 using Hangfire;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
@@ -202,20 +203,35 @@ public class GetCorrespondenceOverviewHandler(
                     && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
                 {
                     var recipient = correspondence.Recipient.WithUrnPrefix();
-                    if (await confidentialReminderRepository.NumberOfRemindersForRecipient(recipient, cancellationToken) == 1)
+                    await PostgresAdvisoryLock.AcquireTransactionLockAsync(
+                        dbContext,
+                        $"confidential-reminder-dialog:{recipient}",
+                        cancellationToken);
+
+                    // Re-check under lock so we do not close a dialog that gained another reminder, and so
+                    // creation waiting on the same lock cannot reuse a dialog whose final reminder is closing.
+                    var isFinalReminderForRecipient =
+                        await confidentialReminderRepository.NumberOfRemindersForRecipient(recipient, cancellationToken) == 1;
+                    Guid? reminderDialogId = null;
+                    if (isFinalReminderForRecipient)
                     {
-                        var reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(recipient, cancellationToken);
-                        if (reminderDialogId.HasValue)
-                        {
-                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString()));
-                        }
-                        // Allow a new reminder dialog for this recipient if confidential mail goes unread again later
+                        reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(recipient, cancellationToken);
+                    }
+
+                    await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
+
+                    if (isFinalReminderForRecipient)
+                    {
+                        // Release idempotency key before enqueueing soft-delete so a later create allocates a new dialog id.
                         await idempotencyKeyRepository.DeleteByPartyUrnAndTypeAsync(
                             recipient,
                             IdempotencyType.ConfidentialReminderDialog,
                             cancellationToken);
+                        if (reminderDialogId.HasValue)
+                        {
+                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString()));
+                        }
                     }
-                    await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

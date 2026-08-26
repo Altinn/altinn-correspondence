@@ -182,7 +182,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     }
 
     [Fact]
-    public async Task Process_ConfidentialCorrespondencesNotFound_ReturnsNotFound()
+    public async Task Process_NoUnreadConfidentialCorrespondences_ReturnsSuccessWithLocalizedText()
     {
         // Arrange
         var user = CreateOrgUser();
@@ -197,8 +197,8 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsT1);
-        Assert.Equal(CorrespondenceErrors.UnreadConfidentialCorrespondencesNotFound.ErrorCode, result.AsT1.ErrorCode);
+        Assert.True(result.IsT0);
+        Assert.Equal("Alle taushetsbelagte meldinger er nå åpnet", result.AsT0.Text);
     }
 
     [Fact]

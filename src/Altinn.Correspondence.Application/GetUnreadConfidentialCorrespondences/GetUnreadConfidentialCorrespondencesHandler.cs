@@ -6,7 +6,6 @@ using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
-using Serilog.Core;
 using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
@@ -50,13 +49,12 @@ public class GetUnreadConfidentialCorrespondencesHandler(
             var text = languageCode switch
             {
                 "nb" => "Alle taushetsbelagte meldinger er nå åpnet",
-                "nn" => "Alle taushetsbelagte meldinger er nå åpnet",
+                "nn" => "Alle tausheitsbelagte meldingar er no opna",
                 "en" => "All confidential correspondences are now opened",
                 _ => "Alle taushetsbelagte meldinger er nå åpnet"
             };
             
             logger.LogInformation("All confidential correspondences are now opened for organization {Organization}", recipientOrg);
-            logger.LogError(CorrespondenceErrors.UnreadConfidentialCorrespondencesNotFound.Message);
             return new GetUnreadConfidentialCorrespondencesResponse() { Text = text };
         }
 

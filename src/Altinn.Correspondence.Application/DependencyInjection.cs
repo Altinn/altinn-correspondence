@@ -112,6 +112,7 @@ public static class DependencyInjection
         services.AddScoped<CreateNotificationOrder.CustomRecipientDeduplicationHelper>();
 
 
+        services.AddScoped<IConfidentialReminderDialogSynchronizer, PostgresConfidentialReminderDialogSynchronizer>();
         services.AddScoped<UnreadConfidentialCorrespondenceHandler>();
         services.AddScoped<GetUnreadConfidentialCorrespondencesHandler>();
     }

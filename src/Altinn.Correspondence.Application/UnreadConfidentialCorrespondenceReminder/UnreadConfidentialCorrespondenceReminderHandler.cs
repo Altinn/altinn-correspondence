@@ -22,7 +22,8 @@ public class UnreadConfidentialCorrespondenceHandler(
     IConfidentialReminderRepository confidentialReminderRepository,
     IIdempotencyKeyRepository idempotencyKeyRepository,
     IDialogportenService dialogportenService,
-    IBackgroundJobClient backgroundJobClient)
+    IBackgroundJobClient backgroundJobClient,
+    IConfidentialReminderDialogSynchronizer dialogSynchronizer)
 {
     [AutomaticRetry(Attempts = 0)]
     public async Task Process(Guid correspondenceId, CancellationToken cancellationToken = default)
@@ -56,42 +57,44 @@ public class UnreadConfidentialCorrespondenceHandler(
             PropertyList = new Dictionary<string, string>{}
         };
 
-        Guid? dialogId = null;
-
-        var existingDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(recipient, cancellationToken);
-        if (existingDialogId.HasValue)
+        // Serialize with final-reminder cleanup for this recipient so we never attach to a dialog being closed.
+        var dialogId = await dialogSynchronizer.ExecuteForRecipientAsync(recipient, async (ct) =>
         {
-            logger.LogInformation("Reusing existing dialog {DialogId}", existingDialogId.Value);
-            dialogId = existingDialogId.Value;
-        }
-        else
-        {
-            // Pre-allocate a UUID v7 dialog id in IdempotencyKeys so concurrent jobs share one Dialogporten create.
-            dialogId = await GetOrCreateDialogIdempotencyKey(recipient, cancellationToken);
-            reminder.DialogId = dialogId.Value;
+            // Idempotency key is the source of truth — do not reuse a dialog from reminders alone
+            // (that dialog may be in the process of being soft-deleted during final cleanup).
+            var dialogIdForRecipient = await GetOrCreateDialogIdempotencyKey(recipient, ct);
+            reminder.DialogId = dialogIdForRecipient;
 
             logger.LogInformation("Creating confidential reminder dialog for correspondence with id {correspondenceId}", correspondenceId);
             try
             {
                 var createdDialogId = await dialogportenService.CreateConfidentialReminderDialog(reminder);
-                dialogId = Guid.TryParse(createdDialogId, out var parsedDialogId) ? parsedDialogId : dialogId;
-                logger.LogInformation("Confidential reminder dialog created with id {DialogId} for correspondence {correspondenceId}", dialogId, correspondenceId);
+                if (Guid.TryParse(createdDialogId, out var parsedDialogId))
+                {
+                    dialogIdForRecipient = parsedDialogId;
+                }
+                logger.LogInformation("Confidential reminder dialog created with id {DialogId} for correspondence {correspondenceId}", dialogIdForRecipient, correspondenceId);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to create confidential reminder dialog for correspondence {correspondenceId} — persisting reminder without dialog ID", correspondenceId);
-                dialogId = null;
+                // Keep the pre-allocated idempotency key id. Concurrent creates share that Dialogporten id;
+                // treating failure as DialogId=null would orphan the key and break idempotency.
+                logger.LogError(ex, "Failed to create confidential reminder dialog for correspondence {correspondenceId} — persisting reminder with pre-allocated dialog id {DialogId}", correspondenceId, dialogIdForRecipient);
             }
-        }
-        
-        await confidentialReminderRepository.AddConfidentialReminder(new ConfidentialReminderEntity
-        {
-            Id = reminder.Id,
-            CorrespondenceId = correspondenceId,
-            Recipient = recipient,
-            DialogId = dialogId,
+
+            await confidentialReminderRepository.AddConfidentialReminder(new ConfidentialReminderEntity
+            {
+                Id = reminder.Id,
+                CorrespondenceId = correspondenceId,
+                Recipient = recipient,
+                DialogId = dialogIdForRecipient,
+            }, ct);
+            logger.LogInformation("Confidential reminder {ReminderId} persisted for correspondence {correspondenceId} with dialog {DialogId}", reminder.Id, correspondenceId, dialogIdForRecipient);
+
+            return dialogIdForRecipient;
         }, cancellationToken);
-        logger.LogInformation("Confidential reminder {ReminderId} persisted for correspondence {correspondenceId} with dialog {DialogId}", reminder.Id, correspondenceId, dialogId?.ToString() ?? "none");
+
+        reminder.DialogId = dialogId;
 
         var notificationRequest = new NotificationRequest
         {

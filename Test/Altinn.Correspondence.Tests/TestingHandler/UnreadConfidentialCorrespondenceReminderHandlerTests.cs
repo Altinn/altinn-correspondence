@@ -12,6 +12,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Altinn.Correspondence.Application.Helpers;
 
 namespace Altinn.Correspondence.Tests.TestingHandler;
 
@@ -37,13 +38,19 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
             .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
             .Returns(() => Guid.NewGuid().ToString());
 
+        var dialogSynchronizerMock = new Mock<IConfidentialReminderDialogSynchronizer>();
+        dialogSynchronizerMock
+            .Setup(x => x.ExecuteForRecipientAsync(It.IsAny<string>(), It.IsAny<Func<CancellationToken, Task<Guid>>>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, Func<CancellationToken, Task<Guid>> op, CancellationToken ct) => op(ct));
+
         _handler = new UnreadConfidentialCorrespondenceHandler(
             _loggerMock.Object,
             _correspondenceRepositoryMock.Object,
             _confidentialReminderRepositoryMock.Object,
             _idempotencyKeyRepositoryMock.Object,
             _dialogportenServiceMock.Object,
-            _backgroundJobClientMock.Object);
+            _backgroundJobClientMock.Object,
+            dialogSynchronizerMock.Object);
     }
 
     private CorrespondenceEntity CreateUnreadCorrespondence(Guid correspondenceId)
@@ -178,7 +185,7 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
     }
 
     [Fact]
-    public async Task Process_DialogCreationThrows_StillPersistsReminderWithoutDialogId()
+    public async Task Process_DialogCreationThrows_StillPersistsReminderWithPreAllocatedDialogId()
     {
         // Arrange
         var correspondenceId = Guid.NewGuid();
@@ -194,45 +201,12 @@ public class UnreadConfidentialCorrespondenceReminderHandlerTests
         // Act
         await _handler.Process(correspondenceId, CancellationToken.None);
 
-        // Assert
+        // Assert — keep pre-allocated dialog id so concurrent creates remain idempotent
         _confidentialReminderRepositoryMock.Verify(
             x => x.AddConfidentialReminder(
                 It.Is<ConfidentialReminderEntity>(r =>
                     r.CorrespondenceId == correspondenceId &&
-                    r.DialogId == null),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Process_RecipientAlreadyHasReminderWithDialog_LinksToExistingDialogWithoutCreatingNew()
-    {
-        // Arrange
-        var correspondenceId = Guid.NewGuid();
-        var existingDialogId = Guid.NewGuid();
-        var correspondence = CreateUnreadCorrespondence(correspondenceId);
-        _correspondenceRepositoryMock
-            .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(correspondence);
-        _confidentialReminderRepositoryMock
-            .Setup(x => x.GetDialogIdOfReminderForRecipient(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Guid?)existingDialogId);
-
-        // Act
-        await _handler.Process(correspondenceId, CancellationToken.None);
-
-        // Assert
-        _idempotencyKeyRepositoryMock.Verify(
-            x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _dialogportenServiceMock.Verify(
-            x => x.CreateConfidentialReminderDialog(It.IsAny<ConfidentialReminderDialogDto>()),
-            Times.Never);
-        _confidentialReminderRepositoryMock.Verify(
-            x => x.AddConfidentialReminder(
-                It.Is<ConfidentialReminderEntity>(r =>
-                    r.CorrespondenceId == correspondenceId &&
-                    r.DialogId == existingDialogId),
+                    r.DialogId != null),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
