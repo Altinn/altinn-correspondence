@@ -12,6 +12,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Persistence;
 using Altinn.Correspondence.Persistence.Helpers;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -35,6 +36,9 @@ public class CreateNotificationOrderHandler(
 {
     private readonly GeneralSettings _generalSettings = generalSettings.Value;
 
+    // The dialog job continues from this one, and the publish job from the dialog job. Failed is not final in Hangfire,
+    // so without Delete a permanently failing notification order stalls the whole chain. See CreateDialogportenDialog.
+    [AutomaticRetry(OnAttemptsExceeded = AttemptsExceededAction.Delete)]
     public async Task Process(CreateNotificationOrderRequest request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting notification order creation for correspondence {CorrespondenceId}", request.CorrespondenceId);
