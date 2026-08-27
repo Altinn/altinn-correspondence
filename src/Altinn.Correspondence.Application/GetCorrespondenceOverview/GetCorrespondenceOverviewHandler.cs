@@ -208,28 +208,35 @@ public class GetCorrespondenceOverviewHandler(
                         $"confidential-reminder-dialog:{recipient}",
                         cancellationToken);
 
-                    // Re-check under lock so we do not close a dialog that gained another reminder, and so
-                    // creation waiting on the same lock cannot reuse a dialog whose final reminder is closing.
-                    var isFinalReminderForRecipient =
-                        await confidentialReminderRepository.NumberOfRemindersForRecipient(recipient, cancellationToken) == 1;
-                    Guid? reminderDialogId = null;
-                    if (isFinalReminderForRecipient)
+                    // Re-read under lock: another cleanup path may have already removed this reminder.
+                    var targetReminder = await confidentialReminderRepository.GetByCorrespondenceId(
+                        correspondence.Id,
+                        cancellationToken);
+                    if (targetReminder is null)
                     {
-                        reminderDialogId = await confidentialReminderRepository.GetDialogIdOfReminderForRecipient(recipient, cancellationToken);
+                        logger.LogInformation(
+                            "Confidential reminder for correspondence {CorrespondenceId} was already removed; skipping cleanup",
+                            correspondence.Id);
                     }
-
-                    await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
-
-                    if (isFinalReminderForRecipient)
+                    else
                     {
-                        // Release idempotency key before enqueueing soft-delete so a later create allocates a new dialog id.
-                        await idempotencyKeyRepository.DeleteByPartyUrnAndTypeAsync(
-                            recipient,
-                            IdempotencyType.ConfidentialReminderDialog,
-                            cancellationToken);
-                        if (reminderDialogId.HasValue)
+                        var isFinalReminderForRecipient =
+                            await confidentialReminderRepository.NumberOfRemindersForRecipient(recipient, cancellationToken) == 1;
+                        var reminderDialogId = isFinalReminderForRecipient ? targetReminder.DialogId : null;
+
+                        await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
+
+                        if (isFinalReminderForRecipient)
                         {
-                            backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString()));
+                            // Release idempotency key before enqueueing soft-delete so a later create allocates a new dialog id.
+                            await idempotencyKeyRepository.DeleteByPartyUrnAndTypeAsync(
+                                recipient,
+                                IdempotencyType.ConfidentialReminderDialog,
+                                cancellationToken);
+                            if (reminderDialogId.HasValue)
+                            {
+                                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString()));
+                            }
                         }
                     }
                 }

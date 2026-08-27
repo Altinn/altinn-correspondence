@@ -90,37 +90,51 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
     private async Task<bool> ProcessSingleReminder(ConfidentialReminderEntity reminder, CancellationToken cancellationToken)
     {
         Guid? dialogToSoftDelete = null;
+        var deleted = false;
 
         try
         {
             await dialogSynchronizer.ExecuteForRecipientAsync(reminder.Recipient, async (ct) =>
             {
+                // Re-read under lock: overview cleanup (or another purge pass) may have already removed this row.
+                var targetReminder = await confidentialReminderRepository.GetByCorrespondenceId(
+                    reminder.CorrespondenceId,
+                    ct);
+                if (targetReminder is null)
+                {
+                    logger.LogInformation(
+                        "Confidential reminder for correspondence {correspondenceId} was already removed; skipping",
+                        reminder.CorrespondenceId);
+                    return;
+                }
+
                 var isFinalReminderForRecipient =
-                    await confidentialReminderRepository.NumberOfRemindersForRecipient(reminder.Recipient, ct) == 1;
+                    await confidentialReminderRepository.NumberOfRemindersForRecipient(targetReminder.Recipient, ct) == 1;
 
                 if (isFinalReminderForRecipient)
                 {
-                    dialogToSoftDelete = reminder.DialogId;
-                    if (!reminder.DialogId.HasValue)
+                    dialogToSoftDelete = targetReminder.DialogId;
+                    if (!targetReminder.DialogId.HasValue)
                     {
-                        logger.LogWarning("No DialogId found for confidential reminder {reminderId}, skipping dialog deletion", reminder.Id);
+                        logger.LogWarning("No DialogId found for confidential reminder {reminderId}, skipping dialog deletion", targetReminder.Id);
                     }
                 }
 
-                await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(reminder.CorrespondenceId, ct);
+                await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(targetReminder.CorrespondenceId, ct);
+                deleted = true;
 
                 if (isFinalReminderForRecipient)
                 {
                     // Closing state: drop the idempotency key under the same lock so creation cannot reuse this dialog.
                     await idempotencyKeyRepository.DeleteByPartyUrnAndTypeAsync(
-                        reminder.Recipient,
+                        targetReminder.Recipient,
                         IdempotencyType.ConfidentialReminderDialog,
                         ct);
                 }
 
                 logger.LogInformation(
                     "Deleted confidential reminder {reminderId} | CorrespondenceId: {correspondenceId} | DialogId: {dialogId}",
-                    reminder.Id, reminder.CorrespondenceId, reminder.DialogId);
+                    targetReminder.Id, targetReminder.CorrespondenceId, targetReminder.DialogId);
             }, cancellationToken);
         }
         catch (Exception ex)
@@ -142,6 +156,6 @@ public class PurgeDialogAndDeleteReminderForReadCorrespondencesHandler(
             }
         }
 
-        return true;
+        return deleted;
     }
 }
