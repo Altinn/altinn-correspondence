@@ -26,7 +26,6 @@ public class GetCorrespondenceOverviewHandler(
     ICorrespondenceRepository correspondenceRepository,
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
-    IDialogportenService dialogportenService,
     IHybridCacheWrapper cache,
     PublishCorrespondenceHandler publishCorrespondenceHandler,
     ILogger<GetCorrespondenceOverviewHandler> logger,
@@ -130,6 +129,49 @@ public class GetCorrespondenceOverviewHandler(
                         backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.CreateOpenedActivity(correspondence.Id, DialogportenActorType.Recipient, operationTimestamp, callerPartyUrn));
                     }
                 }
+                if (correspondence.IsConfidential
+                    && hasAccessAsRecipient
+                    && !(user?.CallingAsSender() ?? false)
+                    && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
+                {
+                    var recipient = correspondence.Recipient.WithUrnPrefix();
+                    await PostgresAdvisoryLock.AcquireTransactionLockAsync(
+                        dbContext,
+                        $"confidential-reminder-dialog:{recipient}",
+                        cancellationToken);
+
+                    // Re-read under lock: another cleanup path may have already removed this reminder.
+                    var targetReminder = await confidentialReminderRepository.GetByCorrespondenceId(
+                        correspondence.Id,
+                        cancellationToken);
+                    if (targetReminder is null)
+                    {
+                        logger.LogInformation(
+                            "Confidential reminder for correspondence {CorrespondenceId} was already removed; skipping cleanup",
+                            correspondence.Id);
+                    }
+                    else
+                    {
+                        var isFinalReminderForRecipient =
+                            await confidentialReminderRepository.NumberOfRemindersForRecipient(recipient, cancellationToken) == 1;
+                        var reminderDialogId = isFinalReminderForRecipient ? targetReminder.DialogId : null;
+
+                        await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
+
+                        if (isFinalReminderForRecipient)
+                        {
+                            // Release idempotency key before enqueueing soft-delete so a later create allocates a new dialog id.
+                            await idempotencyKeyRepository.DeleteByPartyUrnAndTypeAsync(
+                                recipient,
+                                IdempotencyType.ConfidentialReminderDialog,
+                                cancellationToken);
+                            if (reminderDialogId.HasValue)
+                            {
+                                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString()));
+                            }
+                        }
+                    }
+                }
             }
             var notificationsOverview = new List<CorrespondenceNotificationOverview>();
             foreach (var notification in correspondence.Notifications)
@@ -195,60 +237,6 @@ public class GetCorrespondenceOverviewHandler(
             logger.LogInformation("Successfully retrieved overview for correspondence {CorrespondenceId} with status {Status}", 
                 request.CorrespondenceId, 
                 latestStatus.Status);
-            try
-            {
-                if (correspondence.IsConfidential 
-                    && hasAccessAsRecipient 
-                    && !(user?.CallingAsSender() ?? false) 
-                    && await confidentialReminderRepository.CorrespondenceHasReminder(correspondence.Id, cancellationToken))
-                {
-                    var recipient = correspondence.Recipient.WithUrnPrefix();
-                    await PostgresAdvisoryLock.AcquireTransactionLockAsync(
-                        dbContext,
-                        $"confidential-reminder-dialog:{recipient}",
-                        cancellationToken);
-
-                    // Re-read under lock: another cleanup path may have already removed this reminder.
-                    var targetReminder = await confidentialReminderRepository.GetByCorrespondenceId(
-                        correspondence.Id,
-                        cancellationToken);
-                    if (targetReminder is null)
-                    {
-                        logger.LogInformation(
-                            "Confidential reminder for correspondence {CorrespondenceId} was already removed; skipping cleanup",
-                            correspondence.Id);
-                    }
-                    else
-                    {
-                        var isFinalReminderForRecipient =
-                            await confidentialReminderRepository.NumberOfRemindersForRecipient(recipient, cancellationToken) == 1;
-                        var reminderDialogId = isFinalReminderForRecipient ? targetReminder.DialogId : null;
-
-                        await confidentialReminderRepository.RemoveConfidentialReminderByCorrespondenceId(correspondence.Id, cancellationToken);
-
-                        if (isFinalReminderForRecipient)
-                        {
-                            // Release idempotency key before enqueueing soft-delete so a later create allocates a new dialog id.
-                            await idempotencyKeyRepository.DeleteByPartyUrnAndTypeAsync(
-                                recipient,
-                                IdempotencyType.ConfidentialReminderDialog,
-                                cancellationToken);
-                            if (reminderDialogId.HasValue)
-                            {
-                                backgroundJobClient.Enqueue<IDialogportenService>((dialogportenService) => dialogportenService.TrySoftDeleteDialog(reminderDialogId.Value.ToString()));
-                            }
-                        }
-                    }
-                }
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Failed to clean up confidential reminder for correspondence {CorrespondenceId}", correspondence.Id);
-            }
             return response;
         }, cancellationToken);
     }
