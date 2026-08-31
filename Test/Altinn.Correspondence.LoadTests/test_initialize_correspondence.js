@@ -57,6 +57,7 @@ const data_without_attachment = {
             ReminderSmsBody: "Dette er en test av revarslingl",
         },
         isReservable: true,
+        isConfidential: true
     },
     Recipients: ["0192:123456789"],
     existingAttachments: [],
