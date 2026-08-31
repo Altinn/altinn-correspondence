@@ -77,7 +77,6 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _correspondenceRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
-                _dialogportenServiceMock.Object,
                 _cacheMock.Object,
                 publishCorrespondenceHandler,
                 _loggerMock.Object,
