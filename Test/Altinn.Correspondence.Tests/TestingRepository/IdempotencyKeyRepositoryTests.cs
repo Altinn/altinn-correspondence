@@ -121,6 +121,52 @@ public class IdempotencyKeyRepositoryTests
         Assert.Equal(0, remainingCount);
     }
 
+    [Fact]
+    public async Task GetByPartyUrnAndTypeAsync_ReturnsMatchingKey()
+    {
+        await using var context = TestDbContextFactory.Create();
+        var repo = new IdempotencyKeyRepository(context);
+        var partyUrn = $"urn:altinn:organization:identifier-no:{Random.Shared.Next(100000000, 999999999)}";
+        var key = new IdempotencyKeyEntity
+        {
+            Id = Guid.CreateVersion7(),
+            PartyUrn = partyUrn,
+            IdempotencyType = IdempotencyType.ConfidentialReminderDialog
+        };
+        context.IdempotencyKeys.Add(key);
+        await context.SaveChangesAsync();
+
+        var found = await repo.GetByPartyUrnAndTypeAsync(
+            partyUrn,
+            IdempotencyType.ConfidentialReminderDialog,
+            CancellationToken.None);
+
+        Assert.NotNull(found);
+        Assert.Equal(key.Id, found.Id);
+    }
+
+    [Fact]
+    public async Task DeleteByPartyUrnAndTypeAsync_RemovesMatchingKey()
+    {
+        await using var context = TestDbContextFactory.Create();
+        var repo = new IdempotencyKeyRepository(context);
+        var partyUrn = $"urn:altinn:organization:identifier-no:{Random.Shared.Next(100000000, 999999999)}";
+        var key = new IdempotencyKeyEntity
+        {
+            Id = Guid.CreateVersion7(),
+            PartyUrn = partyUrn,
+            IdempotencyType = IdempotencyType.ConfidentialReminderDialog
+        };
+        context.IdempotencyKeys.Add(key);
+        await context.SaveChangesAsync();
+
+        await repo.DeleteByPartyUrnAndTypeAsync(
+            partyUrn,
+            IdempotencyType.ConfidentialReminderDialog,
+            CancellationToken.None);
+
+        Assert.Null(await context.IdempotencyKeys.FindAsync(key.Id));
+    }
 }
 
 

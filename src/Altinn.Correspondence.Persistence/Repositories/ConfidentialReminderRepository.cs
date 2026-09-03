@@ -33,6 +33,12 @@ public class ConfidentialReminderRepository(ApplicationDbContext context) : ICon
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<ConfidentialReminderEntity?> GetByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken)
+    {
+        return await _context.ConfidentialReminders
+            .FirstOrDefaultAsync(r => r.CorrespondenceId == correspondenceId, cancellationToken);
+    }
+
     public async Task<int> NumberOfRemindersForRecipient(string recipient, CancellationToken cancellationToken)
     {
         var numberOfRemindersForRecipient = await _context.ConfidentialReminders.CountAsync(r => r.Recipient == recipient, cancellationToken);

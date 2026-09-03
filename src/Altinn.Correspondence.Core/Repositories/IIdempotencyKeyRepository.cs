@@ -53,4 +53,20 @@ public interface IIdempotencyKeyRepository
     /// Deletes idempotency keys for the given correspondence ids. Returns number of deleted rows.
     /// </summary>
     Task<int> DeleteByCorrespondenceIds(IEnumerable<Guid> correspondenceIds, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets an idempotency key by party URN and type.
+    /// </summary>
+    Task<IdempotencyKeyEntity?> GetByPartyUrnAndTypeAsync(
+        string partyUrn,
+        IdempotencyType idempotencyType,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes an idempotency key by party URN and type if it exists. Otherwise does nothing.
+    /// </summary>
+    Task DeleteByPartyUrnAndTypeAsync(
+        string partyUrn,
+        IdempotencyType idempotencyType,
+        CancellationToken cancellationToken);
 } 

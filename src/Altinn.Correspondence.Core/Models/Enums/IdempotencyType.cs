@@ -40,4 +40,10 @@ public enum IdempotencyType
     /// Indicates that this is an idempotency key for resolving a notification's final delivery status
     /// </summary>
     NotificationDeliveryResolution = 6,
+
+    /// <summary>
+    /// Indicates that this is an idempotency key for a confidential reminder dialog in Dialogporten.
+    /// One key per recipient while the reminder is active; deleted when the last reminder for the recipient is cleaned up.
+    /// </summary>
+    ConfidentialReminderDialog = 7,
 }

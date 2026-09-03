@@ -30,6 +30,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
         private readonly Mock<IDialogportenService> _dialogportenServiceMock;
         private readonly Mock<IConfidentialReminderRepository> _confidentialReminderRepositoryMock;
+        private readonly Mock<IIdempotencyKeyRepository> _idempotencyKeyRepositoryMock;
         private readonly Mock<IHybridCacheWrapper> _cacheMock;
         private readonly Mock<ILogger<GetCorrespondenceOverviewHandler>> _loggerMock;
         private readonly GetCorrespondenceOverviewHandler _handler;
@@ -43,6 +44,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
             _dialogportenServiceMock = new Mock<IDialogportenService>();
             _confidentialReminderRepositoryMock = new Mock<IConfidentialReminderRepository>();
+            _idempotencyKeyRepositoryMock = new Mock<IIdempotencyKeyRepository>();
             _cacheMock = new Mock<IHybridCacheWrapper>();
             _loggerMock = new Mock<ILogger<GetCorrespondenceOverviewHandler>>();
 
@@ -71,10 +73,10 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 _altinnAuthorizationServiceMock.Object,
                 _altinnRegisterServiceMock.Object,
                 _confidentialReminderRepositoryMock.Object,
+                _idempotencyKeyRepositoryMock.Object,
                 _correspondenceRepositoryMock.Object,
                 _correspondenceStatusRepositoryMock.Object,
                 _backgroundJobClientMock.Object,
-                _dialogportenServiceMock.Object,
                 _cacheMock.Object,
                 publishCorrespondenceHandler,
                 _loggerMock.Object,
@@ -288,8 +290,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(true);
 
             _confidentialReminderRepositoryMock
-                .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Guid?)reminderDialogId);
+                .Setup(x => x.GetByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ConfidentialReminderEntity
+                {
+                    Id = Guid.NewGuid(),
+                    CorrespondenceId = correspondenceId,
+                    Recipient = correspondence.Recipient,
+                    DialogId = reminderDialogId
+                });
 
             _confidentialReminderRepositoryMock
                 .Setup(x => x.NumberOfRemindersForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
@@ -303,10 +311,89 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 x => x.RemoveConfidentialReminderByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()),
                 Times.Once);
 
-            // Assert - dialog is soft deleted because recipient has no more confidential reminders
-            _dialogportenServiceMock.Verify(
-                x => x.TrySoftDeleteDialog(reminderDialogId.ToString()),
+            // Assert - dialog soft-delete is enqueued because recipient has no more confidential reminders
+            _backgroundJobClientMock.Verify(
+                x => x.Create(
+                    It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.TrySoftDeleteDialog)),
+                    It.IsAny<IState>()),
                 Times.Once);
+
+            // Assert - idempotency key is wiped so a future unread confidential mail can create a new dialog
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.DeleteByPartyUrnAndTypeAsync(
+                    correspondence.Recipient,
+                    IdempotencyType.ConfidentialReminderDialog,
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_WhenReminderAlreadyRemovedUnderLock_SkipsCleanupSideEffects()
+        {
+            // Arrange — simulates interleaving: CorrespondenceHasReminder was true, but after the
+            // recipient lock another path already deleted this correspondence's reminder.
+            var correspondenceId = Guid.NewGuid();
+            var partyUuid = Guid.NewGuid();
+            var staleDialogId = Guid.NewGuid();
+
+            var correspondence = new CorrespondenceEntityBuilder()
+                .WithStatus(CorrespondenceStatus.Published)
+                .Build();
+            correspondence.Id = correspondenceId;
+            correspondence.IsConfidential = true;
+
+            var user = new ClaimsPrincipal();
+            var request = new GetCorrespondenceOverviewRequest
+            {
+                CorrespondenceId = correspondenceId,
+                OnlyGettingContent = false
+            };
+
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _altinnAuthorizationServiceMock
+                .Setup(x => x.CheckAccessAsSender(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _altinnRegisterServiceMock
+                .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(RegisterServiceMockExtensions.BuildOrganization(partyUuid, "991825827"));
+            _correspondenceRepositoryMock
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, true, false, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(correspondence);
+
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.CorrespondenceHasReminder(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.GetByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((ConfidentialReminderEntity?)null);
+            // If cleanup ignored the re-read, these would wrongly drive key/dialog deletion.
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.NumberOfRemindersForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
+            _confidentialReminderRepositoryMock
+                .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Guid?)staleDialogId);
+
+            // Act
+            await _handler.Process(request, user, CancellationToken.None);
+
+            // Assert — no side effects against a target that no longer exists
+            _confidentialReminderRepositoryMock.Verify(
+                x => x.RemoveConfidentialReminderByCorrespondenceId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.DeleteByPartyUrnAndTypeAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IdempotencyType>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+            _backgroundJobClientMock.Verify(
+                x => x.Create(
+                    It.Is<Job>(j => j.Method.Name == nameof(IDialogportenService.TrySoftDeleteDialog)),
+                    It.IsAny<IState>()),
+                Times.Never);
         }
 
         [Fact]
@@ -355,8 +442,14 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .ReturnsAsync(true);
 
             _confidentialReminderRepositoryMock
-                .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Guid?)reminderDialogId);
+                .Setup(x => x.GetByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ConfidentialReminderEntity
+                {
+                    Id = Guid.NewGuid(),
+                    CorrespondenceId = correspondenceId,
+                    Recipient = correspondence.Recipient,
+                    DialogId = reminderDialogId
+                });
 
             // Recipient still has other confidential reminders after removal
             _confidentialReminderRepositoryMock
@@ -374,6 +467,13 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             // Assert - dialog is NOT soft deleted because recipient still has other confidential reminders
             _dialogportenServiceMock.Verify(
                 x => x.TrySoftDeleteDialog(It.IsAny<string>()),
+                Times.Never);
+
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.DeleteByPartyUrnAndTypeAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IdempotencyType>(),
+                    It.IsAny<CancellationToken>()),
                 Times.Never);
         }
 
@@ -571,12 +671,17 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 .Setup(x => x.CorrespondenceHasReminder(correspondenceId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
             _confidentialReminderRepositoryMock
+                .Setup(x => x.GetByCorrespondenceId(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ConfidentialReminderEntity
+                {
+                    Id = Guid.NewGuid(),
+                    CorrespondenceId = correspondenceId,
+                    Recipient = correspondence.Recipient,
+                    DialogId = null
+                });
+            _confidentialReminderRepositoryMock
                 .Setup(x => x.NumberOfRemindersForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(1);
-            // Dialog ID is missing
-            _confidentialReminderRepositoryMock
-                .Setup(x => x.GetDialogIdOfReminderForRecipient(correspondence.Recipient, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Guid?)null);
 
             // Act
             await _handler.Process(request, user, CancellationToken.None);
