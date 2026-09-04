@@ -527,57 +527,31 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw new ArgumentException("Not supported");
             }
 
-            // Aggregate data directly in SQL using EF Core GroupBy
-            // Now using RecipientType column directly for better performance
-            // Note: PropertyList and raw MessageSender are included here for SQL-translation compatibility.
-            // We do a second grouping pass in-memory below to avoid splitting identical output rows.
-            var groupedDataByPropertyList = await query
-                .GroupBy(c => new
+            // One row per correspondence, including main/reminder notification shipment IDs
+            var correspondenceRows = await query
+                .Select(c => new
                 {
-                    c.Created.Date,
+                    c.Id,
+                    c.Created,
                     c.ServiceOwnerId,
                     c.MessageSender,
                     c.ResourceId,
                     c.RecipientType,
-                    c.PropertyList
-                })
-                .Select(g => new
-                {
-                    g.Key.Date,
-                    g.Key.ServiceOwnerId,
-                    g.Key.MessageSender,
-                    g.Key.ResourceId,
-                    g.Key.RecipientType,
-                    g.Key.PropertyList,
-                    MessageCount = g.Count()
+                    c.PropertyList,
+                    ShipmentId = c.Notifications
+                        .Where(n => !n.IsReminder)
+                        .Select(n => n.ShipmentId)
+                        .FirstOrDefault(),
+                    ReminderShipmentId = c.Notifications
+                        .Where(n => n.IsReminder)
+                        .Select(n => n.ShipmentId)
+                        .FirstOrDefault()
                 })
                 .ToListAsync(cancellationToken);
 
-            var groupedData = groupedDataByPropertyList
-                .GroupBy(g => new
-                {
-                    g.Date,
-                    g.ServiceOwnerId,
-                    MessageSender = g.MessageSender ?? string.Empty,
-                    g.ResourceId,
-                    g.RecipientType,
-                    SenderOrgNumber = GetSenderOrgNumberFromPropertyList(g.PropertyList)
-                })
-                .Select(g => new
-                {
-                    g.Key.Date,
-                    g.Key.ServiceOwnerId,
-                    g.Key.MessageSender,
-                    g.Key.SenderOrgNumber,
-                    g.Key.ResourceId,
-                    g.Key.RecipientType,
-                    MessageCount = g.Sum(x => x.MessageCount)
-                })
-                .ToList();
-
             // Get service owner names in bulk
-            var serviceOwnerIds = groupedData
-                .Select(g => g.ServiceOwnerId)
+            var serviceOwnerIds = correspondenceRows
+                .Select(c => c.ServiceOwnerId)
                 .Where(id => !string.IsNullOrEmpty(id))
                 .Distinct()
                 .ToList();
@@ -586,42 +560,49 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToDictionaryAsync(so => so.Id, so => so.Name, cancellationToken);
 
             // Map to DailySummaryDataDto
-            var aggregatedData = groupedData
-                // Exclude groups that can't be resolved to a service owner in the ServiceOwners table (old legacy test data)
-                .Where(g => !string.IsNullOrEmpty(g.ServiceOwnerId) && serviceOwners.ContainsKey(g.ServiceOwnerId))
-                .Select(g => new DailySummaryDataDto
+            var summaryData = correspondenceRows
+                // Exclude correspondences that can't be resolved to a service owner in the ServiceOwners table (old legacy test data)
+                .Where(c => !string.IsNullOrEmpty(c.ServiceOwnerId) && serviceOwners.ContainsKey(c.ServiceOwnerId))
+                .Select(c =>
                 {
-                    Date = g.Date,
-                    Year = g.Date.Year,
-                    Month = g.Date.Month,
-                    Day = g.Date.Day,
-                    ServiceOwnerId = g.ServiceOwnerId!,
-                    ServiceOwnerName = serviceOwners[g.ServiceOwnerId!],
-                    MessageSender = g.MessageSender,
-                    SenderOrgNumber = g.SenderOrgNumber,
-                    ResourceId = g.ResourceId,
-                    RecipientType = g.RecipientType switch
+                    var date = c.Created.Date;
+                    return new DailySummaryDataDto
                     {
-                        UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
-                        UrnConstants.PersonIdAttribute => RecipientType.Person,
-                        UrnConstants.PartyUuid => RecipientType.Person,
-                        UrnConstants.PersonIdPortenEmailAttribute => RecipientType.Person,
-                        _ => RecipientType.Unknown,
-                    },
-                    AltinnVersion = AltinnVersion.Altinn3,
-                    MessageCount = g.MessageCount,
-                    DatabaseStorageBytes = 0, 
-                    AttachmentStorageBytes = 0
+                        CorrespondenceId = c.Id,
+                        Date = date,
+                        Year = date.Year,
+                        Month = date.Month,
+                        Day = date.Day,
+                        ServiceOwnerId = c.ServiceOwnerId!,
+                        ServiceOwnerName = serviceOwners[c.ServiceOwnerId!],
+                        MessageSender = c.MessageSender ?? string.Empty,
+                        SenderOrgNumber = GetSenderOrgNumberFromPropertyList(c.PropertyList),
+                        ResourceId = c.ResourceId,
+                        RecipientType = c.RecipientType switch
+                        {
+                            UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
+                            UrnConstants.PersonIdAttribute => RecipientType.Person,
+                            UrnConstants.PartyUuid => RecipientType.Person,
+                            UrnConstants.PersonIdPortenEmailAttribute => RecipientType.Person,
+                            _ => RecipientType.Unknown,
+                        },
+                        AltinnVersion = AltinnVersion.Altinn3,
+                        MessageCount = 1,
+                        DatabaseStorageBytes = 0,
+                        AttachmentStorageBytes = 0,
+                        ShipmentId = c.ShipmentId,
+                        ReminderShipmentId = c.ReminderShipmentId
+                    };
                 })
                 .OrderBy(d => d.Date)
                 .ThenBy(d => d.ServiceOwnerId)
                 .ThenBy(d => d.MessageSender)
                 .ThenBy(d => d.ResourceId)
                 .ThenBy(d => d.RecipientType)
-                .ThenBy(d => d.AltinnVersion)
+                .ThenBy(d => d.CorrespondenceId)
                 .ToList();
 
-            return aggregatedData;
+            return summaryData;
         }
 
         private static string? GetSenderOrgNumberFromPropertyList(Dictionary<string, string>? propertyList)

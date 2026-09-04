@@ -52,6 +52,7 @@ public class GenerateDailySummaryReportHandlerTests
         {
             new DailySummaryDataDto()
             {
+                CorrespondenceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 AltinnVersion = Core.Models.Enums.AltinnVersion.Altinn3,
                 AttachmentStorageBytes = 0,
                 DatabaseStorageBytes = 0,
@@ -65,7 +66,9 @@ public class GenerateDailySummaryReportHandlerTests
                 ResourceId = "test-resource",
                 ServiceOwnerId = "123456789",
                 ServiceOwnerName = "Test Service Owner",
-                Year = DateTime.UtcNow.Year
+                Year = DateTime.UtcNow.Year,
+                ShipmentId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                ReminderShipmentId = Guid.Parse("33333333-3333-3333-3333-333333333333")
             }
         };
         _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync(correspondenceDailySummaries);
@@ -96,6 +99,7 @@ public class GenerateDailySummaryReportHandlerTests
         
         var expectedColumnNames = new[]
         {
+            "correspondenceid",
             "date",
             "year", 
             "month",
@@ -110,7 +114,9 @@ public class GenerateDailySummaryReportHandlerTests
             "costcenter",
             "messagecount",
             "databasestoragebytes",
-            "attachmentstoragebytes"
+            "attachmentstoragebytes",
+            "shipment_id",
+            "reminder_shipment_id"
         };
 
         foreach (var expectedColumn in expectedColumnNames)
@@ -125,12 +131,15 @@ public class GenerateDailySummaryReportHandlerTests
                 $"Column name '{columnName}' should be lowercase");
         }
 
-        // Verify sender org number value is actually present in the parquet data
+        // Verify sender org number and shipment IDs are present in the parquet data
         response.FileStream.Position = 0;
         var deserializationResult = await ParquetSerializer.DeserializeAsync<ParquetDailySummaryData>(response.FileStream, cancellationToken: CancellationToken.None);
         var rows = deserializationResult.Data;
         Assert.Single(rows);
+        Assert.Equal("11111111-1111-1111-1111-111111111111", rows[0].CorrespondenceId);
         Assert.Equal("910753614", rows[0].SenderOrgNumber);
+        Assert.Equal("22222222-2222-2222-2222-222222222222", rows[0].ShipmentId);
+        Assert.Equal("33333333-3333-3333-3333-333333333333", rows[0].ReminderShipmentId);
     }
 
 

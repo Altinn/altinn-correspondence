@@ -16,11 +16,12 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     private readonly ILogger<StatisticsController> _logger = logger;
 
     /// <summary>
-    /// Generate a daily summary report with aggregated data per service owner per day
+    /// Generate a daily summary report with one row per correspondence
     /// </summary>
     /// <remarks>
-    /// This generates a parquet file with daily aggregated summary data.
-    /// Each row represents one day's usage for one service owner.
+    /// This generates a parquet file with per-correspondence summary data for cost allocation.
+    /// Each row represents one correspondence, including notification shipment IDs when present.
+    /// Accounting consumers can aggregate on their side as needed.
     /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
@@ -128,11 +129,11 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         }
     }
     /// <summary>
-    /// Download the daily summary report with aggregated data per service owner per day
+    /// Download the daily summary report with one row per correspondence
     /// </summary>
     /// <remarks>
-    /// This returns a parquet file with daily aggregated summary data directly as a file download.
-    /// Each row represents one day's usage for one service owner.
+    /// This returns a parquet file with per-correspondence summary data directly as a file download.
+    /// Each row represents one correspondence, including notification shipment IDs when present.
     /// The response includes both the file and metadata about the report.
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.

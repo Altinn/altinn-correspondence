@@ -3,11 +3,16 @@ using Altinn.Correspondence.Core.Models.Enums;
 namespace Altinn.Correspondence.Application.GenerateReport;
 
 /// <summary>
-/// Aggregated daily summary data for cost allocation and reporting.
-/// Each row represents one day's usage for one service owner.
+/// Per-correspondence data for cost allocation and reporting.
+/// Each row represents one correspondence.
 /// </summary>
 public class DailySummaryData
 {
+    /// <summary>
+    /// Correspondence ID
+    /// </summary>
+    public Guid CorrespondenceId { get; set; }
+
     /// <summary>
     /// Date in YYYY-MM-DD format
     /// </summary>
@@ -69,9 +74,9 @@ public class DailySummaryData
     public AltinnVersion AltinnVersion { get; set; }
     
     /// <summary>
-    /// Number of messages/correspondences for this service owner on this date
+    /// Always 1 for per-correspondence rows (kept for backward compatibility)
     /// </summary>
-    public int MessageCount { get; set; }
+    public int MessageCount { get; set; } = 1;
     
     /// <summary>
     /// Total database storage used (metadata) in bytes
@@ -83,4 +88,13 @@ public class DailySummaryData
     /// </summary>
     public long AttachmentStorageBytes { get; set; }
 
+    /// <summary>
+    /// Shipment ID of the main notification (IsReminder = false), if any
+    /// </summary>
+    public Guid? ShipmentId { get; set; }
+
+    /// <summary>
+    /// Shipment ID of the reminder notification (IsReminder = true), if any
+    /// </summary>
+    public Guid? ReminderShipmentId { get; set; }
 }

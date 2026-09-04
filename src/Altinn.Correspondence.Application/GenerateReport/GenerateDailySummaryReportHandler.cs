@@ -29,9 +29,9 @@ public class GenerateDailySummaryReportHandler(
         {
             logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", request.Altinn2Included);
 
-            // Get aggregated daily summary data directly from database
+            // Get per-correspondence daily summary data directly from database
             var summaryDataDto = await correspondenceRepository.GetDailySummaryData(request.Altinn2Included, cancellationToken);
-            logger.LogInformation("Retrieved {count} aggregated daily summary records from database", summaryDataDto.Count);
+            logger.LogInformation("Retrieved {count} correspondence summary records from database", summaryDataDto.Count);
 
             if (summaryDataDto.Count == 0)
             {
@@ -41,17 +41,17 @@ public class GenerateDailySummaryReportHandler(
 
             // Map DTO to domain model and enrich with ResourceTitle
             var summaryData = await MapToDailySummaryData(summaryDataDto, cancellationToken);
-            logger.LogInformation("Mapped and enriched data into {count} daily summary records", summaryData.Count);
+            logger.LogInformation("Mapped and enriched data into {count} correspondence summary records", summaryData.Count);
 
             // Generate parquet file and upload to blob storage
-            var totalCorrespondenceCount = summaryData.Sum(d => d.MessageCount);
+            var totalCorrespondenceCount = summaryData.Count;
             var (blobUrl, fileHash, fileSize) = await GenerateAndUploadParquetFile(summaryData, totalCorrespondenceCount, request.Altinn2Included, cancellationToken);
 
             var response = new GenerateDailySummaryReportResponse
             {
                 FilePath = blobUrl, // Now contains the blob storage URL
                 ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
-                TotalCorrespondenceCount = summaryData.Sum(d => d.MessageCount),
+                TotalCorrespondenceCount = totalCorrespondenceCount,
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Environment = hostEnvironment.EnvironmentName ?? "Unknown",
                 FileSizeBytes = fileSize,
@@ -94,6 +94,7 @@ public class GenerateDailySummaryReportHandler(
         // Map DTO to domain model
         return dtoList.Select(dto => new DailySummaryData
         {
+            CorrespondenceId = dto.CorrespondenceId,
             Date = dto.Date,
             Year = dto.Year,
             Month = dto.Month,
@@ -108,7 +109,9 @@ public class GenerateDailySummaryReportHandler(
             AltinnVersion = dto.AltinnVersion,
             MessageCount = dto.MessageCount,
             DatabaseStorageBytes = dto.DatabaseStorageBytes,
-            AttachmentStorageBytes = dto.AttachmentStorageBytes
+            AttachmentStorageBytes = dto.AttachmentStorageBytes,
+            ShipmentId = dto.ShipmentId,
+            ReminderShipmentId = dto.ReminderShipmentId
         }).ToList();
     }
 
@@ -312,6 +315,7 @@ public class GenerateDailySummaryReportHandler(
         // Convert to parquet-friendly model
         var parquetData = summaryData.Select(d => new ParquetDailySummaryData
         {
+            CorrespondenceId = d.CorrespondenceId.ToString(),
             Date = d.Date.ToString("yyyy-MM-dd"),
             Year = d.Year,
             Month = d.Month,
@@ -326,7 +330,9 @@ public class GenerateDailySummaryReportHandler(
             AltinnVersion = d.AltinnVersion.ToString(),
             MessageCount = d.MessageCount,
             DatabaseStorageBytes = d.DatabaseStorageBytes,
-            AttachmentStorageBytes = d.AttachmentStorageBytes
+            AttachmentStorageBytes = d.AttachmentStorageBytes,
+            ShipmentId = d.ShipmentId?.ToString(),
+            ReminderShipmentId = d.ReminderShipmentId?.ToString()
         }).ToList();
 
         // Create a memory stream for the parquet data
@@ -395,7 +401,7 @@ public class GenerateDailySummaryReportHandler(
 
         try
         {
-            // Get aggregated daily summary data directly from database
+            // Get per-correspondence daily summary data directly from database
             var summaryDataDto = await correspondenceRepository.GetDailySummaryData(request.Altinn2Included, cancellationToken);
             
             if (!summaryDataDto.Any())
@@ -404,7 +410,7 @@ public class GenerateDailySummaryReportHandler(
                 return StatisticsErrors.NoCorrespondencesFound;
             }
 
-            logger.LogInformation("Found {count} aggregated daily summary records", summaryDataDto.Count);
+            logger.LogInformation("Found {count} correspondence summary records", summaryDataDto.Count);
 
             // Map DTO to domain model and enrich with ResourceTitle
             var summaryData = await MapToDailySummaryData(summaryDataDto, cancellationToken);
@@ -423,7 +429,7 @@ public class GenerateDailySummaryReportHandler(
                 FileHash = fileHash,
                 FileSizeBytes = fileSize,
                 ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
-                TotalCorrespondenceCount = summaryData.Sum(d => d.MessageCount),
+                TotalCorrespondenceCount = summaryData.Count,
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Environment = hostEnvironment.EnvironmentName,
                 Altinn2Included = request.Altinn2Included
