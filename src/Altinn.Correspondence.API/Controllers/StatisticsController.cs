@@ -16,11 +16,12 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     private readonly ILogger<StatisticsController> _logger = logger;
 
     /// <summary>
-    /// Generate a daily summary report with one row per correspondence
+    /// Enqueue generation of a daily summary report with one row per correspondence
     /// </summary>
     /// <remarks>
-    /// This generates a parquet file with per-correspondence summary data for cost allocation.
-    /// Each row represents one correspondence, including notification shipment IDs when present.
+    /// Enqueues a Hangfire background job that builds a parquet file with per-correspondence
+    /// summary data (including notification shipment IDs when present) and uploads it to blob storage.
+    /// Returns immediately with a job id. Use the download endpoint after the job has completed.
     /// Accounting consumers can aggregate on their side as needed.
     /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
     /// Requires API key authentication via X-API-Key header.
@@ -29,7 +30,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <response code="200">Returns the summary report generation response</response>
+    /// <response code="202">Returns the enqueued Hangfire job id</response>
     /// <response code="401">Unauthorized - Missing or invalid API key</response>
     /// <response code="403">Forbidden - Invalid API key</response>
     /// <response code="429">Too Many Requests - Rate limit exceeded</response>
@@ -37,7 +38,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     [HttpPost]
     [Route("generate-daily-summary")]
     [Produces("application/json")]
-    [ProducesResponseType(typeof(GenerateDailySummaryReportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EnqueueDailySummaryReportResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -46,7 +47,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         [FromServices] GenerateDailySummaryReportHandler handler,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Request to generate daily summary report received");
+        _logger.LogInformation("Request to enqueue daily summary report generation received");
 
         try
         {
@@ -59,14 +60,14 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
             var result = await handler.Process(request, cancellationToken);
             
             return result.Match(
-                Ok,
+                response => Accepted(response),
                 Problem
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate daily summary report");
-            return StatusCode(500, "Failed to generate daily summary report");
+            _logger.LogError(ex, "Failed to enqueue daily summary report generation");
+            return StatusCode(500, "Failed to enqueue daily summary report generation");
         }
     }
 

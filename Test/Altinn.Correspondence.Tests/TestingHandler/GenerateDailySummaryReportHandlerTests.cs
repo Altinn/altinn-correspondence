@@ -37,6 +37,7 @@ public class GenerateDailySummaryReportHandlerTests
             _mockServiceOwnerRepository.Object,
             _mockResourceRegistryService.Object,
             _mockStorageRepository.Object,
+            Mock.Of<Hangfire.IBackgroundJobClient>(),
             _mockLogger.Object,
             _mockHostEnvironment.Object);
     }

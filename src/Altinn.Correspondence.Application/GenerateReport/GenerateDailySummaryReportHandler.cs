@@ -4,6 +4,7 @@ using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -18,54 +19,67 @@ public class GenerateDailySummaryReportHandler(
     IServiceOwnerRepository serviceOwnerRepository,
     IResourceRegistryService resourceRegistryService,
     IStorageRepository storageRepository,
+    IBackgroundJobClient backgroundJobClient,
     ILogger<GenerateDailySummaryReportHandler> logger,
     IHostEnvironment hostEnvironment)
 {
-    public async Task<OneOf<GenerateDailySummaryReportResponse, Error>> Process(
+    /// <summary>
+    /// Enqueues report generation as a Hangfire background job and returns immediately.
+    /// Use download endpoints to fetch the parquet file after the job completes.
+    /// </summary>
+    public Task<OneOf<EnqueueDailySummaryReportResponse, Error>> Process(
         GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
     {
+        logger.LogInformation(
+            "Enqueueing daily summary report generation with Altinn2Included={altinn2Included}",
+            request.Altinn2Included);
+
+        var jobId = backgroundJobClient.Enqueue(() =>
+            ExecuteInBackground(request.Altinn2Included, CancellationToken.None));
+
+        logger.LogInformation("Daily summary report generation job {JobId} has been enqueued", jobId);
+
+        return Task.FromResult<OneOf<EnqueueDailySummaryReportResponse, Error>>(new EnqueueDailySummaryReportResponse
+        {
+            JobId = jobId,
+            Message = "Daily summary report generation has been enqueued. Use the download endpoint when the job has completed.",
+            Altinn2Included = request.Altinn2Included
+        });
+    }
+
+    /// <summary>
+    /// Performs report generation and upload. Invoked by Hangfire (API enqueue or recurring job).
+    /// </summary>
+    [AutomaticRetry(Attempts = 0)]
+    [DisableConcurrentExecution(timeoutInSeconds: 3600)]
+    public async Task ExecuteInBackground(bool altinn2Included, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", altinn2Included);
+
         try
         {
-            logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", request.Altinn2Included);
-
-            // Get per-correspondence daily summary data directly from database
-            var summaryDataDto = await correspondenceRepository.GetDailySummaryData(request.Altinn2Included, cancellationToken);
+            var summaryDataDto = await correspondenceRepository.GetDailySummaryData(altinn2Included, cancellationToken);
             logger.LogInformation("Retrieved {count} correspondence summary records from database", summaryDataDto.Count);
 
             if (summaryDataDto.Count == 0)
             {
                 logger.LogWarning("No correspondences found for daily summary report generation");
-                return StatisticsErrors.NoCorrespondencesFound;
+                return;
             }
 
-            // Map DTO to domain model and enrich with ResourceTitle
             var summaryData = await MapToDailySummaryData(summaryDataDto, cancellationToken);
             logger.LogInformation("Mapped and enriched data into {count} correspondence summary records", summaryData.Count);
 
-            // Generate parquet file and upload to blob storage
             var totalCorrespondenceCount = summaryData.Count;
-            var (blobUrl, fileHash, fileSize) = await GenerateAndUploadParquetFile(summaryData, totalCorrespondenceCount, request.Altinn2Included, cancellationToken);
-
-            var response = new GenerateDailySummaryReportResponse
-            {
-                FilePath = blobUrl, // Now contains the blob storage URL
-                ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
-                TotalCorrespondenceCount = totalCorrespondenceCount,
-                GeneratedAt = DateTimeOffset.UtcNow,
-                Environment = hostEnvironment.EnvironmentName ?? "Unknown",
-                FileSizeBytes = fileSize,
-                FileHash = fileHash,
-                Altinn2Included = request.Altinn2Included
-            };
+            var (blobUrl, _, _) = await GenerateAndUploadParquetFile(summaryData, totalCorrespondenceCount, altinn2Included, cancellationToken);
 
             logger.LogInformation("Successfully generated and uploaded daily summary report to blob storage: {blobUrl}", blobUrl);
-            return response;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to generate daily summary report");
-            return StatisticsErrors.ReportGenerationFailed;
+            throw;
         }
     }
 

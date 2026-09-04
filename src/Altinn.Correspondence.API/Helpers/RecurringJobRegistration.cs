@@ -24,7 +24,7 @@ public static class RecurringJobRegistration
 
         recurringJobManager.AddOrUpdate<GenerateDailySummaryReportHandler>(
             "Generate daily summary report",
-            handler => handler.Process(new GenerateDailySummaryReportRequest { Altinn2Included = false }, CancellationToken.None),
+            handler => handler.ExecuteInBackground(false, CancellationToken.None),
             Cron.Daily());
 
         recurringJobManager.AddOrUpdate<CleanupBruksmonsterHandler>(
