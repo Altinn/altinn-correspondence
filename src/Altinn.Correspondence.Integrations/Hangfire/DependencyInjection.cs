@@ -19,8 +19,13 @@ public static class DependencyInjection
         services.AddHangfire((provider, config) =>
         {
             config.UsePostgreSqlStorage(
-                c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>())
-            );
+                c => c.UseConnectionFactory(provider.GetService<IConnectionFactory>()),
+                new PostgreSqlStorageOptions
+                {
+                    // Default fixed timeout is 30 minutes; sliding heartbeats keep long-running
+                    // jobs (e.g. daily summary report) from being requeued while the worker is alive.
+                    UseSlidingInvisibilityTimeout = true
+                });
             config.UseLogProvider(new AspNetCoreLogProvider(provider.GetRequiredService<ILoggerFactory>()));
             config.UseFilter(new HangfireAppRequestFilter());
             config.UseSerializerSettings(new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });

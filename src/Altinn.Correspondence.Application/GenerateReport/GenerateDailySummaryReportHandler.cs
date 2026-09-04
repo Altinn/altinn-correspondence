@@ -52,7 +52,7 @@ public class GenerateDailySummaryReportHandler(
     /// Performs report generation and upload. Invoked by Hangfire (API enqueue or recurring job).
     /// </summary>
     [AutomaticRetry(Attempts = 0)]
-    [DisableConcurrentExecution(timeoutInSeconds: 3600)]
+    [DisableConcurrentExecution(timeoutInSeconds: 14400)]
     public async Task ExecuteInBackground(bool altinn2Included, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", altinn2Included);
