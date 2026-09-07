@@ -3,6 +3,7 @@ using Azure.Monitor.OpenTelemetry.Exporter;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -60,13 +61,25 @@ public static class DependencyInjection
         if (!string.IsNullOrWhiteSpace(generalSettings.ApplicationInsightsConnectionString))
         {
             services.ConfigureOpenTelemetryMeterProvider(metrics =>
-                metrics.AddAzureMonitorMetricExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
+                metrics.AddAzureMonitorMetricExporter(o => {
+                    o.ConnectionString = generalSettings.ApplicationInsightsConnectionString;
+                    o.SamplingRatio = 1.0f;
+                    o.TracesPerSecond = null;
+                }));
 
             services.ConfigureOpenTelemetryTracerProvider(tracing =>
-                tracing.AddAzureMonitorTraceExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
+                tracing.AddAzureMonitorTraceExporter(o => {
+                    o.ConnectionString = generalSettings.ApplicationInsightsConnectionString;
+                    o.SamplingRatio = 1.0f;
+                    o.TracesPerSecond = null;
+                }));
 
             services.ConfigureOpenTelemetryLoggerProvider(logging =>
-                logging.AddAzureMonitorLogExporter(o => o.ConnectionString = generalSettings.ApplicationInsightsConnectionString));
+                logging.AddAzureMonitorLogExporter(o => {
+                    o.ConnectionString = generalSettings.ApplicationInsightsConnectionString;
+                    o.SamplingRatio = 1.0f;
+                    o.TracesPerSecond = null;
+                }));
         }
 
         return services;
