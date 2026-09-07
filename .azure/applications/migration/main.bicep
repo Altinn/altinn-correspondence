@@ -118,7 +118,7 @@ module containerAppJob '../../modules/migrationJob/main.bicep' = {
         cd /tmp && ./bundle.exe
       '''
     ]
-    image: 'ubuntu:latest'
+    image: 'ubuntu:24.04'
     principalId: userAssignedIdentity.id
   }
 }

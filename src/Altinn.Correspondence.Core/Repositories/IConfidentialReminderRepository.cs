@@ -6,6 +6,7 @@ namespace Altinn.Correspondence.Core.Repositories
     {
         Task<Guid> AddConfidentialReminder(ConfidentialReminderEntity reminder, CancellationToken cancellationToken);
         Task RemoveConfidentialReminderByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken);
+        Task<ConfidentialReminderEntity?> GetByCorrespondenceId(Guid correspondenceId, CancellationToken cancellationToken);
         Task<int> NumberOfRemindersForRecipient(string recipient, CancellationToken cancellationToken);
         Task<bool> CorrespondenceHasReminder(Guid correspondenceId, CancellationToken cancellationToken);
         Task<Guid?> GetDialogIdOfReminderForRecipient(string recipient, CancellationToken cancellationToken);

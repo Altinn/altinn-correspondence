@@ -207,6 +207,9 @@ public class InitializeCorrespondencesHandler(
         };
     }
 
+    // The publish job continues from this one on any finished state. Failed is not final in Hangfire, so without Delete
+    // the publish job never runs and the correspondence is stuck in status Initialized instead of getting Failed.
+    [AutomaticRetry(OnAttemptsExceeded = AttemptsExceededAction.Delete)]
     public async Task CreateDialogportenDialog(Guid correspondenceId)
     {
         logger.LogInformation("Creating Dialogporten dialog for correspondence {CorrespondenceId}", correspondenceId);
@@ -215,6 +218,8 @@ public class InitializeCorrespondencesHandler(
         logger.LogInformation("Successfully created Dialogporten dialog for correspondence {CorrespondenceId}", correspondenceId);
     }
 
+    // Must reach a final state so the publish continuation runs. See CreateDialogportenDialog.
+    [AutomaticRetry(OnAttemptsExceeded = AttemptsExceededAction.Delete)]
     public async Task CreateDialogportenTransmission(Guid correspondenceId)
     {
         logger.LogInformation("Creating Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);

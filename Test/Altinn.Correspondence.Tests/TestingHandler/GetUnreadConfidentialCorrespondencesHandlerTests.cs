@@ -5,6 +5,7 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Tests.Factories;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 
@@ -33,7 +34,8 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
             _altinnAuthorizationServiceMock.Object,
             _altinnRegisterServiceMock.Object,
             _resourceRegistryServiceMock.Object,
-            _hostEnvironmentMock.Object);
+            _hostEnvironmentMock.Object,
+            Mock.Of<ILogger<GetUnreadConfidentialCorrespondencesHandler>>());
     }
 
     private static ClaimsPrincipal CreateOrgUser(string orgNumber = "991825827")
@@ -180,7 +182,7 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
     }
 
     [Fact]
-    public async Task Process_ConfidentialCorrespondencesNotFound_ReturnsNotFound()
+    public async Task Process_NoUnreadConfidentialCorrespondences_ReturnsSuccessWithLocalizedText()
     {
         // Arrange
         var user = CreateOrgUser();
@@ -195,8 +197,8 @@ public class GetUnreadConfidentialCorrespondencesHandlerTests
         var result = await _handler.Process(user, "nb", CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsT1);
-        Assert.Equal(CorrespondenceErrors.UnreadConfidentialCorrespondencesNotFound.ErrorCode, result.AsT1.ErrorCode);
+        Assert.True(result.IsT0);
+        Assert.Equal("Alle taushetsbelagte meldinger er nå åpnet", result.AsT0.Text);
     }
 
     [Fact]

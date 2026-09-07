@@ -143,7 +143,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 
         public Task<string> CreateConfidentialReminderDialog(ConfidentialReminderDialogDto reminder)
         {
-            return Task.FromResult(Guid.NewGuid().ToString());
+            return Task.FromResult(reminder.DialogId == Guid.Empty ? Guid.NewGuid().ToString() : reminder.DialogId.ToString());
         }
 
         public Task TryAddDownloadAllAttachmentsToDialog(Guid correspondenceId, CancellationToken cancellationToken = default)

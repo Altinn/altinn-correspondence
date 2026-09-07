@@ -72,7 +72,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
         {
             return new CreateDialogRequest
             {
-                Id = Guid.CreateVersion7().ToString(), // Dialogporten requires time-stamped GUIDs
+                // Dialogporten requires UUID v7; DialogId is a pre-allocated idempotency key so retries reuse the same dialog
+                Id = reminder.DialogId.ToString(),
                 ServiceResource = UrnConstants.Resource + ":" + reminder.ResourceId,
                 Party = reminder.Recipient,
                 CreatedAt = reminder.Created,

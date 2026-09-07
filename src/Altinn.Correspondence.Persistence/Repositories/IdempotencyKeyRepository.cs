@@ -80,4 +80,30 @@ public class IdempotencyKeyRepository(ApplicationDbContext dbContext, int maxHar
         _dbContext.IdempotencyKeys.RemoveRange(keys);
         return await _dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<IdempotencyKeyEntity?> GetByPartyUrnAndTypeAsync(
+        string partyUrn,
+        IdempotencyType idempotencyType,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.IdempotencyKeys
+            .FirstOrDefaultAsync(k =>
+                k.PartyUrn == partyUrn &&
+                k.IdempotencyType == idempotencyType,
+                cancellationToken);
+    }
+
+    public async Task DeleteByPartyUrnAndTypeAsync(
+        string partyUrn,
+        IdempotencyType idempotencyType,
+        CancellationToken cancellationToken)
+    {
+        var idempotencyKey = await GetByPartyUrnAndTypeAsync(partyUrn, idempotencyType, cancellationToken);
+        if (idempotencyKey is null)
+        {
+            return;
+        }
+        _dbContext.IdempotencyKeys.Remove(idempotencyKey);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
 } 

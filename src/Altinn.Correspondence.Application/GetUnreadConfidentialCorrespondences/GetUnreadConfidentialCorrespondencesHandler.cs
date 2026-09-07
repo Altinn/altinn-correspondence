@@ -1,11 +1,12 @@
-using System.Security.Claims;
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondenceReminder;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using OneOf;
+using System.Security.Claims;
 
 namespace Altinn.Correspondence.Application.GetUnreadConfidentialCorrespondences;
 
@@ -14,7 +15,8 @@ public class GetUnreadConfidentialCorrespondencesHandler(
     IAltinnAuthorizationService altinnAuthorizationService,
     IAltinnRegisterService altinnRegisterService,
     IResourceRegistryService resourceRegistryService,
-    IHostEnvironment hostEnvironment
+    IHostEnvironment hostEnvironment,
+    ILogger<GetUnreadConfidentialCorrespondencesHandler> logger
     )
 {
     public async Task<OneOf<GetUnreadConfidentialCorrespondencesResponse, Error>> Process(ClaimsPrincipal user, string languageCode, CancellationToken cancellationToken = default)
@@ -44,7 +46,16 @@ public class GetUnreadConfidentialCorrespondencesHandler(
 
         if (correspondences.Count == 0)
         {
-            return CorrespondenceErrors.UnreadConfidentialCorrespondencesNotFound;
+            var text = languageCode switch
+            {
+                "nb" => "Alle taushetsbelagte meldinger er nå åpnet",
+                "nn" => "Alle tausheitsbelagte meldingar er no opna",
+                "en" => "All confidential correspondences are now opened",
+                _ => "Alle taushetsbelagte meldinger er nå åpnet"
+            };
+            
+            logger.LogInformation("All confidential correspondences are now opened for organization {Organization}", recipientOrg);
+            return new GetUnreadConfidentialCorrespondencesResponse() { Text = text };
         }
 
 

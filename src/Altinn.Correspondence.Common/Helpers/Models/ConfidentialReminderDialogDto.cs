@@ -9,6 +9,11 @@ namespace Altinn.Correspondence.Common.Helpers.Models
         [Key]
         public Guid Id { get; set; }
 
+        /// <summary>
+        /// Dialogporten dialog id. Must be a UUID v7; reused via idempotency key so concurrent creates share one dialog.
+        /// </summary>
+        public Guid DialogId { get; set; }
+
         [StringLength(255, MinimumLength = 1)]
         [Required]
         public required string ResourceId { get; set; }
