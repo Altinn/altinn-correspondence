@@ -72,7 +72,7 @@ public class GenerateDailySummaryReportHandlerTests
                 ReminderShipmentId = Guid.Parse("33333333-3333-3333-3333-333333333333")
             }
         };
-        _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync(correspondenceDailySummaries);
+        _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<int>())).ReturnsAsync(correspondenceDailySummaries);
 
         var serviceOwner = new ServiceOwnerEntity 
         { 

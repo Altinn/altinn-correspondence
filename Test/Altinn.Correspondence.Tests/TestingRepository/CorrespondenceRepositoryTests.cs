@@ -199,6 +199,54 @@ namespace Altinn.Correspondence.Tests.TestingRepository
         }
 
         [Fact]
+        public async Task GetDailySummaryData_WithSmallBatchSize_PagesAllCorrespondencesViaKeysetCursor()
+        {
+            await using var context = TestDbContextFactory.Create();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var serviceOwnerId = $"so-{Guid.NewGuid():N}";
+            var resourceId = $"test-resource-{Guid.NewGuid():N}";
+            var baseCreated = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
+
+            context.ServiceOwners.Add(new ServiceOwnerEntity
+            {
+                Id = serviceOwnerId,
+                Name = "Test Service Owner",
+                StorageProviders = new List<StorageProviderEntity>()
+            });
+
+            var ids = new List<Guid>();
+            for (var i = 0; i < 5; i++)
+            {
+                var correspondence = new CorrespondenceEntityBuilder()
+                    .WithServiceOwnerId(serviceOwnerId)
+                    .WithCreated(baseCreated.AddMinutes(i))
+                    .WithResourceId(resourceId)
+                    .Build();
+                correspondence.Altinn2CorrespondenceId = null;
+                correspondence.MessageSender = "sender-a";
+                correspondence.RecipientType = UrnConstants.OrganizationNumberAttribute;
+                context.Correspondences.Add(correspondence);
+                ids.Add(correspondence.Id);
+            }
+
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetDailySummaryData(
+                includeAltinn2: false,
+                cancellationToken: CancellationToken.None,
+                batchSize: 2);
+
+            var rowsForResource = result
+                .Where(r => r.ServiceOwnerId == serviceOwnerId && r.ResourceId == resourceId)
+                .Select(r => r.CorrespondenceId)
+                .ToList();
+
+            Assert.Equal(5, rowsForResource.Count);
+            Assert.Equal(ids.OrderBy(id => id).ToList(), rowsForResource.OrderBy(id => id).ToList());
+        }
+
+        [Fact]
         public async Task GetCorrespondencesWindowAfter_TieBreakerOnEqualCreated_UsesIdAscending()
         {
             await using var context = TestDbContextFactory.Create();

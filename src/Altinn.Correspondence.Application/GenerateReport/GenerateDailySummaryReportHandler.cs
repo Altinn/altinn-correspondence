@@ -55,10 +55,11 @@ public class GenerateDailySummaryReportHandler(
     [DisableConcurrentExecution(timeoutInSeconds: 14400)]
     public async Task ExecuteInBackground(bool altinn2Included, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", altinn2Included);
+            logger.LogInformation("Starting daily summary report generation with Altinn2Included={altinn2Included}", altinn2Included);
 
         try
         {
+            // Keyset-paged in the repository (default 5000 rows per DB round-trip) to avoid long single queries.
             var summaryDataDto = await correspondenceRepository.GetDailySummaryData(altinn2Included, cancellationToken);
             logger.LogInformation("Retrieved {count} correspondence summary records from database", summaryDataDto.Count);
 

@@ -85,7 +85,13 @@ namespace Altinn.Correspondence.Core.Repositories
 
         Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);
 
-        Task<List<DailySummaryDataDto>> GetDailySummaryData(bool includeAltinn2, CancellationToken cancellationToken);
+        /// <summary>
+        /// Loads per-correspondence daily summary rows in keyset-paged batches to avoid long-running DB queries.
+        /// </summary>
+        /// <param name="includeAltinn2">Whether to include Altinn2 correspondences (currently unsupported when true).</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="batchSize">Max rows per database round-trip. Defaults to 5000.</param>
+        Task<List<DailySummaryDataDto>> GetDailySummaryData(bool includeAltinn2, CancellationToken cancellationToken, int batchSize = 5000);
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);
 

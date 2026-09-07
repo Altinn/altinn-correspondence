@@ -511,70 +511,97 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<DailySummaryDataDto>> GetDailySummaryData(bool includeAltinn2, CancellationToken cancellationToken)
+        public async Task<List<DailySummaryDataDto>> GetDailySummaryData(bool includeAltinn2, CancellationToken cancellationToken, int batchSize = 5000)
         {
-            var query = _context.Correspondences.AsQueryable();
-
-            // Filter by Altinn version if needed
-            if (!includeAltinn2)
-            {
-                query = query
-                    .Where(c => c.Altinn2CorrespondenceId == null)
-                    .Where(c => c.Created > new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
-            }
             if (includeAltinn2)
             {
                 throw new ArgumentException("Not supported");
             }
 
-            // One row per correspondence, including main/reminder notification shipment IDs
-            var correspondenceRows = await query
-                .Select(c => new
-                {
-                    c.Id,
-                    c.Created,
-                    c.ServiceOwnerId,
-                    c.MessageSender,
-                    c.ResourceId,
-                    c.RecipientType,
-                    c.PropertyList,
-                    ShipmentId = c.Notifications
-                        .Where(n => !n.IsReminder)
-                        .Select(n => n.ShipmentId)
-                        .FirstOrDefault(),
-                    ReminderShipmentId = c.Notifications
-                        .Where(n => n.IsReminder)
-                        .Select(n => n.ShipmentId)
-                        .FirstOrDefault()
-                })
-                .ToListAsync(cancellationToken);
+            if (batchSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
+            }
 
-            // Get service owner names in bulk
-            var serviceOwnerIds = correspondenceRows
-                .Select(c => c.ServiceOwnerId)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Distinct()
-                .ToList();
+            // Per-batch timeout; keyset paging keeps each round-trip bounded.
+            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
+
             var serviceOwners = await _context.ServiceOwners
-                .Where(so => serviceOwnerIds.Contains(so.Id))
+                .AsNoTracking()
                 .ToDictionaryAsync(so => so.Id, so => so.Name, cancellationToken);
 
-            // Map to DailySummaryDataDto
-            var summaryData = correspondenceRows
-                // Exclude correspondences that can't be resolved to a service owner in the ServiceOwners table (old legacy test data)
-                .Where(c => !string.IsNullOrEmpty(c.ServiceOwnerId) && serviceOwners.ContainsKey(c.ServiceOwnerId))
-                .Select(c =>
+            var createdAfter = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var summaryData = new List<DailySummaryDataDto>();
+            DateTimeOffset? cursorCreated = null;
+            Guid? cursorId = null;
+            var batchNumber = 0;
+
+            while (true)
+            {
+                batchNumber++;
+                var query = _context.Correspondences
+                    .AsNoTracking()
+                    .Where(c => c.Altinn2CorrespondenceId == null)
+                    .Where(c => c.Created > createdAfter);
+
+                if (cursorCreated.HasValue && cursorId.HasValue)
                 {
+                    query = query.Where(c => EF.Functions.GreaterThan(
+                        ValueTuple.Create(c.Created, c.Id),
+                        ValueTuple.Create(cursorCreated.Value, cursorId.Value)));
+                }
+                else if (cursorCreated.HasValue)
+                {
+                    query = query.Where(c => c.Created > cursorCreated.Value);
+                }
+
+                var batch = await query
+                    .OrderBy(c => c.Created)
+                    .ThenBy(c => c.Id)
+                    .Take(batchSize)
+                    .Select(c => new
+                    {
+                        c.Id,
+                        c.Created,
+                        c.ServiceOwnerId,
+                        c.MessageSender,
+                        c.ResourceId,
+                        c.RecipientType,
+                        c.PropertyList,
+                        ShipmentId = c.Notifications
+                            .Where(n => !n.IsReminder)
+                            .Select(n => n.ShipmentId)
+                            .FirstOrDefault(),
+                        ReminderShipmentId = c.Notifications
+                            .Where(n => n.IsReminder)
+                            .Select(n => n.ShipmentId)
+                            .FirstOrDefault()
+                    })
+                    .ToListAsync(cancellationToken);
+
+                if (batch.Count == 0)
+                {
+                    break;
+                }
+
+                var keptBefore = summaryData.Count;
+                foreach (var c in batch)
+                {
+                    if (string.IsNullOrEmpty(c.ServiceOwnerId) || !serviceOwners.ContainsKey(c.ServiceOwnerId))
+                    {
+                        continue;
+                    }
+
                     var date = c.Created.Date;
-                    return new DailySummaryDataDto
+                    summaryData.Add(new DailySummaryDataDto
                     {
                         CorrespondenceId = c.Id,
                         Date = date,
                         Year = date.Year,
                         Month = date.Month,
                         Day = date.Day,
-                        ServiceOwnerId = c.ServiceOwnerId!,
-                        ServiceOwnerName = serviceOwners[c.ServiceOwnerId!],
+                        ServiceOwnerId = c.ServiceOwnerId,
+                        ServiceOwnerName = serviceOwners[c.ServiceOwnerId],
                         MessageSender = c.MessageSender ?? string.Empty,
                         SenderOrgNumber = GetSenderOrgNumberFromPropertyList(c.PropertyList),
                         ResourceId = c.ResourceId,
@@ -592,8 +619,29 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         AttachmentStorageBytes = 0,
                         ShipmentId = c.ShipmentId,
                         ReminderShipmentId = c.ReminderShipmentId
-                    };
-                })
+                    });
+                }
+
+                var last = batch[^1];
+                cursorCreated = last.Created;
+                cursorId = last.Id;
+
+                logger.LogInformation(
+                    "Daily summary data batch {BatchNumber}: fetched {FetchedCount} correspondences (kept {KeptCount}, total kept {TotalKept}). Cursor={CursorCreated}/{CursorId}",
+                    batchNumber,
+                    batch.Count,
+                    summaryData.Count - keptBefore,
+                    summaryData.Count,
+                    cursorCreated,
+                    cursorId);
+
+                if (batch.Count < batchSize)
+                {
+                    break;
+                }
+            }
+
+            return summaryData
                 .OrderBy(d => d.Date)
                 .ThenBy(d => d.ServiceOwnerId)
                 .ThenBy(d => d.MessageSender)
@@ -601,8 +649,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ThenBy(d => d.RecipientType)
                 .ThenBy(d => d.CorrespondenceId)
                 .ToList();
-
-            return summaryData;
         }
 
         private static string? GetSenderOrgNumberFromPropertyList(Dictionary<string, string>? propertyList)
