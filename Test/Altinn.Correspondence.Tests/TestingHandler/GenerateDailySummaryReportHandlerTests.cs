@@ -72,7 +72,12 @@ public class GenerateDailySummaryReportHandlerTests
                 ReminderShipmentId = Guid.Parse("33333333-3333-3333-3333-333333333333")
             }
         };
-        _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<int>())).ReturnsAsync(correspondenceDailySummaries);
+        _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(
+            It.IsAny<bool>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<CancellationToken>(),
+            It.IsAny<int>())).ReturnsAsync(correspondenceDailySummaries);
 
         var serviceOwner = new ServiceOwnerEntity 
         { 
@@ -141,6 +146,31 @@ public class GenerateDailySummaryReportHandlerTests
         Assert.Equal("910753614", rows[0].SenderOrgNumber);
         Assert.Equal("22222222-2222-2222-2222-222222222222", rows[0].ShipmentId);
         Assert.Equal("33333333-3333-3333-3333-333333333333", rows[0].ReminderShipmentId);
+    }
+
+    [Fact]
+    public void ResolveReportMonth_WhenYearAndMonthOmitted_UsesCurrentUtcMonth()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var (year, month) = GenerateDailySummaryReportHandler.ResolveReportMonth(new GenerateDailySummaryReportRequest());
+        Assert.Equal(now.Year, year);
+        Assert.Equal(now.Month, month);
+    }
+
+    [Fact]
+    public void ResolveReportMonth_WhenYearAndMonthProvided_UsesThem()
+    {
+        var (year, month) = GenerateDailySummaryReportHandler.ResolveReportMonth(
+            new GenerateDailySummaryReportRequest { Year = 2025, Month = 8 });
+        Assert.Equal(2025, year);
+        Assert.Equal(8, month);
+    }
+
+    [Fact]
+    public void BuildMonthlyReportFileName_UsesStableYearMonthName()
+    {
+        var fileName = GenerateDailySummaryReportHandler.BuildMonthlyReportFileName(2026, 9, false, "Production");
+        Assert.Equal("daily_summary_report_202609_A3_Production.parquet", fileName);
     }
 
 

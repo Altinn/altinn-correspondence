@@ -16,14 +16,14 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     private readonly ILogger<StatisticsController> _logger = logger;
 
     /// <summary>
-    /// Enqueue generation of a daily summary report with one row per correspondence
+    /// Enqueue generation of a monthly daily summary report (one row per correspondence)
     /// </summary>
     /// <remarks>
-    /// Enqueues a Hangfire background job that builds a parquet file with per-correspondence
-    /// summary data (including notification shipment IDs when present) and uploads it to blob storage.
+    /// Enqueues a Hangfire background job that builds a parquet file for a single UTC month
+    /// and uploads/overwrites it in blob storage. Defaults to the current UTC month; optional
+    /// year/month on the request allow backfill of older months. The daily recurring job only
+    /// regenerates the current month so older monthly files stay unchanged.
     /// Returns immediately with a job id. Use the download endpoint after the job has completed.
-    /// Accounting consumers can aggregate on their side as needed.
-    /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
     /// </remarks>
@@ -130,21 +130,22 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         }
     }
     /// <summary>
-    /// Download the daily summary report with one row per correspondence
+    /// Download a monthly daily summary report with one row per correspondence
     /// </summary>
     /// <remarks>
-    /// This returns a parquet file with per-correspondence summary data directly as a file download.
-    /// Each row represents one correspondence, including notification shipment IDs when present.
-    /// The response includes both the file and metadata about the report.
+    /// Returns the parquet file for the requested UTC month (defaults to the current UTC month
+    /// when year/month are omitted). Each row represents one correspondence, including
+    /// notification shipment IDs when present. The response includes both the file and metadata.
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
     /// </remarks>
-    /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
+    /// <param name="request">Request parameters including optional year/month and whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Returns the parquet file with metadata</response>
     /// <response code="401">Unauthorized - Missing or invalid API key</response>
     /// <response code="403">Forbidden - Invalid API key</response>
+    /// <response code="404">Report for the requested month was not found</response>
     /// <response code="429">Too Many Requests - Rate limit exceeded</response>
     /// <response code="500">Internal server error</response>
     [HttpPost]
@@ -153,6 +154,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> DownloadDailySummary(
         [FromBody] GenerateDailySummaryReportRequest request,

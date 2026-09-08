@@ -100,7 +100,11 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             context.Correspondences.Add(correspondence);
             await context.SaveChangesAsync();
 
-            var result = await repo.GetDailySummaryData(includeAltinn2: false, cancellationToken: CancellationToken.None);
+            var result = await repo.GetDailySummaryData(
+                includeAltinn2: false,
+                fromInclusive: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                toExclusive: new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+                cancellationToken: CancellationToken.None);
 
             var row = Assert.Single(result, r =>
                 r.ServiceOwnerId == serviceOwnerId &&
@@ -179,7 +183,11 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             context.Correspondences.AddRange(correspondence1, correspondence2);
             await context.SaveChangesAsync();
 
-            var result = await repo.GetDailySummaryData(includeAltinn2: false, cancellationToken: CancellationToken.None);
+            var result = await repo.GetDailySummaryData(
+                includeAltinn2: false,
+                fromInclusive: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                toExclusive: new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+                cancellationToken: CancellationToken.None);
 
             var rowsForResource = result
                 .Where(r => r.ServiceOwnerId == serviceOwnerId && r.ResourceId == resourceId)
@@ -234,6 +242,8 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             var result = await repo.GetDailySummaryData(
                 includeAltinn2: false,
+                fromInclusive: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                toExclusive: new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
                 cancellationToken: CancellationToken.None,
                 batchSize: 2);
 

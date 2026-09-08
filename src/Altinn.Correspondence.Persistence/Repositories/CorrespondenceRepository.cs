@@ -511,7 +511,12 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<DailySummaryDataDto>> GetDailySummaryData(bool includeAltinn2, CancellationToken cancellationToken, int batchSize = 5000)
+        public async Task<List<DailySummaryDataDto>> GetDailySummaryData(
+            bool includeAltinn2,
+            DateTimeOffset fromInclusive,
+            DateTimeOffset toExclusive,
+            CancellationToken cancellationToken,
+            int batchSize = 5000)
         {
             if (includeAltinn2)
             {
@@ -523,6 +528,11 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
             }
 
+            if (toExclusive <= fromInclusive)
+            {
+                throw new ArgumentException("toExclusive must be greater than fromInclusive.");
+            }
+
             // Per-batch timeout; keyset paging keeps each round-trip bounded.
             _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
 
@@ -530,7 +540,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .AsNoTracking()
                 .ToDictionaryAsync(so => so.Id, so => so.Name, cancellationToken);
 
-            var createdAfter = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
             var summaryData = new List<DailySummaryDataDto>();
             DateTimeOffset? cursorCreated = null;
             Guid? cursorId = null;
@@ -542,7 +551,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 var query = _context.Correspondences
                     .AsNoTracking()
                     .Where(c => c.Altinn2CorrespondenceId == null)
-                    .Where(c => c.Created > createdAfter);
+                    .Where(c => c.Created >= fromInclusive && c.Created < toExclusive);
 
                 if (cursorCreated.HasValue && cursorId.HasValue)
                 {
@@ -627,11 +636,13 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 cursorId = last.Id;
 
                 logger.LogInformation(
-                    "Daily summary data batch {BatchNumber}: fetched {FetchedCount} correspondences (kept {KeptCount}, total kept {TotalKept}). Cursor={CursorCreated}/{CursorId}",
+                    "Daily summary data batch {BatchNumber}: fetched {FetchedCount} correspondences (kept {KeptCount}, total kept {TotalKept}). Range=[{FromInclusive}, {ToExclusive}). Cursor={CursorCreated}/{CursorId}",
                     batchNumber,
                     batch.Count,
                     summaryData.Count - keptBefore,
                     summaryData.Count,
+                    fromInclusive,
+                    toExclusive,
                     cursorCreated,
                     cursorId);
 

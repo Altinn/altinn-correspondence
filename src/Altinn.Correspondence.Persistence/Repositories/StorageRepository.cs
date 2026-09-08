@@ -353,29 +353,18 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     .FirstOrDefaultAsync(cancellationToken);
                 if (latestBlob == null)
                 {
-                    throw new ArgumentException("No report files found in blob storage");
+                    throw new FileNotFoundException("No report files found in blob storage");
                 }
-                var blobClient = blobContainerClient.GetBlobClient(latestBlob.Name);
-                var stream = await blobClient.OpenReadAsync(new BlobOpenReadOptions(allowModifications: false)
-                {
-                    BufferSize = 4 * 1024 * 1024 // 4 MiB buffer
-                }, cancellationToken);
-                var blobProperties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
-                var hash = BitConverter.ToString(blobProperties.Value.ContentHash).Replace("-", "").ToLowerInvariant();
-                blobProperties.Value.Metadata.TryGetValue(SERVICE_OWNER_COUNT_TAG, out var serviceOwnerCountTag);
-                var serviceOwnerCount = serviceOwnerCountTag != null ? int.Parse(serviceOwnerCountTag) : 0;
-                blobProperties.Value.Metadata.TryGetValue(CORRESPONDENCE_COUNT_TAG, out var correspondenceCountTag);
-                var correspondenceCount = correspondenceCountTag != null ? int.Parse(correspondenceCountTag) : 0;
-                return (stream, blobClient.Name, blobProperties.Value.ContentLength, hash, serviceOwnerCount, correspondenceCount);
+                return await DownloadReportFile(latestBlob.Name, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not FileNotFoundException)
             {
                 _logger.LogError(ex, "Failed to download latest report file");
                 throw;
             }
         }
 
-    public async Task<Stream> DownloadReportFile(string fileName, CancellationToken cancellationToken)
+    public async Task<(Stream DownloadStream, string FileName, long FileSize, string FileHash, int ServiceOwnerCount, int CorrespondenceCount)> DownloadReportFile(string fileName, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Starting download of report file: {fileName}", fileName);
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -385,25 +374,33 @@ namespace Altinn.Correspondence.Persistence.Repositories
             var blobContainerClient = await GetReportsBlobContainerClient(cancellationToken);
             var blobClient = blobContainerClient.GetBlobClient(fileName);
             
-            // Check if the blob exists
             var exists = await blobClient.ExistsAsync(cancellationToken);
             if (!exists.Value)
             {
                 throw new FileNotFoundException($"Report file '{fileName}' not found in blob storage");
             }
             
-            // Stream directly from blob to avoid large in-memory buffers
             var stream = await blobClient.OpenReadAsync(new BlobOpenReadOptions(allowModifications: false)
             {
                 BufferSize = 4 * 1024 * 1024 // 4 MiB buffer
             }, cancellationToken);
+
+            var blobProperties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
+            var contentHash = blobProperties.Value.ContentHash;
+            var hash = contentHash is null
+                ? string.Empty
+                : BitConverter.ToString(contentHash).Replace("-", "").ToLowerInvariant();
+            blobProperties.Value.Metadata.TryGetValue(SERVICE_OWNER_COUNT_TAG, out var serviceOwnerCountTag);
+            var serviceOwnerCount = serviceOwnerCountTag != null ? int.Parse(serviceOwnerCountTag) : 0;
+            blobProperties.Value.Metadata.TryGetValue(CORRESPONDENCE_COUNT_TAG, out var correspondenceCountTag);
+            var correspondenceCount = correspondenceCountTag != null ? int.Parse(correspondenceCountTag) : 0;
             
             stopwatch.Stop();
             _logger.LogDebug("Successfully downloaded report file {fileName} in {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
             
-            return stream;
+            return (stream, fileName, blobProperties.Value.ContentLength, hash, serviceOwnerCount, correspondenceCount);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not FileNotFoundException)
         {
             stopwatch.Stop();
             _logger.LogError(ex, "Failed to download report file {fileName} after {elapsedMs}ms", fileName, stopwatch.ElapsedMilliseconds);
