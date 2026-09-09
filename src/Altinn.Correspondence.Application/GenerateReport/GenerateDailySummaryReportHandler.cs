@@ -32,6 +32,12 @@ public class GenerateDailySummaryReportHandler(
         GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.Altinn2Included)
+        {
+            logger.LogWarning("Enqueue of daily summary report with Altinn2Included=true is not supported. Returning error.");
+            return Task.FromResult<OneOf<EnqueueDailySummaryReportResponse, Error>>(StatisticsErrors.Altinn2NotSupported);
+        }
+
         int year;
         int month;
         try
@@ -70,15 +76,16 @@ public class GenerateDailySummaryReportHandler(
     }
 
     /// <summary>
-    /// Regenerates only the current UTC month. Used by the daily Hangfire recurring job
-    /// so older monthly reports remain unchanged.
+    /// Regenerates the current UTC month, except on the first days of the month when the previous
+    /// UTC month is regenerated for a final catch-up. Used by the daily Hangfire recurring job.
     /// </summary>
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 14400)]
     public Task ExecuteCurrentMonthInBackground(bool altinn2Included, CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
-        return ExecuteInBackground(altinn2Included, now.Year, now.Month, cancellationToken);
+        var (year, month) = ResolveRecurringReportMonth(now);
+        return ExecuteInBackground(altinn2Included, year, month, cancellationToken);
     }
 
     /// <summary>
@@ -167,6 +174,23 @@ public class GenerateDailySummaryReportHandler(
 
         return (request.Year.Value, request.Month.Value);
     }
+
+    /// <summary>
+    /// On UTC days 1-3 of a month, regenerate the previous month for final catch-up;
+    /// otherwise regenerate the current UTC month.
+    /// </summary>
+    public static (int Year, int Month) ResolveRecurringReportMonth(DateTimeOffset now)
+    {
+        if (now.Day <= PreviousMonthFinalizationDayInclusive)
+        {
+            var previousMonth = now.AddMonths(-1);
+            return (previousMonth.Year, previousMonth.Month);
+        }
+
+        return (now.Year, now.Month);
+    }
+
+    private const int PreviousMonthFinalizationDayInclusive = 3;
 
     public static (DateTimeOffset FromInclusive, DateTimeOffset ToExclusive) GetUtcMonthRange(int year, int month)
     {

@@ -579,10 +579,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         c.PropertyList,
                         ShipmentId = c.Notifications
                             .Where(n => !n.IsReminder)
+                            .OrderByDescending(n => n.RequestedSendTime)
+                            .ThenByDescending(n => n.Id)
                             .Select(n => n.ShipmentId)
                             .FirstOrDefault(),
                         ReminderShipmentId = c.Notifications
                             .Where(n => n.IsReminder)
+                            .OrderByDescending(n => n.RequestedSendTime)
+                            .ThenByDescending(n => n.Id)
                             .Select(n => n.ShipmentId)
                             .FirstOrDefault()
                     })

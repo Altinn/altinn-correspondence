@@ -373,19 +373,26 @@ namespace Altinn.Correspondence.Persistence.Repositories
         {
             var blobContainerClient = await GetReportsBlobContainerClient(cancellationToken);
             var blobClient = blobContainerClient.GetBlobClient(fileName);
-            
-            var exists = await blobClient.ExistsAsync(cancellationToken);
-            if (!exists.Value)
+
+            Response<BlobProperties> blobProperties;
+            try
             {
-                throw new FileNotFoundException($"Report file '{fileName}' not found in blob storage");
+                blobProperties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
             }
-            
+            catch (RequestFailedException ex) when (ex.Status == 404)
+            {
+                throw new FileNotFoundException($"Report file '{fileName}' not found in blob storage", ex);
+            }
+
             var stream = await blobClient.OpenReadAsync(new BlobOpenReadOptions(allowModifications: false)
             {
-                BufferSize = 4 * 1024 * 1024 // 4 MiB buffer
+                BufferSize = 4 * 1024 * 1024, // 4 MiB buffer
+                Conditions = new BlobRequestConditions
+                {
+                    IfMatch = blobProperties.Value.ETag
+                }
             }, cancellationToken);
 
-            var blobProperties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
             var contentHash = blobProperties.Value.ContentHash;
             var hash = contentHash is null
                 ? string.Empty

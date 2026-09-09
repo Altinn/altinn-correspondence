@@ -151,10 +151,32 @@ public class GenerateDailySummaryReportHandlerTests
     [Fact]
     public void ResolveReportMonth_WhenYearAndMonthOmitted_UsesCurrentUtcMonth()
     {
-        var now = DateTimeOffset.UtcNow;
+        var before = DateTimeOffset.UtcNow;
         var (year, month) = GenerateDailySummaryReportHandler.ResolveReportMonth(new GenerateDailySummaryReportRequest());
-        Assert.Equal(now.Year, year);
-        Assert.Equal(now.Month, month);
+        var after = DateTimeOffset.UtcNow;
+
+        var matchesBefore = year == before.Year && month == before.Month;
+        var matchesAfter = year == after.Year && month == after.Month;
+        Assert.True(matchesBefore || matchesAfter,
+            $"Expected ({before.Year}-{before.Month:D2}) or ({after.Year}-{after.Month:D2}), got ({year}-{month:D2}).");
+    }
+
+    [Fact]
+    public void ResolveRecurringReportMonth_OnFirstDays_UsesPreviousUtcMonth()
+    {
+        var now = new DateTimeOffset(2026, 9, 2, 12, 0, 0, TimeSpan.Zero);
+        var (year, month) = GenerateDailySummaryReportHandler.ResolveRecurringReportMonth(now);
+        Assert.Equal(2026, year);
+        Assert.Equal(8, month);
+    }
+
+    [Fact]
+    public void ResolveRecurringReportMonth_AfterFirstDays_UsesCurrentUtcMonth()
+    {
+        var now = new DateTimeOffset(2026, 9, 4, 12, 0, 0, TimeSpan.Zero);
+        var (year, month) = GenerateDailySummaryReportHandler.ResolveRecurringReportMonth(now);
+        Assert.Equal(2026, year);
+        Assert.Equal(9, month);
     }
 
     [Fact]
