@@ -20,9 +20,11 @@ public class StorageRepositoryReportDownloadTests
             return; // Azurite not running locally/CI — skip without failing the suite
         }
 
-        var blobClient = new BlobServiceClient(DevelopmentStorageConnectionString)
-            .GetBlobContainerClient("reports")
-            .GetBlobClient($"etag-race-test-{Guid.NewGuid():N}.parquet");
+        var containerClient = new BlobServiceClient(DevelopmentStorageConnectionString)
+            .GetBlobContainerClient("reports");
+        await containerClient.CreateIfNotExistsAsync();
+
+        var blobClient = containerClient.GetBlobClient($"etag-race-test-{Guid.NewGuid():N}.parquet");
 
         await blobClient.UploadAsync(
             new MemoryStream("original-report-content"u8.ToArray()),
