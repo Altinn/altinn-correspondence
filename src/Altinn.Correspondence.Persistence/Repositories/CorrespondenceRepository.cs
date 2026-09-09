@@ -511,117 +511,159 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<DailySummaryDataDto>> GetDailySummaryData(bool includeAltinn2, CancellationToken cancellationToken)
+        public async Task<List<DailySummaryDataDto>> GetDailySummaryData(
+            bool includeAltinn2,
+            DateTimeOffset fromInclusive,
+            DateTimeOffset toExclusive,
+            CancellationToken cancellationToken,
+            int batchSize = 5000)
         {
-            var query = _context.Correspondences.AsQueryable();
-
-            // Filter by Altinn version if needed
-            if (!includeAltinn2)
-            {
-                query = query
-                    .Where(c => c.Altinn2CorrespondenceId == null)
-                    .Where(c => c.Created > new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
-            }
             if (includeAltinn2)
             {
                 throw new ArgumentException("Not supported");
             }
 
-            // Aggregate data directly in SQL using EF Core GroupBy
-            // Now using RecipientType column directly for better performance
-            // Note: PropertyList and raw MessageSender are included here for SQL-translation compatibility.
-            // We do a second grouping pass in-memory below to avoid splitting identical output rows.
-            var groupedDataByPropertyList = await query
-                .GroupBy(c => new
-                {
-                    c.Created.Date,
-                    c.ServiceOwnerId,
-                    c.MessageSender,
-                    c.ResourceId,
-                    c.RecipientType,
-                    c.PropertyList
-                })
-                .Select(g => new
-                {
-                    g.Key.Date,
-                    g.Key.ServiceOwnerId,
-                    g.Key.MessageSender,
-                    g.Key.ResourceId,
-                    g.Key.RecipientType,
-                    g.Key.PropertyList,
-                    MessageCount = g.Count()
-                })
-                .ToListAsync(cancellationToken);
+            if (batchSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
+            }
 
-            var groupedData = groupedDataByPropertyList
-                .GroupBy(g => new
-                {
-                    g.Date,
-                    g.ServiceOwnerId,
-                    MessageSender = g.MessageSender ?? string.Empty,
-                    g.ResourceId,
-                    g.RecipientType,
-                    SenderOrgNumber = GetSenderOrgNumberFromPropertyList(g.PropertyList)
-                })
-                .Select(g => new
-                {
-                    g.Key.Date,
-                    g.Key.ServiceOwnerId,
-                    g.Key.MessageSender,
-                    g.Key.SenderOrgNumber,
-                    g.Key.ResourceId,
-                    g.Key.RecipientType,
-                    MessageCount = g.Sum(x => x.MessageCount)
-                })
-                .ToList();
+            if (toExclusive <= fromInclusive)
+            {
+                throw new ArgumentException("toExclusive must be greater than fromInclusive.");
+            }
 
-            // Get service owner names in bulk
-            var serviceOwnerIds = groupedData
-                .Select(g => g.ServiceOwnerId)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Distinct()
-                .ToList();
+            // Per-batch timeout; keyset paging keeps each round-trip bounded.
+            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
+
             var serviceOwners = await _context.ServiceOwners
-                .Where(so => serviceOwnerIds.Contains(so.Id))
+                .AsNoTracking()
                 .ToDictionaryAsync(so => so.Id, so => so.Name, cancellationToken);
 
-            // Map to DailySummaryDataDto
-            var aggregatedData = groupedData
-                // Exclude groups that can't be resolved to a service owner in the ServiceOwners table (old legacy test data)
-                .Where(g => !string.IsNullOrEmpty(g.ServiceOwnerId) && serviceOwners.ContainsKey(g.ServiceOwnerId))
-                .Select(g => new DailySummaryDataDto
+            var summaryData = new List<DailySummaryDataDto>();
+            DateTimeOffset? cursorCreated = null;
+            Guid? cursorId = null;
+            var batchNumber = 0;
+
+            while (true)
+            {
+                batchNumber++;
+                var query = _context.Correspondences
+                    .AsNoTracking()
+                    .Where(c => c.Altinn2CorrespondenceId == null)
+                    .Where(c => c.Created >= fromInclusive && c.Created < toExclusive);
+
+                if (cursorCreated.HasValue && cursorId.HasValue)
                 {
-                    Date = g.Date,
-                    Year = g.Date.Year,
-                    Month = g.Date.Month,
-                    Day = g.Date.Day,
-                    ServiceOwnerId = g.ServiceOwnerId!,
-                    ServiceOwnerName = serviceOwners[g.ServiceOwnerId!],
-                    MessageSender = g.MessageSender,
-                    SenderOrgNumber = g.SenderOrgNumber,
-                    ResourceId = g.ResourceId,
-                    RecipientType = g.RecipientType switch
+                    query = query.Where(c => EF.Functions.GreaterThan(
+                        ValueTuple.Create(c.Created, c.Id),
+                        ValueTuple.Create(cursorCreated.Value, cursorId.Value)));
+                }
+                else if (cursorCreated.HasValue)
+                {
+                    query = query.Where(c => c.Created > cursorCreated.Value);
+                }
+
+                var batch = await query
+                    .OrderBy(c => c.Created)
+                    .ThenBy(c => c.Id)
+                    .Take(batchSize)
+                    .Select(c => new
                     {
-                        UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
-                        UrnConstants.PersonIdAttribute => RecipientType.Person,
-                        UrnConstants.PartyUuid => RecipientType.Person,
-                        UrnConstants.PersonIdPortenEmailAttribute => RecipientType.Person,
-                        _ => RecipientType.Unknown,
-                    },
-                    AltinnVersion = AltinnVersion.Altinn3,
-                    MessageCount = g.MessageCount,
-                    DatabaseStorageBytes = 0, 
-                    AttachmentStorageBytes = 0
-                })
+                        c.Id,
+                        c.Created,
+                        c.ServiceOwnerId,
+                        c.MessageSender,
+                        c.ResourceId,
+                        c.RecipientType,
+                        c.PropertyList,
+                        ShipmentId = c.Notifications
+                            .Where(n => !n.IsReminder)
+                            .OrderByDescending(n => n.RequestedSendTime)
+                            .ThenByDescending(n => n.Id)
+                            .Select(n => n.ShipmentId)
+                            .FirstOrDefault(),
+                        ReminderShipmentId = c.Notifications
+                            .Where(n => n.IsReminder)
+                            .OrderByDescending(n => n.RequestedSendTime)
+                            .ThenByDescending(n => n.Id)
+                            .Select(n => n.ShipmentId)
+                            .FirstOrDefault()
+                    })
+                    .ToListAsync(cancellationToken);
+
+                if (batch.Count == 0)
+                {
+                    break;
+                }
+
+                var keptBefore = summaryData.Count;
+                foreach (var c in batch)
+                {
+                    if (string.IsNullOrEmpty(c.ServiceOwnerId) || !serviceOwners.ContainsKey(c.ServiceOwnerId))
+                    {
+                        continue;
+                    }
+
+                    var date = c.Created.Date;
+                    summaryData.Add(new DailySummaryDataDto
+                    {
+                        CorrespondenceId = c.Id,
+                        Date = date,
+                        Year = date.Year,
+                        Month = date.Month,
+                        Day = date.Day,
+                        ServiceOwnerId = c.ServiceOwnerId,
+                        ServiceOwnerName = serviceOwners[c.ServiceOwnerId],
+                        MessageSender = c.MessageSender ?? string.Empty,
+                        SenderOrgNumber = GetSenderOrgNumberFromPropertyList(c.PropertyList),
+                        ResourceId = c.ResourceId,
+                        RecipientType = c.RecipientType switch
+                        {
+                            UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
+                            UrnConstants.PersonIdAttribute => RecipientType.Person,
+                            UrnConstants.PartyUuid => RecipientType.Person,
+                            UrnConstants.PersonIdPortenEmailAttribute => RecipientType.Person,
+                            _ => RecipientType.Unknown,
+                        },
+                        AltinnVersion = AltinnVersion.Altinn3,
+                        MessageCount = 1,
+                        DatabaseStorageBytes = 0,
+                        AttachmentStorageBytes = 0,
+                        ShipmentId = c.ShipmentId,
+                        ReminderShipmentId = c.ReminderShipmentId
+                    });
+                }
+
+                var last = batch[^1];
+                cursorCreated = last.Created;
+                cursorId = last.Id;
+
+                logger.LogInformation(
+                    "Daily summary data batch {BatchNumber}: fetched {FetchedCount} correspondences (kept {KeptCount}, total kept {TotalKept}). Range=[{FromInclusive}, {ToExclusive}). Cursor={CursorCreated}/{CursorId}",
+                    batchNumber,
+                    batch.Count,
+                    summaryData.Count - keptBefore,
+                    summaryData.Count,
+                    fromInclusive,
+                    toExclusive,
+                    cursorCreated,
+                    cursorId);
+
+                if (batch.Count < batchSize)
+                {
+                    break;
+                }
+            }
+
+            return summaryData
                 .OrderBy(d => d.Date)
                 .ThenBy(d => d.ServiceOwnerId)
                 .ThenBy(d => d.MessageSender)
                 .ThenBy(d => d.ResourceId)
                 .ThenBy(d => d.RecipientType)
-                .ThenBy(d => d.AltinnVersion)
+                .ThenBy(d => d.CorrespondenceId)
                 .ToList();
-
-            return aggregatedData;
         }
 
         private static string? GetSenderOrgNumberFromPropertyList(Dictionary<string, string>? propertyList)

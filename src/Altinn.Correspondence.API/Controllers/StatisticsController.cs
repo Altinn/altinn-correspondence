@@ -16,19 +16,21 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     private readonly ILogger<StatisticsController> _logger = logger;
 
     /// <summary>
-    /// Generate a daily summary report with aggregated data per service owner per day
+    /// Enqueue generation of a monthly daily summary report (one row per correspondence)
     /// </summary>
     /// <remarks>
-    /// This generates a parquet file with daily aggregated summary data.
-    /// Each row represents one day's usage for one service owner.
-    /// You can optionally exclude Altinn2 correspondences by setting Altinn2Included to false.
+    /// Enqueues a Hangfire background job that builds a parquet file for a single UTC month
+    /// and uploads/overwrites it in blob storage. Defaults to the current UTC month; optional
+    /// year/month on the request allow backfill of older months. The daily recurring job only
+    /// regenerates the current month so older monthly files stay unchanged.
+    /// Returns immediately with a job id. Use the download endpoint after the job has completed.
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
     /// </remarks>
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <response code="200">Returns the summary report generation response</response>
+    /// <response code="202">Returns the enqueued Hangfire job id</response>
     /// <response code="401">Unauthorized - Missing or invalid API key</response>
     /// <response code="403">Forbidden - Invalid API key</response>
     /// <response code="429">Too Many Requests - Rate limit exceeded</response>
@@ -36,7 +38,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     [HttpPost]
     [Route("generate-daily-summary")]
     [Produces("application/json")]
-    [ProducesResponseType(typeof(GenerateDailySummaryReportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EnqueueDailySummaryReportResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -45,7 +47,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         [FromServices] GenerateDailySummaryReportHandler handler,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Request to generate daily summary report received");
+        _logger.LogInformation("Request to enqueue daily summary report generation received");
 
         try
         {
@@ -58,14 +60,14 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
             var result = await handler.Process(request, cancellationToken);
             
             return result.Match(
-                Ok,
+                response => Accepted(response),
                 Problem
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate daily summary report");
-            return StatusCode(500, "Failed to generate daily summary report");
+            _logger.LogError(ex, "Failed to enqueue daily summary report generation");
+            return StatusCode(500, "Failed to enqueue daily summary report generation");
         }
     }
 
@@ -128,21 +130,22 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         }
     }
     /// <summary>
-    /// Download the daily summary report with aggregated data per service owner per day
+    /// Download a monthly daily summary report with one row per correspondence
     /// </summary>
     /// <remarks>
-    /// This returns a parquet file with daily aggregated summary data directly as a file download.
-    /// Each row represents one day's usage for one service owner.
-    /// The response includes both the file and metadata about the report.
+    /// Returns the parquet file for the requested UTC month (defaults to the current UTC month
+    /// when year/month are omitted). Each row represents one correspondence, including
+    /// notification shipment IDs when present. The response includes both the file and metadata.
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
     /// </remarks>
-    /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
+    /// <param name="request">Request parameters including optional year/month and whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Returns the parquet file with metadata</response>
     /// <response code="401">Unauthorized - Missing or invalid API key</response>
     /// <response code="403">Forbidden - Invalid API key</response>
+    /// <response code="404">Report for the requested month was not found</response>
     /// <response code="429">Too Many Requests - Rate limit exceeded</response>
     /// <response code="500">Internal server error</response>
     [HttpPost]
@@ -151,6 +154,7 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> DownloadDailySummary(
         [FromBody] GenerateDailySummaryReportRequest request,

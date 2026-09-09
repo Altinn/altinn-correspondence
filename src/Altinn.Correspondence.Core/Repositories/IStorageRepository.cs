@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Core.Repositories
         Task<Stream> DownloadAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken);
         Task PurgeAttachment(Guid attachmentId, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken);
         Task<(string locationUrl, string hash, long size)> UploadReportFile(string fileName, int serviceOwnerCount, int correspondenceCount, Stream stream, CancellationToken cancellationToken);
-        Task<Stream> DownloadReportFile(string fileName, CancellationToken cancellationToken);
+        Task<(Stream DownloadStream, string FileName, long FileSize, string FileHash, int ServiceOwnerCount, int CorrespondenceCount)> DownloadReportFile(string fileName, CancellationToken cancellationToken);
         Task<(Stream DownloadStream, string FileName, long FileSize, string FileHash, int ServiceOwnerCount, int CorrespondenceCount)> DownloadLatestReportFile(CancellationToken cancellationToken);
         Task<string> GenerateSasUrl(AttachmentEntity attachment, StorageProviderEntity? storageProviderEntity, CancellationToken cancellationToken);
     }

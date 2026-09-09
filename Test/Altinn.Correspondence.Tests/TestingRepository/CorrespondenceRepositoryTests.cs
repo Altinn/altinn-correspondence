@@ -73,7 +73,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             var resourceId = $"test-resource-{Guid.NewGuid():N}";
             var messageSender = $"test-sender-{Guid.NewGuid():N}";
 
-            // Service owner must exist; otherwise GetDailySummaryData filters the group out.
+            // Service owner must exist; otherwise GetDailySummaryData filters the correspondence out.
             context.ServiceOwners.Add(new ServiceOwnerEntity
             {
                 Id = serviceOwnerId,
@@ -100,14 +100,160 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             context.Correspondences.Add(correspondence);
             await context.SaveChangesAsync();
 
-            var result = await repo.GetDailySummaryData(includeAltinn2: false, cancellationToken: CancellationToken.None);
+            var result = await repo.GetDailySummaryData(
+                includeAltinn2: false,
+                fromInclusive: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                toExclusive: new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+                cancellationToken: CancellationToken.None);
 
             var row = Assert.Single(result, r =>
                 r.ServiceOwnerId == serviceOwnerId &&
                 r.ResourceId == resourceId &&
                 r.MessageSender == messageSender &&
                 r.Date == created.Date);
+            Assert.Equal(correspondence.Id, row.CorrespondenceId);
+            Assert.Equal(1, row.MessageCount);
             Assert.Equal("987654321", row.SenderOrgNumber);
+            Assert.Null(row.ShipmentId);
+            Assert.Null(row.ReminderShipmentId);
+        }
+
+        [Fact]
+        public async Task GetDailySummaryData_ReturnsOneRowPerCorrespondence_WithNotificationShipmentIds()
+        {
+            await using var context = TestDbContextFactory.Create();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var serviceOwnerId = $"so-{Guid.NewGuid():N}";
+            var resourceId = $"test-resource-{Guid.NewGuid():N}";
+            var mainShipmentId = Guid.NewGuid();
+            var reminderShipmentId = Guid.NewGuid();
+            var created = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
+
+            context.ServiceOwners.Add(new ServiceOwnerEntity
+            {
+                Id = serviceOwnerId,
+                Name = "Test Service Owner",
+                StorageProviders = new List<StorageProviderEntity>()
+            });
+
+            var correspondence1 = new CorrespondenceEntityBuilder()
+                .WithServiceOwnerId(serviceOwnerId)
+                .WithCreated(created)
+                .WithResourceId(resourceId)
+                .Build();
+            correspondence1.Altinn2CorrespondenceId = null;
+            correspondence1.MessageSender = "sender-a";
+            correspondence1.RecipientType = UrnConstants.OrganizationNumberAttribute;
+            correspondence1.Notifications =
+            [
+                new CorrespondenceNotificationEntity
+                {
+                    Id = Guid.NewGuid(),
+                    CorrespondenceId = correspondence1.Id,
+                    Created = created,
+                    IsReminder = false,
+                    ShipmentId = mainShipmentId,
+                    NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+                    NotificationChannel = NotificationChannel.Email,
+                    RequestedSendTime = created
+                },
+                new CorrespondenceNotificationEntity
+                {
+                    Id = Guid.NewGuid(),
+                    CorrespondenceId = correspondence1.Id,
+                    Created = created.AddDays(1),
+                    IsReminder = true,
+                    ShipmentId = reminderShipmentId,
+                    NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+                    NotificationChannel = NotificationChannel.Email,
+                    RequestedSendTime = created.AddDays(1)
+                }
+            ];
+
+            var correspondence2 = new CorrespondenceEntityBuilder()
+                .WithServiceOwnerId(serviceOwnerId)
+                .WithCreated(created)
+                .WithResourceId(resourceId)
+                .Build();
+            correspondence2.Altinn2CorrespondenceId = null;
+            correspondence2.MessageSender = "sender-a";
+            correspondence2.RecipientType = UrnConstants.OrganizationNumberAttribute;
+
+            context.Correspondences.AddRange(correspondence1, correspondence2);
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetDailySummaryData(
+                includeAltinn2: false,
+                fromInclusive: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                toExclusive: new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+                cancellationToken: CancellationToken.None);
+
+            var rowsForResource = result
+                .Where(r => r.ServiceOwnerId == serviceOwnerId && r.ResourceId == resourceId)
+                .OrderBy(r => r.CorrespondenceId)
+                .ToList();
+
+            Assert.Equal(2, rowsForResource.Count);
+            Assert.All(rowsForResource, r => Assert.Equal(1, r.MessageCount));
+
+            var rowWithNotifications = Assert.Single(rowsForResource, r => r.CorrespondenceId == correspondence1.Id);
+            Assert.Equal(mainShipmentId, rowWithNotifications.ShipmentId);
+            Assert.Equal(reminderShipmentId, rowWithNotifications.ReminderShipmentId);
+
+            var rowWithoutNotifications = Assert.Single(rowsForResource, r => r.CorrespondenceId == correspondence2.Id);
+            Assert.Null(rowWithoutNotifications.ShipmentId);
+            Assert.Null(rowWithoutNotifications.ReminderShipmentId);
+        }
+
+        [Fact]
+        public async Task GetDailySummaryData_WithSmallBatchSize_PagesAllCorrespondencesViaKeysetCursor()
+        {
+            await using var context = TestDbContextFactory.Create();
+            var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
+
+            var serviceOwnerId = $"so-{Guid.NewGuid():N}";
+            var resourceId = $"test-resource-{Guid.NewGuid():N}";
+            var baseCreated = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
+
+            context.ServiceOwners.Add(new ServiceOwnerEntity
+            {
+                Id = serviceOwnerId,
+                Name = "Test Service Owner",
+                StorageProviders = new List<StorageProviderEntity>()
+            });
+
+            var ids = new List<Guid>();
+            for (var i = 0; i < 5; i++)
+            {
+                var correspondence = new CorrespondenceEntityBuilder()
+                    .WithServiceOwnerId(serviceOwnerId)
+                    .WithCreated(baseCreated.AddMinutes(i))
+                    .WithResourceId(resourceId)
+                    .Build();
+                correspondence.Altinn2CorrespondenceId = null;
+                correspondence.MessageSender = "sender-a";
+                correspondence.RecipientType = UrnConstants.OrganizationNumberAttribute;
+                context.Correspondences.Add(correspondence);
+                ids.Add(correspondence.Id);
+            }
+
+            await context.SaveChangesAsync();
+
+            var result = await repo.GetDailySummaryData(
+                includeAltinn2: false,
+                fromInclusive: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                toExclusive: new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+                cancellationToken: CancellationToken.None,
+                batchSize: 2);
+
+            var rowsForResource = result
+                .Where(r => r.ServiceOwnerId == serviceOwnerId && r.ResourceId == resourceId)
+                .Select(r => r.CorrespondenceId)
+                .ToList();
+
+            Assert.Equal(5, rowsForResource.Count);
+            Assert.Equal(ids.OrderBy(id => id).ToList(), rowsForResource.OrderBy(id => id).ToList());
         }
 
         [Fact]
