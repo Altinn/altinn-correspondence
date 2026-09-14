@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Correspondence.Application;
@@ -35,12 +34,6 @@ public static class ProblemDetailsHelper
         {
             problemDetails.Type = mapping.Type;
             problemDetails.Title = mapping.Title;
-        }
-
-        var traceId = Activity.Current?.Id;
-        if (!string.IsNullOrEmpty(traceId))
-        {
-            problemDetails.Extensions["traceId"] = traceId;
         }
 
         problemDetails.Extensions["errorCode"] = error.ErrorCode;
@@ -85,12 +78,6 @@ public static class ProblemDetailsHelper
             problemDetails.Title = mapping.Title;
         }
         problemDetails.Status = (int)HttpStatusCode.BadRequest;
-
-        var traceId = Activity.Current?.Id;
-        if (!string.IsNullOrEmpty(traceId))
-        {
-            problemDetails.Extensions["traceId"] = traceId;
-        }
 
         return new ObjectResult(problemDetails)
         {
