@@ -48,18 +48,21 @@ public class GenerateDailySummaryReportHandlerTests
         // Arrange
         var user = new ClaimsPrincipal();
         var request = new GenerateDailySummaryReportRequest { Altinn2Included = false };
+        var correspondenceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var mainShipmentId1 = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var mainShipmentId2 = Guid.Parse("44444444-4444-4444-4444-444444444444");
+        var reminderShipmentId = Guid.Parse("33333333-3333-3333-3333-333333333333");
         
         var correspondenceDailySummaries = new List<DailySummaryDataDto>()
         {
             new DailySummaryDataDto()
             {
-                CorrespondenceId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                CorrespondenceId = correspondenceId,
                 AltinnVersion = Core.Models.Enums.AltinnVersion.Altinn3,
                 AttachmentStorageBytes = 0,
                 DatabaseStorageBytes = 0,
                 Date = DateTime.UtcNow.Date,
                 Day = (int)DateTime.UtcNow.DayOfWeek,
-                MessageCount = 1,
                 MessageSender = "",
                 SenderOrgNumber = "910753614",
                 Month = DateTime.UtcNow.Month,
@@ -68,15 +71,46 @@ public class GenerateDailySummaryReportHandlerTests
                 ServiceOwnerId = "123456789",
                 ServiceOwnerName = "Test Service Owner",
                 Year = DateTime.UtcNow.Year,
-                ShipmentIds =
-                [
-                    Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                    Guid.Parse("44444444-4444-4444-4444-444444444444")
-                ],
-                ReminderShipmentIds =
-                [
-                    Guid.Parse("33333333-3333-3333-3333-333333333333")
-                ]
+                ShipmentId = mainShipmentId1,
+                IsReminder = false
+            },
+            new DailySummaryDataDto()
+            {
+                CorrespondenceId = correspondenceId,
+                AltinnVersion = Core.Models.Enums.AltinnVersion.Altinn3,
+                AttachmentStorageBytes = 0,
+                DatabaseStorageBytes = 0,
+                Date = DateTime.UtcNow.Date,
+                Day = (int)DateTime.UtcNow.DayOfWeek,
+                MessageSender = "",
+                SenderOrgNumber = "910753614",
+                Month = DateTime.UtcNow.Month,
+                RecipientType = Core.Models.Enums.RecipientType.Organization,
+                ResourceId = "test-resource",
+                ServiceOwnerId = "123456789",
+                ServiceOwnerName = "Test Service Owner",
+                Year = DateTime.UtcNow.Year,
+                ShipmentId = mainShipmentId2,
+                IsReminder = false
+            },
+            new DailySummaryDataDto()
+            {
+                CorrespondenceId = correspondenceId,
+                AltinnVersion = Core.Models.Enums.AltinnVersion.Altinn3,
+                AttachmentStorageBytes = 0,
+                DatabaseStorageBytes = 0,
+                Date = DateTime.UtcNow.Date,
+                Day = (int)DateTime.UtcNow.DayOfWeek,
+                MessageSender = "",
+                SenderOrgNumber = "910753614",
+                Month = DateTime.UtcNow.Month,
+                RecipientType = Core.Models.Enums.RecipientType.Organization,
+                ResourceId = "test-resource",
+                ServiceOwnerId = "123456789",
+                ServiceOwnerName = "Test Service Owner",
+                Year = DateTime.UtcNow.Year,
+                ShipmentId = reminderShipmentId,
+                IsReminder = true
             }
         };
         _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(
@@ -106,6 +140,7 @@ public class GenerateDailySummaryReportHandlerTests
         
         var response = result.AsT0;
         Assert.NotNull(response.FileStream);
+        Assert.Equal(1, response.TotalCorrespondenceCount);
         
         // Verify the parquet file has correct column names
         var columnNames = GetParquetColumnNames(response.FileStream);
@@ -125,17 +160,20 @@ public class GenerateDailySummaryReportHandlerTests
             "serviceresourcetitle",
             "recipienttype",
             "costcenter",
-            "messagecount",
             "databasestoragebytes",
             "attachmentstoragebytes",
-            "shipment_ids",
-            "reminder_shipment_ids"
+            "shipment_id",
+            "is_reminder"
         };
 
         foreach (var expectedColumn in expectedColumnNames)
         {
             Assert.Contains(expectedColumn, columnNames);
         }
+
+        Assert.DoesNotContain("messagecount", columnNames);
+        Assert.DoesNotContain("shipment_ids", columnNames);
+        Assert.DoesNotContain("reminder_shipment_ids", columnNames);
 
         // Verify all columns are lowercase
         foreach (var columnName in columnNames)
@@ -144,15 +182,16 @@ public class GenerateDailySummaryReportHandlerTests
                 $"Column name '{columnName}' should be lowercase");
         }
 
-        // Verify sender org number and shipment IDs are present in the parquet data
+        // Verify sender org number and one row per notification
         response.FileStream.Position = 0;
         var deserializationResult = await ParquetSerializer.DeserializeAsync<ParquetDailySummaryData>(response.FileStream, cancellationToken: CancellationToken.None);
         var rows = deserializationResult.Data;
-        Assert.Single(rows);
-        Assert.Equal("11111111-1111-1111-1111-111111111111", rows[0].CorrespondenceId);
-        Assert.Equal("910753614", rows[0].SenderOrgNumber);
-        Assert.Equal("22222222-2222-2222-2222-222222222222,44444444-4444-4444-4444-444444444444", rows[0].ShipmentIds);
-        Assert.Equal("33333333-3333-3333-3333-333333333333", rows[0].ReminderShipmentIds);
+        Assert.Equal(3, rows.Count);
+        Assert.All(rows, r => Assert.Equal("11111111-1111-1111-1111-111111111111", r.CorrespondenceId));
+        Assert.All(rows, r => Assert.Equal("910753614", r.SenderOrgNumber));
+        Assert.Contains(rows, r => r.ShipmentId == mainShipmentId1.ToString() && r.IsReminder == false);
+        Assert.Contains(rows, r => r.ShipmentId == mainShipmentId2.ToString() && r.IsReminder == false);
+        Assert.Contains(rows, r => r.ShipmentId == reminderShipmentId.ToString() && r.IsReminder == true);
     }
 
     [Fact]

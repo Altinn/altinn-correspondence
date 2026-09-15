@@ -125,9 +125,9 @@ public class GenerateDailySummaryReportHandler(
             }
 
             var summaryData = await MapToDailySummaryData(summaryDataDto, cancellationToken);
-            logger.LogInformation("Mapped and enriched data into {count} correspondence summary records", summaryData.Count);
+            logger.LogInformation("Mapped and enriched data into {count} summary records", summaryData.Count);
 
-            var totalCorrespondenceCount = summaryData.Count;
+            var totalCorrespondenceCount = summaryData.Select(d => d.CorrespondenceId).Distinct().Count();
             var (blobUrl, _, _) = await GenerateAndUploadParquetFile(
                 summaryData,
                 totalCorrespondenceCount,
@@ -242,11 +242,10 @@ public class GenerateDailySummaryReportHandler(
             ResourceTitle = resourceTitles.GetValueOrDefault(dto.ResourceId) ?? GetResourceTitle(dto.ResourceId),
             RecipientType = dto.RecipientType,
             AltinnVersion = dto.AltinnVersion,
-            MessageCount = dto.MessageCount,
             DatabaseStorageBytes = dto.DatabaseStorageBytes,
             AttachmentStorageBytes = dto.AttachmentStorageBytes,
-            ShipmentIds = dto.ShipmentIds,
-            ReminderShipmentIds = dto.ReminderShipmentIds
+            ShipmentId = dto.ShipmentId,
+            IsReminder = dto.IsReminder
         }).ToList();
     }
 
@@ -289,7 +288,6 @@ public class GenerateDailySummaryReportHandler(
                 ResourceTitle = GetResourceTitle(g.Key.ResourceId),
                 RecipientType = g.Key.RecipientType,
                 AltinnVersion = g.Key.AltinnVersion,
-                MessageCount = g.Count(),
                 DatabaseStorageBytes = CalculateDatabaseStorage(g.ToList()),
                 AttachmentStorageBytes = CalculateAttachmentStorage(g.ToList())
             })
@@ -483,11 +481,10 @@ public class GenerateDailySummaryReportHandler(
             ResourceTitle = d.ResourceTitle,
             RecipientType = d.RecipientType.ToString(),
             AltinnVersion = d.AltinnVersion.ToString(),
-            MessageCount = d.MessageCount,
             DatabaseStorageBytes = d.DatabaseStorageBytes,
             AttachmentStorageBytes = d.AttachmentStorageBytes,
-            ShipmentIds = FormatShipmentIds(d.ShipmentIds),
-            ReminderShipmentIds = FormatShipmentIds(d.ReminderShipmentIds)
+            ShipmentId = d.ShipmentId?.ToString(),
+            IsReminder = d.IsReminder
         }).ToList();
 
         var memoryStream = new MemoryStream();
@@ -502,11 +499,6 @@ public class GenerateDailySummaryReportHandler(
         logger.LogInformation("Successfully generated daily summary parquet file stream");
 
         return (memoryStream, hash, memoryStream.Length);
-    }
-
-    private static string? FormatShipmentIds(IReadOnlyList<Guid> shipmentIds)
-    {
-        return shipmentIds.Count == 0 ? null : string.Join(',', shipmentIds);
     }
 
     public async Task<OneOf<GenerateAndDownloadDailySummaryReportResponse, Error>> DownloadReportFile(
@@ -637,7 +629,7 @@ public class GenerateDailySummaryReportHandler(
                 FileHash = fileHash,
                 FileSizeBytes = fileSize,
                 ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
-                TotalCorrespondenceCount = summaryData.Count,
+                TotalCorrespondenceCount = summaryData.Select(d => d.CorrespondenceId).Distinct().Count(),
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Environment = hostEnvironment.EnvironmentName,
                 Altinn2Included = request.Altinn2Included

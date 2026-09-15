@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.Application.GenerateReport;
 
 /// <summary>
-/// Parquet-friendly model for per-correspondence daily summary data.
+/// Parquet-friendly model for per-notification daily summary data.
 /// All properties are simple types optimized for ParquetSerializer.
 /// </summary>
 public class ParquetDailySummaryData
@@ -87,12 +87,6 @@ public class ParquetDailySummaryData
     public string AltinnVersion { get; set; } = string.Empty;
     
     /// <summary>
-    /// Always 1 for per-correspondence rows (kept for backward compatibility)
-    /// </summary>
-    [JsonPropertyName("messagecount")]
-    public int MessageCount { get; set; } = 1;
-    
-    /// <summary>
     /// Total database storage used (metadata) in bytes
     /// </summary>
     [JsonPropertyName("databasestoragebytes")]
@@ -105,14 +99,14 @@ public class ParquetDailySummaryData
     public long AttachmentStorageBytes { get; set; }
 
     /// <summary>
-    /// Comma-separated shipment IDs of all main notifications, if any
+    /// Notification shipment ID, if any
     /// </summary>
-    [JsonPropertyName("shipment_ids")]
-    public string? ShipmentIds { get; set; }
+    [JsonPropertyName("shipment_id")]
+    public string? ShipmentId { get; set; }
 
     /// <summary>
-    /// Comma-separated shipment IDs of all reminder notifications, if any
+    /// Whether this row is a reminder notification. Null when the correspondence has no notifications.
     /// </summary>
-    [JsonPropertyName("reminder_shipment_ids")]
-    public string? ReminderShipmentIds { get; set; }
+    [JsonPropertyName("is_reminder")]
+    public bool? IsReminder { get; set; }
 }

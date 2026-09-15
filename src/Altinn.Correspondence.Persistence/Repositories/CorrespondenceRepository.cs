@@ -588,32 +588,25 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 var batchIds = batch.Select(c => c.Id).ToList();
                 var notifications = await _context.CorrespondenceNotifications
                     .AsNoTracking()
-                    .Where(n => batchIds.Contains(n.CorrespondenceId) && n.ShipmentId != null)
+                    .Where(n => batchIds.Contains(n.CorrespondenceId))
                     .Select(n => new
                     {
                         n.CorrespondenceId,
-                        ShipmentId = n.ShipmentId!.Value,
+                        n.ShipmentId,
                         n.IsReminder,
                         n.RequestedSendTime,
                         n.Id
                     })
                     .ToListAsync(cancellationToken);
 
-                var shipmentIdsByCorrespondence = notifications
+                var notificationsByCorrespondence = notifications
                     .GroupBy(n => n.CorrespondenceId)
                     .ToDictionary(
                         g => g.Key,
-                        g =>
-                        {
-                            var ordered = g
-                                .OrderByDescending(n => n.RequestedSendTime)
-                                .ThenByDescending(n => n.Id)
-                                .ToList();
-                            return (
-                                Main: ordered.Where(n => !n.IsReminder).Select(n => n.ShipmentId).ToList(),
-                                Reminder: ordered.Where(n => n.IsReminder).Select(n => n.ShipmentId).ToList()
-                            );
-                        });
+                        g => g
+                            .OrderByDescending(n => n.RequestedSendTime)
+                            .ThenByDescending(n => n.Id)
+                            .ToList());
 
                 var keptBefore = summaryData.Count;
                 foreach (var c in batch)
@@ -623,35 +616,66 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         continue;
                     }
 
-                    shipmentIdsByCorrespondence.TryGetValue(c.Id, out var shipmentIds);
                     var date = c.Created.Date;
-                    summaryData.Add(new DailySummaryDataDto
+                    var recipientType = c.RecipientType switch
                     {
-                        CorrespondenceId = c.Id,
-                        Date = date,
-                        Year = date.Year,
-                        Month = date.Month,
-                        Day = date.Day,
-                        ServiceOwnerId = c.ServiceOwnerId,
-                        ServiceOwnerName = serviceOwners[c.ServiceOwnerId],
-                        MessageSender = c.MessageSender ?? string.Empty,
-                        SenderOrgNumber = GetSenderOrgNumberFromPropertyList(c.PropertyList),
-                        ResourceId = c.ResourceId,
-                        RecipientType = c.RecipientType switch
+                        UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
+                        UrnConstants.PersonIdAttribute => RecipientType.Person,
+                        UrnConstants.PartyUuid => RecipientType.Person,
+                        UrnConstants.PersonIdPortenEmailAttribute => RecipientType.Person,
+                        _ => RecipientType.Unknown,
+                    };
+                    var senderOrgNumber = GetSenderOrgNumberFromPropertyList(c.PropertyList);
+                    var messageSender = c.MessageSender ?? string.Empty;
+                    var serviceOwnerName = serviceOwners[c.ServiceOwnerId];
+
+                    if (!notificationsByCorrespondence.TryGetValue(c.Id, out var correspondenceNotifications)
+                        || correspondenceNotifications.Count == 0)
+                    {
+                        summaryData.Add(new DailySummaryDataDto
                         {
-                            UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
-                            UrnConstants.PersonIdAttribute => RecipientType.Person,
-                            UrnConstants.PartyUuid => RecipientType.Person,
-                            UrnConstants.PersonIdPortenEmailAttribute => RecipientType.Person,
-                            _ => RecipientType.Unknown,
-                        },
-                        AltinnVersion = AltinnVersion.Altinn3,
-                        MessageCount = 1,
-                        DatabaseStorageBytes = 0,
-                        AttachmentStorageBytes = 0,
-                        ShipmentIds = shipmentIds.Main ?? [],
-                        ReminderShipmentIds = shipmentIds.Reminder ?? []
-                    });
+                            CorrespondenceId = c.Id,
+                            Date = date,
+                            Year = date.Year,
+                            Month = date.Month,
+                            Day = date.Day,
+                            ServiceOwnerId = c.ServiceOwnerId,
+                            ServiceOwnerName = serviceOwnerName,
+                            MessageSender = messageSender,
+                            SenderOrgNumber = senderOrgNumber,
+                            ResourceId = c.ResourceId,
+                            RecipientType = recipientType,
+                            AltinnVersion = AltinnVersion.Altinn3,
+                            DatabaseStorageBytes = 0,
+                            AttachmentStorageBytes = 0,
+                            ShipmentId = null,
+                            IsReminder = null
+                        });
+                        continue;
+                    }
+
+                    foreach (var notification in correspondenceNotifications)
+                    {
+                        summaryData.Add(new DailySummaryDataDto
+                        {
+                            CorrespondenceId = c.Id,
+                            Date = date,
+                            Year = date.Year,
+                            Month = date.Month,
+                            Day = date.Day,
+                            ServiceOwnerId = c.ServiceOwnerId,
+                            ServiceOwnerName = serviceOwnerName,
+                            MessageSender = messageSender,
+                            SenderOrgNumber = senderOrgNumber,
+                            ResourceId = c.ResourceId,
+                            RecipientType = recipientType,
+                            AltinnVersion = AltinnVersion.Altinn3,
+                            DatabaseStorageBytes = 0,
+                            AttachmentStorageBytes = 0,
+                            ShipmentId = notification.ShipmentId,
+                            IsReminder = notification.IsReminder
+                        });
+                    }
                 }
 
                 var last = batch[^1];
@@ -682,6 +706,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ThenBy(d => d.ResourceId)
                 .ThenBy(d => d.RecipientType)
                 .ThenBy(d => d.CorrespondenceId)
+                .ThenBy(d => d.IsReminder)
+                .ThenBy(d => d.ShipmentId)
                 .ToList();
         }
 

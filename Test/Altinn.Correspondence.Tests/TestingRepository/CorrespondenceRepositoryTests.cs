@@ -112,14 +112,13 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 r.MessageSender == messageSender &&
                 r.Date == created.Date);
             Assert.Equal(correspondence.Id, row.CorrespondenceId);
-            Assert.Equal(1, row.MessageCount);
             Assert.Equal("987654321", row.SenderOrgNumber);
-            Assert.Empty(row.ShipmentIds);
-            Assert.Empty(row.ReminderShipmentIds);
+            Assert.Null(row.ShipmentId);
+            Assert.Null(row.IsReminder);
         }
 
         [Fact]
-        public async Task GetDailySummaryData_ReturnsOneRowPerCorrespondence_WithNotificationShipmentIds()
+        public async Task GetDailySummaryData_ReturnsOneRowPerNotification_AndOneRowWhenNone()
         {
             await using var context = TestDbContextFactory.Create();
             var repo = new CorrespondenceRepository(context, new NullLogger<ICorrespondenceRepository>());
@@ -215,20 +214,27 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             var rowsForResource = result
                 .Where(r => r.ServiceOwnerId == serviceOwnerId && r.ResourceId == resourceId)
-                .OrderBy(r => r.CorrespondenceId)
                 .ToList();
 
-            Assert.Equal(2, rowsForResource.Count);
-            Assert.All(rowsForResource, r => Assert.Equal(1, r.MessageCount));
+            Assert.Equal(5, rowsForResource.Count);
 
-            var rowWithNotifications = Assert.Single(rowsForResource, r => r.CorrespondenceId == correspondence1.Id);
-            // Ordered by RequestedSendTime descending
-            Assert.Equal([mainShipmentId2, mainShipmentId1], rowWithNotifications.ShipmentIds);
-            Assert.Equal([reminderShipmentId2, reminderShipmentId1], rowWithNotifications.ReminderShipmentIds);
+            var rowsWithNotifications = rowsForResource
+                .Where(r => r.CorrespondenceId == correspondence1.Id)
+                .ToList();
+            Assert.Equal(4, rowsWithNotifications.Count);
+            Assert.Equal(
+                new HashSet<Guid?> { mainShipmentId1, mainShipmentId2, reminderShipmentId1, reminderShipmentId2 },
+                rowsWithNotifications.Select(r => r.ShipmentId).ToHashSet());
+            Assert.Equal(2, rowsWithNotifications.Count(r => r.IsReminder == false));
+            Assert.Equal(2, rowsWithNotifications.Count(r => r.IsReminder == true));
+            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == mainShipmentId1 && r.IsReminder == false);
+            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == mainShipmentId2 && r.IsReminder == false);
+            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == reminderShipmentId1 && r.IsReminder == true);
+            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == reminderShipmentId2 && r.IsReminder == true);
 
             var rowWithoutNotifications = Assert.Single(rowsForResource, r => r.CorrespondenceId == correspondence2.Id);
-            Assert.Empty(rowWithoutNotifications.ShipmentIds);
-            Assert.Empty(rowWithoutNotifications.ReminderShipmentIds);
+            Assert.Null(rowWithoutNotifications.ShipmentId);
+            Assert.Null(rowWithoutNotifications.IsReminder);
         }
 
         [Fact]
