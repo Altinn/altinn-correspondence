@@ -85,7 +85,15 @@ namespace Altinn.Correspondence.Core.Repositories
 
         Task<List<CorrespondenceEntity>> GetCorrespondencesForReport(bool includeAltinn2, CancellationToken cancellationToken);
 
-        Task<List<DailySummaryDataDto>> GetDailySummaryData(bool includeAltinn2, CancellationToken cancellationToken);
+        /// <summary>
+        /// Loads per-correspondence daily summary rows in keyset-paged batches for the half-open Created range [fromInclusive, toExclusive).
+        /// </summary>
+        Task<List<DailySummaryDataDto>> GetDailySummaryData(
+            bool includeAltinn2,
+            DateTimeOffset fromInclusive,
+            DateTimeOffset toExclusive,
+            CancellationToken cancellationToken,
+            int batchSize = 5000);
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);
 

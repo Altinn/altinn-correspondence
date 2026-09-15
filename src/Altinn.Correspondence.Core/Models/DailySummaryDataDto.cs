@@ -3,11 +3,12 @@ using Altinn.Correspondence.Core.Models.Enums;
 namespace Altinn.Correspondence.Core.Models;
 
 /// <summary>
-/// Aggregated daily summary data DTO returned from repository queries.
-/// This is a data transfer object used between the persistence and application layers.
+/// Daily summary data DTO returned from repository queries.
+/// One row per correspondence notification (or one row with null notification fields when none exist).
 /// </summary>
 public class DailySummaryDataDto
 {
+    public Guid CorrespondenceId { get; set; }
     public DateTime Date { get; set; }
     public int Year { get; set; }
     public int Month { get; set; }
@@ -19,8 +20,9 @@ public class DailySummaryDataDto
     public string ResourceId { get; set; } = string.Empty;
     public RecipientType RecipientType { get; set; }
     public AltinnVersion AltinnVersion { get; set; }
-    public int MessageCount { get; set; }
     public long DatabaseStorageBytes { get; set; }
     public long AttachmentStorageBytes { get; set; }
+    public Guid? ShipmentId { get; set; }
+    public bool? IsReminder { get; set; }
+    public DateTimeOffset? NotificationSent { get; set; }
 }
-
