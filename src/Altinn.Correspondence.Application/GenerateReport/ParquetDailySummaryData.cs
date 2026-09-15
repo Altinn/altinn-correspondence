@@ -109,4 +109,10 @@ public class ParquetDailySummaryData
     /// </summary>
     [JsonPropertyName("is_reminder")]
     public bool? IsReminder { get; set; }
+
+    /// <summary>
+    /// When the notification was sent (ISO 8601 UTC). Null when not sent yet or when the correspondence has no notifications.
+    /// </summary>
+    [JsonPropertyName("notification_sent")]
+    public string? NotificationSent { get; set; }
 }

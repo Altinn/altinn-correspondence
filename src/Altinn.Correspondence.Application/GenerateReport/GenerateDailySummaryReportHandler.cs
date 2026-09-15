@@ -245,7 +245,8 @@ public class GenerateDailySummaryReportHandler(
             DatabaseStorageBytes = dto.DatabaseStorageBytes,
             AttachmentStorageBytes = dto.AttachmentStorageBytes,
             ShipmentId = dto.ShipmentId,
-            IsReminder = dto.IsReminder
+            IsReminder = dto.IsReminder,
+            NotificationSent = dto.NotificationSent
         }).ToList();
     }
 
@@ -484,7 +485,8 @@ public class GenerateDailySummaryReportHandler(
             DatabaseStorageBytes = d.DatabaseStorageBytes,
             AttachmentStorageBytes = d.AttachmentStorageBytes,
             ShipmentId = d.ShipmentId?.ToString(),
-            IsReminder = d.IsReminder
+            IsReminder = d.IsReminder,
+            NotificationSent = d.NotificationSent?.UtcDateTime.ToString("O")
         }).ToList();
 
         var memoryStream = new MemoryStream();

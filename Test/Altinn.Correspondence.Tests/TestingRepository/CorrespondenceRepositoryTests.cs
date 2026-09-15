@@ -115,6 +115,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.Equal("987654321", row.SenderOrgNumber);
             Assert.Null(row.ShipmentId);
             Assert.Null(row.IsReminder);
+            Assert.Null(row.NotificationSent);
         }
 
         [Fact]
@@ -130,6 +131,9 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             var reminderShipmentId1 = Guid.NewGuid();
             var reminderShipmentId2 = Guid.NewGuid();
             var created = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
+            var mainSent1 = new DateTimeOffset(2026, 1, 2, 1, 0, 0, TimeSpan.Zero);
+            var mainSent2 = new DateTimeOffset(2026, 1, 2, 2, 0, 0, TimeSpan.Zero);
+            var reminderSent1 = new DateTimeOffset(2026, 1, 3, 0, 0, 0, TimeSpan.Zero);
 
             context.ServiceOwners.Add(new ServiceOwnerEntity
             {
@@ -155,6 +159,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                     Created = created,
                     IsReminder = false,
                     ShipmentId = mainShipmentId1,
+                    NotificationSent = mainSent1,
                     NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
                     NotificationChannel = NotificationChannel.Email,
                     RequestedSendTime = created.AddHours(1)
@@ -166,6 +171,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                     Created = created,
                     IsReminder = false,
                     ShipmentId = mainShipmentId2,
+                    NotificationSent = mainSent2,
                     NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
                     NotificationChannel = NotificationChannel.Email,
                     RequestedSendTime = created.AddHours(2)
@@ -177,6 +183,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                     Created = created.AddDays(1),
                     IsReminder = true,
                     ShipmentId = reminderShipmentId1,
+                    NotificationSent = reminderSent1,
                     NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
                     NotificationChannel = NotificationChannel.Email,
                     RequestedSendTime = created.AddDays(1)
@@ -188,6 +195,7 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                     Created = created.AddDays(1),
                     IsReminder = true,
                     ShipmentId = reminderShipmentId2,
+                    NotificationSent = null,
                     NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
                     NotificationChannel = NotificationChannel.Email,
                     RequestedSendTime = created.AddDays(1).AddHours(1)
@@ -227,14 +235,15 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                 rowsWithNotifications.Select(r => r.ShipmentId).ToHashSet());
             Assert.Equal(2, rowsWithNotifications.Count(r => r.IsReminder == false));
             Assert.Equal(2, rowsWithNotifications.Count(r => r.IsReminder == true));
-            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == mainShipmentId1 && r.IsReminder == false);
-            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == mainShipmentId2 && r.IsReminder == false);
-            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == reminderShipmentId1 && r.IsReminder == true);
-            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == reminderShipmentId2 && r.IsReminder == true);
+            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == mainShipmentId1 && r.IsReminder == false && r.NotificationSent == mainSent1);
+            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == mainShipmentId2 && r.IsReminder == false && r.NotificationSent == mainSent2);
+            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == reminderShipmentId1 && r.IsReminder == true && r.NotificationSent == reminderSent1);
+            Assert.Contains(rowsWithNotifications, r => r.ShipmentId == reminderShipmentId2 && r.IsReminder == true && r.NotificationSent == null);
 
             var rowWithoutNotifications = Assert.Single(rowsForResource, r => r.CorrespondenceId == correspondence2.Id);
             Assert.Null(rowWithoutNotifications.ShipmentId);
             Assert.Null(rowWithoutNotifications.IsReminder);
+            Assert.Null(rowWithoutNotifications.NotificationSent);
         }
 
         [Fact]

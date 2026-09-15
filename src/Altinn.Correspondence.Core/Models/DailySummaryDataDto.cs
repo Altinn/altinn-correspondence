@@ -24,4 +24,5 @@ public class DailySummaryDataDto
     public long AttachmentStorageBytes { get; set; }
     public Guid? ShipmentId { get; set; }
     public bool? IsReminder { get; set; }
+    public DateTimeOffset? NotificationSent { get; set; }
 }

@@ -516,7 +516,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
             DateTimeOffset fromInclusive,
             DateTimeOffset toExclusive,
             CancellationToken cancellationToken,
-            int batchSize = 5000)
+            int batchSize = 2000)
         {
             if (includeAltinn2)
             {
@@ -534,16 +534,50 @@ namespace Altinn.Correspondence.Persistence.Repositories
             }
 
             // Per-batch timeout; keyset paging keeps each round-trip bounded.
-            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
+            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
 
             var serviceOwners = await _context.ServiceOwners
                 .AsNoTracking()
                 .ToDictionaryAsync(so => so.Id, so => so.Name, cancellationToken);
+            var serviceOwnerIds = serviceOwners.Keys.ToList();
+
+            if (serviceOwnerIds.Count == 0)
+            {
+                return [];
+            }
 
             var summaryData = new List<DailySummaryDataDto>();
+            // Page day-by-day so each scan uses a tight Created range (helps planner + avoids long locks/timeouts).
+            for (var dayStart = fromInclusive; dayStart < toExclusive; dayStart = dayStart.AddDays(1))
+            {
+                var dayEnd = dayStart.AddDays(1) < toExclusive ? dayStart.AddDays(1) : toExclusive;
+                await AppendDailySummaryBatchesForRange(
+                    dayStart,
+                    dayEnd,
+                    serviceOwners,
+                    serviceOwnerIds,
+                    summaryData,
+                    batchSize,
+                    cancellationToken);
+            }
+
+            // Keep insertion order from keyset paging; full-month sort is expensive and not required for parquet consumers.
+            return summaryData;
+        }
+
+        private async Task AppendDailySummaryBatchesForRange(
+            DateTimeOffset fromInclusive,
+            DateTimeOffset toExclusive,
+            Dictionary<string, string> serviceOwners,
+            List<string> serviceOwnerIds,
+            List<DailySummaryDataDto> summaryData,
+            int batchSize,
+            CancellationToken cancellationToken)
+        {
             DateTimeOffset? cursorCreated = null;
             Guid? cursorId = null;
             var batchNumber = 0;
+            const int notificationIdChunkSize = 1000;
 
             while (true)
             {
@@ -551,7 +585,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 var query = _context.Correspondences
                     .AsNoTracking()
                     .Where(c => c.Altinn2CorrespondenceId == null)
-                    .Where(c => c.Created >= fromInclusive && c.Created < toExclusive);
+                    .Where(c => c.Created >= fromInclusive && c.Created < toExclusive)
+                    .Where(c => c.ServiceOwnerId != null && serviceOwnerIds.Contains(c.ServiceOwnerId));
 
                 if (cursorCreated.HasValue && cursorId.HasValue)
                 {
@@ -586,32 +621,37 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 }
 
                 var batchIds = batch.Select(c => c.Id).ToList();
-                var notifications = await _context.CorrespondenceNotifications
-                    .AsNoTracking()
-                    .Where(n => batchIds.Contains(n.CorrespondenceId))
-                    .Select(n => new
-                    {
-                        n.CorrespondenceId,
-                        n.ShipmentId,
-                        n.IsReminder,
-                        n.RequestedSendTime,
-                        n.Id
-                    })
-                    .ToListAsync(cancellationToken);
+                var notifications = new List<(Guid CorrespondenceId, Guid? ShipmentId, bool IsReminder, DateTimeOffset? NotificationSent)>(batchIds.Count);
+
+                for (var offset = 0; offset < batchIds.Count; offset += notificationIdChunkSize)
+                {
+                    var count = Math.Min(notificationIdChunkSize, batchIds.Count - offset);
+                    var idChunk = batchIds.GetRange(offset, count);
+                    var chunkNotifications = await _context.CorrespondenceNotifications
+                        .AsNoTracking()
+                        .Where(n => idChunk.Contains(n.CorrespondenceId))
+                        .Select(n => new
+                        {
+                            n.CorrespondenceId,
+                            n.ShipmentId,
+                            n.IsReminder,
+                            n.NotificationSent
+                        })
+                        .ToListAsync(cancellationToken);
+
+                    notifications.AddRange(chunkNotifications.Select(n =>
+                        (n.CorrespondenceId, n.ShipmentId, n.IsReminder, n.NotificationSent)));
+                }
 
                 var notificationsByCorrespondence = notifications
                     .GroupBy(n => n.CorrespondenceId)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g
-                            .OrderByDescending(n => n.RequestedSendTime)
-                            .ThenByDescending(n => n.Id)
-                            .ToList());
+                    .ToDictionary(g => g.Key, g => g.ToList());
 
                 var keptBefore = summaryData.Count;
                 foreach (var c in batch)
                 {
-                    if (string.IsNullOrEmpty(c.ServiceOwnerId) || !serviceOwners.ContainsKey(c.ServiceOwnerId))
+                    // Filtered in SQL, but keep a cheap guard for nullability.
+                    if (string.IsNullOrEmpty(c.ServiceOwnerId) || !serviceOwners.TryGetValue(c.ServiceOwnerId, out var serviceOwnerName))
                     {
                         continue;
                     }
@@ -627,7 +667,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     };
                     var senderOrgNumber = GetSenderOrgNumberFromPropertyList(c.PropertyList);
                     var messageSender = c.MessageSender ?? string.Empty;
-                    var serviceOwnerName = serviceOwners[c.ServiceOwnerId];
 
                     if (!notificationsByCorrespondence.TryGetValue(c.Id, out var correspondenceNotifications)
                         || correspondenceNotifications.Count == 0)
@@ -649,7 +688,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                             DatabaseStorageBytes = 0,
                             AttachmentStorageBytes = 0,
                             ShipmentId = null,
-                            IsReminder = null
+                            IsReminder = null,
+                            NotificationSent = null
                         });
                         continue;
                     }
@@ -673,7 +713,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                             DatabaseStorageBytes = 0,
                             AttachmentStorageBytes = 0,
                             ShipmentId = notification.ShipmentId,
-                            IsReminder = notification.IsReminder
+                            IsReminder = notification.IsReminder,
+                            NotificationSent = notification.NotificationSent
                         });
                     }
                 }
@@ -698,17 +739,6 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     break;
                 }
             }
-
-            return summaryData
-                .OrderBy(d => d.Date)
-                .ThenBy(d => d.ServiceOwnerId)
-                .ThenBy(d => d.MessageSender)
-                .ThenBy(d => d.ResourceId)
-                .ThenBy(d => d.RecipientType)
-                .ThenBy(d => d.CorrespondenceId)
-                .ThenBy(d => d.IsReminder)
-                .ThenBy(d => d.ShipmentId)
-                .ToList();
         }
 
         private static string? GetSenderOrgNumberFromPropertyList(Dictionary<string, string>? propertyList)

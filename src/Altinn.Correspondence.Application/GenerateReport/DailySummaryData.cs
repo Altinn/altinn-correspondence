@@ -92,4 +92,9 @@ public class DailySummaryData
     /// Whether this row is a reminder notification. Null when the correspondence has no notifications.
     /// </summary>
     public bool? IsReminder { get; set; }
+
+    /// <summary>
+    /// When the notification was sent. Null when not sent yet or when the correspondence has no notifications.
+    /// </summary>
+    public DateTimeOffset? NotificationSent { get; set; }
 }

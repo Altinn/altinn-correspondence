@@ -52,6 +52,9 @@ public class GenerateDailySummaryReportHandlerTests
         var mainShipmentId1 = Guid.Parse("22222222-2222-2222-2222-222222222222");
         var mainShipmentId2 = Guid.Parse("44444444-4444-4444-4444-444444444444");
         var reminderShipmentId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var mainSent1 = new DateTimeOffset(2026, 9, 1, 10, 0, 0, TimeSpan.Zero);
+        var mainSent2 = new DateTimeOffset(2026, 9, 1, 11, 0, 0, TimeSpan.Zero);
+        var reminderSent = new DateTimeOffset(2026, 9, 3, 12, 0, 0, TimeSpan.Zero);
         
         var correspondenceDailySummaries = new List<DailySummaryDataDto>()
         {
@@ -72,7 +75,8 @@ public class GenerateDailySummaryReportHandlerTests
                 ServiceOwnerName = "Test Service Owner",
                 Year = DateTime.UtcNow.Year,
                 ShipmentId = mainShipmentId1,
-                IsReminder = false
+                IsReminder = false,
+                NotificationSent = mainSent1
             },
             new DailySummaryDataDto()
             {
@@ -91,7 +95,8 @@ public class GenerateDailySummaryReportHandlerTests
                 ServiceOwnerName = "Test Service Owner",
                 Year = DateTime.UtcNow.Year,
                 ShipmentId = mainShipmentId2,
-                IsReminder = false
+                IsReminder = false,
+                NotificationSent = mainSent2
             },
             new DailySummaryDataDto()
             {
@@ -110,7 +115,8 @@ public class GenerateDailySummaryReportHandlerTests
                 ServiceOwnerName = "Test Service Owner",
                 Year = DateTime.UtcNow.Year,
                 ShipmentId = reminderShipmentId,
-                IsReminder = true
+                IsReminder = true,
+                NotificationSent = reminderSent
             }
         };
         _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(
@@ -163,7 +169,8 @@ public class GenerateDailySummaryReportHandlerTests
             "databasestoragebytes",
             "attachmentstoragebytes",
             "shipment_id",
-            "is_reminder"
+            "is_reminder",
+            "notification_sent"
         };
 
         foreach (var expectedColumn in expectedColumnNames)
@@ -189,9 +196,9 @@ public class GenerateDailySummaryReportHandlerTests
         Assert.Equal(3, rows.Count);
         Assert.All(rows, r => Assert.Equal("11111111-1111-1111-1111-111111111111", r.CorrespondenceId));
         Assert.All(rows, r => Assert.Equal("910753614", r.SenderOrgNumber));
-        Assert.Contains(rows, r => r.ShipmentId == mainShipmentId1.ToString() && r.IsReminder == false);
-        Assert.Contains(rows, r => r.ShipmentId == mainShipmentId2.ToString() && r.IsReminder == false);
-        Assert.Contains(rows, r => r.ShipmentId == reminderShipmentId.ToString() && r.IsReminder == true);
+        Assert.Contains(rows, r => r.ShipmentId == mainShipmentId1.ToString() && r.IsReminder == false && r.NotificationSent == mainSent1.UtcDateTime.ToString("O"));
+        Assert.Contains(rows, r => r.ShipmentId == mainShipmentId2.ToString() && r.IsReminder == false && r.NotificationSent == mainSent2.UtcDateTime.ToString("O"));
+        Assert.Contains(rows, r => r.ShipmentId == reminderShipmentId.ToString() && r.IsReminder == true && r.NotificationSent == reminderSent.UtcDateTime.ToString("O"));
     }
 
     [Fact]
