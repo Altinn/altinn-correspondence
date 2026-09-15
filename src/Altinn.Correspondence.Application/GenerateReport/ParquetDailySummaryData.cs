@@ -105,14 +105,14 @@ public class ParquetDailySummaryData
     public long AttachmentStorageBytes { get; set; }
 
     /// <summary>
-    /// Shipment ID of the main notification, if any
+    /// Comma-separated shipment IDs of all main notifications, if any
     /// </summary>
-    [JsonPropertyName("shipment_id")]
-    public string? ShipmentId { get; set; }
+    [JsonPropertyName("shipment_ids")]
+    public string? ShipmentIds { get; set; }
 
     /// <summary>
-    /// Shipment ID of the reminder notification, if any
+    /// Comma-separated shipment IDs of all reminder notifications, if any
     /// </summary>
-    [JsonPropertyName("reminder_shipment_id")]
-    public string? ReminderShipmentId { get; set; }
+    [JsonPropertyName("reminder_shipment_ids")]
+    public string? ReminderShipmentIds { get; set; }
 }

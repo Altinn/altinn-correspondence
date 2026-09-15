@@ -114,8 +114,8 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.Equal(correspondence.Id, row.CorrespondenceId);
             Assert.Equal(1, row.MessageCount);
             Assert.Equal("987654321", row.SenderOrgNumber);
-            Assert.Null(row.ShipmentId);
-            Assert.Null(row.ReminderShipmentId);
+            Assert.Empty(row.ShipmentIds);
+            Assert.Empty(row.ReminderShipmentIds);
         }
 
         [Fact]
@@ -126,8 +126,10 @@ namespace Altinn.Correspondence.Tests.TestingRepository
 
             var serviceOwnerId = $"so-{Guid.NewGuid():N}";
             var resourceId = $"test-resource-{Guid.NewGuid():N}";
-            var mainShipmentId = Guid.NewGuid();
-            var reminderShipmentId = Guid.NewGuid();
+            var mainShipmentId1 = Guid.NewGuid();
+            var mainShipmentId2 = Guid.NewGuid();
+            var reminderShipmentId1 = Guid.NewGuid();
+            var reminderShipmentId2 = Guid.NewGuid();
             var created = new DateTime(2026, 01, 02, 00, 00, 00, DateTimeKind.Utc);
 
             context.ServiceOwners.Add(new ServiceOwnerEntity
@@ -153,10 +155,21 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                     CorrespondenceId = correspondence1.Id,
                     Created = created,
                     IsReminder = false,
-                    ShipmentId = mainShipmentId,
+                    ShipmentId = mainShipmentId1,
                     NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
                     NotificationChannel = NotificationChannel.Email,
-                    RequestedSendTime = created
+                    RequestedSendTime = created.AddHours(1)
+                },
+                new CorrespondenceNotificationEntity
+                {
+                    Id = Guid.NewGuid(),
+                    CorrespondenceId = correspondence1.Id,
+                    Created = created,
+                    IsReminder = false,
+                    ShipmentId = mainShipmentId2,
+                    NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+                    NotificationChannel = NotificationChannel.Email,
+                    RequestedSendTime = created.AddHours(2)
                 },
                 new CorrespondenceNotificationEntity
                 {
@@ -164,10 +177,21 @@ namespace Altinn.Correspondence.Tests.TestingRepository
                     CorrespondenceId = correspondence1.Id,
                     Created = created.AddDays(1),
                     IsReminder = true,
-                    ShipmentId = reminderShipmentId,
+                    ShipmentId = reminderShipmentId1,
                     NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
                     NotificationChannel = NotificationChannel.Email,
                     RequestedSendTime = created.AddDays(1)
+                },
+                new CorrespondenceNotificationEntity
+                {
+                    Id = Guid.NewGuid(),
+                    CorrespondenceId = correspondence1.Id,
+                    Created = created.AddDays(1),
+                    IsReminder = true,
+                    ShipmentId = reminderShipmentId2,
+                    NotificationTemplate = NotificationTemplate.GenericAltinnMessage,
+                    NotificationChannel = NotificationChannel.Email,
+                    RequestedSendTime = created.AddDays(1).AddHours(1)
                 }
             ];
 
@@ -198,12 +222,13 @@ namespace Altinn.Correspondence.Tests.TestingRepository
             Assert.All(rowsForResource, r => Assert.Equal(1, r.MessageCount));
 
             var rowWithNotifications = Assert.Single(rowsForResource, r => r.CorrespondenceId == correspondence1.Id);
-            Assert.Equal(mainShipmentId, rowWithNotifications.ShipmentId);
-            Assert.Equal(reminderShipmentId, rowWithNotifications.ReminderShipmentId);
+            // Ordered by RequestedSendTime descending
+            Assert.Equal([mainShipmentId2, mainShipmentId1], rowWithNotifications.ShipmentIds);
+            Assert.Equal([reminderShipmentId2, reminderShipmentId1], rowWithNotifications.ReminderShipmentIds);
 
             var rowWithoutNotifications = Assert.Single(rowsForResource, r => r.CorrespondenceId == correspondence2.Id);
-            Assert.Null(rowWithoutNotifications.ShipmentId);
-            Assert.Null(rowWithoutNotifications.ReminderShipmentId);
+            Assert.Empty(rowWithoutNotifications.ShipmentIds);
+            Assert.Empty(rowWithoutNotifications.ReminderShipmentIds);
         }
 
         [Fact]

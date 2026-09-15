@@ -68,8 +68,15 @@ public class GenerateDailySummaryReportHandlerTests
                 ServiceOwnerId = "123456789",
                 ServiceOwnerName = "Test Service Owner",
                 Year = DateTime.UtcNow.Year,
-                ShipmentId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                ReminderShipmentId = Guid.Parse("33333333-3333-3333-3333-333333333333")
+                ShipmentIds =
+                [
+                    Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                    Guid.Parse("44444444-4444-4444-4444-444444444444")
+                ],
+                ReminderShipmentIds =
+                [
+                    Guid.Parse("33333333-3333-3333-3333-333333333333")
+                ]
             }
         };
         _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(
@@ -121,8 +128,8 @@ public class GenerateDailySummaryReportHandlerTests
             "messagecount",
             "databasestoragebytes",
             "attachmentstoragebytes",
-            "shipment_id",
-            "reminder_shipment_id"
+            "shipment_ids",
+            "reminder_shipment_ids"
         };
 
         foreach (var expectedColumn in expectedColumnNames)
@@ -144,8 +151,8 @@ public class GenerateDailySummaryReportHandlerTests
         Assert.Single(rows);
         Assert.Equal("11111111-1111-1111-1111-111111111111", rows[0].CorrespondenceId);
         Assert.Equal("910753614", rows[0].SenderOrgNumber);
-        Assert.Equal("22222222-2222-2222-2222-222222222222", rows[0].ShipmentId);
-        Assert.Equal("33333333-3333-3333-3333-333333333333", rows[0].ReminderShipmentId);
+        Assert.Equal("22222222-2222-2222-2222-222222222222,44444444-4444-4444-4444-444444444444", rows[0].ShipmentIds);
+        Assert.Equal("33333333-3333-3333-3333-333333333333", rows[0].ReminderShipmentIds);
     }
 
     [Fact]

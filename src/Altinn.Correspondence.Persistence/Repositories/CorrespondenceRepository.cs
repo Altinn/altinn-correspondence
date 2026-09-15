@@ -576,19 +576,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         c.MessageSender,
                         c.ResourceId,
                         c.RecipientType,
-                        c.PropertyList,
-                        ShipmentId = c.Notifications
-                            .Where(n => !n.IsReminder)
-                            .OrderByDescending(n => n.RequestedSendTime)
-                            .ThenByDescending(n => n.Id)
-                            .Select(n => n.ShipmentId)
-                            .FirstOrDefault(),
-                        ReminderShipmentId = c.Notifications
-                            .Where(n => n.IsReminder)
-                            .OrderByDescending(n => n.RequestedSendTime)
-                            .ThenByDescending(n => n.Id)
-                            .Select(n => n.ShipmentId)
-                            .FirstOrDefault()
+                        c.PropertyList
                     })
                     .ToListAsync(cancellationToken);
 
@@ -596,6 +584,36 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 {
                     break;
                 }
+
+                var batchIds = batch.Select(c => c.Id).ToList();
+                var notifications = await _context.CorrespondenceNotifications
+                    .AsNoTracking()
+                    .Where(n => batchIds.Contains(n.CorrespondenceId) && n.ShipmentId != null)
+                    .Select(n => new
+                    {
+                        n.CorrespondenceId,
+                        ShipmentId = n.ShipmentId!.Value,
+                        n.IsReminder,
+                        n.RequestedSendTime,
+                        n.Id
+                    })
+                    .ToListAsync(cancellationToken);
+
+                var shipmentIdsByCorrespondence = notifications
+                    .GroupBy(n => n.CorrespondenceId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g =>
+                        {
+                            var ordered = g
+                                .OrderByDescending(n => n.RequestedSendTime)
+                                .ThenByDescending(n => n.Id)
+                                .ToList();
+                            return (
+                                Main: ordered.Where(n => !n.IsReminder).Select(n => n.ShipmentId).ToList(),
+                                Reminder: ordered.Where(n => n.IsReminder).Select(n => n.ShipmentId).ToList()
+                            );
+                        });
 
                 var keptBefore = summaryData.Count;
                 foreach (var c in batch)
@@ -605,6 +623,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         continue;
                     }
 
+                    shipmentIdsByCorrespondence.TryGetValue(c.Id, out var shipmentIds);
                     var date = c.Created.Date;
                     summaryData.Add(new DailySummaryDataDto
                     {
@@ -630,8 +649,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         MessageCount = 1,
                         DatabaseStorageBytes = 0,
                         AttachmentStorageBytes = 0,
-                        ShipmentId = c.ShipmentId,
-                        ReminderShipmentId = c.ReminderShipmentId
+                        ShipmentIds = shipmentIds.Main ?? [],
+                        ReminderShipmentIds = shipmentIds.Reminder ?? []
                     });
                 }
 

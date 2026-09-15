@@ -23,6 +23,12 @@ public class DailySummaryDataDto
     public int MessageCount { get; set; } = 1;
     public long DatabaseStorageBytes { get; set; }
     public long AttachmentStorageBytes { get; set; }
-    public Guid? ShipmentId { get; set; }
-    public Guid? ReminderShipmentId { get; set; }
+    /// <summary>
+    /// Shipment IDs of all main notifications (IsReminder = false), stable order.
+    /// </summary>
+    public List<Guid> ShipmentIds { get; set; } = [];
+    /// <summary>
+    /// Shipment IDs of all reminder notifications (IsReminder = true), stable order.
+    /// </summary>
+    public List<Guid> ReminderShipmentIds { get; set; } = [];
 }

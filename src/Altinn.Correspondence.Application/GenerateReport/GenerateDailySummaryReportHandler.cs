@@ -245,8 +245,8 @@ public class GenerateDailySummaryReportHandler(
             MessageCount = dto.MessageCount,
             DatabaseStorageBytes = dto.DatabaseStorageBytes,
             AttachmentStorageBytes = dto.AttachmentStorageBytes,
-            ShipmentId = dto.ShipmentId,
-            ReminderShipmentId = dto.ReminderShipmentId
+            ShipmentIds = dto.ShipmentIds,
+            ReminderShipmentIds = dto.ReminderShipmentIds
         }).ToList();
     }
 
@@ -486,8 +486,8 @@ public class GenerateDailySummaryReportHandler(
             MessageCount = d.MessageCount,
             DatabaseStorageBytes = d.DatabaseStorageBytes,
             AttachmentStorageBytes = d.AttachmentStorageBytes,
-            ShipmentId = d.ShipmentId?.ToString(),
-            ReminderShipmentId = d.ReminderShipmentId?.ToString()
+            ShipmentIds = FormatShipmentIds(d.ShipmentIds),
+            ReminderShipmentIds = FormatShipmentIds(d.ReminderShipmentIds)
         }).ToList();
 
         var memoryStream = new MemoryStream();
@@ -502,6 +502,11 @@ public class GenerateDailySummaryReportHandler(
         logger.LogInformation("Successfully generated daily summary parquet file stream");
 
         return (memoryStream, hash, memoryStream.Length);
+    }
+
+    private static string? FormatShipmentIds(IReadOnlyList<Guid> shipmentIds)
+    {
+        return shipmentIds.Count == 0 ? null : string.Join(',', shipmentIds);
     }
 
     public async Task<OneOf<GenerateAndDownloadDailySummaryReportResponse, Error>> DownloadReportFile(
