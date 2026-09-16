@@ -518,6 +518,27 @@ namespace Altinn.Correspondence.Persistence.Repositories
             CancellationToken cancellationToken,
             int batchSize = 2000)
         {
+            var summaryData = new List<DailySummaryDataDto>();
+            await foreach (var batch in StreamDailySummaryBatches(
+                includeAltinn2,
+                fromInclusive,
+                toExclusive,
+                cancellationToken,
+                batchSize))
+            {
+                summaryData.AddRange(batch);
+            }
+
+            return summaryData;
+        }
+
+        public async IAsyncEnumerable<IReadOnlyList<DailySummaryDataDto>> StreamDailySummaryBatches(
+            bool includeAltinn2,
+            DateTimeOffset fromInclusive,
+            DateTimeOffset toExclusive,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default,
+            int batchSize = 2000)
+        {
             if (includeAltinn2)
             {
                 throw new ArgumentException("Not supported");
@@ -543,41 +564,39 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
             if (serviceOwnerIds.Count == 0)
             {
-                return [];
+                yield break;
             }
 
-            var summaryData = new List<DailySummaryDataDto>();
-            // Page day-by-day so each scan uses a tight Created range (helps planner + avoids long locks/timeouts).
+            // Page day-by-day so each scan uses a tight Created range.
             for (var dayStart = fromInclusive; dayStart < toExclusive; dayStart = dayStart.AddDays(1))
             {
                 var dayEnd = dayStart.AddDays(1) < toExclusive ? dayStart.AddDays(1) : toExclusive;
-                await AppendDailySummaryBatchesForRange(
+                await foreach (var batch in StreamDailySummaryBatchesForRange(
                     dayStart,
                     dayEnd,
                     serviceOwners,
                     serviceOwnerIds,
-                    summaryData,
                     batchSize,
-                    cancellationToken);
+                    cancellationToken))
+                {
+                    yield return batch;
+                }
             }
-
-            // Keep insertion order from keyset paging; full-month sort is expensive and not required for parquet consumers.
-            return summaryData;
         }
 
-        private async Task AppendDailySummaryBatchesForRange(
+        private async IAsyncEnumerable<IReadOnlyList<DailySummaryDataDto>> StreamDailySummaryBatchesForRange(
             DateTimeOffset fromInclusive,
             DateTimeOffset toExclusive,
             Dictionary<string, string> serviceOwners,
             List<string> serviceOwnerIds,
-            List<DailySummaryDataDto> summaryData,
             int batchSize,
-            CancellationToken cancellationToken)
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             DateTimeOffset? cursorCreated = null;
             Guid? cursorId = null;
             var batchNumber = 0;
             const int notificationIdChunkSize = 1000;
+            var totalKept = 0;
 
             while (true)
             {
@@ -617,7 +636,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
                 if (batch.Count == 0)
                 {
-                    break;
+                    yield break;
                 }
 
                 var batchIds = batch.Select(c => c.Id).ToList();
@@ -647,7 +666,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     .GroupBy(n => n.CorrespondenceId)
                     .ToDictionary(g => g.Key, g => g.ToList());
 
-                var keptBefore = summaryData.Count;
+                var summaryBatch = new List<DailySummaryDataDto>(batch.Count);
                 foreach (var c in batch)
                 {
                     // Filtered in SQL, but keep a cheap guard for nullability.
@@ -656,7 +675,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         continue;
                     }
 
-                    var date = c.Created.Date;
+                    // Report date = correspondence Created (UTC calendar day), not notification times.
+                    var date = c.Created.UtcDateTime.Date;
                     var recipientType = c.RecipientType switch
                     {
                         UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
@@ -671,7 +691,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
                     if (!notificationsByCorrespondence.TryGetValue(c.Id, out var correspondenceNotifications)
                         || correspondenceNotifications.Count == 0)
                     {
-                        summaryData.Add(new DailySummaryDataDto
+                        summaryBatch.Add(new DailySummaryDataDto
                         {
                             CorrespondenceId = c.Id,
                             Date = date,
@@ -696,7 +716,7 @@ namespace Altinn.Correspondence.Persistence.Repositories
 
                     foreach (var notification in correspondenceNotifications)
                     {
-                        summaryData.Add(new DailySummaryDataDto
+                        summaryBatch.Add(new DailySummaryDataDto
                         {
                             CorrespondenceId = c.Id,
                             Date = date,
@@ -722,21 +742,27 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 var last = batch[^1];
                 cursorCreated = last.Created;
                 cursorId = last.Id;
+                totalKept += summaryBatch.Count;
 
                 logger.LogInformation(
                     "Daily summary data batch {BatchNumber}: fetched {FetchedCount} correspondences (kept {KeptCount}, total kept {TotalKept}). Range=[{FromInclusive}, {ToExclusive}). Cursor={CursorCreated}/{CursorId}",
                     batchNumber,
                     batch.Count,
-                    summaryData.Count - keptBefore,
-                    summaryData.Count,
+                    summaryBatch.Count,
+                    totalKept,
                     fromInclusive,
                     toExclusive,
                     cursorCreated,
                     cursorId);
 
+                if (summaryBatch.Count > 0)
+                {
+                    yield return summaryBatch;
+                }
+
                 if (batch.Count < batchSize)
                 {
-                    break;
+                    yield break;
                 }
             }
         }

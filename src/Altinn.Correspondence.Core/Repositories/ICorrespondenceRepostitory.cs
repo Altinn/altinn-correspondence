@@ -87,13 +87,25 @@ namespace Altinn.Correspondence.Core.Repositories
 
         /// <summary>
         /// Loads per-correspondence daily summary rows in keyset-paged batches for the half-open Created range [fromInclusive, toExclusive).
+        /// Prefer <see cref="StreamDailySummaryBatches"/> for large ranges to avoid loading the full result into memory.
         /// </summary>
         Task<List<DailySummaryDataDto>> GetDailySummaryData(
             bool includeAltinn2,
             DateTimeOffset fromInclusive,
             DateTimeOffset toExclusive,
             CancellationToken cancellationToken,
-            int batchSize = 5000);
+            int batchSize = 2000);
+
+        /// <summary>
+        /// Streams keyset-paged daily summary batches for the half-open Created range [fromInclusive, toExclusive).
+        /// Each yielded list is one DB page and can be processed and discarded before the next page is loaded.
+        /// </summary>
+        IAsyncEnumerable<IReadOnlyList<DailySummaryDataDto>> StreamDailySummaryBatches(
+            bool includeAltinn2,
+            DateTimeOffset fromInclusive,
+            DateTimeOffset toExclusive,
+            CancellationToken cancellationToken,
+            int batchSize = 2000);
 
         Task<CorrespondenceEntity?> GetCorrespondenceByIdempotentKey(Guid idempotentKey, CancellationToken cancellationToken);
 

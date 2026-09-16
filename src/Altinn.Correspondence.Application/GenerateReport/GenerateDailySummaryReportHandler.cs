@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OneOf;
+using Parquet;
 using Parquet.Serialization;
 using System.Security.Cryptography;
 
@@ -107,40 +108,43 @@ public class GenerateDailySummaryReportHandler(
 
         try
         {
-            var summaryDataDto = await correspondenceRepository.GetDailySummaryData(
-                altinn2Included,
-                fromInclusive,
-                toExclusive,
-                cancellationToken);
-            logger.LogInformation(
-                "Retrieved {count} correspondence summary records for {Year}-{Month:D2}",
-                summaryDataDto.Count,
+            var fileName = BuildMonthlyReportFileName(
                 year,
-                month);
+                month,
+                altinn2Included,
+                hostEnvironment.EnvironmentName ?? "Unknown");
 
-            if (summaryDataDto.Count == 0)
+            var (tempPath, _, _, serviceOwnerCount, correspondenceCount, rowCount) =
+                await GenerateMonthlyParquetToTempFile(altinn2Included, year, month, cancellationToken);
+
+            if (tempPath is null)
             {
                 logger.LogWarning("No correspondences found for monthly daily summary report {Year}-{Month:D2}", year, month);
                 return;
             }
 
-            var summaryData = await MapToDailySummaryData(summaryDataDto, cancellationToken);
-            logger.LogInformation("Mapped and enriched data into {count} summary records", summaryData.Count);
+            try
+            {
+                await using var fileStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var (blobUrl, _, _) = await storageRepository.UploadReportFile(
+                    fileName,
+                    serviceOwnerCount,
+                    correspondenceCount,
+                    fileStream,
+                    cancellationToken);
 
-            var totalCorrespondenceCount = summaryData.Select(d => d.CorrespondenceId).Distinct().Count();
-            var (blobUrl, _, _) = await GenerateAndUploadParquetFile(
-                summaryData,
-                totalCorrespondenceCount,
-                altinn2Included,
-                year,
-                month,
-                cancellationToken);
-
-            logger.LogInformation(
-                "Successfully generated and uploaded monthly daily summary report for {Year}-{Month:D2} to blob storage: {blobUrl}",
-                year,
-                month,
-                blobUrl);
+                logger.LogInformation(
+                    "Successfully generated and uploaded monthly daily summary report for {Year}-{Month:D2} to blob storage: {blobUrl} ({RowCount} rows, {CorrespondenceCount} correspondences)",
+                    year,
+                    month,
+                    blobUrl,
+                    rowCount,
+                    correspondenceCount);
+            }
+            finally
+            {
+                TryDeleteTempFile(tempPath);
+            }
         }
         catch (Exception ex)
         {
@@ -204,33 +208,117 @@ public class GenerateDailySummaryReportHandler(
         return $"daily_summary_report_{year:D4}{month:D2}_{altinnVersionIndicator}_{environmentName}.parquet";
     }
 
-    private async Task<List<DailySummaryData>> MapToDailySummaryData(List<DailySummaryDataDto> dtoList, CancellationToken cancellationToken)
+    private async Task<(string? TempPath, string FileHash, long FileSize, int ServiceOwnerCount, int CorrespondenceCount, int RowCount)> GenerateMonthlyParquetToTempFile(
+        bool altinn2Included,
+        int year,
+        int month,
+        CancellationToken cancellationToken)
     {
-        // Get unique resource IDs to fetch titles in bulk
-        var resourceIds = dtoList
-            .Where(d => !string.IsNullOrEmpty(d.ResourceId) && d.ResourceId != "unknown")
+        var (fromInclusive, toExclusive) = GetUtcMonthRange(year, month);
+        var tempPath = Path.Combine(Path.GetTempPath(), $"daily_summary_{year:D4}{month:D2}_{Guid.NewGuid():N}.parquet");
+        var resourceTitleCache = new Dictionary<string, string>(StringComparer.Ordinal);
+        var serviceOwnerIds = new HashSet<string>(StringComparer.Ordinal);
+        var correspondenceCount = 0;
+        var rowCount = 0;
+        var wroteAny = false;
+
+        try
+        {
+            await using (var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+            {
+                await foreach (var batch in correspondenceRepository.StreamDailySummaryBatches(
+                    altinn2Included,
+                    fromInclusive,
+                    toExclusive,
+                    cancellationToken))
+                {
+                    if (batch.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    await EnsureResourceTitlesCached(batch, resourceTitleCache, cancellationToken);
+
+                    var parquetBatch = MapBatchToParquet(batch, resourceTitleCache);
+                    correspondenceCount += batch.Select(d => d.CorrespondenceId).Distinct().Count();
+                    foreach (var serviceOwnerId in batch.Select(d => d.ServiceOwnerId))
+                    {
+                        serviceOwnerIds.Add(serviceOwnerId);
+                    }
+
+                    await ParquetSerializer.SerializeAsync(
+                        parquetBatch,
+                        fileStream,
+                        new ParquetOptions { Append = wroteAny },
+                        cancellationToken: cancellationToken);
+                    wroteAny = true;
+                    rowCount += parquetBatch.Count;
+
+                    logger.LogInformation(
+                        "Appended {BatchRows} parquet rows for {Year}-{Month:D2} (total rows {TotalRows}, correspondences {CorrespondenceCount})",
+                        parquetBatch.Count,
+                        year,
+                        month,
+                        rowCount,
+                        correspondenceCount);
+                }
+            }
+
+            if (!wroteAny)
+            {
+                TryDeleteTempFile(tempPath);
+                return (null, string.Empty, 0, 0, 0, 0);
+            }
+
+            await using (var readStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                using var md5 = MD5.Create();
+                var hash = Convert.ToBase64String(await md5.ComputeHashAsync(readStream, cancellationToken));
+                return (tempPath, hash, readStream.Length, serviceOwnerIds.Count, correspondenceCount, rowCount);
+            }
+        }
+        catch
+        {
+            TryDeleteTempFile(tempPath);
+            throw;
+        }
+    }
+
+    private async Task EnsureResourceTitlesCached(
+        IReadOnlyList<DailySummaryDataDto> batch,
+        Dictionary<string, string> resourceTitleCache,
+        CancellationToken cancellationToken)
+    {
+        var missingResourceIds = batch
             .Select(d => d.ResourceId)
+            .Where(id => !string.IsNullOrEmpty(id) && id != "unknown" && !resourceTitleCache.ContainsKey(id))
             .Distinct()
             .ToList();
 
-        // Fetch resource titles in parallel (with error handling)
-        var resourceTitleTasks = resourceIds.ToDictionary(
-            resourceId => resourceId,
-            resourceId => GetResourceTitle(resourceId, cancellationToken)
-        );
-
-        await Task.WhenAll(resourceTitleTasks.Values);
-
-        var resourceTitles = resourceTitleTasks.ToDictionary(
-            kvp => kvp.Key,
-            kvp => kvp.Value.Result
-        );
-
-        // Map DTO to domain model
-        return dtoList.Select(dto => new DailySummaryData
+        if (missingResourceIds.Count == 0)
         {
-            CorrespondenceId = dto.CorrespondenceId,
-            Date = dto.Date,
+            return;
+        }
+
+        var tasks = missingResourceIds.ToDictionary(
+            resourceId => resourceId,
+            resourceId => GetResourceTitle(resourceId, cancellationToken));
+        await Task.WhenAll(tasks.Values);
+
+        foreach (var (resourceId, task) in tasks)
+        {
+            resourceTitleCache[resourceId] = task.Result;
+        }
+    }
+
+    private List<ParquetDailySummaryData> MapBatchToParquet(
+        IReadOnlyList<DailySummaryDataDto> batch,
+        Dictionary<string, string> resourceTitleCache)
+    {
+        return batch.Select(dto => new ParquetDailySummaryData
+        {
+            CorrespondenceId = dto.CorrespondenceId.ToString(),
+            Date = dto.Date.ToString("yyyy-MM-dd"),
             Year = dto.Year,
             Month = dto.Month,
             Day = dto.Day,
@@ -239,15 +327,35 @@ public class GenerateDailySummaryReportHandler(
             MessageSender = dto.MessageSender,
             SenderOrgNumber = dto.SenderOrgNumber ?? string.Empty,
             ResourceId = dto.ResourceId,
-            ResourceTitle = resourceTitles.GetValueOrDefault(dto.ResourceId) ?? GetResourceTitle(dto.ResourceId),
-            RecipientType = dto.RecipientType,
-            AltinnVersion = dto.AltinnVersion,
+            ResourceTitle = resourceTitleCache.GetValueOrDefault(dto.ResourceId) ?? GetResourceTitle(dto.ResourceId),
+            RecipientType = dto.RecipientType.ToString(),
+            AltinnVersion = dto.AltinnVersion.ToString(),
             DatabaseStorageBytes = dto.DatabaseStorageBytes,
             AttachmentStorageBytes = dto.AttachmentStorageBytes,
-            ShipmentId = dto.ShipmentId,
+            ShipmentId = dto.ShipmentId?.ToString(),
             IsReminder = dto.IsReminder,
-            NotificationSent = dto.NotificationSent
+            NotificationSent = dto.NotificationSent?.UtcDateTime.ToString("O")
         }).ToList();
+    }
+
+    private static void TryDeleteTempFile(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup of temp parquet files.
+        }
     }
 
     private async Task<string> GetResourceTitle(string resourceId, CancellationToken cancellationToken)
@@ -431,78 +539,6 @@ public class GenerateDailySummaryReportHandler(
         throw new FormatException($"Unable to parse datetime from report name '{reportName}'. Expected monthly (yyyyMM) or legacy (yyyyMMdd_HHmmss) format");
     }
 
-    private async Task<(string blobUrl, string fileHash, long fileSize)> GenerateAndUploadParquetFile(
-        List<DailySummaryData> summaryData,
-        int correspondenceCount,
-        bool altinn2Included,
-        int year,
-        int month,
-        CancellationToken cancellationToken)
-    {
-        var fileName = BuildMonthlyReportFileName(
-            year,
-            month,
-            altinn2Included,
-            hostEnvironment.EnvironmentName ?? "Unknown");
-
-        logger.LogInformation(
-            "Generating monthly daily summary parquet file {fileName} with {count} records for blob storage",
-            fileName,
-            summaryData.Count);
-
-        var (parquetStream, fileHash, fileSize) = await GenerateParquetFileStream(summaryData, cancellationToken);
-
-        var serviceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count();
-
-        var (blobUrl, _, _) = await storageRepository.UploadReportFile(fileName, serviceOwnerCount, correspondenceCount, parquetStream, cancellationToken);
-
-        logger.LogInformation("Successfully generated and uploaded monthly daily summary parquet file to blob storage: {blobUrl}", blobUrl);
-
-        return (blobUrl, fileHash, fileSize);
-    }
-
-    private async Task<(Stream parquetStream, string fileHash, long fileSize)> GenerateParquetFileStream(
-        List<DailySummaryData> summaryData,
-        CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Generating daily summary parquet file with {count} records", summaryData.Count);
-
-        var parquetData = summaryData.Select(d => new ParquetDailySummaryData
-        {
-            CorrespondenceId = d.CorrespondenceId.ToString(),
-            Date = d.Date.ToString("yyyy-MM-dd"),
-            Year = d.Year,
-            Month = d.Month,
-            Day = d.Day,
-            ServiceOwnerId = d.ServiceOwnerId,
-            ServiceOwnerName = d.ServiceOwnerName,
-            MessageSender = d.MessageSender,
-            SenderOrgNumber = d.SenderOrgNumber,
-            ResourceId = d.ResourceId,
-            ResourceTitle = d.ResourceTitle,
-            RecipientType = d.RecipientType.ToString(),
-            AltinnVersion = d.AltinnVersion.ToString(),
-            DatabaseStorageBytes = d.DatabaseStorageBytes,
-            AttachmentStorageBytes = d.AttachmentStorageBytes,
-            ShipmentId = d.ShipmentId?.ToString(),
-            IsReminder = d.IsReminder,
-            NotificationSent = d.NotificationSent?.UtcDateTime.ToString("O")
-        }).ToList();
-
-        var memoryStream = new MemoryStream();
-        
-        await ParquetSerializer.SerializeAsync(parquetData, memoryStream, cancellationToken: cancellationToken);
-        memoryStream.Position = 0;
-
-        using var md5 = MD5.Create();
-        var hash = Convert.ToBase64String(md5.ComputeHash(memoryStream.ToArray()));
-        memoryStream.Position = 0;
-
-        logger.LogInformation("Successfully generated daily summary parquet file stream");
-
-        return (memoryStream, hash, memoryStream.Length);
-    }
-
     public async Task<OneOf<GenerateAndDownloadDailySummaryReportResponse, Error>> DownloadReportFile(
         GenerateDailySummaryReportRequest request,
         CancellationToken cancellationToken)
@@ -590,8 +626,6 @@ public class GenerateDailySummaryReportHandler(
             return StatisticsErrors.InvalidReportMonth;
         }
 
-        var (fromInclusive, toExclusive) = GetUtcMonthRange(year, month);
-
         logger.LogInformation(
             "Starting monthly daily summary report generation and download for {Year}-{Month:D2} with Altinn2Included={altinn2Included}",
             year,
@@ -600,23 +634,14 @@ public class GenerateDailySummaryReportHandler(
 
         try
         {
-            var summaryDataDto = await correspondenceRepository.GetDailySummaryData(
-                request.Altinn2Included,
-                fromInclusive,
-                toExclusive,
-                cancellationToken);
-            
-            if (!summaryDataDto.Any())
+            var (tempPath, fileHash, fileSize, serviceOwnerCount, correspondenceCount, _) =
+                await GenerateMonthlyParquetToTempFile(request.Altinn2Included, year, month, cancellationToken);
+
+            if (tempPath is null)
             {
                 logger.LogWarning("No correspondences found for report generation for {Year}-{Month:D2}", year, month);
                 return StatisticsErrors.NoCorrespondencesFound;
             }
-
-            logger.LogInformation("Found {count} correspondence summary records for {Year}-{Month:D2}", summaryDataDto.Count, year, month);
-
-            var summaryData = await MapToDailySummaryData(summaryDataDto, cancellationToken);
-
-            var (parquetStream, fileHash, fileSize) = await GenerateParquetFileStream(summaryData, cancellationToken);
 
             var fileName = BuildMonthlyReportFileName(
                 year,
@@ -624,14 +649,23 @@ public class GenerateDailySummaryReportHandler(
                 request.Altinn2Included,
                 hostEnvironment.EnvironmentName ?? "Unknown");
 
+            // DeleteOnClose so the temp parquet is removed after the response stream is disposed.
+            var responseStream = new FileStream(
+                tempPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                4096,
+                FileOptions.DeleteOnClose);
+
             var response = new GenerateAndDownloadDailySummaryReportResponse
             {
-                FileStream = parquetStream,
+                FileStream = responseStream,
                 FileName = fileName,
                 FileHash = fileHash,
                 FileSizeBytes = fileSize,
-                ServiceOwnerCount = summaryData.Select(d => d.ServiceOwnerId).Distinct().Count(),
-                TotalCorrespondenceCount = summaryData.Select(d => d.CorrespondenceId).Distinct().Count(),
+                ServiceOwnerCount = serviceOwnerCount,
+                TotalCorrespondenceCount = correspondenceCount,
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Environment = hostEnvironment.EnvironmentName,
                 Altinn2Included = request.Altinn2Included

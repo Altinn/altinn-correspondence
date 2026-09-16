@@ -14,7 +14,7 @@ public class DailySummaryData
     public Guid CorrespondenceId { get; set; }
 
     /// <summary>
-    /// Date in YYYY-MM-DD format
+    /// Correspondence Created date (UTC calendar day) in YYYY-MM-DD format
     /// </summary>
     public DateTime Date { get; set; }
     

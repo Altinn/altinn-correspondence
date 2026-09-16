@@ -119,12 +119,12 @@ public class GenerateDailySummaryReportHandlerTests
                 NotificationSent = reminderSent
             }
         };
-        _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(
+        _mockCorrespondenceRepository.Setup(x => x.StreamDailySummaryBatches(
             It.IsAny<bool>(),
             It.IsAny<DateTimeOffset>(),
             It.IsAny<DateTimeOffset>(),
             It.IsAny<CancellationToken>(),
-            It.IsAny<int>())).ReturnsAsync(correspondenceDailySummaries);
+            It.IsAny<int>())).Returns(StreamBatches(correspondenceDailySummaries));
 
         var serviceOwner = new ServiceOwnerEntity 
         { 
@@ -298,6 +298,13 @@ public class GenerateDailySummaryReportHandlerTests
                 Altinn2CorrespondenceId = 12345
             }
         };
+    }
+
+    private static async IAsyncEnumerable<IReadOnlyList<DailySummaryDataDto>> StreamBatches(
+        IReadOnlyList<DailySummaryDataDto> batch)
+    {
+        yield return batch;
+        await Task.CompletedTask;
     }
 
     private string[] GetParquetColumnNames(Stream parquetStream)
