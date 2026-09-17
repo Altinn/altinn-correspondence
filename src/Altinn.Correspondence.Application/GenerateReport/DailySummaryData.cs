@@ -3,13 +3,18 @@ using Altinn.Correspondence.Core.Models.Enums;
 namespace Altinn.Correspondence.Application.GenerateReport;
 
 /// <summary>
-/// Aggregated daily summary data for cost allocation and reporting.
-/// Each row represents one day's usage for one service owner.
+/// Per-notification data for cost allocation and reporting.
+/// Each row represents one correspondence notification (or a correspondence with no notifications).
 /// </summary>
 public class DailySummaryData
 {
     /// <summary>
-    /// Date in YYYY-MM-DD format
+    /// Correspondence ID
+    /// </summary>
+    public Guid CorrespondenceId { get; set; }
+
+    /// <summary>
+    /// Correspondence Created date (UTC calendar day) in YYYY-MM-DD format
     /// </summary>
     public DateTime Date { get; set; }
     
@@ -69,11 +74,6 @@ public class DailySummaryData
     public AltinnVersion AltinnVersion { get; set; }
     
     /// <summary>
-    /// Number of messages/correspondences for this service owner on this date
-    /// </summary>
-    public int MessageCount { get; set; }
-    
-    /// <summary>
     /// Total database storage used (metadata) in bytes
     /// </summary>
     public long DatabaseStorageBytes { get; set; }
@@ -83,4 +83,18 @@ public class DailySummaryData
     /// </summary>
     public long AttachmentStorageBytes { get; set; }
 
+    /// <summary>
+    /// Notification shipment ID, if any
+    /// </summary>
+    public Guid? ShipmentId { get; set; }
+
+    /// <summary>
+    /// Whether this row is a reminder notification. Null when the correspondence has no notifications.
+    /// </summary>
+    public bool? IsReminder { get; set; }
+
+    /// <summary>
+    /// When the notification was sent. Null when not sent yet or when the correspondence has no notifications.
+    /// </summary>
+    public DateTimeOffset? NotificationSent { get; set; }
 }

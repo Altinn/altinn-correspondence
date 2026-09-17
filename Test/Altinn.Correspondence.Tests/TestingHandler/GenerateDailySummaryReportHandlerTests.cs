@@ -37,6 +37,7 @@ public class GenerateDailySummaryReportHandlerTests
             _mockServiceOwnerRepository.Object,
             _mockResourceRegistryService.Object,
             _mockStorageRepository.Object,
+            Mock.Of<Hangfire.IBackgroundJobClient>(),
             _mockLogger.Object,
             _mockHostEnvironment.Object);
     }
@@ -47,17 +48,24 @@ public class GenerateDailySummaryReportHandlerTests
         // Arrange
         var user = new ClaimsPrincipal();
         var request = new GenerateDailySummaryReportRequest { Altinn2Included = false };
+        var correspondenceId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var mainShipmentId1 = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var mainShipmentId2 = Guid.Parse("44444444-4444-4444-4444-444444444444");
+        var reminderShipmentId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var mainSent1 = new DateTimeOffset(2026, 9, 1, 10, 0, 0, TimeSpan.Zero);
+        var mainSent2 = new DateTimeOffset(2026, 9, 1, 11, 0, 0, TimeSpan.Zero);
+        var reminderSent = new DateTimeOffset(2026, 9, 3, 12, 0, 0, TimeSpan.Zero);
         
         var correspondenceDailySummaries = new List<DailySummaryDataDto>()
         {
             new DailySummaryDataDto()
             {
+                CorrespondenceId = correspondenceId,
                 AltinnVersion = Core.Models.Enums.AltinnVersion.Altinn3,
                 AttachmentStorageBytes = 0,
                 DatabaseStorageBytes = 0,
                 Date = DateTime.UtcNow.Date,
                 Day = (int)DateTime.UtcNow.DayOfWeek,
-                MessageCount = 1,
                 MessageSender = "",
                 SenderOrgNumber = "910753614",
                 Month = DateTime.UtcNow.Month,
@@ -65,10 +73,58 @@ public class GenerateDailySummaryReportHandlerTests
                 ResourceId = "test-resource",
                 ServiceOwnerId = "123456789",
                 ServiceOwnerName = "Test Service Owner",
-                Year = DateTime.UtcNow.Year
+                Year = DateTime.UtcNow.Year,
+                ShipmentId = mainShipmentId1,
+                IsReminder = false,
+                NotificationSent = mainSent1
+            },
+            new DailySummaryDataDto()
+            {
+                CorrespondenceId = correspondenceId,
+                AltinnVersion = Core.Models.Enums.AltinnVersion.Altinn3,
+                AttachmentStorageBytes = 0,
+                DatabaseStorageBytes = 0,
+                Date = DateTime.UtcNow.Date,
+                Day = (int)DateTime.UtcNow.DayOfWeek,
+                MessageSender = "",
+                SenderOrgNumber = "910753614",
+                Month = DateTime.UtcNow.Month,
+                RecipientType = Core.Models.Enums.RecipientType.Organization,
+                ResourceId = "test-resource",
+                ServiceOwnerId = "123456789",
+                ServiceOwnerName = "Test Service Owner",
+                Year = DateTime.UtcNow.Year,
+                ShipmentId = mainShipmentId2,
+                IsReminder = false,
+                NotificationSent = mainSent2
+            },
+            new DailySummaryDataDto()
+            {
+                CorrespondenceId = correspondenceId,
+                AltinnVersion = Core.Models.Enums.AltinnVersion.Altinn3,
+                AttachmentStorageBytes = 0,
+                DatabaseStorageBytes = 0,
+                Date = DateTime.UtcNow.Date,
+                Day = (int)DateTime.UtcNow.DayOfWeek,
+                MessageSender = "",
+                SenderOrgNumber = "910753614",
+                Month = DateTime.UtcNow.Month,
+                RecipientType = Core.Models.Enums.RecipientType.Organization,
+                ResourceId = "test-resource",
+                ServiceOwnerId = "123456789",
+                ServiceOwnerName = "Test Service Owner",
+                Year = DateTime.UtcNow.Year,
+                ShipmentId = reminderShipmentId,
+                IsReminder = true,
+                NotificationSent = reminderSent
             }
         };
-        _mockCorrespondenceRepository.Setup(x => x.GetDailySummaryData(It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync(correspondenceDailySummaries);
+        _mockCorrespondenceRepository.Setup(x => x.StreamDailySummaryBatches(
+            It.IsAny<bool>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<CancellationToken>(),
+            It.IsAny<int>())).Returns(StreamBatches(correspondenceDailySummaries));
 
         var serviceOwner = new ServiceOwnerEntity 
         { 
@@ -90,12 +146,14 @@ public class GenerateDailySummaryReportHandlerTests
         
         var response = result.AsT0;
         Assert.NotNull(response.FileStream);
+        Assert.Equal(1, response.TotalCorrespondenceCount);
         
         // Verify the parquet file has correct column names
         var columnNames = GetParquetColumnNames(response.FileStream);
         
         var expectedColumnNames = new[]
         {
+            "correspondenceid",
             "date",
             "year", 
             "month",
@@ -108,15 +166,21 @@ public class GenerateDailySummaryReportHandlerTests
             "serviceresourcetitle",
             "recipienttype",
             "costcenter",
-            "messagecount",
             "databasestoragebytes",
-            "attachmentstoragebytes"
+            "attachmentstoragebytes",
+            "shipment_id",
+            "is_reminder",
+            "notification_sent"
         };
 
         foreach (var expectedColumn in expectedColumnNames)
         {
             Assert.Contains(expectedColumn, columnNames);
         }
+
+        Assert.DoesNotContain("messagecount", columnNames);
+        Assert.DoesNotContain("shipment_ids", columnNames);
+        Assert.DoesNotContain("reminder_shipment_ids", columnNames);
 
         // Verify all columns are lowercase
         foreach (var columnName in columnNames)
@@ -125,12 +189,63 @@ public class GenerateDailySummaryReportHandlerTests
                 $"Column name '{columnName}' should be lowercase");
         }
 
-        // Verify sender org number value is actually present in the parquet data
+        // Verify sender org number and one row per notification
         response.FileStream.Position = 0;
         var deserializationResult = await ParquetSerializer.DeserializeAsync<ParquetDailySummaryData>(response.FileStream, cancellationToken: CancellationToken.None);
         var rows = deserializationResult.Data;
-        Assert.Single(rows);
-        Assert.Equal("910753614", rows[0].SenderOrgNumber);
+        Assert.Equal(3, rows.Count);
+        Assert.All(rows, r => Assert.Equal("11111111-1111-1111-1111-111111111111", r.CorrespondenceId));
+        Assert.All(rows, r => Assert.Equal("910753614", r.SenderOrgNumber));
+        Assert.Contains(rows, r => r.ShipmentId == mainShipmentId1.ToString() && r.IsReminder == false && r.NotificationSent == mainSent1.UtcDateTime.ToString("O"));
+        Assert.Contains(rows, r => r.ShipmentId == mainShipmentId2.ToString() && r.IsReminder == false && r.NotificationSent == mainSent2.UtcDateTime.ToString("O"));
+        Assert.Contains(rows, r => r.ShipmentId == reminderShipmentId.ToString() && r.IsReminder == true && r.NotificationSent == reminderSent.UtcDateTime.ToString("O"));
+    }
+
+    [Fact]
+    public void ResolveReportMonth_WhenYearAndMonthOmitted_UsesCurrentUtcMonth()
+    {
+        var before = DateTimeOffset.UtcNow;
+        var (year, month) = GenerateDailySummaryReportHandler.ResolveReportMonth(new GenerateDailySummaryReportRequest());
+        var after = DateTimeOffset.UtcNow;
+
+        var matchesBefore = year == before.Year && month == before.Month;
+        var matchesAfter = year == after.Year && month == after.Month;
+        Assert.True(matchesBefore || matchesAfter,
+            $"Expected ({before.Year}-{before.Month:D2}) or ({after.Year}-{after.Month:D2}), got ({year}-{month:D2}).");
+    }
+
+    [Fact]
+    public void ResolveRecurringReportMonth_OnFirstDays_UsesPreviousUtcMonth()
+    {
+        var now = new DateTimeOffset(2026, 9, 2, 12, 0, 0, TimeSpan.Zero);
+        var (year, month) = GenerateDailySummaryReportHandler.ResolveRecurringReportMonth(now);
+        Assert.Equal(2026, year);
+        Assert.Equal(8, month);
+    }
+
+    [Fact]
+    public void ResolveRecurringReportMonth_AfterFirstDays_UsesCurrentUtcMonth()
+    {
+        var now = new DateTimeOffset(2026, 9, 4, 12, 0, 0, TimeSpan.Zero);
+        var (year, month) = GenerateDailySummaryReportHandler.ResolveRecurringReportMonth(now);
+        Assert.Equal(2026, year);
+        Assert.Equal(9, month);
+    }
+
+    [Fact]
+    public void ResolveReportMonth_WhenYearAndMonthProvided_UsesThem()
+    {
+        var (year, month) = GenerateDailySummaryReportHandler.ResolveReportMonth(
+            new GenerateDailySummaryReportRequest { Year = 2025, Month = 8 });
+        Assert.Equal(2025, year);
+        Assert.Equal(8, month);
+    }
+
+    [Fact]
+    public void BuildMonthlyReportFileName_UsesStableYearMonthName()
+    {
+        var fileName = GenerateDailySummaryReportHandler.BuildMonthlyReportFileName(2026, 9, false, "Production");
+        Assert.Equal("daily_summary_report_202609_A3_Production.parquet", fileName);
     }
 
 
@@ -183,6 +298,13 @@ public class GenerateDailySummaryReportHandlerTests
                 Altinn2CorrespondenceId = 12345
             }
         };
+    }
+
+    private static async IAsyncEnumerable<IReadOnlyList<DailySummaryDataDto>> StreamBatches(
+        IReadOnlyList<DailySummaryDataDto> batch)
+    {
+        yield return batch;
+        await Task.CompletedTask;
     }
 
     private string[] GetParquetColumnNames(Stream parquetStream)

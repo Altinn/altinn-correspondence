@@ -3,13 +3,19 @@ using System.Text.Json.Serialization;
 namespace Altinn.Correspondence.Application.GenerateReport;
 
 /// <summary>
-/// Parquet-friendly model for daily summary data.
+/// Parquet-friendly model for per-notification daily summary data.
 /// All properties are simple types optimized for ParquetSerializer.
 /// </summary>
 public class ParquetDailySummaryData
 {
     /// <summary>
-    /// Date in YYYY-MM-DD format (as string for Parquet compatibility)
+    /// Correspondence ID
+    /// </summary>
+    [JsonPropertyName("correspondenceid")]
+    public string CorrespondenceId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Correspondence Created date (UTC calendar day) in YYYY-MM-DD format
     /// </summary>
     [JsonPropertyName("date")]
     public string Date { get; set; } = string.Empty;
@@ -81,12 +87,6 @@ public class ParquetDailySummaryData
     public string AltinnVersion { get; set; } = string.Empty;
     
     /// <summary>
-    /// Number of messages/correspondences for this service owner on this date
-    /// </summary>
-    [JsonPropertyName("messagecount")]
-    public int MessageCount { get; set; }
-    
-    /// <summary>
     /// Total database storage used (metadata) in bytes
     /// </summary>
     [JsonPropertyName("databasestoragebytes")]
@@ -98,4 +98,21 @@ public class ParquetDailySummaryData
     [JsonPropertyName("attachmentstoragebytes")]
     public long AttachmentStorageBytes { get; set; }
 
+    /// <summary>
+    /// Notification shipment ID, if any
+    /// </summary>
+    [JsonPropertyName("shipment_id")]
+    public string? ShipmentId { get; set; }
+
+    /// <summary>
+    /// Whether this row is a reminder notification. Null when the correspondence has no notifications.
+    /// </summary>
+    [JsonPropertyName("is_reminder")]
+    public bool? IsReminder { get; set; }
+
+    /// <summary>
+    /// When the notification was sent (ISO 8601 UTC). Null when not sent yet or when the correspondence has no notifications.
+    /// </summary>
+    [JsonPropertyName("notification_sent")]
+    public string? NotificationSent { get; set; }
 }
