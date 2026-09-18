@@ -328,6 +328,46 @@ namespace Altinn.Correspondence.Persistence.Repositories
             return await query.ToListAsync(cancellationToken);
         }
 
+        public async Task<List<CorrespondenceAttachmentStatsDto>> GetCorrespondencesWindowAfterWithAttachmentStats(
+            int limit,
+            DateTimeOffset? lastCreated,
+            Guid? lastId,
+            bool filterMigrated,
+            CancellationToken cancellationToken)
+        {
+            _context.Database.SetCommandTimeout(TimeSpan.FromMinutes(2));
+            var query = _context.Correspondences
+                .AsNoTracking()
+                .FilterMigrated(filterMigrated)
+                .AsQueryable();
+
+            if (lastCreated.HasValue)
+            {
+                if (lastId.HasValue)
+                {
+                    query = query.Where(c => EF.Functions.GreaterThan(
+                ValueTuple.Create(c.Created, c.Id),
+                ValueTuple.Create(lastCreated.Value, lastId.Value)));
+                }
+                else
+                {
+                    query = query.Where(c => c.Created > lastCreated.Value);
+                }
+            }
+
+            return await query
+                .OrderBy(c => c.Created).ThenBy(c => c.Id)
+                .Take(limit)
+                .Select(c => new CorrespondenceAttachmentStatsDto
+                {
+                    CorrespondenceId = c.Id,
+                    Created = c.Created,
+                    AttachmentCount = c.Content.Attachments.Count,
+                    TotalAttachmentSize = c.Content.Attachments.Sum(ca => (long?)ca.Attachment!.AttachmentSize) ?? 0
+                })
+                .ToListAsync(cancellationToken);
+        }
+
 
         public async Task<List<CorrespondenceEntity>> GetCorrespondencesWindowBefore(
             int limit,
