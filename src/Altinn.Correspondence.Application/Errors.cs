@@ -148,6 +148,7 @@ public static class StatisticsErrors
     public static Error NoCorrespondencesFound = new Error(6001, "No correspondences found for report generation", HttpStatusCode.NotFound);
     public static Error ReportGenerationFailed = new Error(6002, "Failed to generate statistics report", HttpStatusCode.InternalServerError);
     public static Error Altinn2NotSupported = new Error(6003, "Report including Altinn 2 correspondendes is currently not supported", HttpStatusCode.BadRequest);
-    public static Error InvalidReportMonth = new Error(6004, "Year and Month must both be provided and valid when specifying a report month", HttpStatusCode.BadRequest);
-    public static Error ReportNotFound = new Error(6005, "Report file for the requested month was not found", HttpStatusCode.NotFound);
+    public static Error InvalidReportMonth = new Error(6004, "Year and Month must both be provided and valid when specifying a report period. Day is optional (1-31) for a single-day report and defaults to the preceding Europe/Oslo day when omitted.", HttpStatusCode.BadRequest);
+    public static Error ReportNotFound = new Error(6005, "Report file for the requested period was not found", HttpStatusCode.NotFound);
+    public static Error ReportDayNotComplete = new Error(6006, "Reports cannot be generated for the current or future Europe/Oslo day because the day is not finished yet.", HttpStatusCode.BadRequest);
 }

@@ -14,6 +14,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
     {
         private const int DefaultMaxHardDeleteBatchSize = 10000;
 
+        private static readonly TimeZoneInfo OsloTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo");
+
         private readonly ApplicationDbContext _context = context;
 
         private static readonly Func<ApplicationDbContext, Guid, Task<CorrespondenceEntity?>> _getForSyncWithStatuses =
@@ -675,8 +677,8 @@ namespace Altinn.Correspondence.Persistence.Repositories
                         continue;
                     }
 
-                    // Report date = correspondence Created (UTC calendar day), not notification times.
-                    var date = c.Created.UtcDateTime.Date;
+                    // Report date = correspondence Created (Europe/Oslo calendar day), not notification times.
+                    var date = TimeZoneInfo.ConvertTimeFromUtc(c.Created.UtcDateTime, OsloTimeZone).Date;
                     var recipientType = c.RecipientType switch
                     {
                         UrnConstants.OrganizationNumberAttribute => RecipientType.Organization,
