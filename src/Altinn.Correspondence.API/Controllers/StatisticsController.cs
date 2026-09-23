@@ -16,15 +16,15 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     private readonly ILogger<StatisticsController> _logger = logger;
 
     /// <summary>
-    /// Enqueue generation of a monthly daily summary report (one row per correspondence)
+    /// Enqueue generation of a monthly or daily summary report (one row per notification)
     /// </summary>
     /// <remarks>
-    /// Enqueues a Hangfire background job that builds a parquet file for a single UTC month
-    /// and uploads/overwrites it in blob storage. Defaults to the current UTC month; optional
-    /// year/month on the request allow backfill of older months. The daily recurring job only
-    /// regenerates the current month so older monthly files stay unchanged.
-    /// Returns immediately with a job id. Use the download endpoint after the job has completed.
-    /// Requires API key authentication via X-API-Key header.
+    /// Enqueues a Hangfire background job that builds a parquet file and uploads/overwrites it
+    /// in blob storage. Defaults to the preceding UTC day. Pass year+month for a monthly report,
+    /// or year+month+day for a single completed UTC day (today and future days are rejected).
+    /// The daily recurring job still regenerates the current (or previous) month so older monthly
+    /// files stay unchanged. Returns immediately with a job id. Use the download endpoint after
+    /// the job has completed. Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
     /// </remarks>
     /// <param name="request">Request parameters including whether to include Altinn2 correspondences</param>
@@ -130,22 +130,23 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
         }
     }
     /// <summary>
-    /// Download a monthly daily summary report with one row per correspondence
+    /// Download a monthly or daily summary report with one row per notification
     /// </summary>
     /// <remarks>
-    /// Returns the parquet file for the requested UTC month (defaults to the current UTC month
-    /// when year/month are omitted). Each row represents one correspondence, including
-    /// notification shipment IDs when present. The response includes both the file and metadata.
+    /// Returns the parquet file for the requested UTC month or day. Defaults to the preceding
+    /// UTC day when year/month/day are omitted. Today and future UTC days are rejected.
+    /// If a single-day report does not exist yet, it is generated inline in the request
+    /// (days are small enough). Monthly reports must already exist (enqueue generate first).
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
     /// </remarks>
-    /// <param name="request">Request parameters including optional year/month and whether to include Altinn2 correspondences</param>
+    /// <param name="request">Request parameters including optional year/month/day and whether to include Altinn2 correspondences</param>
     /// <param name="handler">The handler service</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <response code="200">Returns the parquet file with metadata</response>
     /// <response code="401">Unauthorized - Missing or invalid API key</response>
     /// <response code="403">Forbidden - Invalid API key</response>
-    /// <response code="404">Report for the requested month was not found</response>
+    /// <response code="404">Report for the requested month was not found (monthly only)</response>
     /// <response code="429">Too Many Requests - Rate limit exceeded</response>
     /// <response code="500">Internal server error</response>
     [HttpPost]

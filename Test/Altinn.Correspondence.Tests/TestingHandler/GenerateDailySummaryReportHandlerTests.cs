@@ -138,6 +138,14 @@ public class GenerateDailySummaryReportHandlerTests
         _mockResourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Test Resource Title");
 
+        _mockStorageRepository.Setup(x => x.UploadReportFile(
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<Stream>(),
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(("https://example/reports/test.parquet", "hash", 123));
+
         // Act
         var result = await _handler.ProcessAndDownload(request, CancellationToken.None);
 
@@ -202,6 +210,47 @@ public class GenerateDailySummaryReportHandlerTests
     }
 
     [Fact]
+    public void ResolveReportPeriod_WhenOmitted_UsesPrecedingUtcDay()
+    {
+        var before = DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(-1);
+        var (year, month, day) = GenerateDailySummaryReportHandler.ResolveReportPeriod(new GenerateDailySummaryReportRequest());
+        var after = DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(-1);
+
+        var matchesBefore = year == before.Year && month == before.Month && day == before.Day;
+        var matchesAfter = year == after.Year && month == after.Month && day == after.Day;
+        Assert.True(matchesBefore || matchesAfter,
+            $"Expected ({before:yyyy-MM-dd}) or ({after:yyyy-MM-dd}), got ({year}-{month:D2}-{day:D2}).");
+    }
+
+    [Fact]
+    public void ResolveReportPeriod_WhenCurrentUtcDay_Throws()
+    {
+        var today = DateTimeOffset.UtcNow.UtcDateTime.Date;
+        Assert.ThrowsAny<ArgumentException>(() =>
+            GenerateDailySummaryReportHandler.ResolveReportPeriod(
+                new GenerateDailySummaryReportRequest
+                {
+                    Year = today.Year,
+                    Month = today.Month,
+                    Day = today.Day
+                }));
+    }
+
+    [Fact]
+    public void ResolveReportPeriod_WhenFutureUtcDay_Throws()
+    {
+        var tomorrow = DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(1);
+        Assert.ThrowsAny<ArgumentException>(() =>
+            GenerateDailySummaryReportHandler.ResolveReportPeriod(
+                new GenerateDailySummaryReportRequest
+                {
+                    Year = tomorrow.Year,
+                    Month = tomorrow.Month,
+                    Day = tomorrow.Day
+                }));
+    }
+
+    [Fact]
     public void ResolveReportMonth_WhenYearAndMonthOmitted_UsesCurrentUtcMonth()
     {
         var before = DateTimeOffset.UtcNow;
@@ -239,6 +288,31 @@ public class GenerateDailySummaryReportHandlerTests
             new GenerateDailySummaryReportRequest { Year = 2025, Month = 8 });
         Assert.Equal(2025, year);
         Assert.Equal(8, month);
+    }
+
+    [Fact]
+    public void ResolveReportPeriod_WhenYearMonthDayProvided_UsesThem()
+    {
+        var (year, month, day) = GenerateDailySummaryReportHandler.ResolveReportPeriod(
+            new GenerateDailySummaryReportRequest { Year = 2025, Month = 8, Day = 15 });
+        Assert.Equal(2025, year);
+        Assert.Equal(8, month);
+        Assert.Equal(15, day);
+    }
+
+    [Fact]
+    public void ResolveReportPeriod_WhenDayInvalidForMonth_Throws()
+    {
+        Assert.ThrowsAny<ArgumentException>(() =>
+            GenerateDailySummaryReportHandler.ResolveReportPeriod(
+                new GenerateDailySummaryReportRequest { Year = 2025, Month = 2, Day = 30 }));
+    }
+
+    [Fact]
+    public void BuildDailyReportFileName_UsesStableYearMonthDayName()
+    {
+        var fileName = GenerateDailySummaryReportHandler.BuildDailyReportFileName(2026, 9, 15, false, "Production");
+        Assert.Equal("daily_summary_report_20260915_A3_Production.parquet", fileName);
     }
 
     [Fact]
