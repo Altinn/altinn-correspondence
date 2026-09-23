@@ -20,10 +20,10 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// </summary>
     /// <remarks>
     /// Enqueues a Hangfire background job that builds a parquet file and uploads/overwrites it
-    /// in blob storage. Defaults to the preceding UTC day. Pass year+month for a monthly report,
-    /// or year+month+day for a single completed UTC day (today and future days are rejected).
-    /// The daily recurring job still regenerates the current (or previous) month so older monthly
-    /// files stay unchanged. Returns immediately with a job id. Use the download endpoint after
+    /// in blob storage. Defaults to the preceding Europe/Oslo day. Pass year+month for a monthly report,
+    /// or year+month+day for a single completed Europe/Oslo day (today and future days are rejected).
+    /// The daily recurring job generates the preceding Europe/Oslo day.
+    /// Returns immediately with a job id. Use the download endpoint after
     /// the job has completed. Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.
     /// </remarks>
@@ -133,9 +133,9 @@ public class StatisticsController(ILogger<StatisticsController> logger) : Contro
     /// Download a monthly or daily summary report with one row per notification
     /// </summary>
     /// <remarks>
-    /// Returns the parquet file for the requested UTC month or day. Defaults to the preceding
-    /// UTC day when year/month/day are omitted. Today and future UTC days are rejected.
-    /// If a single-day report does not exist yet, it is generated inline in the request
+    /// Returns the parquet file for the requested UTC month or Europe/Oslo day. Defaults to the
+    /// preceding Europe/Oslo day when year/month/day are omitted. Today and future Europe/Oslo days
+    /// are rejected. If a single-day report does not exist yet, it is generated inline in the request
     /// (days are small enough). Monthly reports must already exist (enqueue generate first).
     /// Requires API key authentication via X-API-Key header.
     /// Rate limiting is enforced per IP address.

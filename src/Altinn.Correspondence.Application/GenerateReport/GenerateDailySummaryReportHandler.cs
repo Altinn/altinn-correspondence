@@ -26,8 +26,8 @@ public class GenerateDailySummaryReportHandler(
 {
     /// <summary>
     /// Enqueues report generation as a Hangfire background job and returns immediately.
-    /// Defaults to the preceding UTC day; optional Year/Month (and Day) allow backfill of
-    /// completed periods. Today and future UTC days are rejected.
+    /// Defaults to the preceding Europe/Oslo day; optional Year/Month (and Day) allow backfill of
+    /// completed periods. Today and future Europe/Oslo days are rejected.
     /// Use download endpoints to fetch the parquet file after the job completes.
     /// </summary>
     public Task<OneOf<EnqueueDailySummaryReportResponse, Error>> Process(
@@ -100,21 +100,19 @@ public class GenerateDailySummaryReportHandler(
     }
 
     /// <summary>
-    /// Regenerates the current UTC month, except on the first days of the month when the previous
-    /// UTC month is regenerated for a final catch-up. Used by the daily Hangfire recurring job.
+    /// Regenerates the preceding Europe/Oslo day. Used by the daily Hangfire recurring job.
     /// </summary>
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 14400)]
-    public Task ExecuteCurrentMonthInBackground(bool altinn2Included, CancellationToken cancellationToken)
+    public Task ExecutePrecedingDayInBackground(bool altinn2Included, CancellationToken cancellationToken)
     {
-        var now = DateTimeOffset.UtcNow;
-        var (year, month) = ResolveRecurringReportMonth(now);
-        return ExecuteInBackground(altinn2Included, year, month, cancellationToken);
+        var (year, month, day) = ResolvePrecedingReportDay(DateTimeOffset.UtcNow);
+        return ExecuteDayInBackground(altinn2Included, year, month, day, cancellationToken);
     }
 
     /// <summary>
     /// Performs report generation and upload for a single UTC month.
-    /// Invoked by Hangfire (API enqueue or recurring job). Older months are left unchanged.
+    /// Invoked by Hangfire when a monthly report is enqueued via the API.
     /// </summary>
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 14400)]
@@ -137,7 +135,7 @@ public class GenerateDailySummaryReportHandler(
         CancellationToken cancellationToken)
     {
         var (fromInclusive, toExclusive) = day is int dayValue
-            ? GetUtcDayRange(year, month, dayValue)
+            ? GetOsloDayRange(year, month, dayValue)
             : GetUtcMonthRange(year, month);
         var periodLabel = FormatPeriodLabel(year, month, day);
 
@@ -195,6 +193,8 @@ public class GenerateDailySummaryReportHandler(
         }
     }
 
+    private static readonly TimeZoneInfo OsloTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo");
+
     /// <summary>
     /// Resolves year/month only (no day). Prefer <see cref="ResolveReportPeriod"/> for API defaults.
     /// Omitting year/month uses the current UTC month. Day must not be set.
@@ -232,16 +232,16 @@ public class GenerateDailySummaryReportHandler(
 
     /// <summary>
     /// Resolves the report period from the request.
-    /// Omitting year/month/day uses the preceding UTC day.
+    /// Omitting year/month/day uses the preceding Europe/Oslo calendar day.
     /// Year+Month yields a monthly report; Year+Month+Day yields a single-day report.
-    /// Single-day reports for the current or future UTC day are rejected.
+    /// Single-day reports for the current or future Europe/Oslo day are rejected.
     /// </summary>
     public static (int Year, int Month, int? Day) ResolveReportPeriod(GenerateDailySummaryReportRequest request)
     {
         if (request.Year is null && request.Month is null && request.Day is null)
         {
-            var precedingDay = DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(-1);
-            return (precedingDay.Year, precedingDay.Month, precedingDay.Day);
+            var (year, month, day) = ResolvePrecedingReportDay(DateTimeOffset.UtcNow);
+            return (year, month, day);
         }
 
         if (request.Year is null || request.Month is null)
@@ -274,13 +274,13 @@ public class GenerateDailySummaryReportHandler(
         }
 
         var requestedDate = new DateOnly(request.Year.Value, request.Month.Value, request.Day.Value);
-        var todayUtc = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
-        if (requestedDate >= todayUtc)
+        var todayOslo = GetOsloCalendarDate(DateTimeOffset.UtcNow);
+        if (requestedDate >= todayOslo)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(request.Day),
                 request.Day,
-                "Reports cannot be generated for the current or future UTC day because the day is not finished yet.");
+                "Reports cannot be generated for the current or future Europe/Oslo day because the day is not finished yet.");
         }
 
         return (request.Year.Value, request.Month.Value, request.Day.Value);
@@ -289,7 +289,7 @@ public class GenerateDailySummaryReportHandler(
     private static Error MapPeriodArgumentException(ArgumentException ex)
     {
         if (ex is ArgumentOutOfRangeException
-            && ex.Message.Contains("current or future UTC day", StringComparison.Ordinal))
+            && ex.Message.Contains("current or future Europe/Oslo day", StringComparison.Ordinal))
         {
             return StatisticsErrors.ReportDayNotComplete;
         }
@@ -298,21 +298,19 @@ public class GenerateDailySummaryReportHandler(
     }
 
     /// <summary>
-    /// On UTC days 1-3 of a month, regenerate the previous month for final catch-up;
-    /// otherwise regenerate the current UTC month.
+    /// Resolves the preceding Europe/Oslo calendar day for the daily recurring report job.
     /// </summary>
-    public static (int Year, int Month) ResolveRecurringReportMonth(DateTimeOffset now)
+    public static (int Year, int Month, int Day) ResolvePrecedingReportDay(DateTimeOffset now)
     {
-        if (now.Day <= PreviousMonthFinalizationDayInclusive)
-        {
-            var previousMonth = now.AddMonths(-1);
-            return (previousMonth.Year, previousMonth.Month);
-        }
-
-        return (now.Year, now.Month);
+        var precedingDay = GetOsloCalendarDate(now).AddDays(-1);
+        return (precedingDay.Year, precedingDay.Month, precedingDay.Day);
     }
 
-    private const int PreviousMonthFinalizationDayInclusive = 3;
+    public static DateOnly GetOsloCalendarDate(DateTimeOffset instant)
+    {
+        var osloDateTime = TimeZoneInfo.ConvertTime(instant, OsloTimeZone);
+        return DateOnly.FromDateTime(osloDateTime.DateTime);
+    }
 
     public static (DateTimeOffset FromInclusive, DateTimeOffset ToExclusive) GetUtcMonthRange(int year, int month)
     {
@@ -320,10 +318,17 @@ public class GenerateDailySummaryReportHandler(
         return (fromInclusive, fromInclusive.AddMonths(1));
     }
 
-    public static (DateTimeOffset FromInclusive, DateTimeOffset ToExclusive) GetUtcDayRange(int year, int month, int day)
+    /// <summary>
+    /// Returns the half-open Created range [from, to) covering one Europe/Oslo calendar day,
+    /// expressed as UTC instants (handles DST transitions).
+    /// </summary>
+    public static (DateTimeOffset FromInclusive, DateTimeOffset ToExclusive) GetOsloDayRange(int year, int month, int day)
     {
-        var fromInclusive = new DateTimeOffset(year, month, day, 0, 0, 0, TimeSpan.Zero);
-        return (fromInclusive, fromInclusive.AddDays(1));
+        var startLocal = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Unspecified);
+        var endLocal = startLocal.AddDays(1);
+        var fromUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, OsloTimeZone);
+        var toUtc = TimeZoneInfo.ConvertTimeToUtc(endLocal, OsloTimeZone);
+        return (new DateTimeOffset(fromUtc, TimeSpan.Zero), new DateTimeOffset(toUtc, TimeSpan.Zero));
     }
 
     public static string BuildMonthlyReportFileName(int year, int month, bool altinn2Included, string environmentName)
@@ -820,7 +825,7 @@ public class GenerateDailySummaryReportHandler(
         CancellationToken cancellationToken)
     {
         var (fromInclusive, toExclusive) = day is int dayValue
-            ? GetUtcDayRange(year, month, dayValue)
+            ? GetOsloDayRange(year, month, dayValue)
             : GetUtcMonthRange(year, month);
         var periodLabel = FormatPeriodLabel(year, month, day);
         var fileName = BuildReportFileName(
