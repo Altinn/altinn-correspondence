@@ -10,24 +10,28 @@ namespace Altinn.Correspondence.Application.CleanupBulkFetchStatuses;
 public class CleanupBulkFetchStatusesHandler(
     ICorrespondenceStatusRepository correspondenceStatusRepository,
     IBackgroundJobClient backgroundJobClient,
-    ILogger<CleanupBulkFetchStatusesHandler> logger) : IHandler<CleanupBulkFetchStatusesRequest, CleanupBulkFetchStatusesResponse>
+    ILogger<CleanupBulkFetchStatusesHandler> logger)
 {
     private static readonly TimeSpan DebounceWindow = TimeSpan.FromSeconds(15);
 
-    public Task<OneOf<CleanupBulkFetchStatusesResponse, Error>> Process(CleanupBulkFetchStatusesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Starting cleanup of bulk fetch statuses with window size {windowSize}", request.WindowSize);
-
-        var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(request.WindowSize, CancellationToken.None));
-
-        logger.LogInformation("Cleanup job {jobId} has been enqueued", jobId);
-
-        return Task.FromResult<OneOf<CleanupBulkFetchStatusesResponse, Error>>(new CleanupBulkFetchStatusesResponse
+        public Task<bool> Process(CleanupBulkFetchStatusesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
         {
-            JobId = jobId,
-            Message = "Cleanup job has been Enqueued"
-        });
-    }
+            return Task.FromResult(true);
+        }
+    // public Task<OneOf<CleanupBulkFetchStatusesResponse, Error>> Process(CleanupBulkFetchStatusesRequest request, ClaimsPrincipal? user, CancellationToken cancellationToken)
+    // {
+    //     logger.LogInformation("Starting cleanup of bulk fetch statuses with window size {windowSize}", request.WindowSize);
+
+    //     var jobId = backgroundJobClient.Enqueue(() => ExecuteCleanupInBackground(request.WindowSize, CancellationToken.None));
+
+    //     logger.LogInformation("Cleanup job {jobId} has been enqueued", jobId);
+
+    //     return Task.FromResult<OneOf<CleanupBulkFetchStatusesResponse, Error>>(new CleanupBulkFetchStatusesResponse
+    //     {
+    //         JobId = jobId,
+    //         Message = "Cleanup job has been Enqueued"
+    //     });
+    // }
 
     [AutomaticRetry(Attempts = 0)]
     [DisableConcurrentExecution(timeoutInSeconds: 43200)]
