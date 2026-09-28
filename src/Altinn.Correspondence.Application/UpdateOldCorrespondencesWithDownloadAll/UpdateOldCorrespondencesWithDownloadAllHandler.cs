@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Altinn.Correspondence.Common.Helpers;
-using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Integrations.Hangfire;
@@ -12,12 +11,10 @@ namespace Altinn.Correspondence.Application.UpdateOldCorrespondencesWithDownload
 
 public class UpdateOldCorrespondencesWithDownloadAllHandler(
     ICorrespondenceRepository correspondenceRepository,
-    IAttachmentRepository attachmentRepository,
     IBackgroundJobClient backgroundJobClient,
     ILogger<UpdateOldCorrespondencesWithDownloadAllHandler> logger) : IHandler<UpdateOldCorrespondencesWithDownloadAllRequest, UpdateOldCorrespondencesWithDownloadAllResponse>
 {
     private readonly ICorrespondenceRepository _correspondenceRepository = correspondenceRepository;
-    private readonly IAttachmentRepository _attachmentRepository = attachmentRepository;
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
     private readonly ILogger<UpdateOldCorrespondencesWithDownloadAllHandler> _logger = logger;
 
@@ -70,7 +67,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
             return;
         }
 
-        var window = await _correspondenceRepository.GetCorrespondencesWindowAfter(
+        var window = await _correspondenceRepository.GetCorrespondencesWindowAfterWithAttachmentStats(
             request.windowSize + 1, request.CursorCreated, request.CursorId, false, cancellationToken);
 
         var isMore = window.Count > request.windowSize;
@@ -94,10 +91,9 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
             try
             {
                 batchProcessed++;
-                var attachments = await _attachmentRepository.GetAttachmentsByCorrespondence(correspondence.Id, cancellationToken);
-                if (attachments != null && attachments.Count >= 2 && attachments.Sum(a => a.AttachmentSize) <= 2_000_000_000) // 2 GB
+                if (correspondence.AttachmentCount >= 2 && correspondence.TotalAttachmentSize <= 2_000_000_000) // 2 GB
                 {
-                    ProcessSingleCorrespondence(correspondence);
+                    ProcessSingleCorrespondence(correspondence.CorrespondenceId);
                     batchPatched++;
                 }
                 else
@@ -108,7 +104,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
             catch (Exception ex)
             {
                 batchErrors++;
-                _logger.LogError(ex, "Error processing correspondence {correspondenceId}", correspondence.Id);
+                _logger.LogError(ex, "Error processing correspondence {correspondenceId}", correspondence.CorrespondenceId);
             }
         }
 
@@ -124,7 +120,7 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
             {
                 windowSize = request.windowSize,
                 CursorCreated = last.Created,
-                CursorId = last.Id,
+                CursorId = last.CorrespondenceId,
                 TotalProcessed = totalProcessed,
                 TotalPatched = totalPatched,
                 TotalNotMatchingCriteria = totalNotMatchingCriteria,
@@ -145,10 +141,10 @@ public class UpdateOldCorrespondencesWithDownloadAllHandler(
         }
     }
 
-    private void ProcessSingleCorrespondence(CorrespondenceEntity correspondence)
+    private void ProcessSingleCorrespondence(Guid correspondenceId)
     {
         _backgroundJobClient.Enqueue<IDialogportenService>(
             HangfireQueues.Migration,
-            service => service.TryAddDownloadAllAttachmentsToDialog(correspondence.Id, CancellationToken.None));
+            service => service.TryAddDownloadAllAttachmentsToDialog(correspondenceId, CancellationToken.None));
     }
 }
