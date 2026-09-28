@@ -138,6 +138,14 @@ public class GenerateDailySummaryReportHandlerTests
         _mockResourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Test Resource Title");
 
+        _mockStorageRepository.Setup(x => x.UploadReportFile(
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<Stream>(),
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(("https://example/reports/test.parquet", "hash", 123));
+
         // Act
         var result = await _handler.ProcessAndDownload(request, CancellationToken.None);
 
@@ -202,6 +210,47 @@ public class GenerateDailySummaryReportHandlerTests
     }
 
     [Fact]
+    public void ResolveReportPeriod_WhenOmitted_UsesPrecedingOsloDay()
+    {
+        var before = GenerateDailySummaryReportHandler.ResolvePrecedingReportDay(DateTimeOffset.UtcNow);
+        var (year, month, day) = GenerateDailySummaryReportHandler.ResolveReportPeriod(new GenerateDailySummaryReportRequest());
+        var after = GenerateDailySummaryReportHandler.ResolvePrecedingReportDay(DateTimeOffset.UtcNow);
+
+        var matchesBefore = year == before.Year && month == before.Month && day == before.Day;
+        var matchesAfter = year == after.Year && month == after.Month && day == after.Day;
+        Assert.True(matchesBefore || matchesAfter,
+            $"Expected ({before.Year}-{before.Month:D2}-{before.Day:D2}) or ({after.Year}-{after.Month:D2}-{after.Day:D2}), got ({year}-{month:D2}-{day:D2}).");
+    }
+
+    [Fact]
+    public void ResolveReportPeriod_WhenCurrentOsloDay_Throws()
+    {
+        var today = GenerateDailySummaryReportHandler.GetOsloCalendarDate(DateTimeOffset.UtcNow);
+        Assert.ThrowsAny<ArgumentException>(() =>
+            GenerateDailySummaryReportHandler.ResolveReportPeriod(
+                new GenerateDailySummaryReportRequest
+                {
+                    Year = today.Year,
+                    Month = today.Month,
+                    Day = today.Day
+                }));
+    }
+
+    [Fact]
+    public void ResolveReportPeriod_WhenFutureOsloDay_Throws()
+    {
+        var tomorrow = GenerateDailySummaryReportHandler.GetOsloCalendarDate(DateTimeOffset.UtcNow).AddDays(1);
+        Assert.ThrowsAny<ArgumentException>(() =>
+            GenerateDailySummaryReportHandler.ResolveReportPeriod(
+                new GenerateDailySummaryReportRequest
+                {
+                    Year = tomorrow.Year,
+                    Month = tomorrow.Month,
+                    Day = tomorrow.Day
+                }));
+    }
+
+    [Fact]
     public void ResolveReportMonth_WhenYearAndMonthOmitted_UsesCurrentUtcMonth()
     {
         var before = DateTimeOffset.UtcNow;
@@ -215,21 +264,23 @@ public class GenerateDailySummaryReportHandlerTests
     }
 
     [Fact]
-    public void ResolveRecurringReportMonth_OnFirstDays_UsesPreviousUtcMonth()
+    public void ResolvePrecedingReportDay_UsesPreviousOsloCalendarDay()
     {
-        var now = new DateTimeOffset(2026, 9, 2, 12, 0, 0, TimeSpan.Zero);
-        var (year, month) = GenerateDailySummaryReportHandler.ResolveRecurringReportMonth(now);
+        // 2026-09-01 00:30 UTC is still 2026-09-01 02:30 in Oslo (CEST), so preceding day is 2026-08-31.
+        var now = new DateTimeOffset(2026, 9, 1, 0, 30, 0, TimeSpan.Zero);
+        var (year, month, day) = GenerateDailySummaryReportHandler.ResolvePrecedingReportDay(now);
         Assert.Equal(2026, year);
         Assert.Equal(8, month);
+        Assert.Equal(31, day);
     }
 
     [Fact]
-    public void ResolveRecurringReportMonth_AfterFirstDays_UsesCurrentUtcMonth()
+    public void GetOsloDayRange_UsesOsloMidnightBoundariesInUtc()
     {
-        var now = new DateTimeOffset(2026, 9, 4, 12, 0, 0, TimeSpan.Zero);
-        var (year, month) = GenerateDailySummaryReportHandler.ResolveRecurringReportMonth(now);
-        Assert.Equal(2026, year);
-        Assert.Equal(9, month);
+        // CEST (UTC+2): Oslo 2026-06-15 00:00 -> 2026-06-14 22:00 UTC
+        var (fromInclusive, toExclusive) = GenerateDailySummaryReportHandler.GetOsloDayRange(2026, 6, 15);
+        Assert.Equal(new DateTimeOffset(2026, 6, 14, 22, 0, 0, TimeSpan.Zero), fromInclusive);
+        Assert.Equal(new DateTimeOffset(2026, 6, 15, 22, 0, 0, TimeSpan.Zero), toExclusive);
     }
 
     [Fact]
@@ -239,6 +290,31 @@ public class GenerateDailySummaryReportHandlerTests
             new GenerateDailySummaryReportRequest { Year = 2025, Month = 8 });
         Assert.Equal(2025, year);
         Assert.Equal(8, month);
+    }
+
+    [Fact]
+    public void ResolveReportPeriod_WhenYearMonthDayProvided_UsesThem()
+    {
+        var (year, month, day) = GenerateDailySummaryReportHandler.ResolveReportPeriod(
+            new GenerateDailySummaryReportRequest { Year = 2025, Month = 8, Day = 15 });
+        Assert.Equal(2025, year);
+        Assert.Equal(8, month);
+        Assert.Equal(15, day);
+    }
+
+    [Fact]
+    public void ResolveReportPeriod_WhenDayInvalidForMonth_Throws()
+    {
+        Assert.ThrowsAny<ArgumentException>(() =>
+            GenerateDailySummaryReportHandler.ResolveReportPeriod(
+                new GenerateDailySummaryReportRequest { Year = 2025, Month = 2, Day = 30 }));
+    }
+
+    [Fact]
+    public void BuildDailyReportFileName_UsesStableYearMonthDayName()
+    {
+        var fileName = GenerateDailySummaryReportHandler.BuildDailyReportFileName(2026, 9, 15, false, "Production");
+        Assert.Equal("daily_summary_report_20260915_A3_Production.parquet", fileName);
     }
 
     [Fact]

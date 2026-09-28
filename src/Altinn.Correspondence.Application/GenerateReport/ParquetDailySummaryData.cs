@@ -15,7 +15,7 @@ public class ParquetDailySummaryData
     public string CorrespondenceId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Correspondence Created date (UTC calendar day) in YYYY-MM-DD format
+    /// Correspondence Created date (Europe/Oslo calendar day) in YYYY-MM-DD format
     /// </summary>
     [JsonPropertyName("date")]
     public string Date { get; set; } = string.Empty;

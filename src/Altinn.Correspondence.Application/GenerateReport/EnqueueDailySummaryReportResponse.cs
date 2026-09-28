@@ -18,12 +18,17 @@ public class EnqueueDailySummaryReportResponse
     public required bool Altinn2Included { get; set; }
 
     /// <summary>
-    /// UTC year of the monthly report being generated.
+    /// UTC year of the report being generated.
     /// </summary>
     public required int Year { get; set; }
 
     /// <summary>
-    /// UTC month (1-12) of the monthly report being generated.
+    /// UTC month (1-12) of the report being generated.
     /// </summary>
     public required int Month { get; set; }
+
+    /// <summary>
+    /// UTC day (1-31) when generating a single-day report; null for monthly reports.
+    /// </summary>
+    public int? Day { get; set; }
 }

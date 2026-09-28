@@ -11,7 +11,7 @@ namespace Altinn.Correspondence.API.Filters;
 /// </summary>
 public class StatisticsApiKeyFilter : IAuthorizationFilter
 {
-    private const int RateLimitWindowMinutes = 60;
+    private const int RateLimitWindowMinutes = 5;
     
     private readonly IConfiguration _configuration;
     private readonly ILogger<StatisticsApiKeyFilter> _logger;
