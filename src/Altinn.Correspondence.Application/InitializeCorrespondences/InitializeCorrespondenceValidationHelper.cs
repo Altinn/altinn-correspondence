@@ -111,10 +111,9 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             }
             if (request.Correspondence.AllowForwarding)
             {
-                var authLevel = await resourceRegistryService.GetMinimumAuthenticationLevelForResource(request.Correspondence.ResourceId, cancellationToken);
-                if (authLevel > 0)
+                if (request.Correspondence.IsConfidential)
                 {
-                    return CorrespondenceErrors.CannotAllowForwardingOnCorrespondenceWithAuthLevel;
+                    return CorrespondenceErrors.CannotAllowForwardingOnConfidentialCorrespondence;
                 }
             }
             if (request.Recipients.Count != request.Recipients.Distinct().Count())
@@ -209,15 +208,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             {
                 logger.LogWarning("Some existing attachments are not published");
                 return CorrespondenceErrors.AttachmentsNotPublished;
-            }
-
-            if (request.Correspondence.AllowForwarding)
-            {
-                var totalAttachmentSize = existingAttachments.Sum(a => a.AttachmentSize) + uploadAttachmentFiles.Sum(a => a.Length);
-                if (totalAttachmentSize > 10_000_000)
-                {
-                    return CorrespondenceErrors.CannotAllowForwardingOnCorrespondenceWithLargeAttachments;
-                }
             }
 
             logger.LogDebug("Validating {UploadCount} new attachments", uploadAttachmentFiles.Count);
