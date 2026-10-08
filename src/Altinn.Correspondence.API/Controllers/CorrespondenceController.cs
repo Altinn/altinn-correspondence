@@ -716,7 +716,8 @@ namespace Altinn.Correspondence.API.Controllers
             {
                 CorrespondenceId = correspondenceId,
                 ForwardTo = request.ForwardTo,
-                ForwardingText = request.ForwardingText
+                ForwardingText = request.ForwardingText,
+                IncludeAttachments = request.IncludeAttachments
             }, HttpContext.User, cancellationToken);
             return commandResult.Match(
                 result => Ok(result),
