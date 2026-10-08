@@ -143,6 +143,14 @@ namespace Altinn.Correspondence.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<long> GetTotalAttachmentSizeByCorrespondence(Guid correspondenceId, CancellationToken cancellationToken)
+        {
+            return await _context.Correspondences
+                .Where(c => c.Id == correspondenceId && c.Content != null)
+                .SelectMany(c => c.Content!.Attachments)
+                .SumAsync(ca => (long?)ca.Attachment!.AttachmentSize, cancellationToken) ?? 0;
+        }
+
         public async Task<AttachmentEntity?> GetAttachmentByCorrespondenceIdAndAttachmentId(Guid correspondenceId, Guid attachmentId, CancellationToken cancellationToken)
         {
             return await _context.Correspondences

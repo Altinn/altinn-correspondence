@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Altinn.Correspondence.API.Models.Enums;
@@ -113,6 +114,7 @@ namespace Altinn.Correspondence.API.Models
         /// Specifies whether the correspondence can be forwarded by the recipient
         /// </summary>
         [JsonPropertyName("allowForwarding")]
+        [DefaultValue(false)]
         public bool AllowForwarding { get; set; }
     }
 

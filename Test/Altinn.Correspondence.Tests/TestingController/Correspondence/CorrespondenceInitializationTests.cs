@@ -997,7 +997,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithAllowForwardingAndAttachmentsOver10MB_ReturnsBadRequest()
+        public async Task InitializeCorrespondence_WithAllowForwardingAndAttachmentsOver10MB_ReturnsOk()
         {
             // Arrange
             var attachmentData = AttachmentHelper.GetAttachmentMetaData("large-file.txt");
@@ -1019,15 +1019,33 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var response = await _senderClient.PostAsync("correspondence/api/v1/correspondence/upload", formData);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WithAllowForwardingOnConfidentialCorrespondence_ReturnsBadRequest()
+        {
+            // Arrange
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithResourceId("resource-with-confidential-post-activated")
+                .WithIsConfidential(true)
+                .WithAllowForwarding(true)
+                .Build();
+
+            // Act
+            var response = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var content = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(content);
             var problem = document.RootElement;
-            Assert.Equal(CorrespondenceErrors.CannotAllowForwardingOnCorrespondenceWithLargeAttachments.Message, problem.GetProperty("detail").GetString());
+            Assert.Equal(CorrespondenceErrors.CannotAllowForwardingOnConfidentialCorrespondence.Message, problem.GetProperty("detail").GetString());
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithAllowForwardingOnResourceWithAuthLevelAboveZero_ReturnsBadRequest()
+        public async Task InitializeCorrespondence_WithAllowForwardingOnResourceWithAuthLevelAboveZero_ReturnsOk()
         {
             // Arrange
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
@@ -1049,11 +1067,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var initializeCorrespondenceResponse = await unitSenderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, initializeCorrespondenceResponse.StatusCode);
-            var content = await initializeCorrespondenceResponse.Content.ReadAsStringAsync();
-            using var document = JsonDocument.Parse(content);
-            var problem = document.RootElement;
-            Assert.Equal(CorrespondenceErrors.CannotAllowForwardingOnCorrespondenceWithAuthLevel.Message, problem.GetProperty("detail").GetString());
+            Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
         }
 
         [Fact]

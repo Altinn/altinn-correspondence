@@ -158,6 +158,87 @@ public class AttachmentRepositoryTests
             .CountAsync();
         Assert.Equal(0, remainingCount);
     }
+
+    [Fact]
+    public async Task GetTotalAttachmentSizeByCorrespondence_SumsOnlyAttachmentsOnThatCorrespondence()
+    {
+        // Arrange
+        await using var context = TestDbContextFactory.Create();
+        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
+
+        var correspondence = new CorrespondenceEntityBuilder().Build();
+        LinkAttachment(correspondence, BuildAttachment(6_000_000));
+        LinkAttachment(correspondence, BuildAttachment(4_000_001));
+        var otherCorrespondence = new CorrespondenceEntityBuilder().Build();
+        LinkAttachment(otherCorrespondence, BuildAttachment(50_000_000));
+
+        context.Correspondences.AddRange(correspondence, otherCorrespondence);
+        await context.SaveChangesAsync();
+
+        // Act
+        var totalSize = await repo.GetTotalAttachmentSizeByCorrespondence(correspondence.Id, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(10_000_001, totalSize);
+    }
+
+    [Fact]
+    public async Task GetTotalAttachmentSizeByCorrespondence_NoAttachments_ReturnsZero()
+    {
+        // Arrange
+        await using var context = TestDbContextFactory.Create();
+        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
+        var correspondence = new CorrespondenceEntityBuilder().Build();
+        context.Correspondences.Add(correspondence);
+        await context.SaveChangesAsync();
+
+        // Act
+        var totalSize = await repo.GetTotalAttachmentSizeByCorrespondence(correspondence.Id, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(0, totalSize);
+    }
+
+    [Fact]
+    public async Task GetTotalAttachmentSizeByCorrespondence_UnknownCorrespondence_ReturnsZero()
+    {
+        // Arrange
+        await using var context = TestDbContextFactory.Create();
+        var repo = new AttachmentRepository(context, new NullLogger<IAttachmentRepository>());
+
+        // Act
+        var totalSize = await repo.GetTotalAttachmentSizeByCorrespondence(Guid.NewGuid(), CancellationToken.None);
+
+        // Assert
+        Assert.Equal(0, totalSize);
+    }
+
+    private static AttachmentEntity BuildAttachment(long attachmentSize)
+    {
+        return new AttachmentEntity
+        {
+            Id = Guid.NewGuid(),
+            ResourceId = "res-1",
+            SendersReference = "ref",
+            Sender = "0192:910753614",
+            Created = DateTimeOffset.UtcNow,
+            FileName = "file.txt",
+            AttachmentSize = attachmentSize
+        };
+    }
+
+    private static void LinkAttachment(CorrespondenceEntity correspondence, AttachmentEntity attachment)
+    {
+        correspondence.Content!.Attachments.Add(new CorrespondenceAttachmentEntity
+        {
+            Id = Guid.NewGuid(),
+            CorrespondenceContentId = correspondence.Content!.Id,
+            AttachmentId = attachment.Id,
+            Attachment = attachment,
+            Created = correspondence.Created,
+            ExpirationTime = correspondence.Created.AddDays(30)
+        });
+    }
 }
 
 
