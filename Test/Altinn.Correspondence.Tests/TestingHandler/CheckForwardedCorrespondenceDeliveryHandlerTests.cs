@@ -78,6 +78,67 @@ public class CheckForwardedCorrespondenceDeliveryHandlerTests
     }
 
     [Fact]
+    public async Task Process_CorrespondenceAlreadyForwardedByOtherEvent_AddsForwardedStatusAndQueuesDialogportenActivity()
+    {
+        var forwardingEvent = BuildForwardingEvent();
+        forwardingEvent.Correspondence!.Statuses.Add(new CorrespondenceStatusEntity
+        {
+            CorrespondenceId = forwardingEvent.CorrespondenceId,
+            Status = CorrespondenceStatus.Forwarded,
+            StatusChanged = forwardingEvent.ForwardedOnDate.AddDays(-1),
+            StatusText = CorrespondenceStatus.Forwarded.ToString(),
+            PartyUuid = Guid.NewGuid()
+        });
+        var shipmentId = Guid.NewGuid();
+        SetupNotification(shipmentId, forwardingEvent, BuildStatus(shipmentId, NotificationStatusV2.Email_Delivered));
+
+        await _handler.Process(shipmentId, forwardingEvent.Id, CancellationToken.None);
+
+        _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(
+            It.Is<CorrespondenceStatusEntity>(s =>
+                s.Status == CorrespondenceStatus.Forwarded &&
+                s.StatusChanged == forwardingEvent.ForwardedOnDate &&
+                s.PartyUuid == forwardingEvent.ForwardedByPartyUuid),
+            It.IsAny<CancellationToken>()), Times.Once);
+        VerifyDialogportenActivityQueued(forwardingEvent.Id, Times.Once());
+    }
+
+    [Fact]
+    public async Task Process_ForwardedStatusAlreadyAddedForSameEvent_DoesNotDuplicateStatusButQueuesDialogportenActivity()
+    {
+        var forwardingEvent = BuildForwardingEvent();
+        forwardingEvent.Correspondence!.Statuses.Add(new CorrespondenceStatusEntity
+        {
+            CorrespondenceId = forwardingEvent.CorrespondenceId,
+            Status = CorrespondenceStatus.Forwarded,
+            StatusChanged = forwardingEvent.ForwardedOnDate,
+            StatusText = CorrespondenceStatus.Forwarded.ToString(),
+            PartyUuid = forwardingEvent.ForwardedByPartyUuid
+        });
+        var shipmentId = Guid.NewGuid();
+        SetupNotification(shipmentId, forwardingEvent, BuildStatus(shipmentId, NotificationStatusV2.Email_Delivered));
+
+        await _handler.Process(shipmentId, forwardingEvent.Id, CancellationToken.None);
+
+        _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerifyDialogportenActivityQueued(forwardingEvent.Id, Times.Once());
+    }
+
+    [Fact]
+    public async Task Process_ForwardingEventAlreadyHasDialogActivity_Skips()
+    {
+        var forwardingEvent = BuildForwardingEvent();
+        forwardingEvent.DialogActivityId = Guid.NewGuid();
+        var shipmentId = Guid.NewGuid();
+        SetupNotification(shipmentId, forwardingEvent, BuildStatus(shipmentId, NotificationStatusV2.Email_Delivered));
+
+        await _handler.Process(shipmentId, forwardingEvent.Id, CancellationToken.None);
+
+        _correspondenceStatusRepositoryMock.Verify(x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerifyDialogportenActivityQueued(forwardingEvent.Id, Times.Never());
+    }
+
+    [Fact]
     public async Task Process_AllRecipientsFailed_LogsAndDoesNotReschedule()
     {
         var forwardingEvent = BuildForwardingEvent();
@@ -181,6 +242,16 @@ public class CheckForwardedCorrespondenceDeliveryHandlerTests
                 job.Type == typeof(CheckForwardedCorrespondenceDeliveryHandler) &&
                 job.Method.Name == nameof(CheckForwardedCorrespondenceDeliveryHandler.Process)),
             It.Is<IState>(state => state is ScheduledState)), times);
+    }
+
+    private void VerifyDialogportenActivityQueued(Guid forwardingEventId, Times times)
+    {
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IDialogportenService) &&
+                job.Method.Name == nameof(IDialogportenService.AddForwardingEvent) &&
+                (Guid)job.Args[0] == forwardingEventId),
+            It.Is<IState>(state => state is EnqueuedState)), times);
     }
 
     private void VerifySlackNotificationEnqueued(Times times)
