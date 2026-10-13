@@ -211,6 +211,25 @@ public class ForwardCorrespondenceHandlerTests
         _attachmentRepositoryMock.Verify(x => x.GetTotalAttachmentSizeByCorrespondence(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Process_ValidRequest_PersistsIncludeAttachments(bool includeAttachments)
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, includeAttachments: includeAttachments);
+        SetupCorrespondence(correspondence, hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, 0);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(
+            It.Is<CorrespondenceForwardingEventEntity>(e => e.IncludeAttachments == includeAttachments),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     [Fact]
     public async Task Process_ForwardingTextTooLong_ReturnsForwardingTextTooLong()
     {

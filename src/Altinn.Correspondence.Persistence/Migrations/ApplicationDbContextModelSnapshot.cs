@@ -19,7 +19,7 @@ namespace Altinn.Correspondence.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("correspondence")
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "hstore");
@@ -400,6 +400,9 @@ namespace Altinn.Correspondence.Persistence.Migrations
                     b.Property<string>("ForwardingText")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
+
+                    b.Property<bool?>("IncludeAttachments")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("MailboxSupplier")
                         .HasColumnType("text");
