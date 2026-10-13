@@ -25,6 +25,7 @@ public class ForwardCorrespondenceHandlerTests
     private readonly Mock<IAltinnNotificationService> _altinnNotificationServiceMock = new();
     private readonly Mock<ICorrespondenceRepository> _correspondenceRepositoryMock = new();
     private readonly Mock<IAltinnRegisterService> _altinnRegisterServiceMock = new();
+    private readonly Mock<IAttachmentRepository> _attachmentRepositoryMock = new();
     private readonly Mock<ICorrespondenceForwardingEventRepository> _forwardingEventRepositoryMock = new();
     private readonly Mock<IStorageRepository> _storageRepositoryMock = new();
     private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock = new();
@@ -45,6 +46,7 @@ public class ForwardCorrespondenceHandlerTests
             _altinnNotificationServiceMock.Object,
             _correspondenceRepositoryMock.Object,
             _altinnRegisterServiceMock.Object,
+            _attachmentRepositoryMock.Object,
             _forwardingEventRepositoryMock.Object,
             new ComposedEmailHelper(_storageRepositoryMock.Object),
             _backgroundJobClientMock.Object,
@@ -140,6 +142,73 @@ public class ForwardCorrespondenceHandlerTests
 
         Assert.True(result.IsT1);
         Assert.Equal(CorrespondenceErrors.ForwardingNotAllowed, result.AsT1);
+    }
+
+    [Fact]
+    public async Task Process_ForwardingNotAllowedAndInvalidEmail_ReturnsForwardingNotAllowed()
+    {
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithAllowForwarding(false)
+            .WithStatus(CorrespondenceStatus.Published)
+            .WithStatus(CorrespondenceStatus.Read)
+            .Build();
+        var request = BuildRequest(correspondence.Id, forwardTo: "not-an-email");
+        SetupCorrespondence(correspondence, hasAccess: true);
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT1);
+        Assert.Equal(CorrespondenceErrors.ForwardingNotAllowed, result.AsT1);
+    }
+
+    [Fact]
+    public async Task Process_IncludeAttachmentsWithAttachmentsOver10MB_ReturnsForwardingAttachmentsExceedMaxLimit()
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        SetupCorrespondence(correspondence, hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, 10_000_001);
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT1);
+        Assert.Equal(CorrespondenceErrors.ForwardingAttachmentsExceedMaxLimit, result.AsT1);
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(10_000_000)]
+    public async Task Process_IncludeAttachmentsWithAttachmentsWithinLimit_ReturnsForwardingEventId(long totalAttachmentSize)
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, totalAttachmentSize);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task Process_IncludeAttachmentsNotSetWithAttachmentsOver10MB_SkipsSizeCheck(bool includeAttachments)
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, includeAttachments: includeAttachments);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, 20_000_000);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        _attachmentRepositoryMock.Verify(x => x.GetTotalAttachmentSizeByCorrespondence(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -347,14 +416,33 @@ public class ForwardCorrespondenceHandlerTests
             .Build();
     }
 
-    private static ForwardCorrespondenceRequest BuildRequest(Guid correspondenceId, string forwardTo = "recipient@example.com", string? forwardingText = null)
+    private static ForwardCorrespondenceRequest BuildRequest(Guid correspondenceId, string forwardTo = "recipient@example.com", string? forwardingText = null, bool includeAttachments = false)
     {
         return new ForwardCorrespondenceRequest
         {
             CorrespondenceId = correspondenceId,
             ForwardTo = forwardTo,
-            ForwardingText = forwardingText
+            ForwardingText = forwardingText,
+            IncludeAttachments = includeAttachments
         };
+    }
+
+    private void SetupTotalAttachmentSize(Guid correspondenceId, long totalAttachmentSize)
+    {
+        _attachmentRepositoryMock
+            .Setup(x => x.GetTotalAttachmentSizeByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(totalAttachmentSize);
+    }
+
+    private void SetupComposedEmailSuccess()
+    {
+        _altinnNotificationServiceMock
+            .Setup(x => x.CreateComposedEmail(It.IsAny<ComposedEmailRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComposedEmailResponse
+            {
+                NotificationOrderId = Guid.NewGuid(),
+                Notification = new ComposedEmailNotificationResponse { ShipmentId = Guid.NewGuid() }
+            });
     }
 
     private Guid SetupCorrespondence(CorrespondenceEntity correspondence, bool hasAccess = true)
@@ -381,7 +469,7 @@ public class ForwardCorrespondenceHandlerTests
 
     private static ClaimsPrincipal CreateUser()
     {
-        var identity = new ClaimsIdentity([new Claim("c", $"{UrnConstants.PersonIdAttribute}:10108000398")], "TestAuthType");
+        var identity = new ClaimsIdentity([new Claim("c", $"{UrnConstants.PersonIdAttribute}:01819012012")], "TestAuthType");
         return new ClaimsPrincipal(identity);
     }
 }

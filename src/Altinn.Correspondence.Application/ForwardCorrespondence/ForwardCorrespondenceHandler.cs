@@ -19,6 +19,7 @@ public class ForwardCorrespondenceHandler(
     IAltinnNotificationService altinnNotificationService,
     ICorrespondenceRepository correspondenceRepository,
     IAltinnRegisterService altinnRegisterService,
+    IAttachmentRepository attachmentRepository,
     ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
     ComposedEmailHelper composedEmailHelper,
     IBackgroundJobClient backgroundJobClient,
@@ -48,7 +49,20 @@ public class ForwardCorrespondenceHandler(
             logger.LogWarning("Access denied for correspondence {CorrespondenceId} - user does not have recipient access", request.CorrespondenceId);
             return AuthorizationErrors.NoAccessToResource;
         }
-
+        if (!correspondence.AllowForwarding)
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} does not allow forwarding", request.CorrespondenceId);
+            return CorrespondenceErrors.ForwardingNotAllowed;
+        }
+        if (request.IncludeAttachments)
+        {
+            var totalAttachmentSize = await attachmentRepository.GetTotalAttachmentSizeByCorrespondence(request.CorrespondenceId, cancellationToken);
+            if (totalAttachmentSize > 10_000_000) // 10 MB
+            {
+                logger.LogWarning("Correspondence {CorrespondenceId} has attachments exceeding 10 MB and cannot be forwarded with attachments", request.CorrespondenceId);
+                return CorrespondenceErrors.ForwardingAttachmentsExceedMaxLimit;
+            }
+        }
         if (request.ForwardTo is null || !emailRegex.IsMatch(request.ForwardTo))
         {
             logger.LogWarning("Invalid email address provided for forwarding correspondence {CorrespondenceId}", request.CorrespondenceId);
@@ -60,11 +74,6 @@ public class ForwardCorrespondenceHandler(
             return NotificationErrors.ForwardToEmailAddressTooLong;
         }
 
-        if (!correspondence.AllowForwarding)
-        {
-            logger.LogWarning("Correspondence {CorrespondenceId} does not allow forwarding", request.CorrespondenceId);
-            return CorrespondenceErrors.ForwardingNotAllowed;
-        }
         if (request.ForwardingText is not null)
         {
             if (request.ForwardingText.Length > 200)
@@ -123,7 +132,7 @@ public class ForwardCorrespondenceHandler(
         ComposedEmailResponse composedEmailResponse;
         try
         {
-            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, request.ForwardingText, cancellationToken);
+            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, request.ForwardingText, request.IncludeAttachments, cancellationToken);
             var response = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
             if (response == null)
             {

@@ -10,7 +10,7 @@ public class ComposedEmailHelper(
     IStorageRepository storageRepository
 )
 {
-    public async Task<ComposedEmailRequest> MapToComposedEmailRequest(CorrespondenceEntity correspondence, string forwardTo, string? forwardingText, CancellationToken cancellationToken)
+    public async Task<ComposedEmailRequest> MapToComposedEmailRequest(CorrespondenceEntity correspondence, string forwardTo, string? forwardingText, bool includeAttachments, CancellationToken cancellationToken)
     {
         return new ComposedEmailRequest
         {
@@ -25,7 +25,7 @@ public class ComposedEmailHelper(
                     Subject = correspondence.Content.MessageTitle,
                     Body = ComposeBody(correspondence, forwardingText),
                     ContentType = "Plain",
-                    Attachments = await GetComposedEmailAttachments(correspondence, cancellationToken)
+                    Attachments = includeAttachments ? await GetComposedEmailAttachments(correspondence, cancellationToken) : new List<ComposedEmailRecipientAttachment>()
                 }
             }
         };
