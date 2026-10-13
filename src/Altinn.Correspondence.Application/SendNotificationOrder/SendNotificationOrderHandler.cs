@@ -55,8 +55,7 @@ public class SendNotificationOrderHandler(
             return;
         }
 
-        var allSuccessful = true;
-        var failedEventSource = NotificationEventSource.From(correspondence, null);
+        var failedEventSources = new HashSet<NotificationEventSource>();
         foreach (var notificationOrder in notificationOrders)
         {
             if (notificationOrder.OrderRequest == null)
@@ -75,11 +74,10 @@ public class SendNotificationOrderHandler(
             var successful = await SendNotificationOrder(notificationOrder, orderRequest, correspondence, eventSource, cancellationToken);
             if (!successful)
             {
-                allSuccessful = false;
-                failedEventSource = eventSource;
+                failedEventSources.Add(eventSource);
             }
         }
-        if (!allSuccessful)
+        foreach (var failedEventSource in failedEventSources)
         {
             SendFailedEvent(failedEventSource.ResourceId, correspondenceId.ToString(), failedEventSource.Sender);
         }
