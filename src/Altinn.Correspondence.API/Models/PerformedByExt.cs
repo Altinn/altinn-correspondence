@@ -20,12 +20,5 @@ namespace Altinn.Correspondence.API.Models
         /// <example>Ola Nordmann</example>
         [JsonPropertyName("actorName")]
         public string? ActorName { get; set; }
-
-        /// <summary>
-        /// The identifier (national identity number or organization number) of the actor.
-        /// </summary>
-        /// <example>urn:altinn:person:identifier-no:12018212345</example>
-        [JsonPropertyName("actorId")]
-        public string? ActorId { get; set; }
     }
 }

@@ -66,8 +66,7 @@ public static class PerformedByResolver
             ActorType = IsServiceOwner(party, sender)
                 ? PerformedByActorType.ServiceOwner
                 : PerformedByActorType.PartyRepresentative,
-            ActorName = party.GetDisplayName(),
-            ActorId = party.GetExternalUrn()
+            ActorName = party.GetDisplayName()
         };
     }
 

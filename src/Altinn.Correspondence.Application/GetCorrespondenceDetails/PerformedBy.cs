@@ -14,6 +14,4 @@ public class PerformedBy
     public required PerformedByActorType ActorType { get; init; }
 
     public string? ActorName { get; init; }
-
-    public string? ActorId { get; init; }
 }

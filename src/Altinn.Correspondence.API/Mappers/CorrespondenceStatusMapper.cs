@@ -47,8 +47,7 @@ internal static class CorrespondenceStatusMapper
             ActorType = performedBy.ActorType == PerformedByActorType.ServiceOwner
                 ? ActorTypeExt.ServiceOwner
                 : ActorTypeExt.PartyRepresentative,
-            ActorName = performedBy.ActorName,
-            ActorId = performedBy.ActorId
+            ActorName = performedBy.ActorName
         };
     }
 }

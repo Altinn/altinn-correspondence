@@ -17,7 +17,7 @@ public class PerformedByResolverTests
     private const string Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827";
 
     [Fact]
-    public async Task ResolveAsync_ServiceOwnerAndPartyRepresentative_MapsNameAndIdentifier()
+    public async Task ResolveAsync_ServiceOwnerAndPartyRepresentative_MapsName()
     {
         var serviceOwnerUuid = Guid.NewGuid();
         var representativeUuid = Guid.NewGuid();
@@ -40,10 +40,8 @@ public class PerformedByResolverTests
         Assert.Equal(2, result.Count);
         Assert.Equal(PerformedByActorType.ServiceOwner, result[serviceOwnerUuid].ActorType);
         Assert.Equal("Skatteetaten", result[serviceOwnerUuid].ActorName);
-        Assert.Equal($"{UrnConstants.OrganizationNumberAttribute}:991825827", result[serviceOwnerUuid].ActorId);
         Assert.Equal(PerformedByActorType.PartyRepresentative, result[representativeUuid].ActorType);
         Assert.Equal("Ola Nordmann", result[representativeUuid].ActorName);
-        Assert.Equal($"{UrnConstants.PersonIdAttribute}:10108000398", result[representativeUuid].ActorId);
 
         register.Verify(service => service.LookUpPartiesByIds(
             It.Is<List<string>>(ids =>
@@ -74,7 +72,6 @@ public class PerformedByResolverTests
 
         Assert.Equal(PerformedByActorType.PartyRepresentative, result[recipientUuid].ActorType);
         Assert.Equal("Mottaker As", result[recipientUuid].ActorName);
-        Assert.Equal($"{UrnConstants.OrganizationNumberAttribute}:123456785", result[recipientUuid].ActorId);
     }
 
     [Fact]
@@ -129,14 +126,12 @@ public class PerformedByResolverTests
             [serviceOwnerUuid] = new()
             {
                 ActorType = PerformedByActorType.ServiceOwner,
-                ActorName = "Skatteetaten",
-                ActorId = $"{UrnConstants.OrganizationNumberAttribute}:991825827"
+                ActorName = "Skatteetaten"
             },
             [representativeUuid] = new()
             {
                 ActorType = PerformedByActorType.PartyRepresentative,
-                ActorName = "Ola Nordmann",
-                ActorId = $"{UrnConstants.PersonIdAttribute}:12018212345"
+                ActorName = "Ola Nordmann"
             }
         };
 
@@ -147,11 +142,9 @@ public class PerformedByResolverTests
         Assert.NotNull(serviceOwner);
         Assert.Equal(ActorTypeExt.ServiceOwner, serviceOwner.ActorType);
         Assert.Equal("Skatteetaten", serviceOwner.ActorName);
-        Assert.Equal($"{UrnConstants.OrganizationNumberAttribute}:991825827", serviceOwner.ActorId);
         Assert.NotNull(representative);
         Assert.Equal(ActorTypeExt.PartyRepresentative, representative.ActorType);
         Assert.Equal("Ola Nordmann", representative.ActorName);
-        Assert.Equal($"{UrnConstants.PersonIdAttribute}:12018212345", representative.ActorId);
         Assert.Null(mapped[2].PerformedBy);
     }
 }
