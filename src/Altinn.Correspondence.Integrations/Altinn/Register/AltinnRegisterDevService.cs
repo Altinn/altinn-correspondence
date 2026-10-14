@@ -69,23 +69,18 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         return Task.FromResult<Party?>(null);
     }
 
-    public Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
+    public async Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
     {
         var parties = new List<Party>();
         foreach (var id in identificationIds)
         {
-            var clean = id.WithoutPrefix();
-            var bySsn = LookupBySsn(clean);
-            if (bySsn is not null)
+            var party = await LookUpPartyById(id, cancellationToken);
+            if (party is not null)
             {
-                parties.Add(bySsn);
-            }
-            else if (IdentificationIDRegex.IsMatch(clean))
-            {
-                parties.Add(BuildDigdirOrganization());
+                parties.Add(party);
             }
         }
-        return Task.FromResult<List<Party>?>(parties);
+        return parties;
     }
 
     public Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken)

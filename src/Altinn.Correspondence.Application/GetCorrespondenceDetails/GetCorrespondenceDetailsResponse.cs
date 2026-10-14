@@ -32,6 +32,8 @@ public class GetCorrespondenceDetailsResponse
 
     public List<CorrespondenceStatusEntity> StatusHistory { get; set; } = new List<CorrespondenceStatusEntity>();
 
+    public Dictionary<Guid, PerformedBy> PerformedByByPartyUuid { get; set; } = new Dictionary<Guid, PerformedBy>();
+
     public List<ExternalReferenceEntity> ExternalReferences { get; set; } = new List<ExternalReferenceEntity>();
 
     public string ResourceId { get; set; } = string.Empty;
