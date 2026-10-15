@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Core.Models.Entities;
+using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 
 namespace Altinn.Correspondence.Integrations.Dialogporten
@@ -88,28 +89,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
 
         internal DialogPatchRequestBuilder WithAddDownloadAllAttachmentsOperation(string baseUrl, CorrespondenceEntity correspondence, List<Attachment> attachments)
         {
-            var baseTimestamp = DateTimeOffset.UtcNow;
             var dialogAttachments = attachments;
-            var downloadAllAttachment = 
-                new Attachment
-                    {
-                        Id = Guid.CreateVersion7(DateTimeOffset.UnixEpoch).ToString(),
-                        DisplayName = new List<DisplayName>
-                    {
-                        new DisplayName { LanguageCode = "nb", Value = "Alle vedlegg" },
-                        new DisplayName { LanguageCode = "nn", Value = "Alle vedlegg" },
-                        new DisplayName { LanguageCode = "en", Value = "All attachments" }
-                    },
-                        Urls = new List<DialogUrl>
-                    {
-                        new DialogUrl
-                        {
-                            ConsumerType = "Gui",
-                            MediaType = "application/zip",
-                            Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
-                        }
-                    }
-                    };
+            var downloadAllAttachment = CreateDialogRequestMapper.CreateDownloadAllAttachment(baseUrl, correspondence, Guid.CreateVersion7(DateTimeOffset.UnixEpoch));
             dialogAttachments.Insert(0, downloadAllAttachment);
                 _PatchDialogRequest.Add(
                     new
@@ -125,17 +106,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                                 consumerType = u.ConsumerType,
                                 mediaType = u.MediaType,
                                 url = u.Url
-                            })
+                            }),
+                            authorizationContext = a.AuthorizationContext
                         })
                     }
                 );
             return this;
-        }
-
-
-        private static string GetDownloadAllAttachmentsEndpoint(string baseUrl, Guid correspondenceId)
-        {
-            return $"{baseUrl.TrimEnd('/')}/correspondence/api/v1/correspondence/{correspondenceId}/attachments/downloadall";
         }
     }
 }

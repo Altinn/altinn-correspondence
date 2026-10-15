@@ -125,6 +125,26 @@ public class Attachment
 
     [JsonPropertyName("expiresAt")]
     public DateTimeOffset? ExpiresAt { get; set; }
+
+    [JsonPropertyName("authorizationContext")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AuthorizationContext? AuthorizationContext { get; set; }
+}
+
+public class AuthorizationContext
+{
+    [JsonPropertyName("serviceResource")]
+    public string? ServiceResource { get; set; }
+
+    // Dialogporten v1.124 and older only read this flag, newer versions only read dialogPartyChecks. Remove once all environments run a newer version.
+    [JsonPropertyName("includeDialogParty")]
+    public bool IncludeDialogParty { get; set; }
+
+    [JsonPropertyName("dialogPartyChecks")]
+    public List<DialogPartyCheck>? DialogPartyChecks { get; set; }
+
+    [JsonPropertyName("unauthorizedPresentation")]
+    public required string UnauthorizedPresentation { get; set; }
 }
 
 public class Content
@@ -156,6 +176,12 @@ public class Description
 
     [JsonPropertyName("languageCode")]
     public required string LanguageCode { get; set; }
+}
+
+public class DialogPartyCheck
+{
+    [JsonPropertyName("accessRestriction")]
+    public required string AccessRestriction { get; set; }
 }
 
 public class DisplayName
