@@ -133,6 +133,7 @@ public class Attachment
 
 public class AuthorizationContext
 {
+    // Optional in Dialogporten, and GetDialog also reads contexts we didn't write, so making this required would make those reads throw.
     [JsonPropertyName("serviceResource")]
     public string? ServiceResource { get; set; }
 
