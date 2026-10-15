@@ -173,6 +173,75 @@ public class CreateDialogRequestMapperTests
         Assert.Equal(expectedMediaType, result.Attachments[0].Urls[0].MediaType);
     }
 
+    [Theory]
+    [InlineData("attachment-resource")]
+    [InlineData("urn:altinn:resource:attachment-resource")]
+    public void CreateCorrespondenceDialog_ShouldRestrictAttachmentToItsResource_WhenAttachmentResourceDiffersFromCorrespondenceResource(string attachmentResourceId)
+    {
+        // Arrange
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithResourceId("correspondence-resource")
+            .WithAttachmentForResource("restricted.pdf", attachmentResourceId)
+            .Build();
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl);
+
+        // Assert
+        Assert.NotNull(result.Attachments);
+        var authorizationContext = Assert.Single(result.Attachments).AuthorizationContext;
+        Assert.NotNull(authorizationContext);
+        Assert.Equal("urn:altinn:resource:attachment-resource", authorizationContext.ServiceResource);
+        Assert.Equal("Disabled", authorizationContext.UnauthorizedPresentation);
+        Assert.True(authorizationContext.IncludeDialogParty);
+        Assert.NotNull(authorizationContext.DialogPartyChecks);
+        Assert.Equal("None", Assert.Single(authorizationContext.DialogPartyChecks).AccessRestriction);
+    }
+
+    [Theory]
+    [InlineData("correspondence-resource")]
+    [InlineData("urn:altinn:resource:correspondence-resource")]
+    public void CreateCorrespondenceDialog_ShouldNotRestrictAttachment_WhenAttachmentResourceMatchesCorrespondenceResource(string attachmentResourceId)
+    {
+        // Arrange
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithResourceId("correspondence-resource")
+            .WithAttachmentForResource("unrestricted.pdf", attachmentResourceId)
+            .Build();
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl);
+
+        // Assert
+        Assert.NotNull(result.Attachments);
+        Assert.Null(Assert.Single(result.Attachments).AuthorizationContext);
+    }
+
+    [Fact]
+    public void CreateCorrespondenceDialog_ShouldRestrictDownloadAllToRestrictedAttachmentResource_WhenAnyAttachmentResourceDiffersFromCorrespondenceResource()
+    {
+        // Arrange
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithResourceId("correspondence-resource")
+            .WithAttachmentForResource("unrestricted.pdf", "urn:altinn:resource:correspondence-resource")
+            .WithAttachmentForResource("restricted.pdf", "attachment-resource")
+            .Build();
+        var baseUrl = "https://example.com";
+
+        // Act
+        var result = CreateDialogRequestMapper.CreateCorrespondenceDialog(correspondence, baseUrl, enableDownloadAll: true);
+
+        // Assert
+        Assert.NotNull(result.Attachments);
+        Assert.Equal(3, result.Attachments.Count);
+        var downloadAllAttachment = result.Attachments[0];
+        Assert.EndsWith("/attachments/downloadall", downloadAllAttachment.Urls[0].Url);
+        Assert.NotNull(downloadAllAttachment.AuthorizationContext);
+        Assert.Equal("urn:altinn:resource:attachment-resource", downloadAllAttachment.AuthorizationContext.ServiceResource);
+    }
+
     [Fact]
     public void CreateCorrespondenceDialog_WithFuturePublishTime_UpdatedAtShouldBeNow()
     {

@@ -164,6 +164,11 @@ namespace Altinn.Correspondence.Tests.Factories
 
         public CorrespondenceEntityBuilder WithAttachment(string attachmentName, DateTimeOffset? expirationTime)
         {
+            return WithAttachmentForResource(attachmentName, "test-attachment-resource-id", expirationTime);
+        }
+
+        public CorrespondenceEntityBuilder WithAttachmentForResource(string attachmentName, string resourceId, DateTimeOffset? expirationTime = null)
+        {
             _correspondenceEntity.Content!.Attachments.Add(new CorrespondenceAttachmentEntity
             {
                 Id = Guid.NewGuid(),
@@ -171,7 +176,7 @@ namespace Altinn.Correspondence.Tests.Factories
                 Attachment = new AttachmentEntity
                 {
                     Id = Guid.NewGuid(),
-                    ResourceId = "test-attachment-resource-id",
+                    ResourceId = resourceId,
                     FileName = attachmentName,
                     SendersReference = "test-attachment-senders-reference",
                     Sender = $"{UrnConstants.OrganizationNumberAttribute}:991825827",
