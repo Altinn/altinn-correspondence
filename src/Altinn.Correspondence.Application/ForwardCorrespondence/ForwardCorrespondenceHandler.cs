@@ -118,6 +118,7 @@ public class ForwardCorrespondenceHandler(
             ForwardedByUserUuid = partyUuid,
             ForwardedToEmailAddress = normalizedForwardTo,
             ForwardingText = request.ForwardingText,
+            IncludeAttachments = request.IncludeAttachments,
             CorrespondenceId = request.CorrespondenceId,
             Correspondence = correspondence
         };
