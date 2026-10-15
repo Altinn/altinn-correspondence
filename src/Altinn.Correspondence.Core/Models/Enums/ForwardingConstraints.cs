@@ -11,4 +11,10 @@ public enum ForwardingConstraints
     /// Forwarding is allowed, but the attachments exceed max limit
     /// </summary>
     AttachmentsExceedMaxLimit = 1,
+
+    /// <summary>
+    /// Forwarding is allowed, but the user does not have access to all attachments, so they cannot be included.
+    /// Takes precedence over AttachmentsExceedMaxLimit.
+    /// </summary>
+    NotAccessToAllAttachments = 2,
 }

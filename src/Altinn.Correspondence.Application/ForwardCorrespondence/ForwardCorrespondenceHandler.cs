@@ -56,6 +56,12 @@ public class ForwardCorrespondenceHandler(
         }
         if (request.IncludeAttachments)
         {
+            var inaccessibleAttachment = await altinnAuthorizationService.GetFirstInaccessibleAttachment(user, correspondence, cancellationToken);
+            if (inaccessibleAttachment is not null)
+            {
+                logger.LogWarning("Access denied for attachment resource {ResourceId} when forwarding correspondence {CorrespondenceId} with attachments", inaccessibleAttachment.ResourceId, request.CorrespondenceId);
+                return AuthorizationErrors.NoAccessToResource;
+            }
             var totalAttachmentSize = await attachmentRepository.GetTotalAttachmentSizeByCorrespondence(request.CorrespondenceId, cancellationToken);
             if (totalAttachmentSize > 10_000_000) // 10 MB
             {
