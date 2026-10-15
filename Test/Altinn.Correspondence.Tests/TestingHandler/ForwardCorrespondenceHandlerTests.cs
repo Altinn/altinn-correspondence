@@ -231,6 +231,74 @@ public class ForwardCorrespondenceHandlerTests
     }
 
     [Fact]
+    public async Task Process_IncludeAttachmentsWithoutAccessToAttachmentResource_ReturnsNoAccessToResource()
+    {
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: false);
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT1);
+        Assert.Equal(AuthorizationErrors.NoAccessToResource, result.AsT1);
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        _altinnNotificationServiceMock.Verify(x => x.CreateComposedEmail(It.IsAny<ComposedEmailRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Process_IncludeAttachmentsWithSharedAttachmentResource_ChecksAccessOncePerResource()
+    {
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf", "b.pdf");
+        var otherResourceAttachment = new CorrespondenceEntityBuilder().WithAttachment("c.pdf").Build().Content.Attachments[0];
+        otherResourceAttachment.Attachment!.ResourceId = "other-attachment-resource-id";
+        correspondence.Content.Attachments.Add(otherResourceAttachment);
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, 0);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        _altinnAuthorizationServiceMock.Verify(x => x.CheckAttachmentAccessAsRecipient(
+            It.IsAny<ClaimsPrincipal>(), correspondence, It.Is<AttachmentEntity>(a => a.ResourceId == "test-attachment-resource-id"), It.IsAny<CancellationToken>()), Times.Once);
+        _altinnAuthorizationServiceMock.Verify(x => x.CheckAttachmentAccessAsRecipient(
+            It.IsAny<ClaimsPrincipal>(), correspondence, It.Is<AttachmentEntity>(a => a.ResourceId == "other-attachment-resource-id"), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Process_IncludeAttachmentsWithAttachmentOnCorrespondenceResource_SkipsAttachmentAccessCheck()
+    {
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
+        correspondence.Content.Attachments[0].Attachment!.ResourceId = correspondence.ResourceId;
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        SetupCorrespondence(correspondence, hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, 0);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        VerifyAttachmentAccessNeverChecked();
+    }
+
+    [Fact]
+    public async Task Process_AttachmentsNotIncluded_SkipsAttachmentAccessCheck()
+    {
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
+        var request = BuildRequest(correspondence.Id, includeAttachments: false);
+        SetupCorrespondence(correspondence, hasAccess: true);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        VerifyAttachmentAccessNeverChecked();
+    }
+
+    [Fact]
     public async Task Process_ForwardingTextTooLong_ReturnsForwardingTextTooLong()
     {
         var correspondence = BuildReadCorrespondence();
@@ -433,6 +501,32 @@ public class ForwardCorrespondenceHandlerTests
             .WithStatus(CorrespondenceStatus.Published)
             .WithStatus(CorrespondenceStatus.Read)
             .Build();
+    }
+
+    private static CorrespondenceEntity BuildReadCorrespondenceWithAttachments(params string[] attachmentNames)
+    {
+        var builder = new CorrespondenceEntityBuilder()
+            .WithAllowForwarding(true)
+            .WithStatus(CorrespondenceStatus.Published)
+            .WithStatus(CorrespondenceStatus.Read);
+        foreach (var attachmentName in attachmentNames)
+        {
+            builder = builder.WithAttachment(attachmentName);
+        }
+        return builder.Build();
+    }
+
+    private void SetupAttachmentAccess(bool hasAccess)
+    {
+        _altinnAuthorizationServiceMock
+            .Setup(x => x.CheckAttachmentAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<AttachmentEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(hasAccess);
+    }
+
+    private void VerifyAttachmentAccessNeverChecked()
+    {
+        _altinnAuthorizationServiceMock.Verify(x => x.CheckAttachmentAccessAsRecipient(
+            It.IsAny<ClaimsPrincipal>(), It.IsAny<CorrespondenceEntity>(), It.IsAny<AttachmentEntity>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static ForwardCorrespondenceRequest BuildRequest(Guid correspondenceId, string forwardTo = "recipient@example.com", string? forwardingText = null, bool includeAttachments = false)
