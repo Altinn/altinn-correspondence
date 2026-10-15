@@ -25,5 +25,11 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("statusChanged")]
         public DateTimeOffset StatusChanged { get; set; }
+
+        /// <summary>
+        /// The actor that performed the activity.
+        /// </summary>
+        [JsonPropertyName("performedBy")]
+        public PerformedByExt? PerformedBy { get; set; }
     }
 }
