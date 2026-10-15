@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,7 @@ namespace Altinn.Correspondence.Application.ForwardCorrespondence;
 public class CanCorrespondenceBeForwardedHandler(
     ICorrespondenceRepository correspondenceRepository,
     IAttachmentRepository attachmentRepository,
+    IAltinnAuthorizationService altinnAuthorizationService,
     ILogger<CanCorrespondenceBeForwardedHandler> logger
 ) : IHandler<Guid, CanCorrespondenceBeForwardedResponse>
 {
@@ -25,18 +27,36 @@ public class CanCorrespondenceBeForwardedHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} not found", correspondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
+        if (!allowForwarding.Value)
+        {
+            return new CanCorrespondenceBeForwardedResponse
+            {
+                AllowForwarding = false,
+                ForwardingConstraints = ForwardingConstraints.None
+            };
+        }
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} not found", correspondenceId);
+            return CorrespondenceErrors.CorrespondenceNotFound;
+        }
         return new CanCorrespondenceBeForwardedResponse
         {
-            AllowForwarding = allowForwarding.Value,
-            ForwardingConstraints = allowForwarding.Value
-                ? await GetForwardingConstraints(correspondenceId, cancellationToken)
-                : ForwardingConstraints.None
+            AllowForwarding = true,
+            ForwardingConstraints = await GetForwardingConstraints(correspondence, user, cancellationToken)
         };
     }
 
-    private async Task<ForwardingConstraints> GetForwardingConstraints(Guid correspondenceId, CancellationToken cancellationToken)
+    private async Task<ForwardingConstraints> GetForwardingConstraints(CorrespondenceEntity correspondence, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
-        var totalAttachmentSize = await attachmentRepository.GetTotalAttachmentSizeByCorrespondence(correspondenceId, cancellationToken);
+        var inaccessibleAttachment = await altinnAuthorizationService.GetFirstInaccessibleAttachment(user, correspondence, cancellationToken);
+        if (inaccessibleAttachment is not null)
+        {
+            logger.LogInformation("User lacks access to attachment resource {ResourceId} on correspondence {CorrespondenceId}", inaccessibleAttachment.ResourceId, correspondence.Id);
+            return ForwardingConstraints.NotAccessToAllAttachments;
+        }
+        var totalAttachmentSize = await attachmentRepository.GetTotalAttachmentSizeByCorrespondence(correspondence.Id, cancellationToken);
         return totalAttachmentSize > 10_000_000 // 10 MB
             ? ForwardingConstraints.AttachmentsExceedMaxLimit
             : ForwardingConstraints.None;
