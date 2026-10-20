@@ -43,7 +43,8 @@ public class S3StorageRepositoryTests
             ResourceId = "resource",
             FileName = "file.txt",
             SendersReference = "reference",
-            Sender = "0192:910753614"
+            Sender = "0192:910753614",
+            Created = DateTimeOffset.UtcNow
         }, null, CancellationToken.None);
 
         Assert.StartsWith("https://s3.pl-waw.scw.cloud/correspondence-attachments/attachments/", url, StringComparison.Ordinal);

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Altinn.Correspondence.Persistence;
+
 public static class DependencyInjection
 {
     public static void AddPersistence(this IServiceCollection services, IConfiguration config, ILogger bootstrapLogger)

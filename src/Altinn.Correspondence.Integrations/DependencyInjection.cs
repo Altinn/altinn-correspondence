@@ -25,6 +25,7 @@ using Slack.Webhooks;
 using System.Net.Security;
 
 namespace Altinn.Correspondence.Integrations;
+
 public static class DependencyInjection
 {
     public static void AddIntegrations(this IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
@@ -142,7 +143,7 @@ public static class DependencyInjection
             httpClientBuilder
                 .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
                 .AddStandardRetryPolicy();
-        } 
+        }
         else
         {
             services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, altinnOptions);
