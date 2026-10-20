@@ -68,9 +68,9 @@ static void BuildAndRun(string[] args)
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseMiddleware<AcceptHeaderValidationMiddleware>();
 
-    if (app.Environment.IsDevelopment())
+    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("ScalewayPoc"))
     {
-        bootstrapLogger.LogInformation("Running in development mode, applying migrations to database...");
+        bootstrapLogger.LogInformation("Applying database migrations...");
         using var scope = app.Services.CreateScope();
         var _Db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         if (_Db != null)
