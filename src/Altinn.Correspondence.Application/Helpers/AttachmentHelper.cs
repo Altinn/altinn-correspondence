@@ -106,6 +106,11 @@ namespace Altinn.Correspondence.Application.Helpers
 
         private bool ShouldBypassMalwareScan(AttachmentEntity attachment)
         {
+            if (generalSettings.Value.BypassMalwareScan)
+            {
+                return true;
+            }
+
             if (string.IsNullOrWhiteSpace(generalSettings.Value.MalwareScanBypassWhiteList))
             {
                 return false;
