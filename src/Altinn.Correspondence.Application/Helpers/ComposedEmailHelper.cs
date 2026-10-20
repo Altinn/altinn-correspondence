@@ -1,3 +1,4 @@
+using System.Globalization;
 using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
@@ -14,6 +15,10 @@ public class ComposedEmailHelper(
     ILogger<ComposedEmailHelper> logger
 )
 {
+    private static readonly string Divider = new('-', 40);
+    private static readonly TimeZoneInfo OsloTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo");
+    private static readonly CultureInfo NorwegianCulture = CultureInfo.GetCultureInfo("nb-NO");
+
     public async Task<ComposedEmailRequest> MapToComposedEmailRequest(CorrespondenceEntity correspondence, string forwardTo, Guid forwardedByPartyUuid, string? forwardingText, bool includeAttachments, CancellationToken cancellationToken)
     {
         var performedBy = await PerformedByResolver.ResolveAsync(
@@ -74,8 +79,9 @@ public class ComposedEmailHelper(
             ? $"kontakt {sender} eller den som videresendte meldingen"
             : $"kontakt {sender}";
 
-        var forwardedCorrespondenceContent = $"--------- Videresendt melding --------- \n\nFra: {sender}\nMottatt: {correspondence.Created}\nTittel: {correspondence.Content.MessageTitle}\n\n{correspondence.Content.MessageSummary}\n\n{correspondence.Content.MessageBody}";
-        var forwardedFooter = $"\n------------------------------------\n\nDenne e-posten er sendt fra Altinn {forwardedReason}. Du kan ikke svare på denne e-posten. Har du spørsmål om innholdet, {contactText}.";
+        var received = TimeZoneInfo.ConvertTime(correspondence.Published ?? correspondence.Created, OsloTimeZone).ToString("d. MMMM yyyy 'kl.' HH:mm", NorwegianCulture);
+        var forwardedCorrespondenceContent = $"{Divider}\nVideresendt melding\n{Divider}\n\nFra: {sender}\nMottatt: {received}\nTittel: {correspondence.Content.MessageTitle}\n\n{correspondence.Content.MessageSummary}\n\n{correspondence.Content.MessageBody}";
+        var forwardedFooter = $"\n\n{Divider}\nDenne e-posten er sendt fra Altinn {forwardedReason}. Du kan ikke svare på denne e-posten. Har du spørsmål om innholdet, {contactText}.";
         var formattedComposedEmailBody = $"{forwardedByText}\n\n{forwardingText}\n\n\n\n{forwardedCorrespondenceContent}{forwardedFooter}";
         return formattedComposedEmailBody;
     }
