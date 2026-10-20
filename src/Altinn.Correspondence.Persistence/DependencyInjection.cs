@@ -44,6 +44,7 @@ public static class DependencyInjection
         config.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
         var dataSourceBuilder = new NpgsqlDataSourceBuilder();
         dataSourceBuilder.ConnectionStringBuilder.ConnectionString = databaseOptions.ConnectionString;
+        PostgresRootCertificate.Apply(dataSourceBuilder.ConnectionStringBuilder, databaseOptions.SslRootCertificatePem);
         if (!string.IsNullOrWhiteSpace(dataSourceBuilder.ConnectionStringBuilder.Password))
         {
             bootstrapLogger.LogDebug("Using database connection with password (local development/migration)");
