@@ -134,10 +134,11 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
     services.AddStackExchangeRedisCache(options =>
     {
-        options.Configuration = generalSettings.RedisConnectionString;
+        options.ConfigurationOptions = RedisConfiguration.Create(generalSettings.RedisConnectionString, generalSettings.RedisCaPem);
         options.InstanceName = "redisCache";
     });
-    var dataProtectionRedisConnection = ConnectionMultiplexer.Connect(generalSettings.RedisConnectionString);
+    var dataProtectionRedisConnection = ConnectionMultiplexer.Connect(
+        RedisConfiguration.Create(generalSettings.RedisConnectionString, generalSettings.RedisCaPem));
     services.AddDataProtection()
         .SetApplicationName("Altinn.Correspondence.API")
         .PersistKeysToStackExchangeRedis(dataProtectionRedisConnection, "DataProtection-Keys");
