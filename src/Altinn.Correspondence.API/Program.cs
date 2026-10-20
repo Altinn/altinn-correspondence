@@ -153,7 +153,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
     services.AddApplicationHandlers();
     services.AddPersistence(config, bootstrapLogger);
-    services.AddIntegrations(config);
+    services.AddIntegrations(config, hostEnvironment);
 
     services.AddHttpClient();
     services.AddProblemDetails();
