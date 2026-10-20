@@ -17,7 +17,6 @@ public class RedisConfigurationTests
 
         Assert.True(options.Ssl);
         Assert.Equal("correspondence", options.User);
-        Assert.NotNull(options.CertificateValidation);
     }
 
     [Fact]

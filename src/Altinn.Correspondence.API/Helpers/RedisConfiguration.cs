@@ -17,7 +17,7 @@ internal static class RedisConfiguration
 
         var certificates = PemText.LoadCertificates(caPem);
         options.Ssl = true;
-        options.CertificateValidation = (_, certificate, _, errors) => Validate(certificates, certificate, errors);
+        options.CertificateValidation += (_, certificate, _, errors) => Validate(certificates, certificate, errors);
         return options;
     }
 

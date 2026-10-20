@@ -40,7 +40,7 @@ public static class PemText
             }
 
             var blockEnd = stop + end.Length;
-            certificates.Add(X509Certificate2.CreateFromPem(normalized[start..blockEnd]));
+            certificates.Add(X509Certificate2.CreateFromPem(normalized.AsSpan(start, blockEnd - start)));
             searchFrom = blockEnd;
         }
 
