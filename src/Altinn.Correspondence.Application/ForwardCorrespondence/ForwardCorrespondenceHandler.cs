@@ -139,7 +139,7 @@ public class ForwardCorrespondenceHandler(
         ComposedEmailResponse composedEmailResponse;
         try
         {
-            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, request.ForwardingText, request.IncludeAttachments, cancellationToken);
+            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, partyUuid, request.ForwardingText, request.IncludeAttachments, cancellationToken);
             var response = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
             if (response == null)
             {

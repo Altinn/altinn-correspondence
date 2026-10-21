@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Altinn.Correspondence.Common.Caching;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Options;
 using Altinn.Correspondence.Core.Services;
@@ -197,5 +198,63 @@ public class AltinnRegisterService : IAltinnRegisterService
         }
 
         return parties.Data;
+    }
+
+    public async Task<Party?> LookupPartyByOrganizationNumber(string organizationNumber, CancellationToken cancellationToken = default)
+    {
+        organizationNumber = organizationNumber.WithoutPrefix();
+        if (!organizationNumber.IsOrganizationNumber())
+        {
+            _logger.LogWarning("Invalid organization number {OrganizationNumber} when looking up organization in Altinn Register", organizationNumber.SanitizeForLogging());
+            return null;
+        }
+
+        var cacheKey = $"PartyByOrganizationNumber_{organizationNumber}";
+        try
+        {
+            var cachedParty = await CacheHelpers.GetObjectFromCacheAsync<Party>(cacheKey, _cache, cancellationToken);
+            if (cachedParty is not null)
+            {
+                return cachedParty;
+            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _logger.LogWarning(e, "Error retrieving organization from cache when looking up organization in Altinn Register");
+        }
+
+        Party? party;
+        try
+        {
+            var parties = await QueryParties(new List<string> { organizationNumber }, cancellationToken);
+            party = parties?.FirstOrDefault();
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _logger.LogError(e, "Error when looking up organization {OrganizationNumber} in Altinn Register", organizationNumber.SanitizeForLogging());
+            return null;
+        }
+        if (party is null)
+        {
+            _logger.LogWarning("Could not find organization {OrganizationNumber} in Altinn Register", organizationNumber.SanitizeForLogging());
+            return null;
+        }
+
+        try
+        {
+            await CacheHelpers.StoreObjectInCacheAsync(cacheKey, party, _cache, _cacheOptions, cancellationToken);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _logger.LogWarning(e, "Error storing organization in cache when looking up organization in Altinn Register");
+        }
+
+        return party;
+    }
+
+    public async Task<string?> LookupNameByOrganizationNumber(string organizationNumber, CancellationToken cancellationToken = default)
+    {
+        var party = await LookupPartyByOrganizationNumber(organizationNumber, cancellationToken);
+        return party?.GetDisplayName();
     }
 }

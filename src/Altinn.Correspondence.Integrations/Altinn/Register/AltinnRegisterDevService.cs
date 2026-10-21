@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Register.Contracts;
@@ -81,6 +82,17 @@ public class AltinnRegisterDevService : IAltinnRegisterService
             }
         }
         return parties;
+    }
+
+    public Task<Party?> LookupPartyByOrganizationNumber(string organizationNumber, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<Party?>(organizationNumber.WithoutPrefix().IsOrganizationNumber() ? BuildDigdirOrganization() : null);
+    }
+
+    public Task<string?> LookupNameByOrganizationNumber(string organizationNumber, CancellationToken cancellationToken)
+    {
+        var party = organizationNumber.WithoutPrefix().IsOrganizationNumber() ? BuildDigdirOrganization() : null;
+        return Task.FromResult(party?.GetDisplayName());
     }
 
     public Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken)

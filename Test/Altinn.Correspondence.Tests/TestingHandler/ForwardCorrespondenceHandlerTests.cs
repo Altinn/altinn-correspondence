@@ -48,7 +48,7 @@ public class ForwardCorrespondenceHandlerTests
             _altinnRegisterServiceMock.Object,
             _attachmentRepositoryMock.Object,
             _forwardingEventRepositoryMock.Object,
-            new ComposedEmailHelper(_storageRepositoryMock.Object),
+            new ComposedEmailHelper(_storageRepositoryMock.Object, _altinnRegisterServiceMock.Object, new Mock<ILogger<ComposedEmailHelper>>().Object),
             _backgroundJobClientMock.Object,
             _loggerMock.Object);
     }

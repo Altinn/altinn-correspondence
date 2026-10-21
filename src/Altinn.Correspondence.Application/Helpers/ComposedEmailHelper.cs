@@ -1,17 +1,37 @@
+using System.Globalization;
+using Altinn.Correspondence.Application.GetCorrespondenceDetails;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Notifications;
 using Altinn.Correspondence.Core.Repositories;
-using Azure.Storage.Blobs.Specialized;
+using Altinn.Correspondence.Core.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Correspondence.Application.Helpers;
 
 public class ComposedEmailHelper(
-    IStorageRepository storageRepository
+    IStorageRepository storageRepository,
+    IAltinnRegisterService altinnRegisterService,
+    ILogger<ComposedEmailHelper> logger
 )
 {
-    public async Task<ComposedEmailRequest> MapToComposedEmailRequest(CorrespondenceEntity correspondence, string forwardTo, string? forwardingText, bool includeAttachments, CancellationToken cancellationToken)
+    private static readonly string Divider = new('-', 40);
+    private static readonly TimeZoneInfo OsloTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo");
+    private static readonly CultureInfo NorwegianCulture = CultureInfo.GetCultureInfo("nb-NO");
+
+    public async Task<ComposedEmailRequest> MapToComposedEmailRequest(CorrespondenceEntity correspondence, string forwardTo, Guid forwardedByPartyUuid, string? forwardingText, bool includeAttachments, CancellationToken cancellationToken)
     {
+        var performedBy = await PerformedByResolver.ResolveAsync(
+            altinnRegisterService,
+            [forwardedByPartyUuid],
+            correspondence.Sender,
+            logger,
+            cancellationToken);
+        var forwardedBy = performedBy.GetValueOrDefault(forwardedByPartyUuid)?.ActorName;
+        var sender = correspondence.MessageSender
+            ?? await altinnRegisterService.LookupNameByOrganizationNumber(correspondence.Sender, cancellationToken)
+            ?? correspondence.Sender;
+
         return new ComposedEmailRequest
         {
             IdempotencyId = correspondence.Id.CreateVersion5($"ForwardCorrespondence:{forwardTo}"),
@@ -22,8 +42,8 @@ public class ComposedEmailHelper(
                 EmailAddress = forwardTo,
                 EmailSettings = new ComposedEmailRecipientSettings
                 {
-                    Subject = correspondence.Content.MessageTitle,
-                    Body = ComposeBody(correspondence, forwardingText),
+                    Subject = ComposeSubject(correspondence),
+                    Body = ComposeBody(correspondence, sender, forwardedBy, forwardingText),
                     ContentType = "Plain",
                     Attachments = includeAttachments ? await GetComposedEmailAttachments(correspondence, cancellationToken) : new List<ComposedEmailRecipientAttachment>()
                 }
@@ -31,14 +51,39 @@ public class ComposedEmailHelper(
         };
     }
 
-    private static string ComposeBody(CorrespondenceEntity correspondence, string? forwardingText)
+
+    private static string ComposeSubject(CorrespondenceEntity correspondence)
     {
-        if (string.IsNullOrWhiteSpace(forwardingText))
+        return $"Videresendt fra Altinn: {correspondence.Content.MessageTitle}";
+    }
+    private static string ComposeBody(CorrespondenceEntity correspondence, string sender, string? forwardedBy, string? forwardingText)
+    {
+        var hasForwardedBy = !string.IsNullOrWhiteSpace(forwardedBy);
+
+        var forwardedByText = hasForwardedBy
+            ? $"{forwardedBy} har videresendt en melding til deg fra Altinn."
+            : "En melding fra Altinn er videresendt til deg.";
+
+        if (!string.IsNullOrWhiteSpace(forwardingText))
         {
-            return correspondence.Content.MessageBody;
+            forwardingText = hasForwardedBy
+                ? $"Melding fra {forwardedBy}:\n{forwardingText}"
+                : $"Personlig melding:\n{forwardingText}";
         }
 
-        return $"{forwardingText}\n\n---\n\n{correspondence.Content.MessageBody}";
+        var forwardedReason = hasForwardedBy
+            ? $"fordi {forwardedBy} valgte å videresende meldingen"
+            : "fordi meldingen ble videresendt til deg";
+
+        var contactText = hasForwardedBy
+            ? $"kontakt {sender} eller den som videresendte meldingen"
+            : $"kontakt {sender}";
+
+        var received = TimeZoneInfo.ConvertTime(correspondence.Published ?? correspondence.Created, OsloTimeZone).ToString("d. MMMM yyyy 'kl.' HH:mm", NorwegianCulture);
+        var forwardedCorrespondenceContent = $"{Divider}\nVideresendt melding\n{Divider}\n\nFra: {sender}\nMottatt: {received}\nTittel: {correspondence.Content.MessageTitle}\n\n{correspondence.Content.MessageSummary}\n\n{correspondence.Content.MessageBody}";
+        var forwardedFooter = $"\n\n{Divider}\nDenne e-posten er sendt fra Altinn {forwardedReason}. Du kan ikke svare på denne e-posten. Har du spørsmål om innholdet, {contactText}.";
+        var formattedComposedEmailBody = $"{forwardedByText}\n\n{forwardingText}\n\n\n\n{forwardedCorrespondenceContent}{forwardedFooter}";
+        return formattedComposedEmailBody;
     }
 
     private async Task<List<ComposedEmailRecipientAttachment>> GetComposedEmailAttachments(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
