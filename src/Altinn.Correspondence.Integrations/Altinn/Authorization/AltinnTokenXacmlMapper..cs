@@ -43,7 +43,7 @@ public static class AltinnTokenXacmlMapper
         actionCategory.Id = "a1";
         request.Action.Add(actionCategory);
 
-        var resourceCategory = XacmlRequestFactory.CreateResourceCategory(resourceId, partyId.ToString(), null, DefaultIssuer);
+        var resourceCategory = XacmlRequestFactory.CreateResourceCategory(resourceId, $"{UrnConstants.Party}:{partyId}", null, DefaultIssuer);
         resourceCategory.Id = "r1";
         request.Resource.Add(resourceCategory);
 
