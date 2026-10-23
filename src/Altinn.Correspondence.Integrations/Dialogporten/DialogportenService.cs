@@ -1303,7 +1303,8 @@ public class DialogportenService(HttpClient _httpClient,
             {
                 correspondence.Content.MessageTitle,
                 forwardingEvent.ForwardedToEmailAddress,
-                forwardingEvent.ForwardingText ?? string.Empty
+                forwardingEvent.ForwardingText ?? string.Empty,
+                (forwardingEvent.IncludeAttachments ?? false).ToString()
             };
         }
         else if (!string.IsNullOrWhiteSpace(forwardingEvent.MailboxSupplier))
@@ -1321,8 +1322,7 @@ public class DialogportenService(HttpClient _httpClient,
             {
                 correspondence.Content.MessageTitle,
                 mailboxSupplierName,
-                forwardingEvent.ForwardingText ?? string.Empty,
-                forwardingEvent.IncludeAttachments ?? false ? "med vedlegg" : "uten vedlegg"
+                forwardingEvent.ForwardingText ?? string.Empty
             };
         }
         else
