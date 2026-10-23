@@ -37,7 +37,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("delte \"{0}\" med {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
-            DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("videresendte \"{0}\" til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
+            DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("videresendte \"{0}\" til {1} {3}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
             DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sendte \"{0}\" til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
