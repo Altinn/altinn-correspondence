@@ -19,9 +19,9 @@ public class ForwardCorrespondenceHandler(
     IAltinnNotificationService altinnNotificationService,
     ICorrespondenceRepository correspondenceRepository,
     IAltinnRegisterService altinnRegisterService,
-    IAttachmentRepository attachmentRepository,
     ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
     ComposedEmailHelper composedEmailHelper,
+    ForwardingAttachmentAccessHelper forwardingAttachmentAccessHelper,
     IBackgroundJobClient backgroundJobClient,
     ILogger<ForwardCorrespondenceHandler> logger
 ) : IHandler<ForwardCorrespondenceRequest, Guid>
@@ -56,17 +56,18 @@ public class ForwardCorrespondenceHandler(
         }
         if (request.IncludeAttachments)
         {
-            var inaccessibleAttachment = await altinnAuthorizationService.GetFirstInaccessibleAttachment(user, correspondence, cancellationToken);
-            if (inaccessibleAttachment is not null)
+            var forwardingConstraint = await forwardingAttachmentAccessHelper.GetForwardingConstraints(correspondence, user, cancellationToken);
+            Error? forwardingConstraintError = forwardingConstraint switch
             {
-                logger.LogWarning("Access denied for attachment resource {ResourceId} when forwarding correspondence {CorrespondenceId} with attachments", inaccessibleAttachment.ResourceId, request.CorrespondenceId);
-                return AuthorizationErrors.NoAccessToResource;
-            }
-            var totalAttachmentSize = await attachmentRepository.GetTotalAttachmentSizeByCorrespondence(request.CorrespondenceId, cancellationToken);
-            if (totalAttachmentSize > 10_000_000) // 10 MB
+                ForwardingConstraints.NotAccessToAllAttachments => AuthorizationErrors.NoAccessToResource,
+                ForwardingConstraints.ExpiringAttachments => CorrespondenceErrors.ForwardingAttachmentsExpiring,
+                ForwardingConstraints.AttachmentsExceedMaxLimit => CorrespondenceErrors.ForwardingAttachmentsExceedMaxLimit,
+                _ => null
+            };
+            if (forwardingConstraintError is not null)
             {
-                logger.LogWarning("Correspondence {CorrespondenceId} has attachments exceeding 10 MB and cannot be forwarded with attachments", request.CorrespondenceId);
-                return CorrespondenceErrors.ForwardingAttachmentsExceedMaxLimit;
+                logger.LogWarning("Correspondence {CorrespondenceId} cannot be forwarded with attachments due to {ForwardingConstraint}", request.CorrespondenceId, forwardingConstraint);
+                return forwardingConstraintError;
             }
         }
         if (request.ForwardTo is null || !emailRegex.IsMatch(request.ForwardTo))

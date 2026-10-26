@@ -69,6 +69,7 @@ public static class CorrespondenceErrors
     public static Error CannotAllowForwardingOnCorrespondenceWithLargeAttachments = new Error(1069, "Correspondence cannot allow forwarding if the total size of attachments exceeds 10 MB", HttpStatusCode.BadRequest);
     public static Error CannotAllowForwardingOnConfidentialCorrespondence = new Error(1070, "Correspondence cannot allow forwarding if the resource for the correspondence is confidential", HttpStatusCode.BadRequest);
     public static Error ForwardingAttachmentsExceedMaxLimit = new Error(1071, "Correspondence cannot be forwarded with attachments if the total size of attachments exceeds 10 MB", HttpStatusCode.BadRequest);
+    public static Error ForwardingAttachmentsExpiring = new Error(1072, "Correspondence cannot be forwarded with attachments if one or more attachments expire", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
