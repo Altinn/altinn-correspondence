@@ -24,8 +24,7 @@ public class CanCorrespondenceBeForwardedHandlerTests
     {
         _handler = new CanCorrespondenceBeForwardedHandler(
             _correspondenceRepositoryMock.Object,
-            _attachmentRepositoryMock.Object,
-            _altinnAuthorizationServiceMock.Object,
+            new ForwardingAttachmentAccessHelper(_altinnAuthorizationServiceMock.Object, _attachmentRepositoryMock.Object, new Mock<ILogger<ForwardingAttachmentAccessHelper>>().Object),
             _loggerMock.Object);
     }
 
@@ -147,14 +146,52 @@ public class CanCorrespondenceBeForwardedHandlerTests
         Assert.Equal(ForwardingConstraints.AttachmentsExceedMaxLimit, result.AsT0.ForwardingConstraints);
     }
 
+    [Fact]
+    public async Task Process_ForwardingAllowedWithExpiringAttachment_ReturnsExpiringAttachments()
+    {
+        var correspondence = SetupCorrespondence(allowForwarding: true, builder => builder
+            .WithAttachment("a.pdf")
+            .WithAttachment("b.pdf", DateTimeOffset.UtcNow.AddDays(30)));
+        SetupAttachmentAccess(hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, 10_000_001);
+
+        var result = await _handler.Process(correspondence.Id, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.True(result.AsT0.AllowForwarding);
+        Assert.Equal(ForwardingConstraints.ExpiringAttachments, result.AsT0.ForwardingConstraints);
+        _attachmentRepositoryMock.Verify(x => x.GetTotalAttachmentSizeByCorrespondence(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Process_ForwardingAllowedWithoutAccessToAllAttachmentsAndExpiringAttachment_NotAccessToAllAttachmentsTakesPrecedence()
+    {
+        var correspondence = SetupCorrespondence(allowForwarding: true, builder => builder
+            .WithAttachment("a.pdf", DateTimeOffset.UtcNow.AddDays(30)));
+        SetupAttachmentAccess(hasAccess: false);
+
+        var result = await _handler.Process(correspondence.Id, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.Equal(ForwardingConstraints.NotAccessToAllAttachments, result.AsT0.ForwardingConstraints);
+    }
+
     private CorrespondenceEntity SetupCorrespondence(bool allowForwarding, params string[] attachmentNames)
     {
-        var builder = new CorrespondenceEntityBuilder()
-            .WithAllowForwarding(allowForwarding);
-        foreach (var attachmentName in attachmentNames)
+        return SetupCorrespondence(allowForwarding, builder =>
         {
-            builder = builder.WithAttachment(attachmentName);
-        }
+            foreach (var attachmentName in attachmentNames)
+            {
+                builder = builder.WithAttachment(attachmentName);
+            }
+            return builder;
+        });
+    }
+
+    private CorrespondenceEntity SetupCorrespondence(bool allowForwarding, Func<CorrespondenceEntityBuilder, CorrespondenceEntityBuilder> configure)
+    {
+        var builder = configure(new CorrespondenceEntityBuilder()
+            .WithAllowForwarding(allowForwarding));
         var correspondence = builder.Build();
         _correspondenceRepositoryMock
             .Setup(x => x.DoesCorrespondenceAllowForwarding(correspondence.Id, It.IsAny<CancellationToken>()))

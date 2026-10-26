@@ -109,6 +109,7 @@ public static class DependencyInjection
         services.AddScoped<InitializeCorrespondenceValidationHelper>();
         services.AddScoped<PartyUrnHelper>();
         services.AddScoped<ComposedEmailHelper>();
+        services.AddScoped<ForwardingAttachmentAccessHelper>();
         services.AddScoped<CreateNotificationOrder.CustomRecipientDeduplicationHelper>();
 
 
