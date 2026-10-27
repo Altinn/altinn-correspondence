@@ -54,20 +54,16 @@ public class ForwardCorrespondenceHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} does not allow forwarding", request.CorrespondenceId);
             return CorrespondenceErrors.ForwardingNotAllowed;
         }
+        var forwardWithAttachments = false;
         if (request.IncludeAttachments)
         {
             var forwardingConstraint = await forwardingAttachmentAccessHelper.GetForwardingConstraints(correspondence, user, cancellationToken);
-            Error? forwardingConstraintError = forwardingConstraint switch
+            forwardWithAttachments = forwardingConstraint == ForwardingConstraints.None;
+            if (request.IncludeAttachments && !forwardWithAttachments)
             {
-                ForwardingConstraints.NotAccessToAllAttachments => AuthorizationErrors.NoAccessToResource,
-                ForwardingConstraints.ExpiringAttachments => CorrespondenceErrors.ForwardingAttachmentsExpiring,
-                ForwardingConstraints.AttachmentsExceedMaxLimit => CorrespondenceErrors.ForwardingAttachmentsExceedMaxLimit,
-                _ => null
-            };
-            if (forwardingConstraintError is not null)
-            {
-                logger.LogWarning("Correspondence {CorrespondenceId} cannot be forwarded with attachments due to {ForwardingConstraint}", request.CorrespondenceId, forwardingConstraint);
-                return forwardingConstraintError;
+                // If the user requested to include attachments but there are constraints preventing it, we log a warning and forward the request without attachments.
+                // The specific constraints will be returned in the /forward/check endpoint, and we expect this to be called before the actual forward operation.
+                logger.LogWarning("Correspondence {CorrespondenceId} cannot be forwarded with attachments due to constraint {ForwardingConstraint}. Correspondence is forwarded without attachments", request.CorrespondenceId, forwardingConstraint);
             }
         }
         if (request.ForwardTo is null || !emailRegex.IsMatch(request.ForwardTo))
@@ -125,7 +121,7 @@ public class ForwardCorrespondenceHandler(
             ForwardedByUserUuid = partyUuid,
             ForwardedToEmailAddress = normalizedForwardTo,
             ForwardingText = request.ForwardingText,
-            IncludeAttachments = request.IncludeAttachments,
+            IncludeAttachments = forwardWithAttachments,
             CorrespondenceId = request.CorrespondenceId,
             Correspondence = correspondence
         };
@@ -140,7 +136,7 @@ public class ForwardCorrespondenceHandler(
         ComposedEmailResponse composedEmailResponse;
         try
         {
-            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, partyUuid, request.ForwardingText, request.IncludeAttachments, cancellationToken);
+            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, partyUuid, request.ForwardingText, forwardWithAttachments, cancellationToken);
             var response = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
             if (response == null)
             {
