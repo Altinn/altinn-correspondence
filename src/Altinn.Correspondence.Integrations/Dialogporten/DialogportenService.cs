@@ -1304,7 +1304,7 @@ public class DialogportenService(HttpClient _httpClient,
                 correspondence.Content.MessageTitle,
                 forwardingEvent.ForwardedToEmailAddress,
                 forwardingEvent.ForwardingText ?? string.Empty,
-                (forwardingEvent.IncludeAttachments ?? false).ToString()
+                forwardingEvent.IncludeAttachments?.ToString() ?? string.Empty
             };
         }
         else if (!string.IsNullOrWhiteSpace(forwardingEvent.MailboxSupplier))

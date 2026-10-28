@@ -55,11 +55,11 @@ public class ForwardCorrespondenceHandler(
             return CorrespondenceErrors.ForwardingNotAllowed;
         }
         var forwardWithAttachments = false;
-        if (request.IncludeAttachments)
+        if (request.IncludeAttachments && correspondence.Content.Attachments.Any())
         {
             var forwardingConstraint = await forwardingAttachmentAccessHelper.GetForwardingConstraints(correspondence, user, cancellationToken);
             forwardWithAttachments = forwardingConstraint == ForwardingConstraints.None;
-            if (request.IncludeAttachments && !forwardWithAttachments)
+            if (!forwardWithAttachments)
             {
                 // If the user requested to include attachments but there are constraints preventing it, we log a warning and forward the request without attachments.
                 // The specific constraints will be returned in the /forward/check endpoint, and we expect this to be called before the actual forward operation.

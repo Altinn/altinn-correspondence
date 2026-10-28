@@ -164,9 +164,10 @@ public class ForwardCorrespondenceHandlerTests
     [Fact]
     public async Task Process_IncludeAttachmentsWithAttachmentsOver10MB_ForwardsWithoutAttachments()
     {
-        var correspondence = BuildReadCorrespondence();
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         var request = BuildRequest(correspondence.Id, includeAttachments: true);
         var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
         SetupTotalAttachmentSize(correspondence.Id, 10_000_001);
         SetupComposedEmailSuccess();
 
@@ -180,11 +181,12 @@ public class ForwardCorrespondenceHandlerTests
     [Theory]
     [InlineData(0)]
     [InlineData(10_000_000)]
-    public async Task Process_IncludeAttachmentsWithAttachmentsWithinLimit_ReturnsForwardingEventId(long totalAttachmentSize)
+    public async Task Process_IncludeAttachmentsWithAttachmentsWithinLimit_ForwardsWithAttachments(long totalAttachmentSize)
     {
-        var correspondence = BuildReadCorrespondence();
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         var request = BuildRequest(correspondence.Id, includeAttachments: true);
         var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
         SetupTotalAttachmentSize(correspondence.Id, totalAttachmentSize);
         SetupComposedEmailSuccess();
 
@@ -192,6 +194,25 @@ public class ForwardCorrespondenceHandlerTests
 
         Assert.True(result.IsT0);
         Assert.Equal(forwardingEventId, result.AsT0);
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(
+            It.Is<CorrespondenceForwardingEventEntity>(e => e.IncludeAttachments == true),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Process_IncludeAttachmentsWithoutAttachmentsOnCorrespondence_ForwardsWithoutAttachmentsAndSkipsConstraintChecks()
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        VerifyForwardedWithoutAttachments();
+        _attachmentRepositoryMock.Verify(x => x.GetTotalAttachmentSizeByCorrespondence(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -217,9 +238,10 @@ public class ForwardCorrespondenceHandlerTests
     [InlineData(false)]
     public async Task Process_ValidRequest_PersistsIncludeAttachments(bool includeAttachments)
     {
-        var correspondence = BuildReadCorrespondence();
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         var request = BuildRequest(correspondence.Id, includeAttachments: includeAttachments);
         SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
         SetupTotalAttachmentSize(correspondence.Id, 0);
         SetupComposedEmailSuccess();
 
