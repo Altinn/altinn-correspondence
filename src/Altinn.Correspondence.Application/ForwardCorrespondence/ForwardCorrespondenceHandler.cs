@@ -19,9 +19,9 @@ public class ForwardCorrespondenceHandler(
     IAltinnNotificationService altinnNotificationService,
     ICorrespondenceRepository correspondenceRepository,
     IAltinnRegisterService altinnRegisterService,
-    IAttachmentRepository attachmentRepository,
     ICorrespondenceForwardingEventRepository correspondenceForwardingEventRepository,
     ComposedEmailHelper composedEmailHelper,
+    ForwardingAttachmentAccessHelper forwardingAttachmentAccessHelper,
     IBackgroundJobClient backgroundJobClient,
     ILogger<ForwardCorrespondenceHandler> logger
 ) : IHandler<ForwardCorrespondenceRequest, Guid>
@@ -54,19 +54,16 @@ public class ForwardCorrespondenceHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} does not allow forwarding", request.CorrespondenceId);
             return CorrespondenceErrors.ForwardingNotAllowed;
         }
-        if (request.IncludeAttachments)
+        var forwardWithAttachments = false;
+        if (request.IncludeAttachments && correspondence.Content.Attachments.Any())
         {
-            var inaccessibleAttachment = await altinnAuthorizationService.GetFirstInaccessibleAttachment(user, correspondence, cancellationToken);
-            if (inaccessibleAttachment is not null)
+            var forwardingConstraint = await forwardingAttachmentAccessHelper.GetForwardingConstraints(correspondence, user, cancellationToken);
+            forwardWithAttachments = forwardingConstraint == ForwardingConstraints.None;
+            if (!forwardWithAttachments)
             {
-                logger.LogWarning("Access denied for attachment resource {ResourceId} when forwarding correspondence {CorrespondenceId} with attachments", inaccessibleAttachment.ResourceId, request.CorrespondenceId);
-                return AuthorizationErrors.NoAccessToResource;
-            }
-            var totalAttachmentSize = await attachmentRepository.GetTotalAttachmentSizeByCorrespondence(request.CorrespondenceId, cancellationToken);
-            if (totalAttachmentSize > 10_000_000) // 10 MB
-            {
-                logger.LogWarning("Correspondence {CorrespondenceId} has attachments exceeding 10 MB and cannot be forwarded with attachments", request.CorrespondenceId);
-                return CorrespondenceErrors.ForwardingAttachmentsExceedMaxLimit;
+                // If the user requested to include attachments but there are constraints preventing it, we log a warning and forward the request without attachments.
+                // The specific constraints will be returned in the /forward/check endpoint, and we expect this to be called before the actual forward operation.
+                logger.LogWarning("Correspondence {CorrespondenceId} cannot be forwarded with attachments due to constraint {ForwardingConstraint}. Correspondence is forwarded without attachments", request.CorrespondenceId, forwardingConstraint);
             }
         }
         if (request.ForwardTo is null || !emailRegex.IsMatch(request.ForwardTo))
@@ -124,7 +121,7 @@ public class ForwardCorrespondenceHandler(
             ForwardedByUserUuid = partyUuid,
             ForwardedToEmailAddress = normalizedForwardTo,
             ForwardingText = request.ForwardingText,
-            IncludeAttachments = request.IncludeAttachments,
+            IncludeAttachments = forwardWithAttachments,
             CorrespondenceId = request.CorrespondenceId,
             Correspondence = correspondence
         };
@@ -139,7 +136,7 @@ public class ForwardCorrespondenceHandler(
         ComposedEmailResponse composedEmailResponse;
         try
         {
-            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, partyUuid, request.ForwardingText, request.IncludeAttachments, cancellationToken);
+            var composedEmailRequest = await composedEmailHelper.MapToComposedEmailRequest(correspondence, request.ForwardTo, partyUuid, request.ForwardingText, forwardWithAttachments, cancellationToken);
             var response = await altinnNotificationService.CreateComposedEmail(composedEmailRequest, cancellationToken);
             if (response == null)
             {

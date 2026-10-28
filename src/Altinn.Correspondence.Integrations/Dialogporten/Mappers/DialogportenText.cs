@@ -37,7 +37,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("delte \"{0}\" med {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
-            DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("videresendte \"{0}\" til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
+            DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("videresendte \"{0}\" til {1}" + AttachmentsText(tokens, "med vedlegg", "uten vedlegg") + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
             DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sendte \"{0}\" til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
@@ -56,7 +56,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.CorrespondencePublished => "Melding publisert.",
             DialogportenTextType.CorrespondenceConfirmed => "Melding bekreftet.",
             DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("delte \"{0}\" med {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
-            DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("videresendte \"{0}\" til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
+            DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("vidaresende \"{0}\" til {1}" + AttachmentsText(tokens, "med vedlegg", "utan vedlegg") + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skreiv: \"{2}\""), tokens),
             DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sendte \"{0}\" til {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " og skrev: \"{2}\""), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
@@ -75,10 +75,22 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             DialogportenTextType.CorrespondencePublished => "Message published.",
             DialogportenTextType.CorrespondenceConfirmed => "Message confirmed.",
             DialogportenTextType.CorrespondenceInstanceDelegated => string.Format("shared \"{0}\" with {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: \"{2}\""), tokens),
-            DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("forwarded \"{0}\" to {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: \"{2}\""), tokens),
+            DialogportenTextType.CorrespondenceForwardedToEmail => string.Format("forwarded \"{0}\" to {1}" + AttachmentsText(tokens, "with attachments", "without attachments") + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: \"{2}\""), tokens),
             DialogportenTextType.CorrespondenceForwardedToMailboxSupplier => string.Format("sent \"{0}\" to {1}" + (string.IsNullOrWhiteSpace(tokens[2]) ? "" : " with note: \"{2}\""), tokens),
             _ => throw new ArgumentException("Invalid text type")
         };
+
+        /// <summary>
+        /// Returns the attachment statement for the stored IncludeAttachments value, or an empty string when it is unknown (null), e.g. for older forwarding events.
+        /// </summary>
+        private static string AttachmentsText(string[] tokens, string withAttachments, string withoutAttachments)
+        {
+            if (tokens.Length <= 3 || !bool.TryParse(tokens[3], out var includeAttachments))
+            {
+                return string.Empty;
+            }
+            return " " + (includeAttachments ? withAttachments : withoutAttachments);
+        }
 
         private static string[] NormalizeTokens(DialogportenTextType type, DialogportenLanguageCode languageCode, string[] tokens)
         {

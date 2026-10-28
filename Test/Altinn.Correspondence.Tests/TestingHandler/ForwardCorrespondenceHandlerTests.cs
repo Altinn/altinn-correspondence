@@ -46,9 +46,9 @@ public class ForwardCorrespondenceHandlerTests
             _altinnNotificationServiceMock.Object,
             _correspondenceRepositoryMock.Object,
             _altinnRegisterServiceMock.Object,
-            _attachmentRepositoryMock.Object,
             _forwardingEventRepositoryMock.Object,
             new ComposedEmailHelper(_storageRepositoryMock.Object, _altinnRegisterServiceMock.Object, new Mock<ILogger<ComposedEmailHelper>>().Object),
+            new ForwardingAttachmentAccessHelper(_altinnAuthorizationServiceMock.Object, _attachmentRepositoryMock.Object, new Mock<ILogger<ForwardingAttachmentAccessHelper>>().Object),
             _backgroundJobClientMock.Object,
             _loggerMock.Object);
     }
@@ -162,28 +162,31 @@ public class ForwardCorrespondenceHandlerTests
     }
 
     [Fact]
-    public async Task Process_IncludeAttachmentsWithAttachmentsOver10MB_ReturnsForwardingAttachmentsExceedMaxLimit()
+    public async Task Process_IncludeAttachmentsWithAttachmentsOver10MB_ForwardsWithoutAttachments()
     {
-        var correspondence = BuildReadCorrespondence();
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         var request = BuildRequest(correspondence.Id, includeAttachments: true);
-        SetupCorrespondence(correspondence, hasAccess: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
         SetupTotalAttachmentSize(correspondence.Id, 10_000_001);
+        SetupComposedEmailSuccess();
 
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
-        Assert.True(result.IsT1);
-        Assert.Equal(CorrespondenceErrors.ForwardingAttachmentsExceedMaxLimit, result.AsT1);
-        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        VerifyForwardedWithoutAttachments();
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(10_000_000)]
-    public async Task Process_IncludeAttachmentsWithAttachmentsWithinLimit_ReturnsForwardingEventId(long totalAttachmentSize)
+    public async Task Process_IncludeAttachmentsWithAttachmentsWithinLimit_ForwardsWithAttachments(long totalAttachmentSize)
     {
-        var correspondence = BuildReadCorrespondence();
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         var request = BuildRequest(correspondence.Id, includeAttachments: true);
         var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
         SetupTotalAttachmentSize(correspondence.Id, totalAttachmentSize);
         SetupComposedEmailSuccess();
 
@@ -191,6 +194,25 @@ public class ForwardCorrespondenceHandlerTests
 
         Assert.True(result.IsT0);
         Assert.Equal(forwardingEventId, result.AsT0);
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(
+            It.Is<CorrespondenceForwardingEventEntity>(e => e.IncludeAttachments == true),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Process_IncludeAttachmentsWithoutAttachmentsOnCorrespondence_ForwardsWithoutAttachmentsAndSkipsConstraintChecks()
+    {
+        var correspondence = BuildReadCorrespondence();
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        VerifyForwardedWithoutAttachments();
+        _attachmentRepositoryMock.Verify(x => x.GetTotalAttachmentSizeByCorrespondence(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -216,9 +238,10 @@ public class ForwardCorrespondenceHandlerTests
     [InlineData(false)]
     public async Task Process_ValidRequest_PersistsIncludeAttachments(bool includeAttachments)
     {
-        var correspondence = BuildReadCorrespondence();
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         var request = BuildRequest(correspondence.Id, includeAttachments: includeAttachments);
         SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
         SetupTotalAttachmentSize(correspondence.Id, 0);
         SetupComposedEmailSuccess();
 
@@ -231,19 +254,51 @@ public class ForwardCorrespondenceHandlerTests
     }
 
     [Fact]
-    public async Task Process_IncludeAttachmentsWithoutAccessToAttachmentResource_ReturnsNoAccessToResource()
+    public async Task Process_IncludeAttachmentsWithoutAccessToAttachmentResource_ForwardsWithoutAttachments()
     {
         var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         var request = BuildRequest(correspondence.Id, includeAttachments: true);
-        SetupCorrespondence(correspondence, hasAccess: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
         SetupAttachmentAccess(hasAccess: false);
+        SetupComposedEmailSuccess();
 
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
-        Assert.True(result.IsT1);
-        Assert.Equal(AuthorizationErrors.NoAccessToResource, result.AsT1);
-        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
-        _altinnNotificationServiceMock.Verify(x => x.CreateComposedEmail(It.IsAny<ComposedEmailRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        VerifyForwardedWithoutAttachments();
+    }
+
+    [Fact]
+    public async Task Process_IncludeAttachmentsWithExpiringAttachment_ForwardsWithoutAttachments()
+    {
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
+        correspondence.Content.Attachments[0].ExpirationTime = DateTimeOffset.UtcNow.AddDays(30);
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        VerifyForwardedWithoutAttachments();
+    }
+
+    [Fact]
+    public async Task Process_WithoutAttachmentsAndExpiringAttachment_ReturnsForwardingEventId()
+    {
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
+        correspondence.Content.Attachments[0].ExpirationTime = DateTimeOffset.UtcNow.AddDays(30);
+        var request = BuildRequest(correspondence.Id, includeAttachments: false);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupComposedEmailSuccess();
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
     }
 
     [Fact]
@@ -545,6 +600,16 @@ public class ForwardCorrespondenceHandlerTests
         _attachmentRepositoryMock
             .Setup(x => x.GetTotalAttachmentSizeByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(totalAttachmentSize);
+    }
+
+    private void VerifyForwardedWithoutAttachments()
+    {
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(
+            It.Is<CorrespondenceForwardingEventEntity>(e => e.IncludeAttachments == false),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _altinnNotificationServiceMock.Verify(x => x.CreateComposedEmail(
+            It.Is<ComposedEmailRequest>(r => r.Recipient!.EmailSettings!.Attachments!.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private void SetupComposedEmailSuccess()
