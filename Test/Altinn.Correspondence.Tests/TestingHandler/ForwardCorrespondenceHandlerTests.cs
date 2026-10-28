@@ -162,18 +162,19 @@ public class ForwardCorrespondenceHandlerTests
     }
 
     [Fact]
-    public async Task Process_IncludeAttachmentsWithAttachmentsOver10MB_ReturnsForwardingAttachmentsExceedMaxLimit()
+    public async Task Process_IncludeAttachmentsWithAttachmentsOver10MB_ForwardsWithoutAttachments()
     {
         var correspondence = BuildReadCorrespondence();
         var request = BuildRequest(correspondence.Id, includeAttachments: true);
-        SetupCorrespondence(correspondence, hasAccess: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
         SetupTotalAttachmentSize(correspondence.Id, 10_000_001);
+        SetupComposedEmailSuccess();
 
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
         Assert.True(result.IsT0);
-        _loggerMock.Verify(logger => logger.LogWarning("Correspondence {CorrespondenceId} cannot be forwarded with attachments due to constraint", correspondence.Id), Times.Once());
-        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        VerifyForwardedWithoutAttachments();
     }
 
     [Theory]
@@ -231,35 +232,36 @@ public class ForwardCorrespondenceHandlerTests
     }
 
     [Fact]
-    public async Task Process_IncludeAttachmentsWithoutAccessToAttachmentResource_ReturnsNoAccessToResource()
+    public async Task Process_IncludeAttachmentsWithoutAccessToAttachmentResource_ForwardsWithoutAttachments()
     {
         var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         var request = BuildRequest(correspondence.Id, includeAttachments: true);
-        SetupCorrespondence(correspondence, hasAccess: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
         SetupAttachmentAccess(hasAccess: false);
+        SetupComposedEmailSuccess();
 
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
         Assert.True(result.IsT0);
-        _loggerMock.Verify(logger => logger.LogWarning("Correspondence {CorrespondenceId} cannot be forwarded with attachments due to constraint", correspondence.Id), Times.Once());
-        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Once);
-        _altinnNotificationServiceMock.Verify(x => x.CreateComposedEmail(It.IsAny<ComposedEmailRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        VerifyForwardedWithoutAttachments();
     }
 
     [Fact]
-    public async Task Process_IncludeAttachmentsWithExpiringAttachment_ReturnsForwardingAttachmentsExpiring()
+    public async Task Process_IncludeAttachmentsWithExpiringAttachment_ForwardsWithoutAttachments()
     {
         var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
         correspondence.Content.Attachments[0].ExpirationTime = DateTimeOffset.UtcNow.AddDays(30);
         var request = BuildRequest(correspondence.Id, includeAttachments: true);
-        SetupCorrespondence(correspondence, hasAccess: true);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
         SetupAttachmentAccess(hasAccess: true);
+        SetupComposedEmailSuccess();
 
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
         Assert.True(result.IsT0);
-        _loggerMock.Verify(logger => logger.LogWarning("Correspondence {CorrespondenceId} cannot be forwarded with attachments due to constraint", correspondence.Id), Times.Once());
-        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal(forwardingEventId, result.AsT0);
+        VerifyForwardedWithoutAttachments();
     }
 
     [Fact]
@@ -576,6 +578,16 @@ public class ForwardCorrespondenceHandlerTests
         _attachmentRepositoryMock
             .Setup(x => x.GetTotalAttachmentSizeByCorrespondence(correspondenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(totalAttachmentSize);
+    }
+
+    private void VerifyForwardedWithoutAttachments()
+    {
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(
+            It.Is<CorrespondenceForwardingEventEntity>(e => e.IncludeAttachments == false),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _altinnNotificationServiceMock.Verify(x => x.CreateComposedEmail(
+            It.Is<ComposedEmailRequest>(r => r.Recipient!.EmailSettings!.Attachments!.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private void SetupComposedEmailSuccess()
