@@ -8,9 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Altinn.Correspondence.Persistence;
+
 public static class DependencyInjection
 {
     public static void AddPersistence(this IServiceCollection services, IConfiguration config, ILogger bootstrapLogger)
@@ -31,7 +33,16 @@ public static class DependencyInjection
         services.AddScoped<ICorrespondenceNotificationRepository, CorrespondenceNotificationRepository>();
         services.AddScoped<ICorrespondenceForwardingEventRepository, CorrespondenceForwardingEventRepository>();
         services.AddScoped<ICorrespondenceDeleteEventRepository, CorrespondenceDeleteEventRepository>();
-        services.AddSingleton<IStorageRepository, StorageRepository>();
+        services.AddSingleton<IStorageRepository>(serviceProvider =>
+        {
+            var storageOptions = serviceProvider.GetRequiredService<IOptions<AttachmentStorageOptions>>();
+            if (!string.IsNullOrWhiteSpace(storageOptions.Value.S3Endpoint))
+            {
+                return new S3StorageRepository(storageOptions, serviceProvider.GetRequiredService<ILogger<S3StorageRepository>>());
+            }
+
+            return new StorageRepository(storageOptions, serviceProvider.GetRequiredService<ILogger<StorageRepository>>());
+        });
         services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
         services.AddScoped<IIdempotencyKeyRepository, IdempotencyKeyRepository>();
         services.AddScoped<IServiceOwnerRepository, ServiceOwnerRepository>();
@@ -44,6 +55,7 @@ public static class DependencyInjection
         config.GetSection(nameof(DatabaseOptions)).Bind(databaseOptions);
         var dataSourceBuilder = new NpgsqlDataSourceBuilder();
         dataSourceBuilder.ConnectionStringBuilder.ConnectionString = databaseOptions.ConnectionString;
+        PostgresRootCertificate.Apply(dataSourceBuilder.ConnectionStringBuilder, databaseOptions.SslRootCertificatePem);
         if (!string.IsNullOrWhiteSpace(dataSourceBuilder.ConnectionStringBuilder.Password))
         {
             bootstrapLogger.LogDebug("Using database connection with password (local development/migration)");
