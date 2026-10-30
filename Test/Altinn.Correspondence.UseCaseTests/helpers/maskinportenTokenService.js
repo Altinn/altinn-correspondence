@@ -11,11 +11,20 @@ export async function retrieveMaskinportenToken({ clientId, kid, pem, scope }) {
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
     const body = Object.entries({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt })
         .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
-    const res = http.post(url, body, { headers });
+    let res = http.post(url, body, { headers });
+    if (isTransientMaskinportenFailure(res)) {
+        console.warn(`Maskinporten token request failed (status=${res.status}, error=${res.error || 'none'}). Retrying once.`);
+        sleep(1);
+        res = http.post(url, body, { headers });
+    }
     if (res.status !== 200) {
         throw new Error(`Maskinporten token failed: status=${res.status} body=${res.body}`);
     }
     return res.json('access_token');
+}
+
+function isTransientMaskinportenFailure(res) {
+    return res.status === 0 || res.status >= 500;
 }
 
 export async function getMaintenanceMaskinportenToken() {
