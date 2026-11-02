@@ -20,26 +20,36 @@ using Altinn.Correspondence.Integrations.Maskinporten;
 using Altinn.Correspondence.Integrations.Slack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Slack.Webhooks;
 using System.Net.Security;
 
 namespace Altinn.Correspondence.Integrations;
+
 public static class DependencyInjection
 {
-    public static void AddIntegrations(this IServiceCollection services, IConfiguration config)
+    public static void AddIntegrations(this IServiceCollection services, IConfiguration config, IHostEnvironment hostEnvironment)
     {
         var maskinportenSettings = new MaskinportenSettings();
         config.GetSection(nameof(MaskinportenSettings)).Bind(maskinportenSettings);
         var generalSettings = new GeneralSettings();
         config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
-        services.AddScoped<IResourceManager, AzureResourceManagerService>();
+        if (hostEnvironment.IsEnvironment("ScalewayPoc"))
+        {
+            services.AddScoped<IResourceManager, NoOpResourceManager>();
+            services.AddSingleton<IContainerAppRefreshService, NoOpContainerAppRefreshService>();
+        }
+        else
+        {
+            services.AddScoped<IResourceManager, AzureResourceManagerService>();
+            services.AddSingleton<IContainerAppRefreshService, AzureContainerAppRefreshService>();
+        }
         services.AddScoped<IResourceRegistryService, ResourceRegistryService>();
         services.AddScoped<IMaskinportenJwkRotationService, MaskinportenJwkRotationService>();
         services.AddScoped<IDigdirMaskinportenAdminService, DigdirMaskinportenAdminService>();
         services.AddSingleton<IMaskinportenJwkGenerator, MaskinportenJwkGenerator>();
         services.AddSingleton<IMaskinportenTokenService, MaskinportenTokenService>();
         services.AddSingleton<IKeyVaultSecretStore, KeyVaultSecretStore>();
-        services.AddSingleton<IContainerAppRefreshService, AzureContainerAppRefreshService>();
         services.AddScoped<PartyUrnHelper>();
 
         if (string.IsNullOrWhiteSpace(maskinportenSettings.ClientId))
@@ -133,7 +143,7 @@ public static class DependencyInjection
             httpClientBuilder
                 .AddMaskinportenHttpMessageHandler<SettingsJwkClientDefinition, TClient>()
                 .AddStandardRetryPolicy();
-        } 
+        }
         else
         {
             services.RegisterAltinnHttpClient<IAltinnAuthorizationService, AltinnAuthorizationService>(maskinportenSettings, altinnOptions);
