@@ -56,4 +56,19 @@ public interface IResourceRegistryService
     /// <param name="resourceId">The id of the resource to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task<int> GetMinimumAuthenticationLevelForResource(string resourceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns true when the resource has access lists enabled (<c>accessListMode</c> is <c>Enabled</c>).
+    /// </summary>
+    /// <param name="resourceId">The id of the resource to check.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task<bool> IsAccessListEnabled(string resourceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns true when the party is a member of an access list connected to the resource.
+    /// </summary>
+    /// <param name="resourceId">The id of the resource the access list must be connected to.</param>
+    /// <param name="partyUuid">The recipient party to check.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task<bool> IsPartyInResourceAccessList(string resourceId, Guid partyUuid, CancellationToken cancellationToken = default);
 }

@@ -48,6 +48,9 @@ internal class GetResourceResponse
     [JsonPropertyName("limitedByRRR")]
     public bool? LimitedByRRR { get; set; }
 
+    [JsonPropertyName("accessListMode")]
+    public string? AccessListMode { get; set; }
+
     [JsonPropertyName("selfIdentifiedUserEnabled")]
     public bool? SelfIdentifiedUserEnabled { get; set; }
 
