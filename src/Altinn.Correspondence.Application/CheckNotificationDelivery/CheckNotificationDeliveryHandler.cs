@@ -112,7 +112,9 @@ public class CheckNotificationDeliveryHandler(
                 var failedRecipients = notificationDetailsV2.Recipients.Where(r => r.Status.IsFailed()).ToList();
                 var sentRecipients = notificationDetailsV2.Recipients.Where(r => r.IsSent()).ToList();
                 var allFailed = failedRecipients.Any() && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
-                var isMainOrder = IsMainOrder(notification, correspondence.Recipient);
+                var orderRequest = DeserializeOrderRequest(notification);
+                var isMainOrder = IsMainOrder(orderRequest, correspondence.Recipient);
+                var eventSource = NotificationEventSource.From(correspondence, orderRequest);
 
                 try
                 {
@@ -134,11 +136,11 @@ public class CheckNotificationDeliveryHandler(
                             {
                                 if (allFailed && isMainOrder)
                                 {
-                                    SendAllFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                                    SendAllFailedEvent(eventSource.ResourceId, correspondence.Id.ToString(), eventSource.Sender);
                                 }
                                 else
                                 {
-                                    SendFailedEvent(correspondence.ResourceId, correspondence.Id.ToString(), correspondence.Sender);
+                                    SendFailedEvent(eventSource.ResourceId, correspondence.Id.ToString(), eventSource.Sender);
                                 }
                             }
 
@@ -181,7 +183,7 @@ public class CheckNotificationDeliveryHandler(
                                 ? AltinnEventType.CorrespondenceNotificationReminderDelivered
                                 : AltinnEventType.CorrespondenceNotificationDelivered;
                             backgroundJobClient.Enqueue<IEventBus>((eventBus) => eventBus.Publish(
-                                sentEventType, correspondence.ResourceId, correspondence.Id.ToString(), "correspondence", correspondence.Sender, CancellationToken.None));
+                                sentEventType, eventSource.ResourceId, correspondence.Id.ToString(), "correspondence", eventSource.Sender, CancellationToken.None));
                         }
 
                         return true;
@@ -212,10 +214,14 @@ public class CheckNotificationDeliveryHandler(
 
     private static bool IsFinalOrderStatus(string? status) => status is not null && FinalOrderStatuses.Contains(status);
 
-    private static bool IsMainOrder(CorrespondenceNotificationEntity notification, string correspondenceRecipient)
+    private static NotificationOrderRequestV2? DeserializeOrderRequest(CorrespondenceNotificationEntity notification)
     {
-        if (notification.OrderRequest == null) return true;
-        var order = JsonSerializer.Deserialize<NotificationOrderRequestV2>(notification.OrderRequest);
+        if (notification.OrderRequest == null) return null;
+        return JsonSerializer.Deserialize<NotificationOrderRequestV2>(notification.OrderRequest);
+    }
+
+    private static bool IsMainOrder(NotificationOrderRequestV2? order, string correspondenceRecipient)
+    {
         if (order == null) return true;
         var recipientWithoutPrefix = correspondenceRecipient.WithoutPrefix();
         var r = order.Recipient;

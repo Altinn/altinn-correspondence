@@ -5,6 +5,8 @@ using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
+using Altinn.Correspondence.Core.Services.Enums;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Application.SendNotificationOrder;
 using Microsoft.Extensions.Logging;
 using Hangfire;
@@ -45,7 +47,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 TestDbContextFactory.Create());
         }
 
-        private (Guid correspondenceId, CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification, NotificationOrderRequestV2 orderRequest, NotificationOrderRequestResponseV2 response) SetupData()
+        private (Guid correspondenceId, CorrespondenceEntity correspondence, CorrespondenceNotificationEntity notification, NotificationOrderRequestV2 orderRequest, NotificationOrderRequestResponseV2 response) SetupData(RecipientV2? orderRecipient = null)
         {
             var correspondenceId = Guid.NewGuid();
             var notificationId = Guid.NewGuid();
@@ -78,7 +80,7 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                 SendersReference = correspondence.SendersReference,
                 RequestedSendTime = DateTime.UtcNow.AddMinutes(5),
                 IdempotencyId = Guid.NewGuid(),
-                Recipient = new RecipientV2 { RecipientEmail = new RecipientEmail { EmailAddress = "a@b.no" } },
+                Recipient = orderRecipient ?? new RecipientV2 { RecipientEmail = new RecipientEmail { EmailAddress = "a@b.no" } },
                 Reminders = new List<ReminderV2> { new ReminderV2 { DelayDays = 1, Recipient = new RecipientV2 { RecipientSms = new RecipientSms { PhoneNumber = "+47 12345678" } } } }
             };
 
@@ -178,6 +180,63 @@ namespace Altinn.Correspondence.Tests.TestingHandler
                     job.Method.Name == nameof(CheckNotificationDeliveryHandler.Process)),
                 It.Is<IState>(state => state is ScheduledState)),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_ShouldPublishCreatedEventOnCorrespondenceResource_ForCorrespondenceNotification()
+        {
+            var (correspondenceId, correspondence, _, _, _) = SetupData();
+
+            await _handler.Process(correspondenceId, CancellationToken.None);
+
+            VerifyEventPublished(AltinnEventType.NotificationCreated, correspondence.ResourceId, correspondence.Sender, Times.Once());
+        }
+
+        [Fact]
+        public async Task Process_ShouldPublishCreatedEventOnReminderResource_ForConfidentialReminderNotification()
+        {
+            var (correspondenceId, correspondence, _, _, _) = SetupData(BuildConfidentialReminderRecipient());
+
+            await _handler.Process(correspondenceId, CancellationToken.None);
+
+            VerifyEventPublished(AltinnEventType.NotificationCreated, ConfidentialReminderConstants.ResourceId, ConfidentialReminderConstants.Sender, Times.Once());
+            VerifyEventPublished(AltinnEventType.NotificationCreated, correspondence.ResourceId, correspondence.Sender, Times.Never());
+        }
+
+        [Fact]
+        public async Task Process_ShouldPublishFailedEventOnReminderResource_WhenConfidentialReminderSendFails()
+        {
+            var (correspondenceId, correspondence, _, _, _) = SetupData(BuildConfidentialReminderRecipient());
+            _mockAltinnNotificationService.Setup(x => x.CreateNotificationV2(It.IsAny<NotificationOrderRequestV2>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((NotificationOrderRequestResponseV2?)null);
+
+            await _handler.Process(correspondenceId, CancellationToken.None);
+
+            VerifyEventPublished(AltinnEventType.CorrespondenceNotificationCreationFailed, ConfidentialReminderConstants.ResourceId, ConfidentialReminderConstants.Sender, Times.Once());
+            VerifyEventPublished(AltinnEventType.CorrespondenceNotificationCreationFailed, correspondence.ResourceId, correspondence.Sender, Times.Never());
+        }
+
+        private static RecipientV2 BuildConfidentialReminderRecipient() => new()
+        {
+            RecipientOrganization = new RecipientOrganization
+            {
+                OrgNumber = "123456789",
+                ResourceId = $"{UrnConstants.Resource}:{ConfidentialReminderConstants.ResourceId}",
+                ChannelSchema = NotificationChannel.Email
+            }
+        };
+
+        private void VerifyEventPublished(AltinnEventType eventType, string resourceId, string sender, Times times)
+        {
+            _mockBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job =>
+                    job.Type == typeof(IEventBus) &&
+                    job.Method.Name == nameof(IEventBus.Publish) &&
+                    (AltinnEventType)job.Args[0] == eventType &&
+                    (string)job.Args[1] == resourceId &&
+                    (string?)job.Args[4] == sender),
+                It.Is<IState>(state => state is EnqueuedState)),
+                times);
         }
     }
 }
