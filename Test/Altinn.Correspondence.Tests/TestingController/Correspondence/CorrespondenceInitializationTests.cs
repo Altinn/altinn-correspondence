@@ -742,6 +742,49 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondence_WhenAccessListEnabledAndRecipientIsMember_Succeeds()
+        {
+            using var testFactory = new UnitWebApplicationFactory(services =>
+            {
+                services.AddScoped(_ => CreateResourceRegistryMock(isAccessListEnabled: true, isMember: true).Object);
+            });
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+
+            var response = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WhenAccessListEnabledAndRecipientIsNotMember_ReturnsBadRequest()
+        {
+            using var testFactory = new UnitWebApplicationFactory(services =>
+            {
+                services.AddScoped(_ => CreateResourceRegistryMock(isAccessListEnabled: true, isMember: false).Object);
+            });
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+
+            var response = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains("access list", body, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static Mock<IResourceRegistryService> CreateResourceRegistryMock(bool isAccessListEnabled, bool isMember)
+        {
+            var resourceRegistryService = new Mock<IResourceRegistryService>();
+            resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("Test owner");
+            resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("CorrespondenceService");
+            resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+            resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("Test resource");
+            resourceRegistryService.Setup(x => x.GetConfidentialType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.NotConfidential);
+            resourceRegistryService.Setup(x => x.IsAccessListEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(isAccessListEnabled);
+            resourceRegistryService.Setup(x => x.IsPartyInResourceAccessList(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(isMember);
+            return resourceRegistryService;
+        }
+
+        [Fact]
         public async Task InitializeCorrespondence_WithAnAltinnApp_AsTransmission_Succeeds()
         {
             // Arrange
