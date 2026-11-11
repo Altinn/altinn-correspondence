@@ -114,14 +114,15 @@ public class ApplicationDbContext : DbContext
             .IsUnique()
             .HasDatabaseName("IX_CorrespondenceForwardingEvents_Unique");
 
-        // CorrespondenceForwardingEventEntity - unique on (CorrespondenceId, ForwardedToEmailAddress)
-        // Ensures a correspondence can only ever be forwarded to a given email address once
+        // CorrespondenceForwardingEventEntity - unique on (CorrespondenceId, ForwardedToEmailAddress, IncludeAttachments)
+        // Ensures a correspondence can only be forwarded to a given email address once with and once without attachments
         modelBuilder.Entity<CorrespondenceForwardingEventEntity>()
             .HasIndex(nameof(CorrespondenceForwardingEventEntity.CorrespondenceId),
-                     nameof(CorrespondenceForwardingEventEntity.ForwardedToEmailAddress))
+                     nameof(CorrespondenceForwardingEventEntity.ForwardedToEmailAddress),
+                     nameof(CorrespondenceForwardingEventEntity.IncludeAttachments))
             .IsUnique()
             .HasFilter("\"ForwardedToEmailAddress\" IS NOT NULL")
-            .HasDatabaseName("IX_CorrespondenceForwardingEvents_CorrespondenceId_ForwardedToEmailAddress_Unique");
+            .HasDatabaseName("IX_CorrespondenceForwardingEvents_CorrespondenceId_ForwardedToEmailAddress_IncludeAttachments_Unique");
 
         // One active confidential-reminder dialog idempotency key per recipient party
         modelBuilder.Entity<IdempotencyKeyEntity>()
