@@ -649,7 +649,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             MediaType = mediaType,
                             Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, correspondenceAttachment.AttachmentId)
                         }
-                    }
+                    },
+                    AuthorizationContext = DialogportenAttachmentAuthorizationContextMapper.GetAuthorizationContextForAttachmentResource(correspondence, correspondenceAttachment.Attachment?.ResourceId)
                 };
 
                 if (correspondenceAttachment.ExpirationTime.HasValue)
@@ -664,28 +665,39 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 && correspondence.Content.Attachments.Count >= 2
                 && correspondence.Content.Attachments.Sum(a => a.Attachment?.AttachmentSize) < 2_000_000_000)
             {
-                attachments.Insert(0, new Attachment
-                {
-                    Id = Guid.CreateVersion7(baseTimestamp).ToString(),
-                    DisplayName = new List<DisplayName>
-                    {
-                        new DisplayName { LanguageCode = "nb", Value = "Alle vedlegg" },
-                        new DisplayName { LanguageCode = "nn", Value = "Alle vedlegg" },
-                        new DisplayName { LanguageCode = "en", Value = "All attachments" }
-                    },
-                    Urls = new List<DialogUrl>
-                    {
-                        new DialogUrl
-                        {
-                            ConsumerType = "Gui",
-                            MediaType = "application/zip",
-                            Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
-                        }
-                    }
-                });
+                attachments.Insert(0, CreateDownloadAllAttachment(baseUrl, correspondence, Guid.CreateVersion7(baseTimestamp)));
             }
 
             return attachments;
+        }
+
+        internal static Attachment CreateDownloadAllAttachment(string baseUrl, CorrespondenceEntity correspondence, Guid id)
+        {
+            // Downloading all requires access to every attachment resource, so gating on any one of them never hides the link from someone allowed to use it
+            var authorizationContext = correspondence.Content.Attachments
+                .Select(correspondenceAttachment => DialogportenAttachmentAuthorizationContextMapper.GetAuthorizationContextForAttachmentResource(correspondence, correspondenceAttachment.Attachment?.ResourceId))
+                .FirstOrDefault(context => context is not null);
+
+            return new Attachment
+            {
+                Id = id.ToString(),
+                DisplayName = new List<DisplayName>
+                {
+                    new DisplayName { LanguageCode = "nb", Value = "Alle vedlegg" },
+                    new DisplayName { LanguageCode = "nn", Value = "Alle vedlegg" },
+                    new DisplayName { LanguageCode = "en", Value = "All attachments" }
+                },
+                Urls = new List<DialogUrl>
+                {
+                    new DialogUrl
+                    {
+                        ConsumerType = "Gui",
+                        MediaType = "application/zip",
+                        Url = GetDownloadAllAttachmentsEndpoint(baseUrl, correspondence.Id)
+                    }
+                },
+                AuthorizationContext = authorizationContext
+            };
         }
 
         private static ServiceOwnerContext GetServiceOwnerContextForCorrespondence(CorrespondenceEntity correspondence)

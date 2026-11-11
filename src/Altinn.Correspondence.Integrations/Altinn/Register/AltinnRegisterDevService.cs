@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Register;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Register.Contracts;
@@ -69,23 +70,29 @@ public class AltinnRegisterDevService : IAltinnRegisterService
         return Task.FromResult<Party?>(null);
     }
 
-    public Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
+    public async Task<List<Party>?> LookUpPartiesByIds(List<string> identificationIds, CancellationToken cancellationToken)
     {
         var parties = new List<Party>();
         foreach (var id in identificationIds)
         {
-            var clean = id.WithoutPrefix();
-            var bySsn = LookupBySsn(clean);
-            if (bySsn is not null)
+            var party = await LookUpPartyById(id, cancellationToken);
+            if (party is not null)
             {
-                parties.Add(bySsn);
-            }
-            else if (IdentificationIDRegex.IsMatch(clean))
-            {
-                parties.Add(BuildDigdirOrganization());
+                parties.Add(party);
             }
         }
-        return Task.FromResult<List<Party>?>(parties);
+        return parties;
+    }
+
+    public Task<Party?> LookupPartyByOrganizationNumber(string organizationNumber, CancellationToken cancellationToken)
+    {
+        return Task.FromResult<Party?>(organizationNumber.WithoutPrefix().IsOrganizationNumber() ? BuildDigdirOrganization() : null);
+    }
+
+    public Task<string?> LookupNameByOrganizationNumber(string organizationNumber, CancellationToken cancellationToken)
+    {
+        var party = organizationNumber.WithoutPrefix().IsOrganizationNumber() ? BuildDigdirOrganization() : null;
+        return Task.FromResult(party?.GetDisplayName());
     }
 
     public Task<List<RoleItem>> LookUpPartyRoles(string partyUuid, CancellationToken cancellationToken)

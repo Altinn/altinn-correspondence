@@ -119,7 +119,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                             MediaType = mediaType,
                             Url = GetDownloadAttachmentEndpoint(baseUrl, correspondence.Id, correspondenceAttachment.AttachmentId)
                         }
-                    }
+                    },
+                    AuthorizationContext = DialogportenAttachmentAuthorizationContextMapper.GetAuthorizationContextForAttachmentResource(correspondence, correspondenceAttachment.Attachment?.ResourceId)
                 };
 
                 if (correspondenceAttachment.ExpirationTime.HasValue)

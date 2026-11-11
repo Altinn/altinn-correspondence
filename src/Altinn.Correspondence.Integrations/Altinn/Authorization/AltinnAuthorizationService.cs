@@ -1,5 +1,6 @@
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
 using Altinn.Common.PEP.Helpers;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Common.Helpers.Models;
 using Altinn.Correspondence.Core.Extensions;
@@ -217,7 +218,7 @@ public class AltinnAuthorizationService : IAltinnAuthorizationService
             var registerParty = await _altinnRegisterService.LookUpPartyById(resolvedParty, cancellationToken);
             if (registerParty is not null && registerParty.GetPartyId() > 0)
             {
-                resolvedParty = registerParty.GetPartyId().ToString();
+                resolvedParty = $"{UrnConstants.Party}:{registerParty.GetPartyId()}";
             }
         }
 

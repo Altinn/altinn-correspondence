@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Common.Caching;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Options;
@@ -224,5 +225,34 @@ public class ResourceRegistryService : IResourceRegistryService
             throw new BadHttpRequestException("Failed to process response from Altinn Resource Registry when getting resource policy");
         }
         return resourcePolicy.MinimumAuthenticationLevels.Min();
+    }
+
+    public async Task<bool> IsAccessListEnabled(string resourceId, CancellationToken cancellationToken = default)
+    {
+        var resource = await GetResource(resourceId, cancellationToken);
+        return string.Equals(resource?.AccessListMode, "Enabled", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public async Task<bool> IsPartyInResourceAccessList(string resourceId, Guid partyUuid, CancellationToken cancellationToken = default)
+    {
+        var partyUrn = Uri.EscapeDataString($"{UrnConstants.PartyUuid}:{partyUuid}");
+        var resourceUrn = $"{UrnConstants.Resource}:{resourceId.WithoutPrefix()}";
+        var requestUri = $"resourceregistry/api/v1/access-lists/memberships?party={partyUrn}&resource={Uri.EscapeDataString(resourceUrn)}";
+        var response = await _client.GetAsync(requestUri, cancellationToken);
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            _logger.LogError("Failed to get access list memberships from Altinn Resource Registry. Status code: {StatusCode}", response.StatusCode);
+            throw new BadHttpRequestException("Failed to get access list memberships from Altinn Resource Registry");
+        }
+
+        var memberships = await response.Content.ReadFromJsonAsync<AccessListMembershipListResponse>(cancellationToken: cancellationToken);
+        if (memberships?.Data is not { Count: > 0 })
+        {
+            return false;
+        }
+
+        return memberships.Data.Any(membership =>
+            string.IsNullOrEmpty(membership.Resource)
+            || string.Equals(membership.Resource, resourceUrn, StringComparison.OrdinalIgnoreCase));
     }
 }

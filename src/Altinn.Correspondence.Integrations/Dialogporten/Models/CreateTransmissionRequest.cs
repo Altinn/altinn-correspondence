@@ -51,6 +51,10 @@ public class TransmissionAttachment
 
     [JsonPropertyName("expiresAt")]
     public DateTimeOffset? ExpiresAt { get; set; }
+
+    [JsonPropertyName("authorizationContext")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AuthorizationContext? AuthorizationContext { get; set; }
     }
 
     public class TransmissionContent

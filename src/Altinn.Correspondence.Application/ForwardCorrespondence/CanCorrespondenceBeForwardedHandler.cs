@@ -8,7 +8,7 @@ namespace Altinn.Correspondence.Application.ForwardCorrespondence;
 
 public class CanCorrespondenceBeForwardedHandler(
     ICorrespondenceRepository correspondenceRepository,
-    IAttachmentRepository attachmentRepository,
+    ForwardingAttachmentAccessHelper forwardingAttachmentAccessHelper,
     ILogger<CanCorrespondenceBeForwardedHandler> logger
 ) : IHandler<Guid, CanCorrespondenceBeForwardedResponse>
 {
@@ -25,20 +25,24 @@ public class CanCorrespondenceBeForwardedHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} not found", correspondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
+        if (!allowForwarding.Value)
+        {
+            return new CanCorrespondenceBeForwardedResponse
+            {
+                AllowForwarding = false,
+                ForwardingConstraints = ForwardingConstraints.None
+            };
+        }
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, true, false, cancellationToken);
+        if (correspondence is null)
+        {
+            logger.LogWarning("Correspondence {CorrespondenceId} not found", correspondenceId);
+            return CorrespondenceErrors.CorrespondenceNotFound;
+        }
         return new CanCorrespondenceBeForwardedResponse
         {
-            AllowForwarding = allowForwarding.Value,
-            ForwardingConstraints = allowForwarding.Value
-                ? await GetForwardingConstraints(correspondenceId, cancellationToken)
-                : ForwardingConstraints.None
+            AllowForwarding = true,
+            ForwardingConstraints = await forwardingAttachmentAccessHelper.GetForwardingConstraints(correspondence, user, cancellationToken)
         };
-    }
-
-    private async Task<ForwardingConstraints> GetForwardingConstraints(Guid correspondenceId, CancellationToken cancellationToken)
-    {
-        var totalAttachmentSize = await attachmentRepository.GetTotalAttachmentSizeByCorrespondence(correspondenceId, cancellationToken);
-        return totalAttachmentSize > 10_000_000 // 10 MB
-            ? ForwardingConstraints.AttachmentsExceedMaxLimit
-            : ForwardingConstraints.None;
     }
 }

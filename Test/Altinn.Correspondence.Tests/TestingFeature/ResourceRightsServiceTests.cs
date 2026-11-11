@@ -9,6 +9,7 @@ using System.Net;
 using Altinn.Correspondence.Common.Caching;
 using Microsoft.Extensions.Caching.Hybrid;
 using Moq.Protected;
+using Microsoft.AspNetCore.Http;
 
 namespace Altinn.Correspondence.Tests.TestingFeature
 {
@@ -208,6 +209,126 @@ namespace Altinn.Correspondence.Tests.TestingFeature
                 It.IsAny<IEnumerable<string>?>(),
                 It.IsAny<CancellationToken>()
             ), Times.Once);
+        }
+
+        [Theory]
+        [InlineData("Enabled", true)]
+        [InlineData("Disabled", false)]
+        [InlineData(null, false)]
+        public async Task IsAccessListEnabled_ReadsAccessListModeFromResource(string? accessListMode, bool expected)
+        {
+            const string resourceId = "access-list-resource";
+            SetupResourceResponse(resourceId, accessListMode);
+
+            var result = await _service.IsAccessListEnabled(resourceId, CancellationToken.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task IsPartyInResourceAccessList_ReturnsTrue_WhenMembershipMatchesResource()
+        {
+            var partyUuid = Guid.Parse("049d6f78-f087-41c3-a4ec-c98f5451e387");
+            const string resourceId = "my-resource";
+            HttpRequestMessage? capturedRequest = null;
+            SetupMembershipResponse(
+                """{"data":[{"party":"urn:altinn:party:uuid:049d6f78-f087-41c3-a4ec-c98f5451e387","resource":"urn:altinn:resource:my-resource"}]}""",
+                request => capturedRequest = request);
+
+            var result = await _service.IsPartyInResourceAccessList(resourceId, partyUuid, CancellationToken.None);
+
+            Assert.True(result);
+            Assert.NotNull(capturedRequest);
+            var query = capturedRequest!.RequestUri!.Query;
+            Assert.Contains("party=urn%3Aaltinn%3Aparty%3Auuid%3A049d6f78-f087-41c3-a4ec-c98f5451e387", query, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("resource=urn%3Aaltinn%3Aresource%3Amy-resource", query, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task IsPartyInResourceAccessList_ReturnsFalse_WhenMembershipListIsEmpty()
+        {
+            SetupMembershipResponse("""{"data":[]}""");
+
+            var result = await _service.IsPartyInResourceAccessList("my-resource", Guid.NewGuid(), CancellationToken.None);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task IsPartyInResourceAccessList_ReturnsFalse_WhenMembershipIsForAnotherResource()
+        {
+            SetupMembershipResponse(
+                """{"data":[{"party":"urn:altinn:party:uuid:049d6f78-f087-41c3-a4ec-c98f5451e387","resource":"urn:altinn:resource:other-resource"}]}""");
+
+            var result = await _service.IsPartyInResourceAccessList("my-resource", Guid.NewGuid(), CancellationToken.None);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task IsPartyInResourceAccessList_Throws_WhenRegistryReturnsError()
+        {
+            _mockHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.RequestUri != null &&
+                        req.RequestUri.AbsolutePath.Contains("/resourceregistry/api/v1/access-lists/memberships", StringComparison.Ordinal)),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Forbidden));
+
+            await Assert.ThrowsAsync<BadHttpRequestException>(() =>
+                _service.IsPartyInResourceAccessList("my-resource", Guid.NewGuid(), CancellationToken.None));
+        }
+
+        private void SetupResourceResponse(string resourceId, string? accessListMode)
+        {
+            var accessListModeJson = accessListMode is null ? "" : $",\"accessListMode\":\"{accessListMode}\"";
+            var json = $$"""
+                {
+                  "identifier": "{{resourceId}}",
+                  "title": { "en": "Title" },
+                  "hasCompetentAuthority": {
+                    "organization": "991825827",
+                    "orgcode": "ttd",
+                    "name": { "en": "Name" }
+                  },
+                  "resourceType": "CorrespondenceService"{{accessListModeJson}}
+                }
+                """;
+            _mockHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.RequestUri != null &&
+                        req.RequestUri.AbsoluteUri == $"https://example.com/resourceregistry/api/v1/resource/{resourceId}"),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                });
+        }
+
+        private void SetupMembershipResponse(string json, Action<HttpRequestMessage>? capture = null)
+        {
+            _mockHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req =>
+                        req.RequestUri != null &&
+                        req.RequestUri.AbsolutePath.Contains("/resourceregistry/api/v1/access-lists/memberships", StringComparison.Ordinal)),
+                    ItExpr.IsAny<CancellationToken>())
+                .Returns((HttpRequestMessage request, CancellationToken _) =>
+                {
+                    capture?.Invoke(request);
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(json, Encoding.UTF8, "application/json")
+                    });
+                });
         }
     }
 }

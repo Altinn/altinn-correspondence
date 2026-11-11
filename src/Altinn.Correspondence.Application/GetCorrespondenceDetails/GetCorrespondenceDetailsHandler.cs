@@ -76,7 +76,7 @@ public class GetCorrespondenceDetailsHandler(
             }
         }
 
-        return await DatabaseTransactionHelper.ExecuteAsync<OneOf<GetCorrespondenceDetailsResponse, Error>>(dbContext, async (cancellationToken) =>
+        var result = await DatabaseTransactionHelper.ExecuteAsync<OneOf<GetCorrespondenceDetailsResponse, Error>>(dbContext, async (cancellationToken) =>
         {
             if (hasAccessAsRecipient && !user.CallingAsSender())
             {
@@ -183,5 +183,19 @@ public class GetCorrespondenceDetailsHandler(
                 AllowForwarding = correspondence.AllowForwarding
             };
         }, cancellationToken);
+
+        if (result.IsT1)
+        {
+            return result.AsT1;
+        }
+
+        var details = result.AsT0;
+        details.PerformedByByPartyUuid = await PerformedByResolver.ResolveAsync(
+            altinnRegisterService,
+            details.StatusHistory.Select(status => status.PartyUuid),
+            details.Sender,
+            logger,
+            cancellationToken);
+        return details;
     }
 }
