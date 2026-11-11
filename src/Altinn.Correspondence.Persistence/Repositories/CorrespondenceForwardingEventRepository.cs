@@ -94,9 +94,9 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<bool> HasCorrespondenceBeenForwardedToRecipient(Guid correspondenceId, string recipientId, CancellationToken cancellationToken)
+    public async Task<bool> HasCorrespondenceBeenForwardedToRecipient(Guid correspondenceId, string recipientId, bool forwardWithAttachments, CancellationToken cancellationToken)
     {
         return await _context.CorrespondenceForwardingEvents
-            .AnyAsync(e => e.CorrespondenceId == correspondenceId && e.ForwardedToEmailAddress == recipientId, cancellationToken);
+            .AnyAsync(e => e.CorrespondenceId == correspondenceId && e.ForwardedToEmailAddress == recipientId && e.IncludeAttachments == forwardWithAttachments, cancellationToken);
     }
 }

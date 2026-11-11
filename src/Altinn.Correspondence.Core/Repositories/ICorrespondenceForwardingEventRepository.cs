@@ -10,6 +10,6 @@ namespace Altinn.Correspondence.Core.Repositories
         Task SetNotificationShipmentId(Guid forwardingEventId, Guid notificationShipmentId, CancellationToken cancellationToken);
         Task DeleteForwardingEvent(Guid forwardingEventId, CancellationToken cancellationToken);
         Task<List<CorrespondenceForwardingEventEntity>> GetForwardingEventsWithoutDialogActivityBatch(int count, DateTimeOffset lastProcessed, CancellationToken cancellationToken);
-        Task<bool> HasCorrespondenceBeenForwardedToRecipient(Guid correspondenceId, string recipientId, CancellationToken cancellationToken);
+        Task<bool> HasCorrespondenceBeenForwardedToRecipient(Guid correspondenceId, string recipientId, bool forwardWithAttachments, CancellationToken cancellationToken);
     }
 }
