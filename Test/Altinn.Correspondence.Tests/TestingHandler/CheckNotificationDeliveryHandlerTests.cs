@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.CheckNotificationDelivery;
 using Altinn.Correspondence.Application.SendSlackNotification;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Models.Notifications;
@@ -409,6 +410,60 @@ public class CheckNotificationDeliveryHandlerTests
         VerifyEventPublished(AltinnEventType.CorrespondenceNotificationFailed, Times.Never());
     }
 
+    [Fact]
+    public async Task Process_WhenConfidentialReminderNotificationSent_PublishesEventOnReminderResource()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario(
+            correspondenceRecipient: "urn:altinn:organization:identifier-no:123456789",
+            orderRecipient: BuildConfidentialReminderRecipient("123456789"));
+        SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId));
+
+        await _handler.Process(notification.Id, CancellationToken.None);
+
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationDelivered, ConfidentialReminderConstants.ResourceId, ConfidentialReminderConstants.Sender, Times.Once());
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationDelivered, correspondence.ResourceId, correspondence.Sender, Times.Never());
+    }
+
+    [Fact]
+    public async Task Process_WhenConfidentialReminderNotificationAllFail_PublishesAllFailedEventOnReminderResource()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario(
+            correspondenceRecipient: "urn:altinn:organization:identifier-no:123456789",
+            orderRecipient: BuildConfidentialReminderRecipient("123456789"));
+        SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId, NotificationStatusV2.Email_Failed));
+
+        await _handler.Process(notification.Id, CancellationToken.None);
+
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, ConfidentialReminderConstants.ResourceId, ConfidentialReminderConstants.Sender, Times.Once());
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, correspondence.ResourceId, correspondence.Sender, Times.Never());
+    }
+
+    [Fact]
+    public async Task Process_WhenCorrespondenceNotificationSent_PublishesEventOnCorrespondenceResource()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario(
+            correspondenceRecipient: "urn:altinn:organization:identifier-no:123456789",
+            orderRecipient: new RecipientV2
+            {
+                RecipientOrganization = new RecipientOrganization { OrgNumber = "123456789", ResourceId = $"{UrnConstants.Resource}:test_resource", ChannelSchema = NotificationChannel.Email }
+            });
+        SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId));
+
+        await _handler.Process(notification.Id, CancellationToken.None);
+
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationDelivered, correspondence.ResourceId, correspondence.Sender, Times.Once());
+    }
+
+    private static RecipientV2 BuildConfidentialReminderRecipient(string orgNumber) => new()
+    {
+        RecipientOrganization = new RecipientOrganization
+        {
+            OrgNumber = orgNumber,
+            ResourceId = $"{UrnConstants.Resource}:{ConfidentialReminderConstants.ResourceId}",
+            ChannelSchema = NotificationChannel.Email
+        }
+    };
+
     private static (CorrespondenceNotificationEntity notification, CorrespondenceEntity correspondence, Guid shipmentId) BuildScenario(
         string correspondenceRecipient = "urn:altinn:person:identifier-no:12345678901",
         RecipientV2? orderRecipient = null,
@@ -541,6 +596,18 @@ public class CheckNotificationDeliveryHandlerTests
                 job.Type == typeof(IEventBus) &&
                 job.Method.Name == nameof(IEventBus.Publish) &&
                 (AltinnEventType)job.Args[0] == eventType),
+            It.Is<IState>(state => state is EnqueuedState)), times);
+    }
+
+    private void VerifyEventPublished(AltinnEventType eventType, string resourceId, string sender, Times times)
+    {
+        _backgroundJobClientMock.Verify(x => x.Create(
+            It.Is<Job>(job =>
+                job.Type == typeof(IEventBus) &&
+                job.Method.Name == nameof(IEventBus.Publish) &&
+                (AltinnEventType)job.Args[0] == eventType &&
+                (string)job.Args[1] == resourceId &&
+                (string?)job.Args[4] == sender),
             It.Is<IState>(state => state is EnqueuedState)), times);
     }
 }
