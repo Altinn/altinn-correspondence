@@ -296,7 +296,7 @@ public class CreateNotificationOrderHandler(
                 Subject = emailSubject,
                 Body = emailBody,
                 ContentType = isReminder ? notificationRequest.ReminderEmailContentType ?? notificationRequest.EmailContentType : notificationRequest.EmailContentType,
-                SendTimePolicy = "Daytime"
+                SendingTimePolicy = "Daytime"
             }
             : null;
 

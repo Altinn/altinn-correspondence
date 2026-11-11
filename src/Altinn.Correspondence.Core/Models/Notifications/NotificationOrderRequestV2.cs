@@ -133,7 +133,7 @@ namespace Altinn.Correspondence.Core.Models.Notifications
         public string Body { get; set; } = null!;
 
         public EmailContentType ContentType { get; set; } = EmailContentType.Plain;
-        public string SendTimePolicy { get; set; } = "Daytime";
+        public string SendingTimePolicy { get; set; } = "Daytime";
     }
 
     public class SmsSettings
