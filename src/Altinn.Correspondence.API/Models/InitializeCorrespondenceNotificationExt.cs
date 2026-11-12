@@ -137,6 +137,15 @@ namespace Altinn.Correspondence.API.Models
         /// </summary>
         [JsonPropertyName("overrideRegisteredContactInformation")]
         public bool OverrideRegisteredContactInformation { get; set; } = false;
+
+        /// <summary>
+        /// When set to true, person recipients are notified using their contact information in the Common Contact Register (KRR)
+        /// even if it has not been verified within the last 18 months. Only intended for service messages.
+        /// Does not apply to organization recipients. Default value is false.
+        /// Read more at https://docs.altinn.studio/nb/correspondence/getting-started/developer-guides/notifications/
+        /// </summary>
+        [JsonPropertyName("useStaleContactInformation")]
+        public bool UseStaleContactInformation { get; set; } = false;
     }
 
     /// <summary>

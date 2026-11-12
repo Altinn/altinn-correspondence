@@ -36,5 +36,7 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
         /// Default value is false (use default contact info + custom recipients).
         /// </summary>
         public bool OverrideRegisteredContactInformation { get; set; } = false;
+
+        public bool UseStaleContactInformation { get; set; }
     }
 }

@@ -346,7 +346,8 @@ public class CreateNotificationOrderHandler(
                     ChannelSchema = channel,
                     EmailSettings = emailSettings,
                     SmsSettings = smsSettings,
-                    IgnoreReservation = context.IgnoreReservation
+                    IgnoreReservation = context.IgnoreReservation,
+                    UseStaleContactInformation = notificationRequest.UseStaleContactInformation
                 }
             };
         }
