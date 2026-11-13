@@ -402,7 +402,7 @@ public class ForwardCorrespondenceHandlerTests
         var request = BuildRequest(correspondence.Id);
         SetupCorrespondence(correspondence, hasAccess: true);
         _forwardingEventRepositoryMock
-            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, request.ForwardTo, It.IsAny<CancellationToken>()))
+            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, request.ForwardTo, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
@@ -419,7 +419,47 @@ public class ForwardCorrespondenceHandlerTests
         var request = BuildRequest(correspondence.Id, forwardTo: "Recipient@Example.COM");
         SetupCorrespondence(correspondence, hasAccess: true);
         _forwardingEventRepositoryMock
-            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, "recipient@example.com", It.IsAny<CancellationToken>()))
+            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, "recipient@example.com", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT1);
+        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient, result.AsT1);
+        _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Process_AlreadyForwardedToRecipientWithOtherAttachmentOption_ReturnsForwardingEventId(bool includeAttachments)
+    {
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
+        var request = BuildRequest(correspondence.Id, includeAttachments: includeAttachments);
+        var forwardingEventId = SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, 0);
+        SetupComposedEmailSuccess();
+        _forwardingEventRepositoryMock
+            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, request.ForwardTo, !includeAttachments, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        Assert.Equal(forwardingEventId, result.AsT0);
+    }
+
+    [Fact]
+    public async Task Process_AlreadyForwardedWithoutAttachmentsAndConstraintBlocksAttachments_ReturnsCorrespondenceAlreadyForwardedToRecipient()
+    {
+        var correspondence = BuildReadCorrespondenceWithAttachments("a.pdf");
+        var request = BuildRequest(correspondence.Id, includeAttachments: true);
+        SetupCorrespondence(correspondence, hasAccess: true);
+        SetupAttachmentAccess(hasAccess: true);
+        SetupTotalAttachmentSize(correspondence.Id, 10_000_001);
+        _forwardingEventRepositoryMock
+            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, request.ForwardTo, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
@@ -632,7 +672,7 @@ public class ForwardCorrespondenceHandlerTests
             .Setup(x => x.CheckAccessAsRecipient(It.IsAny<ClaimsPrincipal>(), correspondence, It.IsAny<CancellationToken>()))
             .ReturnsAsync(hasAccess);
         _forwardingEventRepositoryMock
-            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.HasCorrespondenceBeenForwardedToRecipient(correspondence.Id, It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         _altinnRegisterServiceMock
             .Setup(x => x.LookUpPartyById(It.IsAny<string>(), It.IsAny<CancellationToken>()))

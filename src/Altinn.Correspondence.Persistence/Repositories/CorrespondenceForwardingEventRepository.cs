@@ -94,9 +94,15 @@ public class CorrespondenceForwardingEventRepository(ApplicationDbContext contex
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<bool> HasCorrespondenceBeenForwardedToRecipient(Guid correspondenceId, string recipientId, CancellationToken cancellationToken)
+    /// <summary>
+    /// A correspondence can be forwarded to a recipient once with and once without attachments.
+    /// Forwarding events where IncludeAttachments is unknown (null) block any further forwarding to the recipient.
+    /// </summary>
+    public async Task<bool> HasCorrespondenceBeenForwardedToRecipient(Guid correspondenceId, string recipientId, bool forwardWithAttachments, CancellationToken cancellationToken)
     {
         return await _context.CorrespondenceForwardingEvents
-            .AnyAsync(e => e.CorrespondenceId == correspondenceId && e.ForwardedToEmailAddress == recipientId, cancellationToken);
+            .AnyAsync(e => e.CorrespondenceId == correspondenceId
+                && e.ForwardedToEmailAddress == recipientId
+                && (e.IncludeAttachments == null || e.IncludeAttachments == forwardWithAttachments), cancellationToken);
     }
 }
