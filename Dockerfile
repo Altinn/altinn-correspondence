@@ -26,8 +26,8 @@ COPY --from=build /app/out .
 RUN groupadd -r dotnet || true \
     && useradd -r -g dotnet -d /app -s /usr/sbin/nologin dotnet || true
 
-RUN mkdir -p /mnt/storage \
-    && chown -R dotnet:dotnet /mnt/storage
+RUN mkdir -p /mnt/storage /app/certs \
+    && chown -R dotnet:dotnet /mnt/storage /app/certs
 
 USER dotnet
 ENTRYPOINT [ "dotnet", "Altinn.Correspondence.API.dll" ]

@@ -16,11 +16,19 @@ public static class RecurringJobRegistration
     public static void Register(IServiceProvider services, IConfiguration configuration, ILogger logger)
     {
         var recurringJobManager = services.GetRequiredService<IRecurringJobManager>();
-
-        recurringJobManager.AddOrUpdate<IpSecurityRestrictionUpdater>(
-            "Update IP restrictions to apimIp and current EventGrid IPs",
-            handler => handler.UpdateIpRestrictions(),
-            Cron.Daily());
+        var environment = services.GetRequiredService<IHostEnvironment>();
+        if (environment.IsEnvironment("ScalewayPoc"))
+        {
+            recurringJobManager.RemoveIfExists("Update IP restrictions to apimIp and current EventGrid IPs");
+            logger.LogInformation("Skipping Azure Event Grid IP restriction updates.");
+        }
+        else
+        {
+            recurringJobManager.AddOrUpdate<IpSecurityRestrictionUpdater>(
+                "Update IP restrictions to apimIp and current EventGrid IPs",
+                handler => handler.UpdateIpRestrictions(),
+                Cron.Daily());
+        }
 
         recurringJobManager.AddOrUpdate<GenerateDailySummaryReportHandler>(
             "Generate daily summary report",
