@@ -53,9 +53,9 @@ runs:
         az provider register --namespace Microsoft.EventGrid --wait
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
-        node-version: "22"
+        node-version: "26"
 
     - name: Verify Maskinporten token
       shell: bash
