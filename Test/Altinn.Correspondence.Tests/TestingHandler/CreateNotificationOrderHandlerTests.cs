@@ -336,6 +336,37 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task Process_ShouldPassUseStaleContactInformation_ToMainAndReminderRecipientPerson(bool useStaleContactInformation)
+        {
+            // Arrange
+            var requestedPublishTime = DateTimeOffset.UtcNow.AddMinutes(10);
+            var (request, _, _) = SetupOrderData(requestedPublishTime);
+            request.NotificationRequest.SendReminder = true;
+            request.NotificationRequest.UseStaleContactInformation = useStaleContactInformation;
+
+            CorrespondenceNotificationEntity? captured = null;
+            _mockCorrespondenceNotificationRepository
+                .Setup(x => x.AddNotification(It.IsAny<CorrespondenceNotificationEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<CorrespondenceNotificationEntity, CancellationToken>((n, _) => captured = n)
+                .ReturnsAsync(Guid.NewGuid());
+
+            // Act
+            await _handler.Process(request, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(captured);
+            var deserialized = JsonSerializer.Deserialize<NotificationOrderRequestV2>(captured!.OrderRequest!);
+            Assert.NotNull(deserialized);
+            Assert.NotNull(deserialized!.Recipient.RecipientPerson);
+            Assert.Equal(useStaleContactInformation, deserialized.Recipient.RecipientPerson!.UseStaleContactInformation);
+            var reminder = Assert.Single(deserialized.Reminders!);
+            Assert.NotNull(reminder.Recipient.RecipientPerson);
+            Assert.Equal(useStaleContactInformation, reminder.Recipient.RecipientPerson!.UseStaleContactInformation);
+        }
+
+        [Theory]
         [InlineData("urn:altinn:person:idporten-email:recipient@example.com")]
         [InlineData("urn:altinn:person:legacy-selfidentified:legacy-user")]
         public async Task Process_ShouldUseRecipientExternalIdentity_ForSelfidentifiedUrnRecipients(string correspondenceRecipient)
