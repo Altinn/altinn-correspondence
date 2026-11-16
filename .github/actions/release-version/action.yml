@@ -57,6 +57,29 @@ runs:
       with:
         node-version: "22"
 
+    - name: Wait for Key Vault access
+      shell: bash
+      env:
+        KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+      run: |
+        set -euo pipefail
+        for attempt in {1..12}; do
+          if az keyvault secret show \
+            --vault-name "$KEY_VAULT_NAME" \
+            --name maskinporten-client-id \
+            --query id \
+            --output tsv > /dev/null 2>&1; then
+            echo "Key Vault access is ready."
+            exit 0
+          fi
+
+          echo "Waiting for Key Vault role assignment to propagate ($attempt/12)..."
+          sleep 10
+        done
+
+        echo "Deployment identity still cannot read Maskinporten secrets from Key Vault."
+        exit 1
+
     - name: Verify Maskinporten token
       shell: bash
       env:

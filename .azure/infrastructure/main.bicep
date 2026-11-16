@@ -53,6 +53,21 @@ module environmentKeyVault '../modules/keyvault/create.bicep' = {
   }
 }
 
+module grantDeploymentPrincipalKeyVaultReaderRoles '../modules/keyvault/addReaderRoles.bicep' = {
+  scope: resourceGroup
+  name: 'key-vault-reader-deployment'
+  dependsOn: [environmentKeyVault]
+  params: {
+    keyvaultName: sourceKeyVaultName
+    principals: [
+      {
+        objectId: deploymentPrincipalId
+        principalType: 'ServicePrincipal'
+      }
+    ]
+  }
+}
+
 module grantTestClientSecretsOfficerRole '../modules/keyvault/addSecretsOfficerRole.bicep' = if (environment == 'test') {
   scope: resourceGroup
   name: 'kv-secrets-officer-test-client'
