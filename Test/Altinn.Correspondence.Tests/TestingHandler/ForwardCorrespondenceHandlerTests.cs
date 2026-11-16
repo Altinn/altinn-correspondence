@@ -408,7 +408,7 @@ public class ForwardCorrespondenceHandlerTests
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
         Assert.True(result.IsT1);
-        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient, result.AsT1);
+        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient(false), result.AsT1);
         _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -425,7 +425,7 @@ public class ForwardCorrespondenceHandlerTests
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
         Assert.True(result.IsT1);
-        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient, result.AsT1);
+        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient(false), result.AsT1);
         _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -465,7 +465,7 @@ public class ForwardCorrespondenceHandlerTests
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
         Assert.True(result.IsT1);
-        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient, result.AsT1);
+        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient(false), result.AsT1);
         _forwardingEventRepositoryMock.Verify(x => x.AddForwardingEventForSync(It.IsAny<CorrespondenceForwardingEventEntity>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -520,7 +520,7 @@ public class ForwardCorrespondenceHandlerTests
         var result = await _handler.Process(request, CreateUser(), CancellationToken.None);
 
         Assert.True(result.IsT1);
-        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient, result.AsT1);
+        Assert.Equal(CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient(false), result.AsT1);
         _altinnNotificationServiceMock.Verify(x => x.CreateComposedEmail(It.IsAny<ComposedEmailRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
