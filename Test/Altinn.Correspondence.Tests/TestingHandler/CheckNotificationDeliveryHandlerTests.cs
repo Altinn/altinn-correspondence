@@ -172,6 +172,11 @@ public class CheckNotificationDeliveryHandlerTests
     [InlineData(NotificationStatusV2.SMS_Failed)]
     [InlineData(NotificationStatusV2.SMS_Failed_TTL)]
     [InlineData(NotificationStatusV2.SMS_Failed_RecipientNotIdentified)]
+    [InlineData(NotificationStatusV2.Email_Failed_InvalidFormat)]
+    [InlineData(NotificationStatusV2.Email_Failed_InvalidSasUrl)]
+    [InlineData(NotificationStatusV2.Email_Failed_PayloadTooLarge)]
+    [InlineData(NotificationStatusV2.Email_Failed_ContentTooLarge)]
+    [InlineData(NotificationStatusV2.SMS_Failed_ContentTooLarge)]
     public async Task Process_WhenAllNotificationsFail_CreatesAllFailedEvent(NotificationStatusV2 recipientStatus)
     {
         var (notification, correspondence, shipmentId) = BuildScenario();
@@ -199,11 +204,13 @@ public class CheckNotificationDeliveryHandlerTests
         VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, Times.Never());
     }
 
-    [Fact]
-    public async Task Process_WhenNotificationAlreadyHasTerminalOrderStatus_SkipsReprocessing()
+    [Theory]
+    [InlineData("Order_Completed")]
+    [InlineData("Order_Failed")]
+    public async Task Process_WhenNotificationAlreadyHasTerminalOrderStatus_SkipsReprocessing(string storedOrderStatus)
     {
         var (notification, correspondence, shipmentId) = BuildScenario();
-        notification.NotificationOrderStatus = "Order_Completed";
+        notification.NotificationOrderStatus = storedOrderStatus;
         SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId, NotificationStatusV2.Email_Failed));
 
         var result = await _handler.Process(notification.Id, CancellationToken.None);
@@ -214,6 +221,73 @@ public class CheckNotificationDeliveryHandlerTests
         _notificationServiceMock.Verify(x => x.GetNotificationDetailsV2(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         VerifyActivityCreated(DialogportenTextType.NotificationFailed, Times.Never());
         VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, Times.Never());
+    }
+
+    [Fact]
+    public async Task Process_WhenMainOrderFailed_CreatesAllFailedEventAndStopsPolling()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario();
+        SetupMocks(notification, correspondence, shipmentId, BuildFailedOrderStatus(shipmentId));
+
+        var result = await _handler.Process(notification.Id, CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        _notificationRepositoryMock.Verify(x => x.UpdateNotificationStatus(notification.Id, "Order_Failed", It.IsAny<CancellationToken>()), Times.Once);
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, Times.Once());
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationFailed, Times.Never());
+        VerifyDeliveryCheckRescheduled(Times.Never());
+        VerifySlackNotificationEnqueued(Times.Never());
+    }
+
+    [Fact]
+    public async Task Process_WhenCustomRecipientOrderFailed_CreatesFailedNotAllFailedEvent()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario(
+            correspondenceRecipient: "urn:altinn:organization:identifier-no:123456789",
+            orderRecipient: new RecipientV2
+            {
+                RecipientEmail = new RecipientEmail { EmailAddress = "custom@example.com" }
+            });
+        SetupMocks(notification, correspondence, shipmentId, BuildFailedOrderStatus(shipmentId));
+
+        await _handler.Process(notification.Id, CancellationToken.None);
+
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationFailed, Times.Once());
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, Times.Never());
+    }
+
+    [Fact]
+    public async Task Process_WhenOrderFailedAndFailedEventsDisabled_StoresStatusWithoutPublishingEvents()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario();
+        SetupMocks(notification, correspondence, shipmentId, BuildFailedOrderStatus(shipmentId));
+
+        await _handler.Process(notification.Id, CancellationToken.None, publishFailedEvent: false);
+
+        _notificationRepositoryMock.Verify(x => x.UpdateNotificationStatus(notification.Id, "Order_Failed", It.IsAny<CancellationToken>()), Times.Once);
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, Times.Never());
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationFailed, Times.Never());
+        VerifyDeliveryCheckRescheduled(Times.Never());
+    }
+
+    [Fact]
+    public async Task Process_WhenRecipientStatusIsUnrecognized_LogsWarningWithoutFailureSideEffects()
+    {
+        var (notification, correspondence, shipmentId) = BuildScenario();
+        SetupMocks(notification, correspondence, shipmentId, BuildStatus(shipmentId, NotificationStatusV2.Unknown));
+
+        var result = await _handler.Process(notification.Id, CancellationToken.None);
+
+        Assert.True(result.IsT0);
+        _loggerMock.Verify(x => x.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("not recognized")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationAllFailed, Times.Never());
+        VerifyEventPublished(AltinnEventType.CorrespondenceNotificationFailed, Times.Never());
+        VerifyActivityCreated(DialogportenTextType.NotificationFailed, Times.Never());
     }
 
     [Theory]
@@ -551,6 +625,10 @@ public class CheckNotificationDeliveryHandlerTests
             ];
         return new NotificationStatusResponseV2 { Status = orderStatus, ShipmentId = shipmentId, Recipients = recipients };
     }
+
+    // Altinn Notifications creates no notifications for an order whose processing failed, so it has no recipients
+    private static NotificationStatusResponseV2 BuildFailedOrderStatus(Guid shipmentId) =>
+        new() { Status = "Order_Failed", ShipmentId = shipmentId, Recipients = [] };
 
     private void VerifyActivityCreated(DialogportenTextType textType, Times times)
     {
