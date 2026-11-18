@@ -18,6 +18,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
     {
         internal const string DefaultIssuer = "Dialogporten";
         internal const string DefaultType = "string";
+        private const int SystemUserAuthenticationLevel = 3;
 
         public static async Task<XacmlJsonRequestRoot> CreateDialogportenDecisionRequest(ClaimsPrincipal user, IAltinnRegisterService altinnRegisterService, string resourceId, string party, string? instanceId, CancellationToken cancellationToken = default)
         {
@@ -77,6 +78,12 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                 {
                     var identifier = claim.Value;
 
+                    if (IsSystemUserIdentifier(identifier))
+                    {
+                        list = new List<XacmlJsonAttribute>();
+                        list.Add(CreateXacmlJsonAttribute(AltinnXacmlUrns.SystemUserUuid, identifier.WithoutPrefix(), DefaultType, claim.Issuer));
+                        break;
+                    }
                     if (identifier.IsSocialSecurityNumber())
                     {
                         list.Add(CreateXacmlJsonAttribute(UrnConstants.PersonIdAttribute, identifier.WithoutPrefix(), DefaultType, claim.Issuer));
@@ -126,6 +133,18 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             return value.Equals("y");
         }
 
+        private static bool IsSystemUserIdentifier(string value)
+        {
+            return value.StartsWith($"{UrnConstants.SystemUser}:", StringComparison.Ordinal);
+        }
+
+        private static bool IsSystemUser(ClaimsPrincipal user)
+        {
+            return user.Claims.Any(claim =>
+                (IsSystemUserClaim(claim.Type) && IsSystemUserIdentifier(claim.Value))
+                || (IsConsumerClaim(claim.Type) && IsSystemUserIdentifier(claim.Value)));
+        }
+
         public static bool ValidateDialogportenResult(XacmlJsonResponse response, ClaimsPrincipal user)
         {
             foreach (var result in response.Response)
@@ -142,11 +161,8 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
                     {
                         string obligationRequiredLevel = obligation.Value;
                         string? claimLevel = user.Claims.FirstOrDefault((Claim c) => c.Type.Equals("l"))?.Value;
-                        if (claimLevel == "0")
-                        {
-                            return true; // Hotfix until Dialogporten starts sending correct level
-                        }
-                        if (Convert.ToInt32(claimLevel) < Convert.ToInt32(obligationRequiredLevel))
+                        if (Convert.ToInt32(claimLevel) < Convert.ToInt32(obligationRequiredLevel)
+                            && !SystemUserMeetsAuthenticationLevelRequirement(user, obligations, obligationRequiredLevel))
                         {
                             return false;
                         }
@@ -156,6 +172,27 @@ namespace Altinn.Correspondence.Integrations.Dialogporten.Mappers
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The system user obligation only relaxes the general requirement, and only for a system user.
+        /// A system user dialog token carries the system user in <c>c</c> as <c>urn:altinn:systemuser:uuid:...</c> and is treated as level 3.
+        /// </summary>
+        private static bool SystemUserMeetsAuthenticationLevelRequirement(ClaimsPrincipal user, List<XacmlJsonObligationOrAdvice> obligations, string requiredLevel)
+        {
+            if (!IsSystemUser(user))
+            {
+                return false;
+            }
+
+            var systemUserObligation = GetObligation(UrnConstants.MinimumAuthenticationLevelSystemUser, obligations);
+            if (systemUserObligation == null)
+            {
+                return false;
+            }
+
+            return SystemUserAuthenticationLevel >= Convert.ToInt32(systemUserObligation.Value)
+                || SystemUserAuthenticationLevel >= Convert.ToInt32(requiredLevel);
         }
 
         private static XacmlJsonAttributeAssignment? GetObligation(string category, List<XacmlJsonObligationOrAdvice> obligations)

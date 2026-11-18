@@ -1,4 +1,5 @@
 using Altinn.Authorization.ABAC.Xacml.JsonProfile;
+using Altinn.Common.PEP.Constants;
 using Altinn.Common.PEP.Helpers;
 using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers.Models;
@@ -93,12 +94,41 @@ public class AuthenticationLevelObligationTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void DialogToken_Level3_IsRejectedOnLevel4ResourceRegardlessOfSystemUserObligation(bool includeSystemUserObligation)
+    public void DialogToken_SystemUserOnLevel4Resource_IsAllowedOnlyWhenSystemUserObligationIsPresent(bool includeSystemUserObligation)
     {
-        var user = Principal(new Claim("l", Level3), new Claim("y", "urn:altinn:systemuser:uuid:0194a1b2-3c4d-7e5f-8a9b-0c1d2e3f4a5b"));
-        var allowed = DialogTokenXacmlMapper.ValidateDialogportenResult(PermitResponse(Level4, includeSystemUserObligation), user);
+        var allowed = DialogTokenXacmlMapper.ValidateDialogportenResult(
+            PermitResponse(Level4, includeSystemUserObligation),
+            DialogSystemUser());
+
+        Assert.Equal(includeSystemUserObligation, allowed);
+    }
+
+    [Fact]
+    public void DialogToken_EndUserAtLevel3_IsRejectedOnLevel4ResourceEvenWhenSystemUserObligationIsPresent()
+    {
+        var user = Principal(
+            new Claim("l", Level3),
+            new Claim("c", $"{UrnConstants.OrganizationNumberAttribute}:313230090"));
+        var allowed = DialogTokenXacmlMapper.ValidateDialogportenResult(PermitResponse(Level4, includeSystemUserObligation: true), user);
 
         Assert.False(allowed);
+    }
+
+    [Fact]
+    public async Task DialogToken_SystemUserConsumerClaim_IsSentAsSystemUserUuid()
+    {
+        var registerService = new Mock<IAltinnRegisterService>(MockBehavior.Strict);
+        var request = await DialogTokenXacmlMapper.CreateDialogportenDecisionRequest(
+            DialogSystemUser(),
+            registerService.Object,
+            "bruno-correspondence",
+            "50000001",
+            null);
+
+        var subject = Assert.Single(request.Request.AccessSubject);
+        var attribute = Assert.Single(subject.Attribute);
+        Assert.Equal(AltinnXacmlUrns.SystemUserUuid, attribute.AttributeId);
+        Assert.Equal("7201da91-06bd-46cd-9e88-9aecdfe2e769", attribute.Value);
     }
 
     [Theory]
@@ -115,17 +145,11 @@ public class AuthenticationLevelObligationTests
     }
 
     [Fact]
-    public async Task DialogToken_IsNotTreatedAsSystemUserWhenSystemUserObligationIsPresent()
+    public async Task DialogToken_SystemUserCanPassLevel4ResourceThroughAuthorizationService()
     {
-        var user = Principal(
-            new Claim("iss", DialogportenIssuer),
-            new Claim("y", "urn:altinn:systemuser:uuid:0194a1b2-3c4d-7e5f-8a9b-0c1d2e3f4a5b"),
-            new Claim("l", Level3),
-            new Claim("a", "read"));
+        var allowed = await CheckAccess(DialogSystemUser(), PermitWithAuthenticationLevel(Level4, includeSystemUserObligation: true));
 
-        var allowed = await CheckAccess(user, PermitWithAuthenticationLevel(Level4, includeSystemUserObligation: true));
-
-        Assert.False(allowed);
+        Assert.True(allowed);
     }
 
     private static async Task<bool> CheckAccess(ClaimsPrincipal user, string pdpResponseJson)
@@ -150,6 +174,14 @@ public class AuthenticationLevelObligationTests
 
         return await sut.CheckAccessAsAny(user, "unit-test-resource", "50000001", CancellationToken.None);
     }
+
+    private static ClaimsPrincipal DialogSystemUser() => Principal(
+        new Claim("iss", DialogportenIssuer),
+        new Claim("jti", "c0a2fbc5-8aa6-443c-9206-718ca1e8426e"),
+        new Claim("c", $"{UrnConstants.SystemUser}:uuid:7201da91-06bd-46cd-9e88-9aecdfe2e769"),
+        new Claim("l", Level3),
+        new Claim("p", $"{UrnConstants.OrganizationNumberAttribute}:313230090"),
+        new Claim("a", "read;write"));
 
     private static ClaimsPrincipal Principal(params Claim[] claims) => new(new ClaimsIdentity(claims, "TestAuth"));
 
