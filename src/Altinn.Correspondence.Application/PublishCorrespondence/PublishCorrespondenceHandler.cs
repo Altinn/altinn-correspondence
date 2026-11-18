@@ -41,7 +41,11 @@ public class PublishCorrespondenceHandler(
             return Task.CompletedTask;
         }
 
-        if (correspondence != null && !await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+        bool hasDialogportenDialog = correspondence?.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId) == true;
+
+        // Publish job only runs after the dialog job has finished, so the dialog will not be created later.
+        // Fail correspondence if dialog is missing instead of waiting for attachments, as a later attachment publish may not schedule publishing again when dialog is missing.
+        if (correspondence != null && hasDialogportenDialog && !await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
         {
             logger.LogInformation("Skipping this publish job for correspondence {CorrespondenceId} - not all attachments are published yet - the final attachment publish will enqueue this job again", correspondenceId);
             return Task.CompletedTask;
@@ -53,7 +57,6 @@ public class PublishCorrespondenceHandler(
         var recipientParty = await altinnRegisterService.LookUpPartyById(correspondence!.Recipient, cancellationToken);
         var senderPartyUuid = senderParty?.Uuid;
         var recipientPartyUuid = recipientParty?.Uuid;
-        bool hasDialogportenDialog = correspondence!.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
         logger.LogInformation("Correspondence {CorrespondenceId} has Dialogporten dialog: {HasDialog}", correspondenceId, hasDialogportenDialog);
 
         var errorMessage = "";
