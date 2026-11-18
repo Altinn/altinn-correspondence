@@ -28,26 +28,22 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogInformation("Not all attachments published for correspondence {correspondenceId}, skipping publish scheduling", correspondenceId);
                 return;
             }
+            // Correspondences initialized before publish was continued directly from the dialog job depend on this cached id
             var dialogJobId = await hybridCacheWrapper.GetAsync<string?>($"dialogJobId_{correspondenceId}", cancellationToken: cancellationToken);
-            if (dialogJobId is null)
+            if (dialogJobId is not null)
             {
-                logger.LogError("Could not find dialogJobId for correspondence {correspondenceId} in cache. Publish will wait until the Dialogporten dialog is created", correspondenceId);
-                dialogJobId = backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.EnsureDialogportenDialogCreated(correspondenceId, cancellationToken));
+                SchedulePublishAfterJob(correspondenceId, dialogJobId, cancellationToken);
+                return;
             }
-            SchedulePublishAfterJob(correspondenceId, dialogJobId, cancellationToken);
-        }
 
-        // Stands in for the dialog job when its id is missing from the cache. 12 attempts (~11h) outlast the default retries of the
-        // notification job and the dialog job it may wait behind (~9.5h together).
-        [AutomaticRetry(Attempts = 12, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
-        public async Task EnsureDialogportenDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)
-        {
             var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
             var hasDialogportenDialog = correspondence?.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId) == true;
             if (!hasDialogportenDialog)
             {
-                throw new Exception($"Dialogporten dialog not yet created for correspondence {correspondenceId}");
+                logger.LogInformation("Dialogporten dialog not yet created for correspondence {correspondenceId}. Publish continues from the dialog job when it finishes", correspondenceId);
+                return;
             }
+            await SchedulePublishAtPublishTime(correspondenceId, cancellationToken);
         }
 
         public async Task SchedulePublishAtPublishTime(Guid correspondenceId, CancellationToken cancellationToken)

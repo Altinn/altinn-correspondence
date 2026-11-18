@@ -41,16 +41,35 @@ public class HangfireScheduleHelperTests
     }
 
     [Fact]
-    public async Task SchedulePublishAfterDialogCreated_ShouldWaitForDialogBeforePublishing_WhenDialogJobIdIsMissingFromCache()
+    public async Task SchedulePublishAfterDialogCreated_ShouldContinuePublishFromDialogJob_WhenDialogJobIdIsCached()
     {
         // Arrange
-        _hybridCacheWrapper
-            .Setup(x => x.GetAsync<string?>(
-                $"dialogJobId_{_correspondenceId}",
-                It.IsAny<HybridCacheEntryOptions?>(),
-                It.IsAny<IEnumerable<string>?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string?)null);
+        SetupCachedDialogJobId("dialog-job-id");
+
+        // Act
+        await _helper.SchedulePublishAfterDialogCreated(_correspondenceId, CancellationToken.None);
+
+        // Assert
+        _backgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
+            It.Is<IState>(state => state is AwaitingState
+                && ((AwaitingState)state).ParentId == "dialog-job-id"
+                && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SchedulePublishAfterDialogCreated_ShouldSchedulePublish_WhenDialogJobIdIsMissingFromCacheAndDialogIsCreated()
+    {
+        // Arrange
+        SetupCachedDialogJobId(null);
+        _correspondenceRepository
+            .Setup(x => x.GetCorrespondenceById(_correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+            .ReturnsAsync(CreateCorrespondence(new ExternalReferenceEntity
+            {
+                ReferenceType = ReferenceType.DialogportenDialogId,
+                ReferenceValue = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd"
+            }));
 
         // Act
         await _helper.SchedulePublishAfterDialogCreated(_correspondenceId, CancellationToken.None);
@@ -58,19 +77,28 @@ public class HangfireScheduleHelperTests
         // Assert
         _backgroundJobClient.Verify(x => x.Create(
             It.Is<Job>(job => job.Type == typeof(PublishCorrespondenceHandler)),
-            It.IsAny<IState>()),
-            Times.Never);
-        _backgroundJobClient.Verify(x => x.Create(
-            It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.EnsureDialogportenDialogCreated)),
-            It.Is<IState>(state => state is EnqueuedState)),
+            It.Is<IState>(state => state is ScheduledState)),
             Times.Once);
-        VerifyPublishContinuesFrom(nameof(HangfireScheduleHelper.EnsureDialogportenDialogCreated));
+    }
+
+    [Fact]
+    public async Task SchedulePublishAfterDialogCreated_ShouldNotScheduleAnyJob_WhenDialogJobIdIsMissingFromCacheAndDialogIsNotCreated()
+    {
+        // Arrange
+        SetupCachedDialogJobId(null);
+
+        // Act
+        await _helper.SchedulePublishAfterDialogCreated(_correspondenceId, CancellationToken.None);
+
+        // Assert
+        _backgroundJobClient.Verify(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()), Times.Never);
     }
 
     [Fact]
     public async Task SchedulePublishAfterDialogCreated_ShouldNotScheduleAnyJob_WhenNotAllAttachmentsArePublished()
     {
         // Arrange
+        SetupCachedDialogJobId("dialog-job-id");
         _correspondenceRepository
             .Setup(x => x.AreAllAttachmentsPublished(_correspondenceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -82,40 +110,15 @@ public class HangfireScheduleHelperTests
         _backgroundJobClient.Verify(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()), Times.Never);
     }
 
-    [Fact]
-    public async Task EnsureDialogportenDialogCreated_ShouldThrow_WhenDialogIsNotCreated()
+    private void SetupCachedDialogJobId(string? dialogJobId)
     {
-        // Act & Assert
-        await Assert.ThrowsAsync<Exception>(() => _helper.EnsureDialogportenDialogCreated(_correspondenceId, CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task EnsureDialogportenDialogCreated_ShouldComplete_WhenDialogIsCreated()
-    {
-        // Arrange
-        _correspondenceRepository
-            .Setup(x => x.GetCorrespondenceById(_correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
-            .ReturnsAsync(CreateCorrespondence(new ExternalReferenceEntity
-            {
-                ReferenceType = ReferenceType.DialogportenDialogId,
-                ReferenceValue = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd"
-            }));
-
-        // Act
-        var exception = await Record.ExceptionAsync(() => _helper.EnsureDialogportenDialogCreated(_correspondenceId, CancellationToken.None));
-
-        // Assert
-        Assert.Null(exception);
-    }
-
-    private void VerifyPublishContinuesFrom(string parentJobId)
-    {
-        _backgroundJobClient.Verify(x => x.Create(
-            It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
-            It.Is<IState>(state => state is AwaitingState
-                && ((AwaitingState)state).ParentId == parentJobId
-                && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
-            Times.Once);
+        _hybridCacheWrapper
+            .Setup(x => x.GetAsync<string?>(
+                $"dialogJobId_{_correspondenceId}",
+                It.IsAny<HybridCacheEntryOptions?>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dialogJobId);
     }
 
     private CorrespondenceEntity CreateCorrespondence(params ExternalReferenceEntity[] externalReferences)
