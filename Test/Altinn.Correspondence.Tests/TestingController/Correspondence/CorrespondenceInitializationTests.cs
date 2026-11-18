@@ -2572,10 +2572,16 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         [Fact]
         public async Task InitializeCorrespondence_WithNotification_NoExistingDialog_SchedulesPublishAfterDialogJob()
         {
+            // Arrange
+            const string notificationJobId = "notification-job-id";
+            const string dialogJobId = "dialog-job-id";
             var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             hangfireBackgroundJobClient
                 .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-                .Returns("notification-job-id");
+                .Returns<Job, IState>((job, _) =>
+                    job.Type == typeof(Application.CreateNotificationOrder.CreateNotificationOrderHandler) ? notificationJobId
+                    : job.Method.Name == nameof(Application.InitializeCorrespondences.InitializeCorrespondencesHandler.CreateDialogportenDialog) ? dialogJobId
+                    : "other-job-id");
 
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
@@ -2588,14 +2594,22 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .Build();
 
+            // Act
             var senderClient = testFactory.CreateSenderClient();
             var response = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
+            // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
-                It.Is<IState>(s => s is AwaitingState)),
+                It.Is<Job>(job => job.Method.Name == nameof(Application.InitializeCorrespondences.InitializeCorrespondencesHandler.CreateDialogportenDialog)),
+                It.Is<IState>(state => state is AwaitingState
+                    && ((AwaitingState)state).ParentId == notificationJobId)),
+                Times.Once);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
+                It.Is<IState>(state => state is AwaitingState
+                    && ((AwaitingState)state).ParentId == dialogJobId
+                    && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
                 Times.Once);
         }
 
