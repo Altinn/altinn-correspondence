@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.CreateNotificationOrder;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Hangfire;
 using Hangfire.Common;
@@ -24,6 +25,10 @@ public class PrePublishJobFinalStateTests
         {
             "CreateNotificationOrderHandler.Process",
             Job.FromExpression<CreateNotificationOrderHandler>(handler => handler.Process((CreateNotificationOrderRequest)null!, CancellationToken.None))
+        },
+        {
+            "HangfireScheduleHelper.EnsureDialogportenDialogCreated",
+            Job.FromExpression<HangfireScheduleHelper>(helper => helper.EnsureDialogportenDialogCreated(Guid.Empty, CancellationToken.None))
         },
     };
 

@@ -60,7 +60,9 @@ public class InitializeCorrespondencesHandlerTests
 
         hangfireBackgroundJobClient.Verify(x => x.Create(
             It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
-            It.Is<IState>(state => state is AwaitingState)),
+            It.Is<IState>(state => state is AwaitingState
+                && ((AwaitingState)state).ParentId == "transmission-job-id"
+                && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
             Times.Once);
     }
 
