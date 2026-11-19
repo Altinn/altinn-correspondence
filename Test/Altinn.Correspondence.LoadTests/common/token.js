@@ -61,7 +61,7 @@ function fetchToken(url, tokenOptions, type) {
 
     if (response.status != 200) {
         console.log(url);
-        throw new Error(`Failed getting ${type} token: ${response.status_text}`);
+        throw new Error(`Failed getting ${type} token: ${response.status_text} ${response.body}`);
     }
     cachedTokens[cacheKey] = response.body;
     cachedTokensIssuedAt[cacheKey] = currentTime;
@@ -118,7 +118,7 @@ export function getEnterpriseToken(tokenOptions, iteration=0, env=defaultTokenEn
 
 export function getPersonalToken(tokenOptions, env=defaultTokenEnv) {
     const url = new URL(`https://altinn-testtools-token-generator.azurewebsites.net/api/GetPersonalToken`);
-    let extendedOptions = addEnvAndTtlToTokenOptions(tokenOptions);
+    let extendedOptions = addEnvAndTtlToTokenOptions(tokenOptions, env);
     for (const key in extendedOptions) {
         if (extendedOptions.hasOwnProperty(key)) {
             url.searchParams.append(key, extendedOptions[key]);
