@@ -6,8 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <!-- Default minimum is the CPU count (2). Synchronous DB calls in the request path block threads, and above the minimum the pool adds threads slowly, which starves Redis and HTTP continuations. -->
-    <ThreadPoolMinThreads>100</ThreadPoolMinThreads>
   </PropertyGroup>
 
   <ItemGroup>
