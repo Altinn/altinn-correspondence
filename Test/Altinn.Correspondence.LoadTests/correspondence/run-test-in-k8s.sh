@@ -51,6 +51,9 @@ print_diagnostics() {
     echo "Test run $name did not reach stage 'finished'. Current stage: $(kubectl get testrun/$name -o jsonpath='{.status.stage}')"
     kubectl describe testrun/$name
     kubectl get pods -o wide | grep -E "^NAME|^$name-"
+    kubectl get jobs | grep -E "^NAME|^$name-"
+    # Events outlive deleted pods, so they show why a runner pod disappeared
+    kubectl get events --sort-by=.lastTimestamp | grep -E "^LAST SEEN|$name"
     for pod in $(kubectl get pods -o name | grep "/$name-"); do
         echo ---------------------------
         echo $pod
