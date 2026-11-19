@@ -47,6 +47,20 @@ print_logs() {
     done
 }
 
+print_diagnostics() {
+    echo "Test run $name did not reach stage 'finished'. Current stage: $(kubectl get testrun/$name -o jsonpath='{.status.stage}')"
+    kubectl describe testrun/$name
+    kubectl get pods -o wide | grep -E "^NAME|^$name-"
+    for pod in $(kubectl get pods -o name | grep "/$name-"); do
+        echo ---------------------------
+        echo $pod
+        echo ---------------------------
+        kubectl describe $pod | sed -n '/^Events:/,$p'
+        kubectl logs --tail=100 --all-containers $pod
+        echo
+    done
+}
+
 breakpoint=false
 abort_on_fail=false
 
@@ -185,7 +199,10 @@ kubectl apply -f config.yml
 
 # Wait for the job to finish
 wait_timeout="${duration}100s"
-kubectl wait --for=jsonpath='{.status.stage}'=finished testrun/$name --timeout=$wait_timeout
+if ! kubectl wait --for=jsonpath='{.status.stage}'=finished testrun/$name --timeout=$wait_timeout; then
+    failed=1
+    print_diagnostics
+fi
 # Print the logs of the pods
 print_logs
 
