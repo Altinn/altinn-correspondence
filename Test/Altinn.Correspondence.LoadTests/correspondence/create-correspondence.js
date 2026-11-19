@@ -5,7 +5,7 @@
  */
 import http from 'k6/http';
 import exec from 'k6/execution';
-import { expect, describe, getPersonalToken, uuidv4 } from "../common/testimports.js";
+import { expect, describe, getEnterpriseToken, uuidv4 } from "../common/testimports.js";
 import { serviceOwners } from "../common/readTestdata.js";
 import { getCorrespondenceJson } from '../data/correspondence-json.js';
 import { baseUrlCorrespondence, buildOptions } from '../common/config.js';
@@ -30,8 +30,7 @@ function createCorrespondence(serviceOwner, endUser, traceCalls) {
     var traceparent = uuidv4();
 
     const tokenOptions = {
-        scopes: serviceOwner.scopes, 
-        pid: serviceOwner.ssn,
+        scopes: serviceOwner.scopes,
         orgno: serviceOwner.orgno,
         consumerOrgNo: serviceOwner.orgno,
         org: serviceOwner.org
@@ -39,7 +38,7 @@ function createCorrespondence(serviceOwner, endUser, traceCalls) {
 
     var paramsWithToken = {
         headers: {
-            Authorization: "Bearer " + getPersonalToken(tokenOptions),
+            Authorization: "Bearer " + getEnterpriseToken(tokenOptions),
             traceparent: traceparent,
             'Content-Type': 'application/json',
             'Accept': '*/*, application/json',
