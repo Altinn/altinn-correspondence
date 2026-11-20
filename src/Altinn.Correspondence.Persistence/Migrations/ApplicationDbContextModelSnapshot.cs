@@ -417,14 +417,14 @@ namespace Altinn.Correspondence.Persistence.Migrations
 
                     b.HasIndex("CorrespondenceId");
 
-                    b.HasIndex("CorrespondenceId", "ForwardedToEmailAddress")
-                        .IsUnique()
-                        .HasDatabaseName("IX_CorrespondenceForwardingEvents_CorrespondenceId_ForwardedToEmailAddress_Unique")
-                        .HasFilter("\"ForwardedToEmailAddress\" IS NOT NULL");
-
                     b.HasIndex("CorrespondenceId", "ForwardedOnDate", "ForwardedByPartyUuid")
                         .IsUnique()
                         .HasDatabaseName("IX_CorrespondenceForwardingEvents_Unique");
+
+                    b.HasIndex("CorrespondenceId", "ForwardedToEmailAddress", "IncludeAttachments")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CorrespondenceForwardingEvents_CorrespondenceId_ForwardedToEmailAddress_IncludeAttachments_Unique")
+                        .HasFilter("\"ForwardedToEmailAddress\" IS NOT NULL");
 
                     b.ToTable("CorrespondenceForwardingEvents", "correspondence");
                 });
