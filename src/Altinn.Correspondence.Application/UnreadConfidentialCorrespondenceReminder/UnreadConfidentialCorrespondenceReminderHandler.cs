@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.Helpers;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Common.Helpers.Models;
@@ -49,9 +50,9 @@ public class UnreadConfidentialCorrespondenceHandler(
             Title = "", // Value for title and summary is assigned in the mapper based on the users language
             Summary = "",
             Recipient = recipient,
-            ResourceId = "digdir-reminder-unopened-confidential-correspondences",
-            SendersReference = "corr-confidential-reminder",
-            Sender = "991825827",
+            ResourceId = ConfidentialReminderConstants.ResourceId,
+            SendersReference = ConfidentialReminderConstants.SendersReference,
+            Sender = ConfidentialReminderConstants.Sender,
             Created = DateTimeOffset.UtcNow,
             Status = "RequiresAttention",
             PropertyList = new Dictionary<string, string>{}

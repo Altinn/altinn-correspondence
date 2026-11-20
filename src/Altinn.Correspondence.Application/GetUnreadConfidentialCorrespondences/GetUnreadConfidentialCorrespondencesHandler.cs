@@ -1,4 +1,5 @@
 using Altinn.Correspondence.Application.UnreadConfidentialCorrespondenceReminder;
+using Altinn.Correspondence.Common.Constants;
 using Altinn.Correspondence.Common.Helpers;
 using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Repositories;
@@ -28,7 +29,7 @@ public class GetUnreadConfidentialCorrespondencesHandler(
         }
         var hasAccess = await altinnAuthorizationService.CheckAccessAsAny(
                 user,
-                "digdir-reminder-unopened-confidential-correspondences",
+                ConfidentialReminderConstants.ResourceId,
                 recipientOrg,
                 cancellationToken);
 

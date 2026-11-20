@@ -99,6 +99,8 @@ namespace Altinn.Correspondence.Core.Models.Notifications
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IgnoreReservation { get; set; }
+
+        public bool UseStaleContactInformation { get; set; }
     }
 
     public class RecipientExternalIdentity

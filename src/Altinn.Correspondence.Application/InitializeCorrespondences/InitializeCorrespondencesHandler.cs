@@ -265,7 +265,7 @@ public class InitializeCorrespondencesHandler(
             {
                 Expiration = TimeSpan.FromHours(24)
             });
-            backgroundJobClient.Enqueue<HangfireScheduleHelper>((helper) => helper.SchedulePublishAfterDialogCreated(correspondence.Id, cancellationToken));
+            hangfireScheduleHelper.SchedulePublishAfterJob(correspondence.Id, dialogJob, cancellationToken);
         }
 
         return Task.CompletedTask;
@@ -279,7 +279,7 @@ public class InitializeCorrespondencesHandler(
         var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), scheduleAt);
         if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
         {
-            await hangfireScheduleHelper.SchedulePublishAfterTransmissionCreated(correspondenceId, transmissionJob, cancellationToken);
-        };
+            hangfireScheduleHelper.SchedulePublishAfterJob(correspondenceId, transmissionJob, cancellationToken);
+        }
     }
 }

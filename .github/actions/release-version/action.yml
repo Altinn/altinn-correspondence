@@ -52,6 +52,18 @@ runs:
         set -euo pipefail
         az provider register --namespace Microsoft.EventGrid --wait
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Verify Maskinporten token
+      shell: bash
+      env:
+        KEY_VAULT_NAME: ${{ inputs.AZURE_ENVIRONMENT_KEY_VAULT_NAME }}
+        DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+      run: node .github/scripts/verify-maskinporten-token.js
+
     - name: Deploy app
       uses: azure/arm-deploy@v2
       id: deploy

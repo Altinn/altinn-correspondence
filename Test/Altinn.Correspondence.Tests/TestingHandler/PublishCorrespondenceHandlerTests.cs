@@ -10,6 +10,7 @@ using Altinn.Correspondence.Application.SendSlackNotification;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Altinn.Correspondence.Tests.Extensions;
@@ -272,6 +273,126 @@ namespace Altinn.Correspondence.Tests.TestingHandler
             _correspondenceRepositoryMock.Verify(
                 x => x.UpdatePublished(correspondenceId, It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task Process_ShouldNotCreateIdempotencyKey_WhenNotAllAttachmentsArePublished()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn, isConfidential: false);
+            SetupCommonMocks(correspondenceId, Guid.NewGuid(), correspondence);
+            _correspondenceRepositoryMock
+                .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Act
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task Process_ShouldFailCorrespondence_WhenDialogIsNotCreatedAndNotAllAttachmentsArePublished()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn, isConfidential: false);
+            correspondence.ExternalReferences.Clear();
+            SetupCommonMocks(correspondenceId, Guid.NewGuid(), correspondence);
+            _correspondenceRepositoryMock
+                .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Act
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(
+                    It.Is<CorrespondenceStatusEntity>(s =>
+                        s.CorrespondenceId == correspondenceId &&
+                        s.Status == CorrespondenceStatus.Failed &&
+                        s.StatusText.Contains("Dialogporten dialog not created")),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+            VerifyEventPublished(AltinnEventType.CorrespondencePublishFailed, senderUrn, Times.Once());
+        }
+
+        [Fact]
+        public async Task Process_ShouldNotPublishAgain_WhenCorrespondenceIsAlreadyPublished()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn, isConfidential: false);
+            correspondence.Statuses.Add(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.Published,
+                StatusChanged = DateTimeOffset.UtcNow.AddMinutes(-1),
+                StatusText = CorrespondenceStatus.Published.ToString()
+            });
+            SetupCommonMocks(correspondenceId, Guid.NewGuid(), correspondence);
+
+            // Act
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _correspondenceRepositoryMock.Verify(
+                x => x.UpdatePublished(It.IsAny<Guid>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            VerifyEventPublished(AltinnEventType.CorrespondencePublished, recipientUrn, Times.Never());
+        }
+
+        [Fact]
+        public async Task Process_ShouldNotPublishAgain_WhenPublishIdempotencyKeyAlreadyExists()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn, isConfidential: false);
+            SetupCommonMocks(correspondenceId, Guid.NewGuid(), correspondence);
+
+            var inner = new Exception();
+            inner.Data["SqlState"] = "23505";
+            _idempotencyKeyRepositoryMock
+                .Setup(x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DbUpdateException("duplicate", inner));
+
+            // Act
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _correspondenceRepositoryMock.Verify(
+                x => x.UpdatePublished(It.IsAny<Guid>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            VerifyEventPublished(AltinnEventType.CorrespondencePublished, recipientUrn, Times.Never());
         }
 
         private void VerifyEventPublished(AltinnEventType eventType, string subject, Times times)

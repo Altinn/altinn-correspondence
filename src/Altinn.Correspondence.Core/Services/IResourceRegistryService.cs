@@ -51,7 +51,8 @@ public interface IResourceRegistryService
     Task<ConfidentialTypeEnum> GetConfidentialType(string resourceId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get the minimum authentication level required to access the resource.
+    /// Gets the general minimum authentication level (<c>urn:altinn:minimum-authenticationlevel</c>) required to access the resource.
+    /// The organization and system user obligations are not included.
     /// </summary>
     /// <param name="resourceId">The id of the resource to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>

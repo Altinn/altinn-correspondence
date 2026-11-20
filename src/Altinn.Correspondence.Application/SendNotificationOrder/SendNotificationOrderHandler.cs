@@ -55,7 +55,7 @@ public class SendNotificationOrderHandler(
             return;
         }
 
-        var allSuccessful = true;
+        var failedEventSources = new HashSet<NotificationEventSource>();
         foreach (var notificationOrder in notificationOrders)
         {
             if (notificationOrder.OrderRequest == null)
@@ -70,15 +70,16 @@ public class SendNotificationOrderHandler(
                 throw new InvalidOperationException($"The correspondence notification {notificationOrder.Id} has an invalid order request - unable to send notification order");
             }
 
-            var successful = await SendNotificationOrder(notificationOrder, orderRequest, correspondence, cancellationToken);
+            var eventSource = NotificationEventSource.From(correspondence, orderRequest);
+            var successful = await SendNotificationOrder(notificationOrder, orderRequest, correspondence, eventSource, cancellationToken);
             if (!successful)
             {
-                allSuccessful = false;
+                failedEventSources.Add(eventSource);
             }
         }
-        if (!allSuccessful)
+        foreach (var failedEventSource in failedEventSources)
         {
-            SendFailedEvent(correspondence.ResourceId, correspondenceId.ToString(), correspondence.Sender);
+            SendFailedEvent(failedEventSource.ResourceId, correspondenceId.ToString(), failedEventSource.Sender);
         }
     }
 
@@ -86,6 +87,7 @@ public class SendNotificationOrderHandler(
         CorrespondenceNotificationEntity notificationOrder,
         NotificationOrderRequestV2 orderRequest,
         CorrespondenceEntity correspondence,
+        NotificationEventSource eventSource,
         CancellationToken cancellationToken)
     {
         var successful = true;
@@ -113,7 +115,7 @@ public class SendNotificationOrderHandler(
             await DatabaseTransactionHelper.ExecuteAsync(dbContext, async (ct) =>
             {
                 await UpdateDatabaseNotificationOrder(notificationOrder, notificationResponse, ct);
-                SendPublishedEvent(correspondence.ResourceId, notificationResponse.NotificationOrderId.ToString(), correspondence.Sender);
+                SendPublishedEvent(eventSource.ResourceId, notificationResponse.NotificationOrderId.ToString(), eventSource.Sender);
                 logger.LogInformation("Scheduling notification delivery check for main notification {NotificationId}", notificationOrder.Id);
                 ScheduleNotificationDeliveryCheck(notificationOrder);
                 if (orderRequest.Reminders != null && orderRequest.Reminders.Count != 0)
