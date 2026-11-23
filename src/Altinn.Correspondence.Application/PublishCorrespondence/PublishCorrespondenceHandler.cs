@@ -42,6 +42,7 @@ public class PublishCorrespondenceHandler(
         }
 
         bool hasDialogportenDialog = correspondence?.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId) == true;
+        bool hasDialogportenTransmission = correspondence?.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId) == true;
 
         // Publish job only runs after the dialog job has finished, so the dialog will not be created later.
         // Fail correspondence if dialog is missing instead of waiting for attachments, as a later attachment publish may not schedule publishing again when dialog is missing.
@@ -75,6 +76,10 @@ public class PublishCorrespondenceHandler(
         else if (!hasDialogportenDialog)
         {
             errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
+        }
+        else if (correspondence.IsTransmission() && !hasDialogportenTransmission)
+        {
+            errorMessage = $"Dialogporten transmission not created for correspondence {correspondenceId}";
         }
         else if (await HasRecipientBeenSetToReservedInKRR(correspondence, cancellationToken))
         {
