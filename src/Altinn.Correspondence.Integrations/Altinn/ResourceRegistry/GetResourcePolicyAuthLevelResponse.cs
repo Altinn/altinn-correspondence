@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Common.Constants;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
@@ -11,7 +12,8 @@ internal class GetResourcePolicyAuthLevelResponse
     {
         var doc = XDocument.Parse(xml);
         var levels = doc.Descendants()
-            .Where(e => e.Name.LocalName == "ObligationExpression")
+            .Where(e => e.Name.LocalName == "AttributeAssignmentExpression")
+            .Where(e => string.Equals(e.Attribute("Category")?.Value, UrnConstants.MinimumAuthenticationLevel, StringComparison.Ordinal))
             .SelectMany(o => o.Descendants().Where(d => d.Name.LocalName == "AttributeValue"))
             .Where(v => v.Attribute("DataType")?.Value.EndsWith("#integer") == true)
             .Select(v => int.Parse(v.Value))

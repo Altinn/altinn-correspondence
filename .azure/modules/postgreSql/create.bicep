@@ -41,7 +41,7 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   }
   sku: environment == 'production'
     ? {
-        name: 'Standard_D32ds_v5'
+        name: 'Standard_D32ads_v5'
         tier: 'GeneralPurpose'
       }
     : prodLikeEnvironment 

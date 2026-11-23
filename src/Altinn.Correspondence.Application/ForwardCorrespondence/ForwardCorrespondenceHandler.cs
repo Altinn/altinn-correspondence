@@ -98,11 +98,11 @@ public class ForwardCorrespondenceHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} has not been read and cannot be forwarded", request.CorrespondenceId);
             return CorrespondenceErrors.ForwardBeforeRead;
         }
-        var alreadyForwardedToRecipient = await correspondenceForwardingEventRepository.HasCorrespondenceBeenForwardedToRecipient(request.CorrespondenceId, normalizedForwardTo, cancellationToken);
+        var alreadyForwardedToRecipient = await correspondenceForwardingEventRepository.HasCorrespondenceBeenForwardedToRecipient(request.CorrespondenceId, normalizedForwardTo, forwardWithAttachments, cancellationToken);
         if (alreadyForwardedToRecipient)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} has already been forwarded to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
-            return CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient;
+            return CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient(forwardWithAttachments);
         }
 
         var caller = user.GetCallerPartyUrn();
@@ -129,7 +129,7 @@ public class ForwardCorrespondenceHandler(
         if (forwardingEventId == Guid.Empty)
         {
             logger.LogWarning("Correspondence {CorrespondenceId} has already been forwarded to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());
-            return CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient;
+            return CorrespondenceErrors.CorrespondenceAlreadyForwardedToRecipient(forwardWithAttachments);
         }
 
         logger.LogInformation("Forwarding correspondence {CorrespondenceId} to {ForwardTo}", request.CorrespondenceId, request.ForwardTo.SanitizeForLogging());

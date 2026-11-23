@@ -742,6 +742,49 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondence_WhenAccessListEnabledAndRecipientIsMember_Succeeds()
+        {
+            using var testFactory = new UnitWebApplicationFactory(services =>
+            {
+                services.AddScoped(_ => CreateResourceRegistryMock(isAccessListEnabled: true, isMember: true).Object);
+            });
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+
+            var response = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_WhenAccessListEnabledAndRecipientIsNotMember_ReturnsBadRequest()
+        {
+            using var testFactory = new UnitWebApplicationFactory(services =>
+            {
+                services.AddScoped(_ => CreateResourceRegistryMock(isAccessListEnabled: true, isMember: false).Object);
+            });
+            var payload = new CorrespondenceBuilder().CreateCorrespondence().Build();
+
+            var response = await testFactory.CreateSenderClient().PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains("access list", body, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static Mock<IResourceRegistryService> CreateResourceRegistryMock(bool isAccessListEnabled, bool isMember)
+        {
+            var resourceRegistryService = new Mock<IResourceRegistryService>();
+            resourceRegistryService.Setup(x => x.GetServiceOwnerNameOfResource(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("Test owner");
+            resourceRegistryService.Setup(x => x.GetResourceType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("CorrespondenceService");
+            resourceRegistryService.Setup(x => x.GetServiceOwnerOrganizationNumber(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("991825827");
+            resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("Test resource");
+            resourceRegistryService.Setup(x => x.GetConfidentialType(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.NotConfidential);
+            resourceRegistryService.Setup(x => x.IsAccessListEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(isAccessListEnabled);
+            resourceRegistryService.Setup(x => x.IsPartyInResourceAccessList(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(isMember);
+            return resourceRegistryService;
+        }
+
+        [Fact]
         public async Task InitializeCorrespondence_WithAnAltinnApp_AsTransmission_Succeeds()
         {
             // Arrange
@@ -804,7 +847,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
         }
 
@@ -845,7 +888,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
         }
 
@@ -915,7 +958,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.NotNull(uploadCorrespondenceResponse);
             Assert.True(uploadCorrespondenceResponse.StatusCode == HttpStatusCode.OK, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "CreateDialogportenDialog"),
@@ -2527,12 +2570,18 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithNotification_NoExistingDialog_EnqueuesSchedulePublishAfterDialogCreated()
+        public async Task InitializeCorrespondence_WithNotification_NoExistingDialog_SchedulesPublishAfterDialogJob()
         {
+            // Arrange
+            const string notificationJobId = "notification-job-id";
+            const string dialogJobId = "dialog-job-id";
             var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             hangfireBackgroundJobClient
                 .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-                .Returns("notification-job-id");
+                .Returns<Job, IState>((job, _) =>
+                    job.Type == typeof(Application.CreateNotificationOrder.CreateNotificationOrderHandler) ? notificationJobId
+                    : job.Method.Name == nameof(Application.InitializeCorrespondences.InitializeCorrespondencesHandler.CreateDialogportenDialog) ? dialogJobId
+                    : "other-job-id");
 
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
@@ -2545,14 +2594,57 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .Build();
 
+            // Act
             var senderClient = testFactory.CreateSenderClient();
             var response = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
+            // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
-                It.Is<IState>(s => s is EnqueuedState)),
+                It.Is<Job>(job => job.Method.Name == nameof(Application.InitializeCorrespondences.InitializeCorrespondencesHandler.CreateDialogportenDialog)),
+                It.Is<IState>(state => state is AwaitingState
+                    && ((AwaitingState)state).ParentId == notificationJobId)),
+                Times.Once);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
+                It.Is<IState>(state => state is AwaitingState
+                    && ((AwaitingState)state).ParentId == dialogJobId
+                    && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_ShouldContinuePublishFromDialogJob_WhenCreatingNewDialog()
+        {
+            // Arrange
+            const string dialogJobId = "dialog-job-id";
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient
+                .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+                .Returns<Job, IState>((job, _) => job.Method.Name == nameof(Application.InitializeCorrespondences.InitializeCorrespondencesHandler.CreateDialogportenDialog)
+                    ? dialogJobId
+                    : "other-job-id");
+
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+
+            // Act
+            var senderClient = testFactory.CreateSenderClient();
+            var response = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
+                It.Is<IState>(state => state is AwaitingState
+                    && ((AwaitingState)state).ParentId == dialogJobId
+                    && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
                 Times.Once);
         }
 
@@ -2591,7 +2683,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 Times.Never);
 
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.Is<IState>(s => s is AwaitingState)),
                 Times.Never);
         }
@@ -2623,7 +2715,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(dialogJobId);
             scheduleRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CorrespondenceEntity
                 {
                     Id = correspondenceId,

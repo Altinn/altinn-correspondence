@@ -9,6 +9,9 @@ internal static class CorrespondenceOpenApiConstants
     public const string Description =
         "Altinn Correspondence API for service owners and recipients. " +
         "All operations require authentication unless otherwise noted. " +
+        "Who can read or send a correspondence is decided by the resource policy, including its minimum authentication level. " +
+        "A system user is always level 3. On a level 4 resource, add the obligation urn:altinn:minimum-authenticationlevel-systemuser with value 3 " +
+        "so system user integrations are allowed while end users still need level 4. Without that obligation, a level 4 resource rejects system users. " +
         "Read more about authentication at https://docs.altinn.studio/authorization/getting-started/authentication/";
 
     public const string BearerDescription =

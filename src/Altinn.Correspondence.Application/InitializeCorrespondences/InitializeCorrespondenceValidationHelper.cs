@@ -318,6 +318,14 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
         {
             var recipientsNotFound = new List<string>();
             var recipientsWithoutRequiredRoles = new List<string>();
+            var recipientsNotInAccessList = new List<string>();
+            var accessListEnabled = await resourceRegistryService.IsAccessListEnabled(request.Correspondence.ResourceId, cancellationToken);
+            if (accessListEnabled)
+            {
+                logger.LogInformation(
+                    "Resource {ResourceId} has access lists enabled. Verifying that recipients are members of an access list connected to the resource",
+                    request.Correspondence.ResourceId.SanitizeForLogging());
+            }
 
             foreach (var recipient in request.Recipients)
             {
@@ -326,6 +334,18 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 {
                     recipientsNotFound.Add(recipient);
                     continue;
+                }
+
+                if (accessListEnabled)
+                {
+                    var isMember = await resourceRegistryService.IsPartyInResourceAccessList(request.Correspondence.ResourceId, recipientParty.Uuid, cancellationToken);
+                    if (!isMember)
+                    {
+                        logger.LogWarning(
+                            "Recipient is not a member of an access list connected to resource {ResourceId}",
+                            request.Correspondence.ResourceId.SanitizeForLogging());
+                        recipientsNotInAccessList.Add(recipient);
+                    }
                 }
 
                 if (string.IsNullOrEmpty(recipientParty.GetOrganizationIdentifier())) continue;
@@ -342,6 +362,10 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
             if (recipientsNotFound.Count > 0)
             {
                 return CorrespondenceErrors.RecipientLookupFailed(recipientsNotFound);
+            }
+            if (recipientsNotInAccessList.Count > 0)
+            {
+                return CorrespondenceErrors.RecipientNotInResourceAccessList(recipientsNotInAccessList);
             }
             if (recipientsWithoutRequiredRoles.Count > 0)
             {

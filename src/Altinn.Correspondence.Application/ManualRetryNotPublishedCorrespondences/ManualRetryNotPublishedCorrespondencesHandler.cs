@@ -1,5 +1,6 @@
 using OneOf;
 using System.Security.Claims;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Core.Models.Enums;
@@ -22,10 +23,17 @@ public class ManualRetryNotPublishedCorrespondencesHandler(
         {
             logger.LogInformation("Retrying publish for correspondence {CorrespondenceId}", correspondenceId);
 
-            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
             if (correspondence is null)
             {
                 response.RetriedCorrespondenceIds[correspondenceId] = "Not found";
+                continue;
+            }
+
+            if (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
+            {
+                logger.LogInformation("Skipping retry for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
+                response.RetriedCorrespondenceIds[correspondenceId] = "Already published or failed";
                 continue;
             }
 

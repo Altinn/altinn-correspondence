@@ -61,7 +61,7 @@ public static class CorrespondenceErrors
     public static Error CannotInitializeNonConfidentialCorrespondenceWithIsConfidentialFlag = new Error(1061, "Correspondences cannot be initialized with 'IsConfidential' flag set to true if the resource is not confidential", HttpStatusCode.BadRequest);
     public static Error UnreadConfidentialCorrespondencesNotFound = new Error(1062, "No unread confidential correspondences found", HttpStatusCode.NotFound);
     public static Error ForwardingNotAllowed = new Error(1063, "Correspondence does not allow forwarding", HttpStatusCode.BadRequest);
-    public static Error CorrespondenceAlreadyForwardedToRecipient = new Error(1064, "Correspondence has already been forwarded to the specified recipient", HttpStatusCode.BadRequest);
+    public static Error CorrespondenceAlreadyForwardedToRecipient(bool forwardWithAttachments) => new Error(1064, $"Correspondence has already been forwarded to the specified recipient{(forwardWithAttachments ? " with attachments" : " without attachments")}", HttpStatusCode.BadRequest);
     public static Error ForwardBeforeRead = new Error(1065, "Correspondence must be read before it can be forwarded", HttpStatusCode.BadRequest);
     public static Error ForwardingTextTooLong = new Error(1066, "Forwarding text cannot exceed 200 characters", HttpStatusCode.BadRequest);
     public static Error ForwardingTextIsNotPlainText = new Error(1067, "Forwarding text must be plain text", HttpStatusCode.BadRequest);
@@ -69,6 +69,8 @@ public static class CorrespondenceErrors
     public static Error CannotAllowForwardingOnCorrespondenceWithLargeAttachments = new Error(1069, "Correspondence cannot allow forwarding if the total size of attachments exceeds 10 MB", HttpStatusCode.BadRequest);
     public static Error CannotAllowForwardingOnConfidentialCorrespondence = new Error(1070, "Correspondence cannot allow forwarding if the resource for the correspondence is confidential", HttpStatusCode.BadRequest);
     public static Error ForwardingAttachmentsExceedMaxLimit = new Error(1071, "Correspondence cannot be forwarded with attachments if the total size of attachments exceeds 10 MB", HttpStatusCode.BadRequest);
+    public static Error RecipientNotInResourceAccessList(List<string> recipients) =>
+        new Error(1072, $"The following recipients are not members of an access list connected to the resource: {string.Join(", ", recipients)}", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors

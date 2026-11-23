@@ -121,6 +121,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
             resourceRegistryService.Setup(x => x.GetResourceTitle(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
             resourceRegistryService.Setup(x => x.GetConfidentialType("resource-with-confidential-post-activated", It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.Confidential);
             resourceRegistryService.Setup(x => x.GetConfidentialType(It.Is<string>(id => id != "resource-with-confidential-post-activated"), It.IsAny<CancellationToken>())).ReturnsAsync(ConfidentialTypeEnum.NotConfidential);
+            resourceRegistryService.Setup(x => x.IsAccessListEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
             services.AddScoped(_ => resourceRegistryService.Object);
         });
         if (CustomServices is not null)

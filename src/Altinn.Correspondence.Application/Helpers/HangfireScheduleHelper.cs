@@ -1,10 +1,7 @@
 ﻿using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
-using Altinn.Correspondence.Core.Models.Entities;
-using Altinn.Correspondence.Core.Models.Notifications;
+using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
-using Altinn.Correspondence.Core.Services;
-using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Hangfire;
 using Hangfire;
 using Microsoft.Extensions.Logging;
@@ -17,9 +14,11 @@ namespace Altinn.Correspondence.Application.Helpers
         ILogger<HangfireScheduleHelper> logger)
     {
 
-        public void SchedulePublishAfterDialogCreated(Guid correspondenceId, string dialogJobId, CancellationToken cancellationToken)
+        public void SchedulePublishAfterJob(Guid correspondenceId, string parentJobId, CancellationToken cancellationToken)
         {
-            backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, HangfireQueues.LiveMigration, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken));
+            #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
+            backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(parentJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
+            #pragma warning restore CS4014
         }
 
         public async Task SchedulePublishAfterDialogCreated(Guid correspondenceId, CancellationToken cancellationToken)
@@ -29,63 +28,35 @@ namespace Altinn.Correspondence.Application.Helpers
                 logger.LogInformation("Not all attachments published for correspondence {correspondenceId}, skipping publish scheduling", correspondenceId);
                 return;
             }
+            // Correspondences initialized before publish was continued directly from the dialog job depend on this cached id
             var dialogJobId = await hybridCacheWrapper.GetAsync<string?>($"dialogJobId_{correspondenceId}", cancellationToken: cancellationToken);
-            if (dialogJobId is null)
+            if (dialogJobId is not null)
             {
-                logger.LogError("Could not find dialogJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
-                await SchedulePublishAtPublishTime(correspondenceId, cancellationToken);
+                SchedulePublishAfterJob(correspondenceId, dialogJobId, cancellationToken);
+                return;
             }
-            else
-            {
-                #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(dialogJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
-                #pragma warning restore CS4014
-            }
-        }
 
-        public async Task SchedulePublishAfterTransmissionCreated(Guid correspondenceId, string transmissionJobId, CancellationToken cancellationToken)
-        {
-            if (transmissionJobId is null)
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
+            var hasDialogportenDialog = correspondence?.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId) == true;
+            if (!hasDialogportenDialog)
             {
-                logger.LogError("Could not find transmissionJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
-                await SchedulePublishAtPublishTime(correspondenceId, cancellationToken);
+                logger.LogInformation("Dialogporten dialog not yet created for correspondence {correspondenceId}. Publish continues from the dialog job when it finishes", correspondenceId);
+                return;
             }
-            else
-            {
-                #pragma warning disable CS4014 // Hangfire handles Task-returning job expressions by awaiting them during job execution
-                backgroundJobClient.ContinueJobWith<HangfireScheduleHelper>(transmissionJobId, (helper) => helper.SchedulePublishAtPublishTime(correspondenceId, cancellationToken), JobContinuationOptions.OnAnyFinishedState);
-                #pragma warning restore CS4014
-            }
+            await SchedulePublishAtPublishTime(correspondenceId, cancellationToken);
         }
 
         public async Task SchedulePublishAtPublishTime(Guid correspondenceId, CancellationToken cancellationToken)
         {
-            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, cancellationToken);
+            var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, false, false, false, cancellationToken);
             if (correspondence is null)
             {
                 throw new Exception($"Correspondence with id {correspondenceId} not found when scheduling publish");
             }
 
-            SchedulePublishAtPublishTime(correspondence, cancellationToken);
-        }
-
-        public void SchedulePublishAtPublishTime(CorrespondenceEntity correspondence, CancellationToken cancellationToken)
-        {
-            backgroundJobClient.Schedule<PublishCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondence.Id, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
+            backgroundJobClient.Schedule<PublishCorrespondenceHandler>(HangfireQueues.Default, (handler) => handler.Process(correspondenceId, null, cancellationToken), GetActualPublishTime(correspondence.RequestedPublishTime));
         }
 
         private static DateTimeOffset GetActualPublishTime(DateTimeOffset publishTime) => publishTime < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : publishTime; // If in past, do now
-
-
-        public async Task CreateActivityAfterDialogCreated(Guid correspondenceId, NotificationOrderRequestV2 notification, DateTimeOffset operationTimestamp)
-        {
-            var dialogJobId = await hybridCacheWrapper.GetAsync<string?>($"dialogJobId_{correspondenceId}");
-            if (dialogJobId is null)
-            {
-                logger.LogError("Could not find dialogJobId for correspondence {correspondenceId} in cache. More than 24 hours delayed?", correspondenceId);
-                return;
-            }
-            backgroundJobClient.ContinueJobWith<IDialogportenService>(dialogJobId, (dialogPortenService) => dialogPortenService.CreateInformationActivity(correspondenceId, DialogportenActorType.ServiceOwner, DialogportenTextType.NotificationOrderCreated, operationTimestamp, notification.RequestedSendTime.ToString("yyyy-MM-dd HH:mm")), JobContinuationOptions.OnlyOnSucceededState);
-        }
     }
 }

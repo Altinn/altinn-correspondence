@@ -34,7 +34,7 @@ public class ComposedEmailHelper(
 
         return new ComposedEmailRequest
         {
-            IdempotencyId = correspondence.Id.CreateVersion5($"ForwardCorrespondence:{forwardTo}"),
+            IdempotencyId = correspondence.Id.CreateVersion5($"ForwardCorrespondence:{forwardTo}: {(includeAttachments ? "withAttachments" : "withoutAttachments")}"),
             SendersReference = correspondence.SendersReference,
             RequestedSendTime = DateTimeOffset.UtcNow.AddSeconds(10),
             Recipient = new ComposedEmailRecipient

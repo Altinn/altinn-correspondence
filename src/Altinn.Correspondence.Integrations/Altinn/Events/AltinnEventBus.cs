@@ -36,8 +36,7 @@ public class AltinnEventBus : IEventBus
         var response = await _httpClient.PostAsync("events/api/v1/events", JsonContent.Create(cloudEvent, options: serializerOptions, mediaType: new System.Net.Http.Headers.MediaTypeHeaderValue("application/cloudevents+json")), cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Unexpected null or invalid json response when posting cloud event {type} of {resourceId} with {eventSource} id  {itemId}.", type, resourceId, eventSource, itemId);
-            _logger.LogError("Statuscode was: {}, error was: {error}", response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
+            throw new Exception($"Error when publishing cloud event {type} for resource {resourceId} with event source {eventSource} and item ID {itemId} to Altinn Events. Statuscode was: {response.StatusCode}, error was: {await response.Content.ReadAsStringAsync(cancellationToken)}");
         }
     }
 
