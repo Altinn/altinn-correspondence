@@ -855,8 +855,10 @@ public class DialogportenServiceTests
             Times.Once);
     }
 
-    [Fact]
-    public async Task PurgeCorrespondenceDialog_WhenCorrespondenceIsTransmission_DoesNotPurgeDialog()
+    [Theory]
+    [InlineData(ReferenceType.DialogportenTransmissionId, "transmission-123")]
+    [InlineData(ReferenceType.DialogportenTransmissionType, "Information")]
+    public async Task PurgeCorrespondenceDialog_WhenCorrespondenceIsTransmission_DoesNotPurgeDialog(ReferenceType transmissionReferenceType, string transmissionReferenceValue)
     {
         // Arrange
         var correspondenceId = Guid.NewGuid();
@@ -865,7 +867,7 @@ public class DialogportenServiceTests
         var correspondence = new CorrespondenceEntityBuilder()
             .WithId(correspondenceId)
             .WithDialogId(dialogId)
-            .WithExternalReference(ReferenceType.DialogportenTransmissionId, "transmission-123")
+            .WithExternalReference(transmissionReferenceType, transmissionReferenceValue)
             .Build();
 
         var (service, mockRepo, mockHttpHandler) = CreateServiceWithMockedDialogPurge(correspondence, dialogId);

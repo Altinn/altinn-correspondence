@@ -612,7 +612,7 @@ public class DialogportenService(HttpClient _httpClient,
         }
 
         // A transmission is added to a dialog the correspondence does not own, and Dialogporten has no endpoint for deleting a single transmission
-        if (TransmissionValidator.IsTransmission(correspondence))
+        if (correspondence.IsTransmission())
         {
             logger.LogWarning("Skipping purging dialog {dialogId} for correspondence {correspondenceId} as the correspondence is a transmission on a dialog it does not own", dialogId, correspondenceId);
             return;
@@ -868,7 +868,7 @@ public class DialogportenService(HttpClient _httpClient,
 
     public CreateDialogActivityRequest CreateOpenedActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
     {
-        if (TransmissionValidator.IsTransmission(correspondence))
+        if (TransmissionValidator.HasCreatedTransmission(correspondence))
         {
             return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.TransmissionOpened, partyUrn, activityTimestamp);
         }

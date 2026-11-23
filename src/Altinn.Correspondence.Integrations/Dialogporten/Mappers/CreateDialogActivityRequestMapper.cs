@@ -38,7 +38,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 },
                 Type = type
             };
-            if (TransmissionValidator.IsTransmission(correspondence) && type == ActivityType.TransmissionOpened)
+            if (TransmissionValidator.HasCreatedTransmission(correspondence) && type == ActivityType.TransmissionOpened)
             {
                 var transmissionId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId)?.ReferenceValue;
                 if (transmissionId == null)

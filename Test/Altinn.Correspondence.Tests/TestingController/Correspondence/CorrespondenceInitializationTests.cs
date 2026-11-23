@@ -1852,7 +1852,8 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 cancellationToken: CancellationToken.None);
             var transmissionExternalReference = transmission?.ExternalReferences;
             Assert.NotNull(transmissionExternalReference);
-            Assert.Equal(2, transmissionExternalReference.Count);
+            Assert.Equal(3, transmissionExternalReference.Count);
+            Assert.Contains("DialogportenTransmissionType", transmissionExternalReference.Select(r => r.ReferenceType.ToString()));
             Assert.Contains("DialogportenTransmissionId", transmissionExternalReference.Select(r => r.ReferenceType.ToString()));
         }
 
@@ -2097,7 +2098,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // The transmission reference should contain a dialog id, but not a transmission id as this is set upon publishing
             Assert.NotNull(transmissionReference);
-            Assert.Equal(1, transmissionEntity?.ExternalReferences.Count);
+            Assert.DoesNotContain(transmissionEntity!.ExternalReferences, er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenTransmissionId);
         }
         [Fact]
         public async Task InitializeCorrespondenceTransmission_WithTwoRecipients_ReturnsBadRequest()
@@ -2481,6 +2482,32 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
             Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithNewAttachments.Message, await transmissionResponse.Content.ReadAsStringAsync());
+        }
+
+        [Theory]
+        [InlineData(null, "Information")]
+        [InlineData("Submission", "Submission")]
+        public async Task InitializeCorrespondenceTransmission_ShouldStoreOneTransmissionType_WhenInitialized(string? requestedTransmissionType, string expectedTransmissionType)
+        {
+            // Arrange
+            var transmissionPayloadBuilder = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd");
+            if (requestedTransmissionType is not null)
+            {
+                transmissionPayloadBuilder.WithExternalReferencesTransmissionType(requestedTransmissionType);
+            }
+
+            // Act
+            var initializedTransmission = await CorrespondenceHelper.GetInitializedCorrespondence(_senderClient, _responseSerializerOptions, transmissionPayloadBuilder.Build());
+
+            // Assert
+            using var scope = _factory.Services.CreateScope();
+            var correspondenceRepository = scope.ServiceProvider.GetRequiredService<ICorrespondenceRepository>();
+            var transmission = await correspondenceRepository.GetCorrespondenceById(initializedTransmission.CorrespondenceId, false, false, false, CancellationToken.None);
+            Assert.NotNull(transmission);
+            var transmissionTypeReference = Assert.Single(transmission.ExternalReferences, reference => reference.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenTransmissionType);
+            Assert.Equal(expectedTransmissionType, transmissionTypeReference.ReferenceValue);
         }
 
         [Fact]
