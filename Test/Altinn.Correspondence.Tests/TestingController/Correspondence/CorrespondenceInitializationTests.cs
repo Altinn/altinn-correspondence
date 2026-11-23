@@ -847,7 +847,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
         }
 
@@ -888,7 +888,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             // Assert
             Assert.Equal(HttpStatusCode.OK, initializeCorrespondenceResponse.StatusCode);
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
         }
 
@@ -958,7 +958,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             Assert.NotNull(uploadCorrespondenceResponse);
             Assert.True(uploadCorrespondenceResponse.StatusCode == HttpStatusCode.OK, await uploadCorrespondenceResponse.Content.ReadAsStringAsync());
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.IsAny<IState>()), Times.Once);
             hangfireBackgroundJobClient.Verify(x => x.Create(
                 It.Is<Job>(job => job.Method.Name == "CreateDialogportenDialog"),
@@ -2570,12 +2570,18 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
-        public async Task InitializeCorrespondence_WithNotification_NoExistingDialog_EnqueuesSchedulePublishAfterDialogCreated()
+        public async Task InitializeCorrespondence_WithNotification_NoExistingDialog_SchedulesPublishAfterDialogJob()
         {
+            // Arrange
+            const string notificationJobId = "notification-job-id";
+            const string dialogJobId = "dialog-job-id";
             var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
             hangfireBackgroundJobClient
                 .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
-                .Returns("notification-job-id");
+                .Returns<Job, IState>((job, _) =>
+                    job.Type == typeof(Application.CreateNotificationOrder.CreateNotificationOrderHandler) ? notificationJobId
+                    : job.Method.Name == nameof(Application.InitializeCorrespondences.InitializeCorrespondencesHandler.CreateDialogportenDialog) ? dialogJobId
+                    : "other-job-id");
 
             using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
             {
@@ -2588,14 +2594,57 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 .WithNotificationChannel(NotificationChannelExt.Email)
                 .Build();
 
+            // Act
             var senderClient = testFactory.CreateSenderClient();
             var response = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
 
+            // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
-                It.Is<IState>(s => s is EnqueuedState)),
+                It.Is<Job>(job => job.Method.Name == nameof(Application.InitializeCorrespondences.InitializeCorrespondencesHandler.CreateDialogportenDialog)),
+                It.Is<IState>(state => state is AwaitingState
+                    && ((AwaitingState)state).ParentId == notificationJobId)),
+                Times.Once);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
+                It.Is<IState>(state => state is AwaitingState
+                    && ((AwaitingState)state).ParentId == dialogJobId
+                    && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondence_ShouldContinuePublishFromDialogJob_WhenCreatingNewDialog()
+        {
+            // Arrange
+            const string dialogJobId = "dialog-job-id";
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient
+                .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+                .Returns<Job, IState>((job, _) => job.Method.Name == nameof(Application.InitializeCorrespondences.InitializeCorrespondencesHandler.CreateDialogportenDialog)
+                    ? dialogJobId
+                    : "other-job-id");
+
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .Build();
+
+            // Act
+            var senderClient = testFactory.CreateSenderClient();
+            var response = await senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", payload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            hangfireBackgroundJobClient.Verify(x => x.Create(
+                It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
+                It.Is<IState>(state => state is AwaitingState
+                    && ((AwaitingState)state).ParentId == dialogJobId
+                    && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
                 Times.Once);
         }
 
@@ -2634,7 +2683,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                 Times.Never);
 
             hangfireBackgroundJobClient.Verify(x => x.Create(
-                It.Is<Job>(job => job.Method.Name == "SchedulePublishAfterDialogCreated"),
+                It.Is<Job>(job => job.Method.Name == "SchedulePublishAtPublishTime"),
                 It.Is<IState>(s => s is AwaitingState)),
                 Times.Never);
         }
@@ -2666,7 +2715,7 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(dialogJobId);
             scheduleRepositoryMock
-                .Setup(x => x.GetCorrespondenceById(correspondenceId, true, false, false, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetCorrespondenceById(correspondenceId, false, false, false, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CorrespondenceEntity
                 {
                     Id = correspondenceId,

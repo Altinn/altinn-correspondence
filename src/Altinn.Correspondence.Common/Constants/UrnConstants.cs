@@ -10,6 +10,10 @@ public static class UrnConstants
     /// </summary>
     public const string MinimumAuthenticationLevel = "urn:altinn:minimum-authenticationlevel";
     /// <summary>
+    /// xacml string that represents the minimum authentication level for a system user.
+    /// </summary>
+    public const string MinimumAuthenticationLevelSystemUser = "urn:altinn:minimum-authenticationlevel-systemuser";
+    /// <summary>
     /// xacml string that represents organization number
     /// </summary>
     public const string OrganizationNumberAttribute = "urn:altinn:organization:identifier-no";
