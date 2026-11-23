@@ -2466,6 +2466,42 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
         }
 
         [Fact]
+        public async Task InitializeCorrespondenceTransmission_ShouldReturnBadRequest_WhenNewAttachmentsAreIncluded()
+        {
+            // Arrange
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd")
+                .WithAttachments()
+                .Build();
+
+            // Act
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, transmissionResponse.StatusCode);
+            Assert.Contains(CorrespondenceErrors.TransmissionNotAllowedWithNewAttachments.Message, await transmissionResponse.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task InitializeCorrespondenceTransmission_ShouldReturnOk_WhenOnlyExistingPublishedAttachmentsAreIncluded()
+        {
+            // Arrange
+            var attachmentId = await AttachmentHelper.GetPublishedAttachment(_senderClient, _responseSerializerOptions);
+            var transmissionPayload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd")
+                .WithExistingAttachments([attachmentId])
+                .Build();
+
+            // Act
+            var transmissionResponse = await _senderClient.PostAsJsonAsync("correspondence/api/v1/correspondence", transmissionPayload);
+
+            // Assert
+            Assert.True(transmissionResponse.IsSuccessStatusCode, await transmissionResponse.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
         public async Task InitializeCorrespondenceTransmission_WithDialogIdNotFound_ReturnsNotFound()
         {
             // Arrange 
