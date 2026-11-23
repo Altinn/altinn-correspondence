@@ -145,7 +145,7 @@ public class DialogportenServiceTests
         return (service, mockCorrespondenceForwardingEventRepository, mockAltinnRegisterService, () => capturedRequestBody);
     }
 
-    private static (DialogportenService service, Mock<ICorrespondenceRepository> repoMock) CreateServiceWithMockedDialogPurge(CorrespondenceEntity correspondence, string dialogId)
+    private static (DialogportenService service, Mock<ICorrespondenceRepository> repoMock, Mock<HttpMessageHandler> httpHandlerMock) CreateServiceWithMockedDialogPurge(CorrespondenceEntity correspondence, string dialogId)
     {
         var mockHandler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         mockHandler
@@ -186,7 +186,7 @@ public class DialogportenServiceTests
             Mock.Of<IResourceRegistryService>(),
             mockPartyUrnHelper.Object);
 
-        return (service, mockRepo);
+        return (service, mockRepo, mockHandler);
     }
 
     [Fact]
@@ -844,7 +844,7 @@ public class DialogportenServiceTests
             .WithDialogId(dialogId)
             .Build();
 
-        var (service, mockRepo) = CreateServiceWithMockedDialogPurge(correspondence, dialogId);
+        var (service, mockRepo, _) = CreateServiceWithMockedDialogPurge(correspondence, dialogId);
 
         // Act
         await service.PurgeCorrespondenceDialog(correspondenceId);
@@ -853,5 +853,34 @@ public class DialogportenServiceTests
         mockRepo.Verify(
             r => r.RemoveExternalReference(correspondence, ReferenceType.DialogportenDialogId, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task PurgeCorrespondenceDialog_WhenCorrespondenceIsTransmission_DoesNotPurgeDialog()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        const string dialogId = "dialog-123";
+
+        var correspondence = new CorrespondenceEntityBuilder()
+            .WithId(correspondenceId)
+            .WithDialogId(dialogId)
+            .WithExternalReference(ReferenceType.DialogportenTransmissionId, "transmission-123")
+            .Build();
+
+        var (service, mockRepo, mockHttpHandler) = CreateServiceWithMockedDialogPurge(correspondence, dialogId);
+
+        // Act
+        await service.PurgeCorrespondenceDialog(correspondenceId);
+
+        // Assert
+        mockHttpHandler.Protected().Verify(
+            "SendAsync",
+            Times.Never(),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
+        mockRepo.Verify(
+            r => r.RemoveExternalReference(It.IsAny<CorrespondenceEntity>(), It.IsAny<ReferenceType>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
