@@ -12,4 +12,9 @@ public static class CorrespondenceEntityExtensions
         return correspondence.ExternalReferences.Any(reference =>
             reference.ReferenceType is ReferenceType.DialogportenTransmissionType or ReferenceType.DialogportenTransmissionId);
     }
+
+    public static bool HasCreatedTransmission(this CorrespondenceEntity correspondence)
+    {
+        return correspondence.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId);
+    }
 }

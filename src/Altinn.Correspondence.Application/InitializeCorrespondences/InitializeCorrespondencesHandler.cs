@@ -271,15 +271,13 @@ public class InitializeCorrespondencesHandler(
         return Task.CompletedTask;
     }
 
-    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
+    public Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
     {
         var scheduleAt = requestedPublishTime < DateTimeOffset.UtcNow
             ? DateTimeOffset.UtcNow
             : requestedPublishTime;
         var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), scheduleAt);
-        if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
-        {
-            hangfireScheduleHelper.SchedulePublishAfterJob(correspondenceId, transmissionJob, cancellationToken);
-        }
+        hangfireScheduleHelper.SchedulePublishAfterJob(correspondenceId, transmissionJob, cancellationToken);
+        return Task.CompletedTask;
     }
 }

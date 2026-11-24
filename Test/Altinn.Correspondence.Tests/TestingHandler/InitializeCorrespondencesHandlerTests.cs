@@ -66,6 +66,53 @@ public class InitializeCorrespondencesHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task ScheduleTransmissionAndPublishJobs_ShouldContinuePublishFromTransmissionJob_WhenNotAllAttachmentsArePublished()
+    {
+        // Arrange
+        var correspondenceId = Guid.NewGuid();
+        var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+        var correspondenceRepository = new Mock<ICorrespondenceRepository>();
+        hangfireBackgroundJobClient
+            .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+            .Returns("transmission-job-id");
+        correspondenceRepository
+            .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var hangfireScheduleHelper = new HangfireScheduleHelper(
+            hangfireBackgroundJobClient.Object,
+            Mock.Of<IHybridCacheWrapper>(),
+            correspondenceRepository.Object,
+            NullLogger<HangfireScheduleHelper>.Instance);
+        var handler = new InitializeCorrespondencesHandler(
+            null!,
+            correspondenceRepository.Object,
+            hangfireBackgroundJobClient.Object,
+            null!,
+            null!,
+            hangfireScheduleHelper,
+            null!,
+            null!,
+            null!,
+            NullLogger<InitializeCorrespondencesHandler>.Instance,
+            TestDbContextFactory.Create());
+
+        // Act
+        await handler.ScheduleTransmissionAndPublishJobs(
+            correspondenceId,
+            attachmentsCount: 1,
+            requestedPublishTime: DateTimeOffset.MinValue,
+            CancellationToken.None);
+
+        // Assert
+        hangfireBackgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Method.Name == nameof(HangfireScheduleHelper.SchedulePublishAtPublishTime)),
+            It.Is<IState>(state => state is AwaitingState
+                && ((AwaitingState)state).ParentId == "transmission-job-id"
+                && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
+            Times.Once);
+    }
+
     private static bool IsImmediateScheduledState(IState state)
     {
         return state is ScheduledState scheduledState &&

@@ -95,6 +95,66 @@ public class HangfireScheduleHelperTests
     }
 
     [Fact]
+    public async Task SchedulePublishAfterDialogCreated_ShouldNotScheduleAnyJob_WhenTransmissionIsNotCreated()
+    {
+        // Arrange
+        SetupCachedDialogJobId(null);
+        _correspondenceRepository
+            .Setup(x => x.GetCorrespondenceById(_correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+            .ReturnsAsync(CreateCorrespondence(
+                new ExternalReferenceEntity
+                {
+                    ReferenceType = ReferenceType.DialogportenDialogId,
+                    ReferenceValue = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd"
+                },
+                new ExternalReferenceEntity
+                {
+                    ReferenceType = ReferenceType.DialogportenTransmissionType,
+                    ReferenceValue = "Information"
+                }));
+
+        // Act
+        await _helper.SchedulePublishAfterDialogCreated(_correspondenceId, CancellationToken.None);
+
+        // Assert
+        _backgroundJobClient.Verify(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SchedulePublishAfterDialogCreated_ShouldSchedulePublish_WhenTransmissionIsCreated()
+    {
+        // Arrange
+        SetupCachedDialogJobId(null);
+        _correspondenceRepository
+            .Setup(x => x.GetCorrespondenceById(_correspondenceId, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+            .ReturnsAsync(CreateCorrespondence(
+                new ExternalReferenceEntity
+                {
+                    ReferenceType = ReferenceType.DialogportenDialogId,
+                    ReferenceValue = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd"
+                },
+                new ExternalReferenceEntity
+                {
+                    ReferenceType = ReferenceType.DialogportenTransmissionType,
+                    ReferenceValue = "Information"
+                },
+                new ExternalReferenceEntity
+                {
+                    ReferenceType = ReferenceType.DialogportenTransmissionId,
+                    ReferenceValue = "transmission-123"
+                }));
+
+        // Act
+        await _helper.SchedulePublishAfterDialogCreated(_correspondenceId, CancellationToken.None);
+
+        // Assert
+        _backgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Type == typeof(PublishCorrespondenceHandler)),
+            It.Is<IState>(state => state is ScheduledState)),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task SchedulePublishAfterDialogCreated_ShouldNotScheduleAnyJob_WhenNotAllAttachmentsArePublished()
     {
         // Arrange

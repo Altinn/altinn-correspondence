@@ -365,6 +365,76 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
+        public async Task Process_ShouldFailCorrespondence_WhenTransmissionIsNotCreatedAndNotAllAttachmentsArePublished()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn, isConfidential: false);
+            correspondence.ExternalReferences.Add(new ExternalReferenceEntity
+            {
+                ReferenceType = ReferenceType.DialogportenTransmissionType,
+                ReferenceValue = "Information"
+            });
+            SetupCommonMocks(correspondenceId, Guid.NewGuid(), correspondence);
+            _correspondenceRepositoryMock
+                .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Act
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(
+                    It.Is<CorrespondenceStatusEntity>(s =>
+                        s.CorrespondenceId == correspondenceId &&
+                        s.Status == CorrespondenceStatus.Failed &&
+                        s.StatusText.Contains("Dialogporten transmission not created")),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+            VerifyEventPublished(AltinnEventType.CorrespondencePublishFailed, senderUrn, Times.Once());
+        }
+
+        [Fact]
+        public async Task Process_ShouldNotCreateIdempotencyKey_WhenTransmissionIsCreatedAndNotAllAttachmentsArePublished()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn, isConfidential: false);
+            correspondence.ExternalReferences.Add(new ExternalReferenceEntity
+            {
+                ReferenceType = ReferenceType.DialogportenTransmissionType,
+                ReferenceValue = "Information"
+            });
+            correspondence.ExternalReferences.Add(new ExternalReferenceEntity
+            {
+                ReferenceType = ReferenceType.DialogportenTransmissionId,
+                ReferenceValue = "transmission-123"
+            });
+            SetupCommonMocks(correspondenceId, Guid.NewGuid(), correspondence);
+            _correspondenceRepositoryMock
+                .Setup(x => x.AreAllAttachmentsPublished(correspondenceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            // Act
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _idempotencyKeyRepositoryMock.Verify(
+                x => x.CreateAsync(It.IsAny<IdempotencyKeyEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
         public async Task Process_ShouldPublishCorrespondence_WhenTransmissionIsCreated()
         {
             // Arrange

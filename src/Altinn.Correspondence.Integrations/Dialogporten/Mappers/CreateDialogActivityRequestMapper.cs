@@ -1,9 +1,9 @@
 ﻿using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Enums;
-using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using UUIDNext;
@@ -38,7 +38,7 @@ namespace Altinn.Correspondence.Integrations.Dialogporten
                 },
                 Type = type
             };
-            if (TransmissionValidator.HasCreatedTransmission(correspondence) && type == ActivityType.TransmissionOpened)
+            if (correspondence.HasCreatedTransmission() && type == ActivityType.TransmissionOpened)
             {
                 var transmissionId = correspondence.ExternalReferences.FirstOrDefault(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionId)?.ReferenceValue;
                 if (transmissionId == null)
