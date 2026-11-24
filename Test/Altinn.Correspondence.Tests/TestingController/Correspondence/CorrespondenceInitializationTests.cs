@@ -2096,9 +2096,11 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
             var transmissionReference = transmissionEntity?.ExternalReferences
                 .FirstOrDefault(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenDialogId);
 
-            // The transmission reference should contain a dialog id, but not a transmission id as this is set upon publishing
+            // The transmission should have a dialog id and a transmission type, but not a transmission id as this is set upon publishing
             Assert.NotNull(transmissionReference);
-            Assert.DoesNotContain(transmissionEntity!.ExternalReferences, er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenTransmissionId);
+            Assert.Equal(2, transmissionEntity!.ExternalReferences.Count);
+            Assert.Contains(transmissionEntity.ExternalReferences, er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenTransmissionType);
+            Assert.DoesNotContain(transmissionEntity.ExternalReferences, er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenTransmissionId);
         }
         [Fact]
         public async Task InitializeCorrespondenceTransmission_WithTwoRecipients_ReturnsBadRequest()

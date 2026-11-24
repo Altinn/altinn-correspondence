@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Hangfire;
@@ -46,6 +47,12 @@ public class ManualRetryNotPublishedCorrespondencesHandler(
                 var dialogJobId = backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>(h => h.CreateDialogportenDialog(correspondenceId));
                 jobId = backgroundJobClient.ContinueJobWith<PublishCorrespondenceHandler>(dialogJobId, handler => handler.Process(correspondenceId, null, CancellationToken.None));
                 response.RetriedCorrespondenceIds[correspondenceId] = $"Enqueued create dialog then publish (jobId: {jobId})";
+            }
+            else if (correspondence.IsTransmission() && !correspondence.HasCreatedTransmission())
+            {
+                var transmissionJobId = backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>(h => h.CreateDialogportenTransmission(correspondenceId));
+                jobId = backgroundJobClient.ContinueJobWith<PublishCorrespondenceHandler>(transmissionJobId, handler => handler.Process(correspondenceId, null, CancellationToken.None));
+                response.RetriedCorrespondenceIds[correspondenceId] = $"Enqueued create transmission then publish (jobId: {jobId})";
             }
             else
             {

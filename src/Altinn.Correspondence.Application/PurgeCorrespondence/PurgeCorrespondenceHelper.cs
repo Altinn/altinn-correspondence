@@ -1,5 +1,6 @@
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Common.Helpers;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -124,7 +125,7 @@ public class PurgeCorrespondenceHelper(
         await CheckAndPurgeAttachments(correspondence.Id, partyUuid, cancellationToken);
 
         var dialogReference = correspondence.ExternalReferences.FirstOrDefault(externalReference => externalReference.ReferenceType == ReferenceType.DialogportenDialogId);
-        if (dialogReference is not null)
+        if (dialogReference is not null && !correspondence.IsTransmission())
         {
             var dialogId = dialogReference.ReferenceValue;
             var trySoftDeleteJobId = backgroundJobClient.Enqueue<IDialogportenService>(service => service.TrySoftDeleteDialog(dialogId));

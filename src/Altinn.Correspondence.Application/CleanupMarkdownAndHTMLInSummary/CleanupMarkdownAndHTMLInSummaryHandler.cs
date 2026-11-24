@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -127,6 +128,11 @@ public class CleanupMarkdownAndHTMLInSummaryHandler(
             if (string.IsNullOrEmpty(dialogId))
             {
                 logger.LogWarning("Skipping correspondence {correspondenceId} as it has no dialog ID", correspondence.Id);
+                return (false, false);
+            }
+            if (correspondence.IsTransmission())
+            {
+                logger.LogInformation("Skipping correspondence {correspondenceId} as it is a transmission on dialog {dialogId} it does not own", correspondence.Id, dialogId);
                 return (false, false);
             }
             var originalSummary = correspondence.Content?.MessageSummary;

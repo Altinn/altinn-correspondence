@@ -64,4 +64,41 @@ public class CleanupMarkdownAndHTMLInSummaryHandlerTests
         dialog.Verify(s => s.TryRemoveMarkdownAndHtmlFromSummary("d1", "Some markdown", It.IsAny<CancellationToken>()), Times.Once);
         dialog.Verify(s => s.TryRemoveMarkdownAndHtmlFromSummary("d2", "Already clean", It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task ExecuteCleanupInBackground_ShouldNotUpdateSummary_WhenCorrespondenceIsTransmission()
+    {
+        // Arrange
+        var now = DateTimeOffset.UtcNow;
+        var transmission = new CorrespondenceEntityBuilder()
+            .WithCreated(now.UtcDateTime.AddMinutes(-1))
+            .WithMessageSummary("Some **markdown**")
+            .WithExternalReference(ReferenceType.DialogportenDialogId, "d1")
+            .WithExternalReference(ReferenceType.DialogportenTransmissionId, "t1")
+            .Build();
+
+        var repo = new Mock<ICorrespondenceRepository>();
+        repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(
+            It.IsAny<int>(),
+            It.IsAny<DateTimeOffset?>(),
+            It.IsAny<Guid?>(),
+            true,
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { transmission })
+            .ReturnsAsync(new List<CorrespondenceEntity>());
+        repo.Setup(r => r.GetCorrespondencesByNoAltinn2IdAndExistingDialog(
+                It.IsAny<List<Guid>>(),
+                It.IsAny<ReferenceType>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { transmission });
+
+        var dialog = new Mock<IDialogportenService>();
+        var handler = new CleanupMarkdownAndHTMLInSummaryHandler(repo.Object, dialog.Object, new Mock<IBackgroundJobClient>().Object, new Mock<ILogger<CleanupMarkdownAndHTMLInSummaryHandler>>().Object);
+
+        // Act
+        await handler.ExecuteCleanupInBackground(100, CancellationToken.None);
+
+        // Assert
+        dialog.Verify(s => s.TryRemoveMarkdownAndHtmlFromSummary(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

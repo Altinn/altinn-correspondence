@@ -68,12 +68,43 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Process_ShouldCreateTransmissionThenPublish_WhenTransmissionIsNotCreated()
+    {
+        // Arrange
+        SetupCorrespondence(
+            [
+                new ExternalReferenceEntity { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd" },
+                new ExternalReferenceEntity { ReferenceType = ReferenceType.DialogportenTransmissionType, ReferenceValue = "Information" }
+            ],
+            [CorrespondenceStatus.Initialized]);
+
+        // Act
+        await _handler.Process(CreateRequest(), null, CancellationToken.None);
+
+        // Assert
+        _backgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Method.Name == nameof(InitializeCorrespondencesHandler.CreateDialogportenTransmission)),
+            It.Is<IState>(state => state is EnqueuedState)),
+            Times.Once);
+        _backgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Type == typeof(PublishCorrespondenceHandler)),
+            It.Is<IState>(state => state is AwaitingState
+                && ((AwaitingState)state).ParentId == nameof(InitializeCorrespondencesHandler.CreateDialogportenTransmission))),
+            Times.Once);
+    }
+
     private ManualRetryNotPublishedCorrespondencesRequest CreateRequest()
     {
         return new ManualRetryNotPublishedCorrespondencesRequest { CorrespondenceIds = [_correspondenceId] };
     }
 
     private void SetupCorrespondence(params CorrespondenceStatus[] statuses)
+    {
+        SetupCorrespondence([], statuses);
+    }
+
+    private void SetupCorrespondence(List<ExternalReferenceEntity> externalReferences, CorrespondenceStatus[] statuses)
     {
         _correspondenceRepository
             .Setup(x => x.GetCorrespondenceById(_correspondenceId, true, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
@@ -95,6 +126,7 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
                 },
                 RequestedPublishTime = DateTimeOffset.UtcNow,
                 Created = DateTimeOffset.UtcNow,
+                ExternalReferences = externalReferences,
                 Statuses = [.. statuses.Select(status => new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = _correspondenceId,

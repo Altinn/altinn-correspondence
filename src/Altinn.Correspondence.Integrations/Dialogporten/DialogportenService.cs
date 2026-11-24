@@ -613,7 +613,7 @@ public class DialogportenService(HttpClient _httpClient,
         // A transmission is added to a dialog the correspondence does not own, and Dialogporten has no endpoint for deleting a single transmission
         if (correspondence.IsTransmission())
         {
-            logger.LogWarning("Skipping purging dialog {dialogId} for correspondence {correspondenceId} as the correspondence is a transmission on a dialog it does not own", dialogId, correspondenceId);
+            logger.LogInformation("Skipping purging dialog {dialogId} for correspondence {correspondenceId} as the correspondence is a transmission on a dialog it does not own", dialogId, correspondenceId);
             return;
         }
 
