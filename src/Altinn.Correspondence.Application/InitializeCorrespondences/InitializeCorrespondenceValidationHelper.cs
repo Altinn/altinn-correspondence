@@ -398,13 +398,6 @@ namespace Altinn.Correspondence.Application.InitializeCorrespondences
                 return CorrespondenceErrors.TransmissionNotAllowedWithGuiActions;
             }
 
-            // New attachments are malware scanned after the transmission is created, and publish does not wait for the transmission
-            // once they are published. Read from the request, as the correspondence entity also contains the existing attachments.
-            if (request.Correspondence.Content.Attachments.Count > 0)
-            {
-                return CorrespondenceErrors.TransmissionNotAllowedWithNewAttachments;
-            }
-
             var dialogId = correspondence.ExternalReferences
                 .FirstOrDefault(er => er.ReferenceType == ReferenceType.DialogportenDialogId)?.ReferenceValue;
 

@@ -71,7 +71,6 @@ public static class CorrespondenceErrors
     public static Error ForwardingAttachmentsExceedMaxLimit = new Error(1071, "Correspondence cannot be forwarded with attachments if the total size of attachments exceeds 10 MB", HttpStatusCode.BadRequest);
     public static Error RecipientNotInResourceAccessList(List<string> recipients) =>
         new Error(1072, $"The following recipients are not members of an access list connected to the resource: {string.Join(", ", recipients)}", HttpStatusCode.BadRequest);
-    public static Error TransmissionNotAllowedWithNewAttachments = new Error(1073, "Transmissions cannot include new attachments. Use existing attachments that are already published", HttpStatusCode.BadRequest);
 }
 
 public static class AttachmentErrors
