@@ -35,9 +35,9 @@ public class PublishCorrespondenceHandler(
         var operationTimestamp = DateTimeOffset.UtcNow;
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
 
-        if (correspondence != null && (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed)))
+        if (correspondence != null && (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed) || correspondence.HasBeenPurged()))
         {
-            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
+            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - already published, failed or purged", correspondenceId);
             return Task.CompletedTask;
         }
 

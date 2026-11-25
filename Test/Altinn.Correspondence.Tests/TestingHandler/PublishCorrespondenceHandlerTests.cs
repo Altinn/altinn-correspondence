@@ -546,6 +546,39 @@ namespace Altinn.Correspondence.Tests.TestingHandler
         }
 
         [Fact]
+        public async Task Process_ShouldNotPublishOrFail_WhenTransmissionIsPurgedBeforeItIsCreated()
+        {
+            // Arrange
+            var correspondenceId = Guid.NewGuid();
+            var senderUrn = "urn:altinn:organization:identifier-no:313721779";
+            var recipientUrn = "urn:altinn:organization:identifier-no:310244007";
+
+            var correspondence = CreateTestCorrespondence(correspondenceId, senderUrn, recipientUrn, isConfidential: false);
+            correspondence.ExternalReferences.Add(new ExternalReferenceEntity
+            {
+                ReferenceType = ReferenceType.DialogportenTransmissionType,
+                ReferenceValue = "Information"
+            });
+            correspondence.Statuses.Add(new CorrespondenceStatusEntity
+            {
+                CorrespondenceId = correspondenceId,
+                Status = CorrespondenceStatus.PurgedByAltinn,
+                StatusChanged = DateTimeOffset.UtcNow.AddMinutes(-1),
+                StatusText = CorrespondenceStatus.PurgedByAltinn.ToString()
+            });
+            SetupCommonMocks(correspondenceId, Guid.NewGuid(), correspondence);
+
+            // Act
+            await _handler.Process(correspondenceId, null, CancellationToken.None);
+
+            // Assert
+            _correspondenceStatusRepositoryMock.Verify(
+                x => x.AddCorrespondenceStatus(It.IsAny<CorrespondenceStatusEntity>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            VerifyEventPublished(AltinnEventType.CorrespondencePublishFailed, senderUrn, Times.Never());
+        }
+
+        [Fact]
         public async Task Process_ShouldNotPublishAgain_WhenPublishIdempotencyKeyAlreadyExists()
         {
             // Arrange

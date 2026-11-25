@@ -6,7 +6,7 @@ namespace Altinn.Correspondence.Core.Extensions;
 public static class CorrespondenceEntityExtensions
 {
     // The transmission type is stored when a transmission is initialized, so it is set even when creating the transmission fails.
-    // Transmissions initialized before that are recognised by their transmission id.
+    // Transmissions initialized before that are only recognised once their transmission is created, by its transmission id.
     public static bool IsTransmission(this CorrespondenceEntity correspondence)
     {
         return correspondence.ExternalReferences.Any(reference =>
