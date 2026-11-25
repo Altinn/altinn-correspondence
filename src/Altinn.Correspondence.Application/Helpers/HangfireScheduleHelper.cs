@@ -1,5 +1,6 @@
 ﻿using Altinn.Correspondence.Application.PublishCorrespondence;
 using Altinn.Correspondence.Common.Caching;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Integrations.Hangfire;
@@ -41,6 +42,11 @@ namespace Altinn.Correspondence.Application.Helpers
             if (!hasDialogportenDialog)
             {
                 logger.LogInformation("Dialogporten dialog not yet created for correspondence {correspondenceId}. Publish continues from the dialog job when it finishes", correspondenceId);
+                return;
+            }
+            if (correspondence?.IsTransmission() == true && !correspondence.HasCreatedTransmission())
+            {
+                logger.LogInformation("Dialogporten transmission not yet created for correspondence {correspondenceId}. Publish continues from the transmission job when it finishes", correspondenceId);
                 return;
             }
             await SchedulePublishAtPublishTime(correspondenceId, cancellationToken);

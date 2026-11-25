@@ -1,3 +1,4 @@
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Entities;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
@@ -138,6 +139,11 @@ public class CleanupPerishingDialogsHandler(
                 return (false, false);
             }
             logger.LogError("Correspondence {correspondenceId} has no dialog reference", correspondence.Id);
+            return (false, false);
+        }
+        if (correspondence.IsTransmission())
+        {
+            logger.LogInformation("Skipping correspondence {correspondenceId} as it is a transmission on dialog {dialogId} it does not own", correspondence.Id, dialogId);
             return (false, false);
         }
 

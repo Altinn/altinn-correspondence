@@ -112,6 +112,39 @@ public class CleanupOrphanedDialogsHandlerTests
         // Assert
         Assert.Equal(all.Count, processed.Count);
     }
+
+    [Fact]
+    public async Task ExecuteCleanupInBackground_ShouldNotDeleteDialog_WhenCorrespondenceIsTransmission()
+    {
+        // Arrange
+        var now = DateTimeOffset.UtcNow;
+        var transmission = new CorrespondenceEntityBuilder()
+            .WithCreated(now.UtcDateTime.AddMinutes(-1))
+            .WithExternalReference(ReferenceType.DialogportenDialogId, "d1")
+            .WithExternalReference(ReferenceType.DialogportenTransmissionType, "Information")
+            .WithStatus(CorrespondenceStatus.PurgedByAltinn, now.UtcDateTime, Guid.NewGuid())
+            .Build();
+
+        var repo = new Mock<ICorrespondenceRepository>();
+        repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { transmission })
+            .ReturnsAsync(new List<CorrespondenceEntity>());
+        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndCurrentStatus(
+                It.IsAny<List<Guid>>(),
+                It.IsAny<ReferenceType>(),
+                It.IsAny<List<CorrespondenceStatus>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { transmission });
+
+        var dialog = new Mock<IDialogportenService>();
+        var handler = new CleanupOrphanedDialogsHandler(repo.Object, dialog.Object, new Mock<IBackgroundJobClient>().Object, new Mock<ILogger<CleanupOrphanedDialogsHandler>>().Object);
+
+        // Act
+        await handler.ExecuteCleanupInBackground(100, CancellationToken.None);
+
+        // Assert
+        dialog.Verify(s => s.TrySoftDeleteDialog(It.IsAny<string>()), Times.Never);
+    }
 }
 
 

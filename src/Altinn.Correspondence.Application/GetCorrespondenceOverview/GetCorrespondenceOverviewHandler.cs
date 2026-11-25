@@ -262,6 +262,10 @@ public class GetCorrespondenceOverviewHandler(
         {
             return false;
         }
+        if (correspondence.IsTransmission() && !correspondence.HasCreatedTransmission())
+        {
+            return false;
+        }
 
         logger.LogInformation("Publish for correspondence {CorrespondenceId} appears delayed; running inline before serving recipient", correspondence.Id);
         await cache.GetOrCreateAsync(

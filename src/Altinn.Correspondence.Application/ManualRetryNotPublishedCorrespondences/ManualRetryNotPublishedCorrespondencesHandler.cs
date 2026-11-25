@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Application.InitializeCorrespondences;
 using Altinn.Correspondence.Application.PublishCorrespondence;
+using Altinn.Correspondence.Core.Extensions;
 using Altinn.Correspondence.Core.Models.Enums;
 using Altinn.Correspondence.Core.Repositories;
 using Hangfire;
@@ -30,10 +31,18 @@ public class ManualRetryNotPublishedCorrespondencesHandler(
                 continue;
             }
 
-            if (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed))
+            if (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed) || correspondence.HasBeenPurged())
             {
-                logger.LogInformation("Skipping retry for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
-                response.RetriedCorrespondenceIds[correspondenceId] = "Already published or failed";
+                logger.LogInformation("Skipping retry for correspondence {CorrespondenceId} - already published, failed or purged", correspondenceId);
+                response.RetriedCorrespondenceIds[correspondenceId] = "Already published, failed or purged";
+                continue;
+            }
+
+            // Before the requested publish time the scheduled jobs have not run yet, and retrying would run them twice
+            if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
+            {
+                logger.LogInformation("Skipping retry for correspondence {CorrespondenceId} - requested publish time has not passed", correspondenceId);
+                response.RetriedCorrespondenceIds[correspondenceId] = "Requested publish time has not passed";
                 continue;
             }
 
@@ -44,8 +53,13 @@ public class ManualRetryNotPublishedCorrespondencesHandler(
             if (!hasDialogportenReference)
             {
                 var dialogJobId = backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>(h => h.CreateDialogportenDialog(correspondenceId));
-                jobId = backgroundJobClient.ContinueJobWith<PublishCorrespondenceHandler>(dialogJobId, handler => handler.Process(correspondenceId, null, CancellationToken.None));
+                jobId = backgroundJobClient.ContinueJobWith<PublishCorrespondenceHandler>(dialogJobId, handler => handler.Process(correspondenceId, null, CancellationToken.None), JobContinuationOptions.OnAnyFinishedState);
                 response.RetriedCorrespondenceIds[correspondenceId] = $"Enqueued create dialog then publish (jobId: {jobId})";
+            }
+            else if (correspondence.IsTransmission() && !correspondence.HasCreatedTransmission())
+            {
+                jobId = backgroundJobClient.Enqueue<InitializeCorrespondencesHandler>(h => h.ScheduleTransmissionAndPublishJobs(correspondenceId, 0, correspondence.RequestedPublishTime, CancellationToken.None));
+                response.RetriedCorrespondenceIds[correspondenceId] = $"Enqueued scheduling of transmission then publish (jobId: {jobId})";
             }
             else
             {

@@ -11,7 +11,6 @@ using Altinn.Correspondence.Core.Repositories;
 using Altinn.Correspondence.Core.Services;
 using Altinn.Correspondence.Core.Services.Enums;
 using Altinn.Correspondence.Integrations.Dialogporten.Enums;
-using Altinn.Correspondence.Integrations.Dialogporten.Helpers;
 using Altinn.Correspondence.Integrations.Dialogporten.Mappers;
 using Altinn.Correspondence.Integrations.Dialogporten.Models;
 using Microsoft.Extensions.Logging;
@@ -611,6 +610,13 @@ public class DialogportenService(HttpClient _httpClient,
             throw new ArgumentException($"No dialog found on correspondence with id {correspondenceId}");
         }
 
+        // A transmission is added to a dialog the correspondence does not own, and Dialogporten has no endpoint for deleting a single transmission
+        if (correspondence.IsTransmission())
+        {
+            logger.LogInformation("Skipping purging dialog {dialogId} for correspondence {correspondenceId} as the correspondence is a transmission on a dialog it does not own", dialogId, correspondenceId);
+            return;
+        }
+
         var response = await _httpClient.PostAsync($"dialogporten/api/v1/serviceowner/dialogs/{dialogId}/actions/purge", null, cancellationToken);
         var statusCode = response.StatusCode;
         if (!response.IsSuccessStatusCode)
@@ -861,7 +867,7 @@ public class DialogportenService(HttpClient _httpClient,
 
     public CreateDialogActivityRequest CreateOpenedActivityRequest(CorrespondenceEntity correspondence, DialogportenActorType actorType, DateTimeOffset activityTimestamp, string? partyUrn)
     {
-        if (TransmissionValidator.IsTransmission(correspondence))
+        if (correspondence.HasCreatedTransmission())
         {
             return CreateDialogActivityRequestMapper.CreateDialogActivityRequest(correspondence, actorType, null, ActivityType.TransmissionOpened, partyUrn, activityTimestamp);
         }

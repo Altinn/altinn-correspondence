@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using OneOf;
 using System.Text.RegularExpressions;
+using Altinn.Correspondence.Integrations.Dialogporten.Models;
 
 namespace Altinn.Correspondence.Application.Helpers
 {
@@ -349,17 +350,34 @@ namespace Altinn.Correspondence.Application.Helpers
                 IgnoreReservation = request.Correspondence.IgnoreReservation,
                 Statuses = statuses,
                 Created = DateTime.UtcNow,
-                ExternalReferences = request.Correspondence.ExternalReferences.Select(requestExternalReference => new ExternalReferenceEntity()
-                {
-                    ReferenceType = requestExternalReference.ReferenceType,
-                    ReferenceValue = requestExternalReference.ReferenceValue
-                }).ToList() ?? new List<ExternalReferenceEntity>(),
+                ExternalReferences = MapExternalReferences(request.Correspondence.ExternalReferences),
                 Published = currentStatus == CorrespondenceStatus.Published ? DateTimeOffset.UtcNow : null,
                 IsConfirmationNeeded = request.Correspondence.IsConfirmationNeeded,
                 IsConfidential = request.Correspondence.IsConfidential,
                 OriginalRequest = request.Correspondence.OriginalRequest,
                 AllowForwarding = request.Correspondence.AllowForwarding
             };
+        }
+
+        private static List<ExternalReferenceEntity> MapExternalReferences(List<ExternalReferenceEntity> requestExternalReferences)
+        {
+            var externalReferences = requestExternalReferences.Select(requestExternalReference => new ExternalReferenceEntity()
+            {
+                ReferenceType = requestExternalReference.ReferenceType,
+                ReferenceValue = requestExternalReference.ReferenceValue
+            }).ToList();
+
+            var isTransmission = externalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId);
+            var hasTransmissionType = externalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenTransmissionType);
+            if (isTransmission && !hasTransmissionType)
+            {
+                externalReferences.Add(new ExternalReferenceEntity()
+                {
+                    ReferenceType = ReferenceType.DialogportenTransmissionType,
+                    ReferenceValue = nameof(TransmissionType.Information)
+                });
+            }
+            return externalReferences;
         }
 
         public string AddRecipientToMessage(string message, string recipient)

@@ -222,6 +222,17 @@ public class InitializeCorrespondencesHandler(
     [AutomaticRetry(OnAttemptsExceeded = AttemptsExceededAction.Delete)]
     public async Task CreateDialogportenTransmission(Guid correspondenceId)
     {
+        var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, false, false, CancellationToken.None);
+        if (correspondence?.HasCreatedTransmission() == true)
+        {
+            logger.LogInformation("Skipping creating Dialogporten transmission for correspondence {CorrespondenceId} as it is already created", correspondenceId);
+            return;
+        }
+        if (correspondence is not null && (correspondence.StatusHasBeen(CorrespondenceStatus.Failed) || correspondence.HasBeenPurged()))
+        {
+            logger.LogInformation("Skipping creating Dialogporten transmission for correspondence {CorrespondenceId} as it has failed or been purged", correspondenceId);
+            return;
+        }
         logger.LogInformation("Creating Dialogporten transmission for correspondence {CorrespondenceId}", correspondenceId);
         var transmissionId = await dialogportenService.CreateDialogTransmission(correspondenceId);
         await correspondenceRepository.AddExternalReference(correspondenceId, ReferenceType.DialogportenTransmissionId, transmissionId);
@@ -271,15 +282,13 @@ public class InitializeCorrespondencesHandler(
         return Task.CompletedTask;
     }
 
-    public async Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
+    public Task ScheduleTransmissionAndPublishJobs(Guid correspondenceId, int attachmentsCount, DateTimeOffset requestedPublishTime, CancellationToken cancellationToken)
     {
         var scheduleAt = requestedPublishTime < DateTimeOffset.UtcNow
             ? DateTimeOffset.UtcNow
             : requestedPublishTime;
         var transmissionJob = backgroundJobClient.Schedule(() => CreateDialogportenTransmission(correspondenceId), scheduleAt);
-        if (await correspondenceRepository.AreAllAttachmentsPublished(correspondenceId, cancellationToken))
-        {
-            hangfireScheduleHelper.SchedulePublishAfterJob(correspondenceId, transmissionJob, cancellationToken);
-        }
+        hangfireScheduleHelper.SchedulePublishAfterJob(correspondenceId, transmissionJob, cancellationToken);
+        return Task.CompletedTask;
     }
 }

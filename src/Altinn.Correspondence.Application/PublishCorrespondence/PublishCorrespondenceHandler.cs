@@ -35,17 +35,18 @@ public class PublishCorrespondenceHandler(
         var operationTimestamp = DateTimeOffset.UtcNow;
         var correspondence = await correspondenceRepository.GetCorrespondenceById(correspondenceId, true, true, false, cancellationToken);
 
-        if (correspondence != null && (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed)))
+        if (correspondence != null && (correspondence.StatusHasBeen(CorrespondenceStatus.Published) || correspondence.StatusHasBeen(CorrespondenceStatus.Failed) || correspondence.HasBeenPurged()))
         {
-            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - already published or failed", correspondenceId);
+            logger.LogInformation("Skipping publish for correspondence {CorrespondenceId} - already published, failed or purged", correspondenceId);
             return Task.CompletedTask;
         }
 
         bool hasDialogportenDialog = correspondence?.ExternalReferences.Any(reference => reference.ReferenceType == ReferenceType.DialogportenDialogId) == true;
+        bool isMissingDialogportenTransmission = correspondence?.IsTransmission() == true && !correspondence.HasCreatedTransmission();
 
-        // Publish job only runs after the dialog job has finished, so the dialog will not be created later.
-        // Fail correspondence if dialog is missing instead of waiting for attachments, as a later attachment publish may not schedule publishing again when dialog is missing.
-        if (correspondence != null && hasDialogportenDialog && !await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
+        // Publish job only runs after the dialog or transmission job has finished, so neither will be created later.
+        // Fail correspondence if dialog or transmission is missing instead of waiting for attachments, as a later attachment publish does not schedule publishing again when they are missing.
+        if (correspondence != null && hasDialogportenDialog && !isMissingDialogportenTransmission && !await correspondenceRepository.AreAllAttachmentsPublished(correspondence.Id, cancellationToken))
         {
             logger.LogInformation("Skipping this publish job for correspondence {CorrespondenceId} - not all attachments are published yet - the final attachment publish will enqueue this job again", correspondenceId);
             return Task.CompletedTask;
@@ -75,6 +76,10 @@ public class PublishCorrespondenceHandler(
         else if (!hasDialogportenDialog)
         {
             errorMessage = $"Dialogporten dialog not created for correspondence {correspondenceId}";
+        }
+        else if (isMissingDialogportenTransmission)
+        {
+            errorMessage = $"Dialogporten transmission not created for correspondence {correspondenceId}";
         }
         else if (await HasRecipientBeenSetToReservedInKRR(correspondence, cancellationToken))
         {

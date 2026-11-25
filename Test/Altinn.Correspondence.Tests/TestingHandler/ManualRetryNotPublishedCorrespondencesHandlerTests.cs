@@ -34,7 +34,9 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
     [Theory]
     [InlineData(CorrespondenceStatus.Published)]
     [InlineData(CorrespondenceStatus.Failed)]
-    public async Task Process_ShouldNotRetry_WhenCorrespondenceIsAlreadyPublishedOrFailed(CorrespondenceStatus status)
+    [InlineData(CorrespondenceStatus.PurgedByAltinn)]
+    [InlineData(CorrespondenceStatus.PurgedByRecipient)]
+    public async Task Process_ShouldNotRetry_WhenCorrespondenceIsAlreadyPublishedFailedOrPurged(CorrespondenceStatus status)
     {
         // Arrange
         SetupCorrespondence(CorrespondenceStatus.Initialized, status);
@@ -43,7 +45,7 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
         var result = await _handler.Process(CreateRequest(), null, CancellationToken.None);
 
         // Assert
-        Assert.Equal("Already published or failed", result.AsT0.RetriedCorrespondenceIds[_correspondenceId]);
+        Assert.Equal("Already published, failed or purged", result.AsT0.RetriedCorrespondenceIds[_correspondenceId]);
         _backgroundJobClient.Verify(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()), Times.Never);
     }
 
@@ -64,8 +66,54 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
         _backgroundJobClient.Verify(x => x.Create(
             It.Is<Job>(job => job.Type == typeof(PublishCorrespondenceHandler)),
             It.Is<IState>(state => state is AwaitingState
-                && ((AwaitingState)state).ParentId == nameof(InitializeCorrespondencesHandler.CreateDialogportenDialog))),
+                && ((AwaitingState)state).ParentId == nameof(InitializeCorrespondencesHandler.CreateDialogportenDialog)
+                && ((AwaitingState)state).Options == JobContinuationOptions.OnAnyFinishedState)),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Process_ShouldScheduleTransmissionAndPublish_WhenTransmissionIsNotCreated()
+    {
+        // Arrange
+        SetupCorrespondence(
+            [
+                new ExternalReferenceEntity { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd" },
+                new ExternalReferenceEntity { ReferenceType = ReferenceType.DialogportenTransmissionType, ReferenceValue = "Information" }
+            ],
+            [CorrespondenceStatus.Initialized]);
+
+        // Act
+        await _handler.Process(CreateRequest(), null, CancellationToken.None);
+
+        // Assert
+        _backgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Method.Name == nameof(InitializeCorrespondencesHandler.ScheduleTransmissionAndPublishJobs)),
+            It.Is<IState>(state => state is EnqueuedState)),
+            Times.Once);
+        _backgroundJobClient.Verify(x => x.Create(
+            It.Is<Job>(job => job.Method.Name == nameof(InitializeCorrespondencesHandler.CreateDialogportenTransmission)),
+            It.IsAny<IState>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Process_ShouldNotRetry_WhenRequestedPublishTimeHasNotPassed()
+    {
+        // Arrange
+        SetupCorrespondence(
+            [
+                new ExternalReferenceEntity { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd" },
+                new ExternalReferenceEntity { ReferenceType = ReferenceType.DialogportenTransmissionType, ReferenceValue = "Information" }
+            ],
+            [CorrespondenceStatus.Initialized],
+            DateTimeOffset.UtcNow.AddDays(1));
+
+        // Act
+        var result = await _handler.Process(CreateRequest(), null, CancellationToken.None);
+
+        // Assert
+        Assert.Equal("Requested publish time has not passed", result.AsT0.RetriedCorrespondenceIds[_correspondenceId]);
+        _backgroundJobClient.Verify(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()), Times.Never);
     }
 
     private ManualRetryNotPublishedCorrespondencesRequest CreateRequest()
@@ -74,6 +122,11 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
     }
 
     private void SetupCorrespondence(params CorrespondenceStatus[] statuses)
+    {
+        SetupCorrespondence([], statuses);
+    }
+
+    private void SetupCorrespondence(List<ExternalReferenceEntity> externalReferences, CorrespondenceStatus[] statuses, DateTimeOffset? requestedPublishTime = null)
     {
         _correspondenceRepository
             .Setup(x => x.GetCorrespondenceById(_correspondenceId, true, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
@@ -93,8 +146,9 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
                     MessageBody = "Test message body",
                     Attachments = []
                 },
-                RequestedPublishTime = DateTimeOffset.UtcNow,
+                RequestedPublishTime = requestedPublishTime ?? DateTimeOffset.UtcNow,
                 Created = DateTimeOffset.UtcNow,
+                ExternalReferences = externalReferences,
                 Statuses = [.. statuses.Select(status => new CorrespondenceStatusEntity
                 {
                     CorrespondenceId = _correspondenceId,

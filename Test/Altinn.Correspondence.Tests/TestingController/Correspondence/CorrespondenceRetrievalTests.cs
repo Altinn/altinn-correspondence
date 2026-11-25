@@ -5,6 +5,11 @@ using Altinn.Correspondence.Tests.Factories;
 using Altinn.Correspondence.Tests.Fixtures;
 using Altinn.Correspondence.Tests.Helpers;
 using Altinn.Correspondence.Tests.TestingController.Correspondence.Base;
+using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -74,6 +79,38 @@ namespace Altinn.Correspondence.Tests.TestingController.Correspondence
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceOverviewResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetCorrespondenceOverview_AsReceiver_ShouldNotFailTransmission_WhenTransmissionIsNotCreatedYet()
+        {
+            // Arrange
+            var hangfireBackgroundJobClient = new Mock<IBackgroundJobClient>();
+            hangfireBackgroundJobClient
+                .Setup(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()))
+                .Returns("job-id");
+            using var testFactory = new UnitWebApplicationFactory((IServiceCollection services) =>
+            {
+                services.AddSingleton(hangfireBackgroundJobClient.Object);
+            });
+            var senderClient = testFactory.CreateSenderClient();
+            var recipientClient = testFactory.CreateClientWithAddedClaims(
+                ("notSender", "true"),
+                ("scope", AuthorizationConstants.RecipientScope));
+            var payload = new CorrespondenceBuilder()
+                .CreateCorrespondence()
+                .WithExternalReferencesDialogId("019abaa7-6dfd-7b82-9232-a34ba1e87fbd")
+                .Build();
+            var initializedTransmission = await CorrespondenceHelper.GetInitializedCorrespondence(senderClient, _responseSerializerOptions, payload);
+
+            // Act
+            var getCorrespondenceOverviewResponse = await recipientClient.GetAsync($"correspondence/api/v1/correspondence/{initializedTransmission.CorrespondenceId}");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.NotFound, getCorrespondenceOverviewResponse.StatusCode);
+            var details = await (await senderClient.GetAsync($"correspondence/api/v1/correspondence/{initializedTransmission.CorrespondenceId}/details")).Content.ReadFromJsonAsync<CorrespondenceDetailsExt>(_responseSerializerOptions);
+            Assert.NotNull(details);
+            Assert.DoesNotContain(details.StatusHistory, status => status.Status == CorrespondenceStatusExt.Failed);
         }
 
         [Fact]

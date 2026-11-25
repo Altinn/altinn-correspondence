@@ -31,7 +31,7 @@ public class PurgeCorrespondenceHandler(
             logger.LogWarning("Correspondence {CorrespondenceId} not found", correspondenceId);
             return CorrespondenceErrors.CorrespondenceNotFound;
         }
-        if (correspondence.ExternalReferences.Any(er => er.ReferenceType == Core.Models.Enums.ReferenceType.DialogportenTransmissionId))
+        if (correspondence.HasCreatedTransmission())
         {
             logger.LogWarning("Purge operation attempted on correspondence {CorrespondenceId} linked to Dialogporten Transmission", correspondenceId);
             return CorrespondenceErrors.CannotPurgeCorrespondenceLinkedToDialogportenTransmission;

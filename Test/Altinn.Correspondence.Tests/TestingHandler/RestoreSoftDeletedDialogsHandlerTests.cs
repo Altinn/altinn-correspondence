@@ -112,4 +112,37 @@ public class RestoreSoftDeletedDialogsHandlerTests
         // Assert
         Assert.Equal(all.Count, processed.Count);
     }
+
+    [Fact]
+    public async Task ExecuteRestoreInBackground_ShouldNotRestoreDialog_WhenCorrespondenceIsTransmission()
+    {
+        // Arrange
+        var now = DateTimeOffset.UtcNow;
+        var transmission = new CorrespondenceEntityBuilder()
+            .WithCreated(now.UtcDateTime.AddMinutes(-1))
+            .WithExternalReference(ReferenceType.DialogportenDialogId, "d1")
+            .WithExternalReference(ReferenceType.DialogportenTransmissionId, "t1")
+            .WithStatus(CorrespondenceStatus.Published, now.UtcDateTime, Guid.NewGuid())
+            .Build();
+
+        var repo = new Mock<ICorrespondenceRepository>();
+        repo.SetupSequence(r => r.GetCorrespondencesWindowAfter(It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { transmission })
+            .ReturnsAsync(new List<CorrespondenceEntity>());
+        repo.Setup(r => r.GetCorrespondencesByIdsWithExternalReferenceAndNotCurrentStatuses(
+                It.IsAny<List<Guid>>(),
+                It.IsAny<ReferenceType>(),
+                It.IsAny<List<CorrespondenceStatus>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CorrespondenceEntity> { transmission });
+
+        var dialog = new Mock<IDialogportenService>();
+        var handler = new RestoreSoftDeletedDialogsHandler(repo.Object, dialog.Object, new Mock<IBackgroundJobClient>().Object, new Mock<ILogger<RestoreSoftDeletedDialogsHandler>>().Object);
+
+        // Act
+        await handler.ExecuteRestoreInBackground(100, CancellationToken.None);
+
+        // Assert
+        dialog.Verify(s => s.TryRestoreSoftDeletedDialog(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 } 
