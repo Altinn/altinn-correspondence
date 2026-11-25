@@ -109,9 +109,19 @@ public class CheckNotificationDeliveryHandler(
 
             if (IsFinalOrderStatus(notificationDetailsV2.Status))
             {
+                // Order_Failed means Altinn Notifications gave up processing the order, so no recipient in it was notified
+                var orderFailed = notificationDetailsV2.Status == OrderFailedStatus;
                 var failedRecipients = notificationDetailsV2.Recipients.Where(r => r.Status.IsFailed()).ToList();
                 var sentRecipients = notificationDetailsV2.Recipients.Where(r => r.IsSent()).ToList();
-                var allFailed = failedRecipients.Any() && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
+                var allFailed = !sentRecipients.Any()
+                    && (orderFailed || (failedRecipients.Any() && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed())));
+                var unrecognizedRecipientCount = notificationDetailsV2.Recipients.Count(r => r.Status == NotificationStatusV2.Unknown);
+                if (unrecognizedRecipientCount > 0)
+                {
+                    logger.LogWarning(
+                        "Notification {NotificationId} (shipment {ShipmentId}) has {UnrecognizedRecipientCount} recipient(s) with a status that is not recognized. These recipients are treated as neither sent nor failed.",
+                        notificationId, notification.ShipmentId, unrecognizedRecipientCount);
+                }
                 var orderRequest = DeserializeOrderRequest(notification);
                 var isMainOrder = IsMainOrder(orderRequest, correspondence.Recipient);
                 var eventSource = NotificationEventSource.From(correspondence, orderRequest);
@@ -129,9 +139,9 @@ public class CheckNotificationDeliveryHandler(
 
                         await correspondenceNotificationRepository.UpdateNotificationStatus(notificationId, notificationDetailsV2.Status, transactionToken);
 
-                        if (failedRecipients.Any())
+                        if (orderFailed || failedRecipients.Any())
                         {
-                            logger.LogError("Notification {NotificationId} has failed status (allFailed: {AllFailed}, isMainOrder: {IsMainOrder})", notificationId, allFailed, isMainOrder);
+                            logger.LogError("Notification {NotificationId} has failed status (orderStatus: {OrderStatus}, allFailed: {AllFailed}, isMainOrder: {IsMainOrder})", notificationId, notificationDetailsV2.Status, allFailed, isMainOrder);
                             if (publishFailedEvent)
                             {
                                 if (allFailed && isMainOrder)
@@ -210,7 +220,9 @@ public class CheckNotificationDeliveryHandler(
         }
     }
 
-    private static readonly string[] FinalOrderStatuses = ["Order_Completed", "Order_SendConditionNotMet", "Order_Cancelled"];
+    private const string OrderFailedStatus = "Order_Failed";
+
+    private static readonly string[] FinalOrderStatuses = ["Order_Completed", "Order_SendConditionNotMet", "Order_Cancelled", OrderFailedStatus];
 
     private static bool IsFinalOrderStatus(string? status) => status is not null && FinalOrderStatuses.Contains(status);
 

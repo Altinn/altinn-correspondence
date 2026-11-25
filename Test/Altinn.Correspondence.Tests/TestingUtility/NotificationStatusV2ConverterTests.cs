@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Altinn.Correspondence.Application.Helpers;
 using Altinn.Correspondence.Core.Models.Enums;
 
 namespace Altinn.Correspondence.Tests.TestingUtility;
@@ -45,6 +46,65 @@ public class NotificationStatusV2ConverterTests
 
         // Assert
         Assert.Equal(expected, result);
+    }
+
+    /// <summary>
+    /// Recipient statuses returned by the shipment endpoint in Altinn Notifications (ProcessingLifecycleExt).
+    /// A status that is not recognized becomes Unknown and is silently ignored when resolving notification delivery.
+    /// </summary>
+    public static TheoryData<string> AltinnNotificationsRecipientStatuses => new()
+    {
+        "Email_New",
+        "Email_Sending",
+        "Email_Succeeded",
+        "Email_Delivered",
+        "Email_Failed",
+        "Email_Failed_RecipientReserved",
+        "Email_Failed_RecipientNotIdentified",
+        "Email_Failed_InvalidFormat",
+        "Email_Failed_SuppressedRecipient",
+        "Email_Failed_TransientError",
+        "Email_Failed_Bounced",
+        "Email_Failed_FilteredSpam",
+        "Email_Failed_Quarantined",
+        "Email_Failed_TTL",
+        "Email_Failed_InvalidSasUrl",
+        "Email_Failed_PayloadTooLarge",
+        "Email_Failed_ContentTooLarge",
+        "SMS_New",
+        "SMS_Sending",
+        "SMS_Accepted",
+        "SMS_Delivered",
+        "SMS_Failed",
+        "SMS_Failed_InvalidRecipient",
+        "SMS_Failed_RecipientReserved",
+        "SMS_Failed_BarredReceiver",
+        "SMS_Failed_Deleted",
+        "SMS_Failed_Expired",
+        "SMS_Failed_Undelivered",
+        "SMS_Failed_RecipientNotIdentified",
+        "SMS_Failed_Rejected",
+        "SMS_Failed_TTL",
+        "SMS_Failed_ContentTooLarge"
+    };
+
+    [Theory]
+    [MemberData(nameof(AltinnNotificationsRecipientStatuses))]
+    public void Read_RecipientStatusFromAltinnNotifications_IsRecognized(string input)
+    {
+        var result = JsonSerializer.Deserialize<NotificationStatusV2>($"\"{input}\"", _options);
+
+        Assert.NotEqual(NotificationStatusV2.Unknown, result);
+        Assert.Equal(input, result.ToString());
+    }
+
+    [Theory]
+    [MemberData(nameof(AltinnNotificationsRecipientStatuses))]
+    public void IsFailed_RecipientStatusFromAltinnNotifications_IsTrueOnlyForFailureStatuses(string input)
+    {
+        var result = JsonSerializer.Deserialize<NotificationStatusV2>($"\"{input}\"", _options);
+
+        Assert.Equal(input.Contains("_Failed"), result.IsFailed());
     }
 
     [Theory]

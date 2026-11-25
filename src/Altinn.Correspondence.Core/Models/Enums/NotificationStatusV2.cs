@@ -31,6 +31,11 @@ public class NotificationStatusV2Converter : JsonConverter<NotificationStatusV2>
 /// Statuses for notifications that is defined in the Altinn Notification Service
 /// More information: https://github.com/Altinn/altinn-notifications/issues/747#issuecomment-2802132260
 /// </summary>
+/// <remarks>
+/// The names must match the recipient statuses returned by the shipment endpoint in Altinn Notifications (ProcessingLifecycleExt) exactly.
+/// A status that is not recognized is deserialized as <see cref="Unknown"/> and is treated as neither sent nor failed.
+/// Failure statuses must stay within the ranges used by NotificationStatusV2Extensions.IsFailed.
+/// </remarks>
 [JsonConverter(typeof(NotificationStatusV2Converter))]
 public enum NotificationStatusV2
 {
@@ -44,10 +49,13 @@ public enum NotificationStatusV2
     Email_Failed_Quarantined = 7,
     Email_Failed_RecipientReserved = 8,
     Email_Failed_FilteredSpam = 9,
-    Email_Failed_InvalidEmailFormat = 10,
+    Email_Failed_InvalidFormat = 10,
     Email_Failed_SuppressedRecipient = 11,
     Email_Failed_RecipientNotIdentified = 12,
     Email_Failed_TTL = 13,
+    Email_Failed_InvalidSasUrl = 14,
+    Email_Failed_PayloadTooLarge = 15,
+    Email_Failed_ContentTooLarge = 16,
 
     SMS_New = 100,
     SMS_Sending = 101,
@@ -64,5 +72,6 @@ public enum NotificationStatusV2
     SMS_Failed_RecipientReserved = 112,
     SMS_Failed_RecipientNotIdentified = 113,
     SMS_Failed_TTL = 114,
+    SMS_Failed_ContentTooLarge = 115,
     Unknown = 999
 }
