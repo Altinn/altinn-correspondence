@@ -38,6 +38,14 @@ public class ManualRetryNotPublishedCorrespondencesHandler(
                 continue;
             }
 
+            // Before the requested publish time the scheduled jobs have not run yet, and retrying would run them twice
+            if (correspondence.RequestedPublishTime > DateTimeOffset.UtcNow)
+            {
+                logger.LogInformation("Skipping retry for correspondence {CorrespondenceId} - requested publish time has not passed", correspondenceId);
+                response.RetriedCorrespondenceIds[correspondenceId] = "Requested publish time has not passed";
+                continue;
+            }
+
             var hasDialogportenReference = correspondence.ExternalReferences
                 .Any(r => r.ReferenceType == ReferenceType.DialogportenDialogId);
 

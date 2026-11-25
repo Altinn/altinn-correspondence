@@ -96,6 +96,26 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task Process_ShouldNotRetry_WhenRequestedPublishTimeHasNotPassed()
+    {
+        // Arrange
+        SetupCorrespondence(
+            [
+                new ExternalReferenceEntity { ReferenceType = ReferenceType.DialogportenDialogId, ReferenceValue = "019abaa7-6dfd-7b82-9232-a34ba1e87fbd" },
+                new ExternalReferenceEntity { ReferenceType = ReferenceType.DialogportenTransmissionType, ReferenceValue = "Information" }
+            ],
+            [CorrespondenceStatus.Initialized],
+            DateTimeOffset.UtcNow.AddDays(1));
+
+        // Act
+        var result = await _handler.Process(CreateRequest(), null, CancellationToken.None);
+
+        // Assert
+        Assert.Equal("Requested publish time has not passed", result.AsT0.RetriedCorrespondenceIds[_correspondenceId]);
+        _backgroundJobClient.Verify(x => x.Create(It.IsAny<Job>(), It.IsAny<IState>()), Times.Never);
+    }
+
     private ManualRetryNotPublishedCorrespondencesRequest CreateRequest()
     {
         return new ManualRetryNotPublishedCorrespondencesRequest { CorrespondenceIds = [_correspondenceId] };
@@ -106,7 +126,7 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
         SetupCorrespondence([], statuses);
     }
 
-    private void SetupCorrespondence(List<ExternalReferenceEntity> externalReferences, CorrespondenceStatus[] statuses)
+    private void SetupCorrespondence(List<ExternalReferenceEntity> externalReferences, CorrespondenceStatus[] statuses, DateTimeOffset? requestedPublishTime = null)
     {
         _correspondenceRepository
             .Setup(x => x.GetCorrespondenceById(_correspondenceId, true, It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
@@ -126,7 +146,7 @@ public class ManualRetryNotPublishedCorrespondencesHandlerTests
                     MessageBody = "Test message body",
                     Attachments = []
                 },
-                RequestedPublishTime = DateTimeOffset.UtcNow,
+                RequestedPublishTime = requestedPublishTime ?? DateTimeOffset.UtcNow,
                 Created = DateTimeOffset.UtcNow,
                 ExternalReferences = externalReferences,
                 Statuses = [.. statuses.Select(status => new CorrespondenceStatusEntity
