@@ -68,9 +68,9 @@ static void BuildAndRun(string[] args)
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseMiddleware<AcceptHeaderValidationMiddleware>();
 
-    if (app.Environment.IsDevelopment())
+    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("ScalewayPoc"))
     {
-        bootstrapLogger.LogInformation("Running in development mode, applying migrations to database...");
+        bootstrapLogger.LogInformation("Applying database migrations...");
         using var scope = app.Services.CreateScope();
         var _Db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         if (_Db != null)
@@ -134,10 +134,11 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     config.GetSection(nameof(GeneralSettings)).Bind(generalSettings);
     services.AddStackExchangeRedisCache(options =>
     {
-        options.Configuration = generalSettings.RedisConnectionString;
+        options.ConfigurationOptions = RedisConfiguration.Create(generalSettings.RedisConnectionString, generalSettings.RedisCaPem);
         options.InstanceName = "redisCache";
     });
-    var dataProtectionRedisConnection = ConnectionMultiplexer.Connect(generalSettings.RedisConnectionString);
+    var dataProtectionRedisConnection = ConnectionMultiplexer.Connect(
+        RedisConfiguration.Create(generalSettings.RedisConnectionString, generalSettings.RedisCaPem));
     services.AddDataProtection()
         .SetApplicationName("Altinn.Correspondence.API")
         .PersistKeysToStackExchangeRedis(dataProtectionRedisConnection, "DataProtection-Keys");
@@ -152,7 +153,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
     services.AddApplicationHandlers();
     services.AddPersistence(config, bootstrapLogger);
-    services.AddIntegrations(config);
+    services.AddIntegrations(config, hostEnvironment);
 
     services.AddHttpClient();
     services.AddProblemDetails();

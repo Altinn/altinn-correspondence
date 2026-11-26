@@ -44,7 +44,7 @@ namespace Altinn.Correspondence.Application.Helpers
         );
 
         private static readonly TimeSpan UploadCanceledCleanupTimeout = TimeSpan.FromSeconds(30);
-        
+
         public async Task<OneOf<UploadAttachmentResponse, Error>> UploadAttachment(Stream file, Guid attachmentId, Guid partyUuid, CancellationToken cancellationToken)
         {
             logger.LogInformation("Start upload of attachment {attachmentId} for party {partyUuid}", attachmentId, partyUuid);
@@ -106,6 +106,11 @@ namespace Altinn.Correspondence.Application.Helpers
 
         private bool ShouldBypassMalwareScan(AttachmentEntity attachment)
         {
+            if (generalSettings.Value.BypassMalwareScan)
+            {
+                return true;
+            }
+
             if (string.IsNullOrWhiteSpace(generalSettings.Value.MalwareScanBypassWhiteList))
             {
                 return false;
@@ -131,7 +136,7 @@ namespace Altinn.Correspondence.Application.Helpers
             return serviceOwnerEntity?.GetStorageProvider(bypassMalwareScan: bypassMalwareScan);
         }
 
-        private async Task<OneOf<(string locationUrl, string hash, long size),Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)
+        private async Task<OneOf<(string locationUrl, string hash, long size), Error>> UploadBlob(AttachmentEntity attachment, Stream stream, StorageProviderEntity? storageProvider, Guid partyUuid, CancellationToken cancellationToken)
         {
             try
             {
