@@ -70,25 +70,21 @@ runs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        apply_tag() {
-          git fetch origin main
-          git checkout -B main origin/main
-          current="$(yq '.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag' "$file")"
-          if [ "$current" = "$IMAGE_TAG" ]; then
-            echo "Already at ${IMAGE_TAG} for ${ENVIRONMENT}."
-            return 0
-          fi
+        current="$(yq '.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag' "$file")"
+        if [ "$current" = "$IMAGE_TAG" ]; then
+          echo "Already at ${IMAGE_TAG} for ${ENVIRONMENT}."
+        else
           yq -i '(.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag) = strenv(IMAGE_TAG)' "$file"
           git add "$file"
           git commit -m "chore: update image tags to ${IMAGE_TAG} for ${ENVIRONMENT}"
-          git push origin HEAD:refs/heads/main
-        }
+        fi
 
         for attempt in 1 2 3 4 5; do
-          if apply_tag; then
+          if git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"; then
             exit 0
           fi
           echo "Push rejected, retrying (${attempt})..."
+          git pull --rebase "origin" "${GITHUB_REF_NAME}"
           sleep $((attempt * 2))
         done
         echo "::error::Failed to push image tag update after 5 attempts"
