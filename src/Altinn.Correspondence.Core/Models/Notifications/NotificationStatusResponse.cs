@@ -30,6 +30,9 @@ public class NotificationStatusResponse
     [JsonPropertyName("ignoreReservation")]
     public bool? IgnoreReservation { get; set; }
 
+    [JsonPropertyName("useStaleContactInformation")]
+    public bool? UseStaleContactInformation { get; set; }
+
     [JsonPropertyName("resourceId")]
     public string? ResourceId { get; set; }
 
