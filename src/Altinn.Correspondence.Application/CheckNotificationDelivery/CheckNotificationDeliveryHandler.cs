@@ -14,7 +14,6 @@ using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OneOf;
-using System.Text.Json;
 
 namespace Altinn.Correspondence.Application.CheckNotificationDelivery;
 
@@ -112,7 +111,7 @@ public class CheckNotificationDeliveryHandler(
                 var failedRecipients = notificationDetailsV2.Recipients.Where(r => r.Status.IsFailed()).ToList();
                 var sentRecipients = notificationDetailsV2.Recipients.Where(r => r.IsSent()).ToList();
                 var allFailed = failedRecipients.Any() && notificationDetailsV2.Recipients.All(r => r.Status.IsFailed());
-                var orderRequest = DeserializeOrderRequest(notification);
+                var orderRequest = notification.GetOrderRequest();
                 var isMainOrder = IsMainOrder(orderRequest, correspondence.Recipient);
                 var eventSource = NotificationEventSource.From(correspondence, orderRequest);
 
@@ -213,12 +212,6 @@ public class CheckNotificationDeliveryHandler(
     private static readonly string[] FinalOrderStatuses = ["Order_Completed", "Order_SendConditionNotMet", "Order_Cancelled"];
 
     private static bool IsFinalOrderStatus(string? status) => status is not null && FinalOrderStatuses.Contains(status);
-
-    private static NotificationOrderRequestV2? DeserializeOrderRequest(CorrespondenceNotificationEntity notification)
-    {
-        if (notification.OrderRequest == null) return null;
-        return JsonSerializer.Deserialize<NotificationOrderRequestV2>(notification.OrderRequest);
-    }
 
     private static bool IsMainOrder(NotificationOrderRequestV2? order, string correspondenceRecipient)
     {

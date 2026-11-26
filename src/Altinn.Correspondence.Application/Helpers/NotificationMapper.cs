@@ -102,6 +102,7 @@ public class NotificationMapper
             NotificationChannel = notification.NotificationChannel,
             ResourceId = correspondence.ResourceId,
             IgnoreReservation = correspondence.IgnoreReservation ?? false,
+            UseStaleContactInformation = notification.GetOrderRequest()?.Recipient.RecipientPerson?.UseStaleContactInformation,
             ProcessingStatus = new StatusExt
             {
                 Status = notificationDetails.Status,
