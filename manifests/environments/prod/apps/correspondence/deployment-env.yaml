@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: correspondence
+spec:
+  template:
+    spec:
+      containers:
+        - name: correspondence
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: production
+            - name: AzureResourceManagerOptions__SubscriptionId
+              value: 09119c04-8e85-4309-8c00-32bc0ef436f0

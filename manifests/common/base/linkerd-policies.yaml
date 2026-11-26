@@ -1,0 +1,128 @@
+# Linkerd inbound authorization for correspondence pods (port 2525).
+#
+# defaultInboundPolicy is deny, so :2525 is default-deny. Access is scoped per
+# HTTP route, so the kubelet reaches only its probe path — never the application:
+#   - "/"        -> mesh (mTLS) identity: correspondence itself, the arbeidsflate
+#                   BFF, and traefik ingress. This is all real traffic, including
+#                   /health for availability checks from outside (for example
+#                   through the dis edge proxy).
+#   - exactly /healthz -> the kubelet, for startup, liveness, and readiness.
+#                   Exact paths keep node-sourced traffic off everything else.
+#
+# Correspondence exposes /health (database check) and /healthz (process check).
+# Probes use /healthz so /health stays on the catch-all and remains reachable
+# through Traefik. Linkerd matches paths case-sensitively and ASP.NET routing
+# does not, so "/Healthz" arrives via "/": this split keeps node traffic off the
+# API, it does not hide health.
+#
+# Defining HTTPRoutes replaces the Server's default catch-all, so "/" is an
+# explicit catch-all (every request except the probe path matches it). Node subnet on
+# dis-core clusters is 10.205.0.0/16 (+ fd12:2291:d70a::/48), verified on
+# at22/at23 — deliberately not the pod subnet (10.240.0.0/16).
+apiVersion: policy.linkerd.io/v1beta3
+kind: Server
+metadata:
+  name: correspondence-http
+  labels:
+    app.kubernetes.io/part-of: correspondence
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: correspondence
+  port: 2525
+  proxyProtocol: HTTP/1
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: correspondence-mesh-authn
+  labels:
+    app.kubernetes.io/part-of: correspondence
+spec:
+  identities:
+    # Correspondence API and the suspended migration job.
+    - "*.product-correspondence.serviceaccount.identity.linkerd.cluster.local"
+    # Arbeidsflate BFF.
+    - "bff.product-arbeidsflate.serviceaccount.identity.linkerd.cluster.local"
+    # Ingress — covers all external traffic, which reaches us via traefik.
+    - "altinn-traefik.traefik.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: NetworkAuthentication
+metadata:
+  name: correspondence-kubelet
+  labels:
+    app.kubernetes.io/part-of: correspondence
+spec:
+  # Node subnet (kubelet source) — excludes the pod subnet (10.240.0.0/16).
+  networks:
+    - cidr: 10.205.0.0/16
+    - cidr: fd12:2291:d70a::/48
+---
+# Catch-all route: everything except the probe path, authorized by mesh identity below.
+apiVersion: policy.linkerd.io/v1beta3
+kind: HTTPRoute
+metadata:
+  name: correspondence-app
+  labels:
+    app.kubernetes.io/part-of: correspondence
+spec:
+  parentRefs:
+    - group: policy.linkerd.io
+      kind: Server
+      name: correspondence-http
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+---
+# Probe route: exactly /healthz, which startup, liveness, and readiness all use.
+apiVersion: policy.linkerd.io/v1beta3
+kind: HTTPRoute
+metadata:
+  name: correspondence-health
+  labels:
+    app.kubernetes.io/part-of: correspondence
+spec:
+  parentRefs:
+    - group: policy.linkerd.io
+      kind: Server
+      name: correspondence-http
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /healthz
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: correspondence-allow-meshed
+  labels:
+    app.kubernetes.io/part-of: correspondence
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: HTTPRoute
+    name: correspondence-app
+  requiredAuthenticationRefs:
+    - group: policy.linkerd.io
+      kind: MeshTLSAuthentication
+      name: correspondence-mesh-authn
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: correspondence-allow-kubelet
+  labels:
+    app.kubernetes.io/part-of: correspondence
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: HTTPRoute
+    name: correspondence-health
+  requiredAuthenticationRefs:
+    - group: policy.linkerd.io
+      kind: NetworkAuthentication
+      name: correspondence-kubelet

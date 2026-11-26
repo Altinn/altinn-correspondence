@@ -84,15 +84,21 @@ jobs:
     needs: [deploy, get-version]
     if: ${{ inputs.environment == 'at23' && needs.deploy.result == 'success' }}
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     permissions:
-      contents: read
+      contents: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: main
 
-      - name: Dispatch update manifests
+      - name: Update manifest image tag
         uses: ./.github/actions/update-manifests
         with:
           environment: ${{ inputs.environment }}
           imageTag: ${{ needs.get-version.outputs.imageTag }}
-          MANIFESTS_PAT: ${{ secrets.MANIFESTS_PAT }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

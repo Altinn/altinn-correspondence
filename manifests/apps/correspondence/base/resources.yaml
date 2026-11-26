@@ -1,0 +1,217 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: correspondence
+  labels:
+    app.kubernetes.io/name: correspondence
+    app.kubernetes.io/part-of: correspondence
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: correspondence
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: correspondence
+        app.kubernetes.io/part-of: correspondence
+        azure.workload.identity/use: "true"
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        linkerd.io/inject: enabled
+    spec:
+      serviceAccountName: correspondence
+      containers:
+        - name: correspondence
+          image: ghcr.io/altinn/altinn-correspondence:set-by-ci
+          ports:
+            - name: http
+              containerPort: 2525
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+            limits:
+              cpu: "500m"
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 2
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: set-by-env
+            - name: ASPNETCORE_URLS
+              value: http://+:2525
+            - name: OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION
+              value: "true"
+            # JWK rotation restarts Azure Container Apps. Leave it off until that
+            # flow has a Kubernetes equivalent.
+            - name: MaskinportenJwkRotationSettings__Enabled
+              value: "false"
+            - name: AzureResourceManagerOptions__SubscriptionId
+              value: set-by-env
+            - name: AltinnOptions__PlatformSubscriptionKey
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: platform-subscription-key
+            - name: AltinnOptions__AccessManagementSubscriptionKey
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: access-management-subscription-key
+            - name: MaskinportenSettings__ClientId
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: maskinporten-client-id
+            - name: MaskinportenSettings__EncodedJwk
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: maskinporten-jwk
+            - name: GeneralSettings__SlackUrl
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: slack-url
+            - name: AltinnIdProviderSettings__ClientId
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: altinn-idprovider-client-id
+            - name: AltinnIdProviderSettings__ClientSecret
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: altinn-idprovider-client-secret
+            - name: StatisticsApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: statistics-api-key
+            - name: GeneralSettings__MalwareScanBypassWhiteList
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: malware-scan-bypass-white-list
+            - name: DatabaseOptions__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: correspondence-ado-connection-string
+            - name: AttachmentStorageOptions__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: storage-connection-string
+            - name: GeneralSettings__RedisConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: redis-connection-string
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: application-insights-connection-string
+            - name: GeneralSettings__ApplicationInsightsConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: correspondence-secrets
+                  key: application-insights-connection-string
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: correspondence
+  labels:
+    app.kubernetes.io/name: correspondence
+    app.kubernetes.io/part-of: correspondence
+spec:
+  selector:
+    app.kubernetes.io/name: correspondence
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: correspondence
+  labels:
+    app.kubernetes.io/name: correspondence
+    app.kubernetes.io/part-of: correspondence
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: correspondence
+          port: 80
+      filters:
+        - requestHeaderModifier:
+            set:
+              - name: l5d-dst-override
+                value: correspondence.product-correspondence.svc.cluster.local:80
+          type: RequestHeaderModifier
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: correspondence
+  labels:
+    app.kubernetes.io/name: correspondence
+    app.kubernetes.io/part-of: correspondence
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: correspondence
+  minReplicaCount: 1
+  maxReplicaCount: 1
+  triggers:
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
+    - type: memory
+      metricType: Utilization
+      metadata:
+        value: "70"
+---
+apiVersion: application.dis.altinn.cloud/v1alpha1
+kind: ApplicationIdentity
+metadata:
+  name: correspondence
+  labels:
+    app.kubernetes.io/name: correspondence
+    app.kubernetes.io/part-of: correspondence
+spec: {}

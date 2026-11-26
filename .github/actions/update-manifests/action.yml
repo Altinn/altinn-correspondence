@@ -1,5 +1,5 @@
-name: "Dispatch update manifests"
-description: "Dispatch update_all_image_tags to correspondence-manifests"
+name: "Update manifest image tag"
+description: "Set an environment image tag and publish the Flux OCI artifact"
 
 inputs:
   environment:
@@ -8,8 +8,14 @@ inputs:
   imageTag:
     description: "Image tag to set (e.g., 1.3.0-8e5441a)"
     required: true
-  MANIFESTS_PAT:
-    description: "Token that can send repository_dispatch to correspondence-manifests"
+  AZURE_CLIENT_ID:
+    description: "Client ID of the app registration trusted by this workflow's federated credential"
+    required: true
+  AZURE_TENANT_ID:
+    description: "Tenant ID for Azure login"
+    required: true
+  AZURE_SUBSCRIPTION_ID:
+    description: "Subscription ID for the registry"
     required: true
 
 runs:
@@ -31,10 +37,78 @@ runs:
           exit 1
         fi
 
-    - name: Dispatch repository event
-      uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+    - name: Install yq
+      shell: bash
+      env:
+        YQ_VERSION: v4.53.3
+      run: |
+        set -euo pipefail
+        case "$(uname -m)" in
+          x86_64) arch=amd64 ;;
+          aarch64 | arm64) arch=arm64 ;;
+          *) echo "::error::Unsupported architecture: $(uname -m)"; exit 1 ;;
+        esac
+        dest="${RUNNER_TEMP:-/tmp}/yq-bin"
+        mkdir -p "$dest"
+        curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${arch}" -o "$dest/yq"
+        chmod +x "$dest/yq"
+        echo "$dest" >> "$GITHUB_PATH"
+
+    - name: Update image tag
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        IMAGE_TAG: ${{ inputs.imageTag }}
+      run: |
+        set -euo pipefail
+        file="manifests/environments/${ENVIRONMENT}/kustomization.yaml"
+        if [ ! -f "$file" ]; then
+          echo "::error::File not found: $file"
+          exit 1
+        fi
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        apply_tag() {
+          git fetch origin main
+          git checkout -B main origin/main
+          current="$(yq '.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag' "$file")"
+          if [ "$current" = "$IMAGE_TAG" ]; then
+            echo "Already at ${IMAGE_TAG} for ${ENVIRONMENT}."
+            return 0
+          fi
+          yq -i '(.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag) = strenv(IMAGE_TAG)' "$file"
+          git add "$file"
+          git commit -m "chore: update image tags to ${IMAGE_TAG} for ${ENVIRONMENT}"
+          git push origin HEAD:refs/heads/main
+        }
+
+        for attempt in 1 2 3 4 5; do
+          if apply_tag; then
+            exit 0
+          fi
+          echo "Push rejected, retrying (${attempt})..."
+          sleep $((attempt * 2))
+        done
+        echo "::error::Failed to push image tag update after 5 attempts"
+        exit 1
+
+    - name: Publish app manifests artifact
+      uses: Altinn/altinn-platform/actions/flux/build-push-image@523f141da4f116fdd7331585396d83a5d7ade7ea # main
       with:
-        token: ${{ inputs.MANIFESTS_PAT }}
-        repository: altinn/correspondence-manifests
-        event-type: update_all_image_tags
-        client-payload: '{"image_tag": "${{ inputs.imageTag }}", "environment": "${{ inputs.environment }}"}'
+        image_name: correspondence/correspondence-sync
+        tag: main
+        workdir: ./manifests
+        azure_subscription_id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        azure_app_id: ${{ inputs.AZURE_CLIENT_ID }}
+        azure_tenant_id: ${{ inputs.AZURE_TENANT_ID }}
+
+    - name: Trigger Flux reconcile
+      if: inputs.environment == 'at23'
+      continue-on-error: true
+      uses: Altinn/altinn-platform/actions/flux/trigger-reconcile@96629ce10dc68e839968fbae100e7372c46d1454 # main
+      with:
+        url: https://ops.${{ inputs.environment }}.dis.altinn.cloud/flux-webhook
+        receiver_name: correspondence-manifests
+        receiver_namespace: product-correspondence
