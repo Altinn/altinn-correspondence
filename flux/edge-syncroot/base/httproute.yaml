@@ -1,0 +1,33 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: correspondence
+  namespace: product-correspondence
+  labels:
+    correspondence.digdir.no/sync-test: "edge-syncroot"
+spec:
+  # Placeholders: the public hostname and the rewrite hostname are set per environment in the overlay.
+  hostnames:
+    - "platform.placeholder.invalid"
+  parentRefs:
+    - name: eg
+      namespace: envoy-gateway-system
+      sectionName: https
+  rules:
+    - name: default
+      matches:
+        - path:
+            type: PathPrefix
+            value: /correspondence
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            hostname: correspondence.placeholder.invalid
+      # Disabled. Correspondence accepts large attachment uploads, and the
+      # Envoy Gateway default of 15s cuts those off.
+      timeouts:
+        request: 0s
+      backendRefs:
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: corr-dis-upstream

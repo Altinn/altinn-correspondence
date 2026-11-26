@@ -4,16 +4,13 @@ resources:
   - ../base
 patches:
   - target:
-      kind: OCIRepository
-      name: broker-app-sync
+      kind: Kustomization
+      name: correspondence-apps
     patch: |-
-      - op: replace
-        path: /spec/ref/tag
-        value: prod
-  - target:
-      kind: OCIRepository
-      name: correspondence-app-sync
-    patch: |-
-      - op: replace
-        path: /spec/ref/tag
-        value: prod
+      apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: correspondence-apps
+        namespace: product-correspondence
+      spec:
+        path: ./environments/prod

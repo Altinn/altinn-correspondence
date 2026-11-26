@@ -1,0 +1,21 @@
+# Routes the edge HTTPRoute through the old APIM instead of straight to dis-core.
+# The Backend and BackendTLSPolicy for APIM are owned by the platform team
+# (platform/platform-upstream and platform/platform-upstream-tls), so we only
+# reference them. The cross-namespace backendRef needs a ReferenceGrant in the
+# platform namespace. APIM must forward the /correspondence prefix: the API
+# controllers are routed at /correspondence/api/v1 and do not strip a path base.
+# Remove this component from an overlay to cut that environment over to corr-dis-upstream.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target:
+      kind: HTTPRoute
+      name: correspondence
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/backendRefs/0
+        value:
+          group: gateway.envoyproxy.io
+          kind: Backend
+          name: platform-upstream
+          namespace: platform

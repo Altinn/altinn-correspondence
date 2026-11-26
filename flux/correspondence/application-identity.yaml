@@ -1,5 +1,0 @@
-apiVersion: application.dis.altinn.cloud/v1alpha1
-kind: ApplicationIdentity
-metadata:
-  name: app-identity
-spec: {}

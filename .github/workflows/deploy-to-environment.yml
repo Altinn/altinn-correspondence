@@ -78,3 +78,21 @@ jobs:
         MAINTENANCE_AD_GROUP_NAME: ${{ secrets.MAINTENANCE_AD_GROUP_NAME }}
         GRAFANA_MONITORING_PRINCIPAL_ID: ${{ secrets.GRAFANA_MONITORING_PRINCIPAL_ID }}
         CORRESPONDENCE_BLOB_GROUP_ID: ${{ secrets.CORRESPONDENCE_BLOB_GROUP_ID }}
+
+  update-manifests:
+    name: Update manifest image tags for at23
+    needs: [deploy, get-version]
+    if: ${{ inputs.environment == 'at23' && needs.deploy.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Dispatch update manifests
+        uses: ./.github/actions/update-manifests
+        with:
+          environment: ${{ inputs.environment }}
+          imageTag: ${{ needs.get-version.outputs.imageTag }}
+          MANIFESTS_PAT: ${{ secrets.MANIFESTS_PAT }}

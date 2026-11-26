@@ -1,0 +1,31 @@
+# Lets the Publish Flux artifacts workflow ask Flux to fetch a new app artifact
+# now instead of at the next poll (RFC 0017). The caller authenticates with its
+# GitHub Actions OIDC token; no secret is shared. Only the at23 overlay has
+# this Receiver: a cluster without Flux 2.9 rejects the generic-oidc type.
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: correspondence-manifests
+  namespace: product-correspondence
+spec:
+  type: generic-oidc
+  oidcProviders:
+    - issuerURL: https://token.actions.githubusercontent.com
+      # The webhook endpoint of at23 on the DIS edge gateway. The action asks
+      # for a token with this audience, so a token for another environment is
+      # not accepted here.
+      audience: https://ops.at23.dis.altinn.cloud/flux-webhook
+      validations:
+        # Altinn/correspondence-manifests. GitHub issues tokens to every
+        # repository, so the caller must be pinned. The numeric ids cannot be
+        # reused after a rename or transfer; the names can.
+        - expression: claims.repository_owner_id == '5949420' && claims.repository_id == '1445489683'
+          message: token is not issued to Altinn/correspondence-manifests
+        # Same boundary as the identity that may push the artifact.
+        - expression: claims.ref == 'refs/heads/main'
+          message: token is not issued for the main branch
+  resources:
+    # The Kustomization reconciles by itself when this source gets a new revision.
+    - apiVersion: source.toolkit.fluxcd.io/v1
+      kind: OCIRepository
+      name: correspondence-manifests
