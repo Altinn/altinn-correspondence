@@ -100,6 +100,17 @@ runs:
         azure_app_id: ${{ inputs.AZURE_CLIENT_ID }}
         azure_tenant_id: ${{ inputs.AZURE_TENANT_ID }}
 
+    - name: Publish syncroot artifact
+      if: inputs.environment == 'at23'
+      uses: Altinn/altinn-platform/actions/flux/build-push-image@523f141da4f116fdd7331585396d83a5d7ade7ea # main
+      with:
+        image_name: correspondence/syncroot
+        tag: at23
+        workdir: ./flux/syncroot
+        azure_subscription_id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        azure_app_id: ${{ inputs.AZURE_CLIENT_ID }}
+        azure_tenant_id: ${{ inputs.AZURE_TENANT_ID }}
+
     - name: Trigger Flux reconcile
       if: inputs.environment == 'at23'
       continue-on-error: true
