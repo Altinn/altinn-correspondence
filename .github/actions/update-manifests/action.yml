@@ -119,3 +119,95 @@ runs:
         url: https://ops.${{ inputs.environment }}.dis.altinn.cloud/flux-webhook
         receiver_name: correspondence-manifests
         receiver_namespace: product-correspondence
+
+    - name: Log in to Azure for rollout check
+      if: inputs.environment == 'at23'
+      uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+      with:
+        client-id: ${{ inputs.AZURE_CLIENT_ID }}
+        tenant-id: ${{ inputs.AZURE_TENANT_ID }}
+        subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+
+    # A ready old pod keeps serving during a rolling update, so the job has to
+    # watch the new image. The previous pod staying Ready is not success.
+    - name: Wait for correspondence rollout
+      if: inputs.environment == 'at23'
+      shell: bash
+      env:
+        IMAGE_TAG: ${{ inputs.imageTag }}
+        AKS_SUBSCRIPTION_ID: de41df22-8dd0-435b-98dd-6152cd371e92
+        AKS_RESOURCE_GROUP: dis-core-at23-aks-rg
+        AKS_CLUSTER_NAME: dis-core-at23-aks
+      run: |
+        set -euo pipefail
+
+        namespace=product-correspondence
+        deployment=correspondence
+        container=correspondence
+        expected="ghcr.io/altinn/altinn-correspondence:${IMAGE_TAG}"
+
+        aks_cli="${RUNNER_TEMP:-/tmp}/aks-cli"
+        mkdir -p "$aks_cli"
+        export PATH="$aks_cli:$PATH"
+        if ! az aks install-cli --install-location "$aks_cli/kubectl" --kubelogin-install-location "$aks_cli/kubelogin"; then
+          echo "::error::Failed to install kubectl"
+          exit 1
+        fi
+
+        if ! az aks get-credentials \
+          --subscription "$AKS_SUBSCRIPTION_ID" \
+          --resource-group "$AKS_RESOURCE_GROUP" \
+          --name "$AKS_CLUSTER_NAME" \
+          --overwrite-existing; then
+          echo "::error::Cannot read ${AKS_CLUSTER_NAME}. The at23 deploy identity needs Azure Kubernetes Service Cluster User Role on ${AKS_RESOURCE_GROUP}/${AKS_CLUSTER_NAME}, and Kubernetes permission to get deployments and pod logs in ${namespace}."
+          exit 1
+        fi
+        kubelogin convert-kubeconfig -l azurecli
+
+        dump_new_pods() {
+          echo "::group::Correspondence pods"
+          kubectl get pods -n "$namespace" -l app.kubernetes.io/name=correspondence -o wide || true
+          echo "::endgroup::"
+
+          local pods pod image ready
+          pods="$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=correspondence -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' || true)"
+          while IFS= read -r pod; do
+            if [ -z "$pod" ]; then
+              continue
+            fi
+            image="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath="{.spec.containers[?(@.name==\"${container}\")].image}" || true)"
+            ready="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath="{.status.containerStatuses[?(@.name==\"${container}\")].ready}" || true)"
+            if [ "$image" = "$expected" ] && [ "$ready" != "true" ]; then
+              echo "::group::Logs for ${pod}"
+              kubectl logs -n "$namespace" "$pod" -c "$container" --tail=200 --previous || true
+              kubectl logs -n "$namespace" "$pod" -c "$container" --tail=80 || true
+              echo "::endgroup::"
+            fi
+          done <<< "$pods"
+        }
+
+        echo "Waiting for Flux to set ${deployment} image to ${expected}"
+        deadline=$((SECONDS + 900))
+        while true; do
+          current="$(kubectl get deployment "$deployment" -n "$namespace" -o jsonpath="{.spec.template.spec.containers[?(@.name==\"${container}\")].image}")"
+          if [ "$current" = "$expected" ]; then
+            echo "Deployment image is ${current}"
+            break
+          fi
+          if [ "$SECONDS" -ge "$deadline" ]; then
+            echo "::error::Timed out waiting for ${deployment} to use ${expected}. Current image is ${current}."
+            dump_new_pods
+            exit 1
+          fi
+          echo "Current image is ${current}"
+          sleep 15
+        done
+
+        echo "Waiting for ${deployment} rollout"
+        if ! kubectl rollout status "deployment/${deployment}" -n "$namespace" --timeout=10m; then
+          echo "::error::${deployment} did not become ready on ${expected}"
+          dump_new_pods
+          exit 1
+        fi
+
+        echo "${deployment} is ready on ${expected}"

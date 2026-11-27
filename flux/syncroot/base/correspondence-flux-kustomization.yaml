@@ -5,6 +5,13 @@ metadata:
   namespace: product-correspondence
 spec:
   interval: 10m
+  timeout: 15m
+  wait: true
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: correspondence
+      namespace: product-correspondence
   path: ./environments/at23
   prune: true
   sourceRef:
