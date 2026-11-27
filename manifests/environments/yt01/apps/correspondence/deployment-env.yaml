@@ -12,3 +12,5 @@ spec:
               value: yt01
             - name: AzureResourceManagerOptions__SubscriptionId
               value: cc6b5886-36af-4d54-9d30-1b0fffc736d8
+            - name: DatabaseOptions__ConnectionString
+              value: Host=altinn-corr-yt01-dbserver.postgres.database.azure.com;Database=correspondence;Port=5432;Username=product-correspondence-correspondence;Ssl Mode=Require;Maximum Pool Size=25;options=-c role=azure_pg_admin;

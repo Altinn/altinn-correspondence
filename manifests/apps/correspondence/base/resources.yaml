@@ -112,11 +112,6 @@ spec:
                 secretKeyRef:
                   name: correspondence-secrets
                   key: malware-scan-bypass-white-list
-            - name: DatabaseOptions__ConnectionString
-              valueFrom:
-                secretKeyRef:
-                  name: correspondence-secrets
-                  key: correspondence-ado-connection-string
             - name: AttachmentStorageOptions__ConnectionString
               valueFrom:
                 secretKeyRef:
