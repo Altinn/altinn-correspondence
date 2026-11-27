@@ -72,22 +72,36 @@ runs:
 
         current="$(yq '.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag' "$file")"
         if [ "$current" = "$IMAGE_TAG" ]; then
-          echo "Already at ${IMAGE_TAG} for ${ENVIRONMENT}."
-        else
-          yq -i '(.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag) = strenv(IMAGE_TAG)' "$file"
-          git add "$file"
-          git commit -m "chore: update image tags to ${IMAGE_TAG} for ${ENVIRONMENT}"
+          echo "Already at ${IMAGE_TAG} for ${ENVIRONMENT}. Leaving ${GITHUB_REF_NAME} unchanged."
+          exit 0
         fi
 
+        # One long-lived branch per environment. The tag commit is not a
+        # descendant of the previous deploy, so the branch pointer is moved
+        # with --force-with-lease. Pull requests and main stay unchanged.
+        branch="deploy/${ENVIRONMENT}"
+        remote_ref="refs/remotes/origin/${branch}"
+        if [ "$(git branch --show-current)" != "$branch" ]; then
+          git switch -c "$branch"
+        fi
+        yq -i '(.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag) = strenv(IMAGE_TAG)' "$file"
+        git add "$file"
+        git commit -m "chore: update image tags to ${IMAGE_TAG} for ${ENVIRONMENT}"
+
         for attempt in 1 2 3 4 5; do
-          if git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"; then
+          if git fetch --no-tags origin "+refs/heads/${branch}:${remote_ref}"; then
+            if git push --force-with-lease="refs/heads/${branch}:${remote_ref}" origin "HEAD:refs/heads/${branch}"; then
+              echo "Updated ${branch} to this deploy. Later steps publish this checkout."
+              exit 0
+            fi
+          elif git push origin "HEAD:refs/heads/${branch}"; then
+            echo "Created ${branch} for this deploy. Later steps publish this checkout."
             exit 0
           fi
           echo "Push rejected, retrying (${attempt})..."
-          git pull --rebase "origin" "${GITHUB_REF_NAME}"
           sleep $((attempt * 2))
         done
-        echo "::error::Failed to push image tag update after 5 attempts"
+        echo "::error::Failed to update ${branch} after 5 attempts"
         exit 1
 
     - name: Publish app manifests artifact
