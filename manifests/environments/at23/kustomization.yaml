@@ -9,4 +9,4 @@ patches:
   - path: secretstore-vault-url.yaml
 images:
   - name: ghcr.io/altinn/altinn-correspondence
-    newTag: 1.3.0-971e9ee
+    newTag: 1.3.0-bf4311d
