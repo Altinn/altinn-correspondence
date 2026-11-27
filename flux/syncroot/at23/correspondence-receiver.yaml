@@ -16,14 +16,15 @@ spec:
       # not accepted here.
       audience: https://ops.at23.dis.altinn.cloud/flux-webhook
       validations:
-        # Altinn/correspondence-manifests. GitHub issues tokens to every
+        # Altinn/altinn-correspondence. GitHub issues tokens to every
         # repository, so the caller must be pinned. The numeric ids cannot be
         # reused after a rename or transfer; the names can.
-        - expression: claims.repository_owner_id == '5949420' && claims.repository_id == '1445489683'
-          message: token is not issued to Altinn/correspondence-manifests
-        # Same boundary as the identity that may push the artifact.
-        - expression: claims.ref == 'refs/heads/main'
-          message: token is not issued for the main branch
+        - expression: claims.repository_owner_id == '5949420' && claims.repository_id == '587270941'
+          message: token is not issued to Altinn/altinn-correspondence
+        # The update job sets the at23 GitHub environment, so the subject is
+        # repo:Altinn/altinn-correspondence:environment:at23 on any branch.
+        - expression: claims.sub == 'repo:Altinn/altinn-correspondence:environment:at23'
+          message: token is not issued for the at23 GitHub environment
   resources:
     # The Kustomization reconciles by itself when this source gets a new revision.
     - apiVersion: source.toolkit.fluxcd.io/v1
