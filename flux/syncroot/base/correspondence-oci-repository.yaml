@@ -1,12 +1,11 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: correspondence-sync
-  namespace: correspondence
+  name: correspondence-manifests
+  namespace: product-correspondence
 spec:
-  interval: 5m0s
+  interval: 10m
   provider: azure
+  url: oci://altinncr.azurecr.io/correspondence/correspondence-sync
   ref:
     tag: main
-  timeout: 5m0s
-  url: oci://altinncr.azurecr.io/corr/correspondence-sync

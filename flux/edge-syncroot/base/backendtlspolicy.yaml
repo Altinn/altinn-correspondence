@@ -1,0 +1,14 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: corr-dis-upstream-tls
+  namespace: product-correspondence
+spec:
+  targetRefs:
+    - group: gateway.envoyproxy.io
+      kind: Backend
+      name: corr-dis-upstream
+  validation:
+    wellKnownCACertificates: System
+    # Placeholder: set per environment in the overlay.
+    hostname: correspondence.placeholder.invalid

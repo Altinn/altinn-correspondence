@@ -1,0 +1,229 @@
+name: "Update manifest image tag"
+description: "Set an environment image tag and publish the Flux OCI artifact"
+
+inputs:
+  environment:
+    description: "Target environment (yt01, tt02, at23, prod)"
+    required: true
+  imageTag:
+    description: "Image tag to set (e.g., 1.3.0-8e5441a)"
+    required: true
+  AZURE_CLIENT_ID:
+    description: "Client ID of the app registration trusted by this workflow's federated credential"
+    required: true
+  AZURE_TENANT_ID:
+    description: "Tenant ID for Azure login"
+    required: true
+  AZURE_SUBSCRIPTION_ID:
+    description: "Subscription ID for the registry"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate inputs
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        IMAGE_TAG: ${{ inputs.imageTag }}
+      run: |
+        case "$ENVIRONMENT" in
+          yt01|tt02|at23|prod) ;;
+          *) echo "::error::Invalid environment: '$ENVIRONMENT' (must be yt01, tt02, at23, or prod)"; exit 1 ;;
+        esac
+
+        if [[ ! "$IMAGE_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+          echo "::error::Invalid image_tag format: '$IMAGE_TAG' (must match semver with optional SHA suffix, e.g., 1.2.3 or 1.2.3-abc1234)"
+          exit 1
+        fi
+
+    - name: Install yq
+      shell: bash
+      env:
+        YQ_VERSION: v4.53.3
+      run: |
+        set -euo pipefail
+        case "$(uname -m)" in
+          x86_64) arch=amd64 ;;
+          aarch64 | arm64) arch=arm64 ;;
+          *) echo "::error::Unsupported architecture: $(uname -m)"; exit 1 ;;
+        esac
+        dest="${RUNNER_TEMP:-/tmp}/yq-bin"
+        mkdir -p "$dest"
+        curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${arch}" -o "$dest/yq"
+        chmod +x "$dest/yq"
+        echo "$dest" >> "$GITHUB_PATH"
+
+    - name: Update image tag
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        IMAGE_TAG: ${{ inputs.imageTag }}
+      run: |
+        set -euo pipefail
+        file="manifests/environments/${ENVIRONMENT}/kustomization.yaml"
+        if [ ! -f "$file" ]; then
+          echo "::error::File not found: $file"
+          exit 1
+        fi
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        current="$(yq '.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag' "$file")"
+        if [ "$current" = "$IMAGE_TAG" ]; then
+          echo "Already at ${IMAGE_TAG} for ${ENVIRONMENT}. Leaving ${GITHUB_REF_NAME} unchanged."
+          exit 0
+        fi
+
+        # One long-lived branch per environment. The tag commit is not a
+        # descendant of the previous deploy, so the branch pointer is moved
+        # with --force-with-lease. Pull requests and main stay unchanged.
+        branch="deploy/${ENVIRONMENT}"
+        remote_ref="refs/remotes/origin/${branch}"
+        if [ "$(git branch --show-current)" != "$branch" ]; then
+          git switch -c "$branch"
+        fi
+        yq -i '(.images[] | select(.name == "ghcr.io/altinn/altinn-correspondence") | .newTag) = strenv(IMAGE_TAG)' "$file"
+        git add "$file"
+        git commit -m "chore: update image tags to ${IMAGE_TAG} for ${ENVIRONMENT}"
+
+        for attempt in 1 2 3 4 5; do
+          if git fetch --no-tags origin "+refs/heads/${branch}:${remote_ref}"; then
+            if git push --force-with-lease="refs/heads/${branch}:${remote_ref}" origin "HEAD:refs/heads/${branch}"; then
+              echo "Updated ${branch} to this deploy. Later steps publish this checkout."
+              exit 0
+            fi
+          elif git push origin "HEAD:refs/heads/${branch}"; then
+            echo "Created ${branch} for this deploy. Later steps publish this checkout."
+            exit 0
+          fi
+          echo "Push rejected, retrying (${attempt})..."
+          sleep $((attempt * 2))
+        done
+        echo "::error::Failed to update ${branch} after 5 attempts"
+        exit 1
+
+    - name: Publish app manifests artifact
+      uses: Altinn/altinn-platform/actions/flux/build-push-image@523f141da4f116fdd7331585396d83a5d7ade7ea # main
+      with:
+        image_name: correspondence/correspondence-sync
+        tag: main
+        workdir: ./manifests
+        azure_subscription_id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        azure_app_id: ${{ inputs.AZURE_CLIENT_ID }}
+        azure_tenant_id: ${{ inputs.AZURE_TENANT_ID }}
+
+    - name: Publish syncroot artifact
+      if: inputs.environment == 'at23'
+      uses: Altinn/altinn-platform/actions/flux/build-push-image@523f141da4f116fdd7331585396d83a5d7ade7ea # main
+      with:
+        image_name: correspondence/syncroot
+        tag: at23
+        workdir: ./flux/syncroot
+        azure_subscription_id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        azure_app_id: ${{ inputs.AZURE_CLIENT_ID }}
+        azure_tenant_id: ${{ inputs.AZURE_TENANT_ID }}
+
+    - name: Trigger Flux reconcile
+      if: inputs.environment == 'at23'
+      continue-on-error: true
+      uses: Altinn/altinn-platform/actions/flux/trigger-reconcile@96629ce10dc68e839968fbae100e7372c46d1454 # main
+      with:
+        url: https://ops.${{ inputs.environment }}.dis.altinn.cloud/flux-webhook
+        receiver_name: correspondence-manifests
+        receiver_namespace: product-correspondence
+
+    # Temporarily disabled, see comment below
+    - name: Log in to Azure for rollout check
+      if: inputs.environment == 'at23' && false
+      uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+      with:
+        client-id: ${{ inputs.AZURE_CLIENT_ID }}
+        tenant-id: ${{ inputs.AZURE_TENANT_ID }}
+        subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+
+    # A ready old pod keeps serving during a rolling update, so the job has to
+    # watch the new image. The previous pod staying Ready is not success.
+    # Temporarily disabled because the deploy identity needs Azure Kubernetes Service Cluster User Role on dis-core-at23-aks-rg/dis-core-at23-aks, and Kubernetes permission to get deployments and pod logs in product-correspondence
+    - name: Wait for correspondence rollout
+      if: inputs.environment == 'at23' && false
+      shell: bash
+      env:
+        IMAGE_TAG: ${{ inputs.imageTag }}
+        AKS_SUBSCRIPTION_ID: de41df22-8dd0-435b-98dd-6152cd371e92
+        AKS_RESOURCE_GROUP: dis-core-at23-aks-rg
+        AKS_CLUSTER_NAME: dis-core-at23-aks
+      run: |
+        set -euo pipefail
+
+        namespace=product-correspondence
+        deployment=correspondence
+        container=correspondence
+        expected="ghcr.io/altinn/altinn-correspondence:${IMAGE_TAG}"
+
+        aks_cli="${RUNNER_TEMP:-/tmp}/aks-cli"
+        mkdir -p "$aks_cli"
+        export PATH="$aks_cli:$PATH"
+        if ! az aks install-cli --install-location "$aks_cli/kubectl" --kubelogin-install-location "$aks_cli/kubelogin"; then
+          echo "::error::Failed to install kubectl"
+          exit 1
+        fi
+
+        if ! az aks get-credentials \
+          --subscription "$AKS_SUBSCRIPTION_ID" \
+          --resource-group "$AKS_RESOURCE_GROUP" \
+          --name "$AKS_CLUSTER_NAME" \
+          --overwrite-existing; then
+          echo "::error::Cannot read ${AKS_CLUSTER_NAME}. The at23 deploy identity needs Azure Kubernetes Service Cluster User Role on ${AKS_RESOURCE_GROUP}/${AKS_CLUSTER_NAME}, and Kubernetes permission to get deployments and pod logs in ${namespace}."
+          exit 1
+        fi
+        kubelogin convert-kubeconfig -l azurecli
+
+        dump_new_pods() {
+          echo "::group::Correspondence pods"
+          kubectl get pods -n "$namespace" -l app.kubernetes.io/name=correspondence -o wide || true
+          echo "::endgroup::"
+
+          local pods pod image ready
+          pods="$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=correspondence -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' || true)"
+          while IFS= read -r pod; do
+            if [ -z "$pod" ]; then
+              continue
+            fi
+            image="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath="{.spec.containers[?(@.name==\"${container}\")].image}" || true)"
+            ready="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath="{.status.containerStatuses[?(@.name==\"${container}\")].ready}" || true)"
+            if [ "$image" = "$expected" ] && [ "$ready" != "true" ]; then
+              echo "::group::Logs for ${pod}"
+              kubectl logs -n "$namespace" "$pod" -c "$container" --tail=200 --previous || true
+              kubectl logs -n "$namespace" "$pod" -c "$container" --tail=80 || true
+              echo "::endgroup::"
+            fi
+          done <<< "$pods"
+        }
+
+        echo "Waiting for Flux to set ${deployment} image to ${expected}"
+        deadline=$((SECONDS + 900))
+        while true; do
+          current="$(kubectl get deployment "$deployment" -n "$namespace" -o jsonpath="{.spec.template.spec.containers[?(@.name==\"${container}\")].image}")"
+          if [ "$current" = "$expected" ]; then
+            echo "Deployment image is ${current}"
+            break
+          fi
+          if [ "$SECONDS" -ge "$deadline" ]; then
+            echo "::error::Timed out waiting for ${deployment} to use ${expected}. Current image is ${current}."
+            dump_new_pods
+            exit 1
+          fi
+          echo "Current image is ${current}"
+          sleep 15
+        done
+
+        echo "Waiting for ${deployment} rollout"
+        if ! kubectl rollout status "deployment/${deployment}" -n "$namespace" --timeout=10m; then
+          echo "::error::${deployment} did not become ready on ${expected}"
+          dump_new_pods
+          exit 1
+        fi
+
+        echo "${deployment} is ready on ${expected}"

@@ -1,0 +1,11 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: corr-dis-upstream
+  namespace: product-correspondence
+spec:
+  endpoints:
+    - fqdn:
+        # Placeholder: set per environment in the overlay.
+        hostname: correspondence.placeholder.invalid
+        port: 443

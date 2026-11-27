@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: migration-job
+  labels:
+    app.kubernetes.io/name: migration-job
+    app.kubernetes.io/part-of: correspondence
+spec:
+  schedule: "0 0 1 1 *"
+  suspend: true
+  # Prevent retroactive runs if someone temporarily unsuspends the CronJob.
+  # On-demand execution should be done by creating a Job from this template.
+  startingDeadlineSeconds: 60
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: migration-job
+            app.kubernetes.io/part-of: correspondence
+            azure.workload.identity/use: "true"
+        spec:
+          restartPolicy: Never
+          serviceAccountName: migration-job
+          containers:
+            - name: migration-job
+              # Same image as the API. The published entrypoint is the API, so
+              # this CronJob stays suspended. Unsuspend only after the image
+              # runs the EF migration bundle.
+              image: ghcr.io/altinn/altinn-correspondence:set-by-ci
+              env:
+                - name: DOTNET_ENVIRONMENT
+                  value: set-by-env
+                - name: ASPNETCORE_ENVIRONMENT
+                  value: set-by-env
+                - name: DatabaseOptions__ConnectionString
+                  valueFrom:
+                    secretKeyRef:
+                      name: correspondence-secrets
+                      key: correspondence-migration-connection-string
+                - name: DatabaseOptions__CommandTimeout
+                  value: "3600"
+                - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+                  value: "1"

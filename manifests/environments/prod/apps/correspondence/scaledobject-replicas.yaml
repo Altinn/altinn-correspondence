@@ -1,0 +1,7 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: correspondence
+spec:
+  minReplicaCount: 5
+  maxReplicaCount: 10

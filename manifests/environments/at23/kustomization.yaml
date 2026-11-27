@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: product-correspondence
+resources:
+  - ../../common/base
+  - apps
+  - jobs
+patches:
+  - path: secretstore-vault-url.yaml
+images:
+  - name: ghcr.io/altinn/altinn-correspondence
+    newTag: 1.3.0-4d7085f

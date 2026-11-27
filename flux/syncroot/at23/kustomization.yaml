@@ -1,4 +1,18 @@
+# syncroot for at23 environment
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../base
+  - correspondence-receiver.yaml
+patches:
+  - target:
+      kind: Kustomization
+      name: correspondence-apps
+    patch: |-
+      apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: correspondence-apps
+        namespace: product-correspondence
+      spec:
+        path: ./environments/at23

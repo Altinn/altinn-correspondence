@@ -1,0 +1,30 @@
+# edge-syncroot for at23 environment
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+patches:
+  - target:
+      kind: Backend
+      name: corr-dis-upstream
+    patch: |-
+      - op: replace
+        path: /spec/endpoints/0/fqdn/hostname
+        value: correspondence.at23.dis-core.altinn.cloud
+  - target:
+      kind: BackendTLSPolicy
+      name: corr-dis-upstream-tls
+    patch: |-
+      - op: replace
+        path: /spec/validation/hostname
+        value: correspondence.at23.dis-core.altinn.cloud
+  - target:
+      kind: HTTPRoute
+      name: correspondence
+    patch: |-
+      - op: replace
+        path: /spec/hostnames/0
+        value: platform.at23.altinn.cloud
+      - op: replace
+        path: /spec/rules/0/filters/0/urlRewrite/hostname
+        value: correspondence.at23.dis-core.altinn.cloud

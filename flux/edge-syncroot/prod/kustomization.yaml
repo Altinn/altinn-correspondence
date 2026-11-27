@@ -1,0 +1,33 @@
+# edge-syncroot for prod environment. Traffic goes through APIM (platform.altinn.no)
+# via the platform-owned Backend; corr-dis-upstream is kept ready for the cutover.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+components:
+  - ../components/platform-apim
+patches:
+  - target:
+      kind: Backend
+      name: corr-dis-upstream
+    patch: |-
+      - op: replace
+        path: /spec/endpoints/0/fqdn/hostname
+        value: correspondence.prod.dis-core.altinn.no
+  - target:
+      kind: BackendTLSPolicy
+      name: corr-dis-upstream-tls
+    patch: |-
+      - op: replace
+        path: /spec/validation/hostname
+        value: correspondence.prod.dis-core.altinn.no
+  - target:
+      kind: HTTPRoute
+      name: correspondence
+    patch: |-
+      - op: replace
+        path: /spec/hostnames/0
+        value: platform.altinn.no
+      - op: replace
+        path: /spec/rules/0/filters/0/urlRewrite/hostname
+        value: platform.altinn.no
